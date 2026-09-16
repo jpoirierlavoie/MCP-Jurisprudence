@@ -238,7 +238,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   canlii_get_case: {
     title: "Fiche d'une décision",
     description:
-      "Fiche officielle d'une décision : intitulé, citation, date, numéro de dossier de cour, " +
+      "Fiche CanLII d'une décision : intitulé, citation, date, numéro de dossier de cour, " +
       "mots-clés et hyperlien canlii.ca. Accepte soit une citation (« 2020 QCCA 495 »), soit " +
       "le couple database_id + case_id. Ne renvoie PAS le texte de la décision : suivre " +
       "l'hyperlien.",
@@ -260,11 +260,12 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   canlii_citator: {
     title: "Citateur — listes brutes",
     description:
-      "Citateur : décisions citées PAR une décision (`cited`), décisions qui LA citent " +
-      "(`citing`), ou dispositions législatives qu'elle cite (`legislation`). Les listes sont " +
-      "brutes : elles n'indiquent aucun sens de traitement (suivi, distingué, infirmé). Pour " +
-      "les dispositions québécoises, enchaîner avec le connecteur « Législation du Québec » " +
-      "afin d'en lire le texte officiel.",
+      "Citateur, sur la collection de CanLII : décisions citées PAR une décision (`cited`), " +
+      "décisions qui LA citent (`citing`), ou dispositions législatives qu'elle cite " +
+      "(`legislation`). Les listes sont brutes : elles n'indiquent aucun sens de traitement " +
+      "(suivi, distingué, infirmé), et leur exhaustivité est celle de la collection de " +
+      "CanLII. Pour les dispositions québécoises, enchaîner avec le connecteur " +
+      "« Législation du Québec » afin d'en lire le texte officiel.",
     // Aucun paramètre `lang` : le chemin du citateur n'accepte que `en` (annexe B).
     // En exposer un serait mensonger.
     inputSchema: {
@@ -294,8 +295,9 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   canlii_subsequent_history: {
     title: "Sorts ultérieurs — indice heuristique",
     description:
-      "Indice heuristique de sorts ultérieurs : parmi les décisions qui citent la décision de " +
-      "départ, retient celles qui émanent d'une juridiction supérieure et dont l'intitulé " +
+      "Indice heuristique de sorts ultérieurs : parmi les décisions DE LA COLLECTION DE " +
+      "CANLII qui citent la décision de départ, retient celles qui émanent d'une " +
+      "juridiction supérieure et dont l'intitulé " +
       "ressemble au sien. NE REMPLACE PAS un citateur professionnel : n'indique pas si la " +
       "décision a été infirmée, confirmée ou distinguée, et ne détecte ni les pourvois " +
       "pendants, ni les refus de permission d'appeler, ni les désistements. À vérifier " +
@@ -380,8 +382,8 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   canlii_browse_legislation: {
     title: "Lois et règlements d'un corpus",
     description:
-      "Liste les lois ou règlements d'une base législative (p. ex. « qcs » pour les lois du " +
-      "Québec), avec leur legislationId, leur citation et leur type.",
+      "Liste les lois ou règlements d'une base législative DE CANLII (p. ex. « qcs » pour " +
+      "les lois du Québec), avec leur legislationId, leur citation et leur type.",
     inputSchema: {
       type: "object",
       properties: {
@@ -401,7 +403,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   canlii_get_legislation: {
     title: "Fiche d'une loi ou d'un règlement",
     description:
-      "Fiche d'une loi ou d'un règlement : citation, type, régime de dates (entrée en " +
+      "Fiche CanLII d'une loi ou d'un règlement : citation, type, régime de dates (entrée en " +
       "vigueur), dates de début et de fin, indicateur d'abrogation et découpage en parties. " +
       "Utile pour dater une disposition ou vérifier une abrogation. Pour le TEXTE d'une loi " +
       "ou d'un règlement du Québec, utiliser le connecteur « Législation du Québec », qui " +

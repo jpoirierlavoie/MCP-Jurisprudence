@@ -119,6 +119,31 @@ describe("§2 — les treize outils existent et se décrivent", () => {
     expect(TOOLS.canlii_get_legislation!.description).toContain("Législation du Québec");
   });
 
+  /**
+   * La SOURCE vit dans la DESCRIPTION, et non plus dans le seul préfixe (D8, §17.1).
+   *
+   * Tant que le préfixe portait l'annonce, une description pouvait ne jamais écrire
+   * « CanLII » sans que cela se voie : le nom le disait pour elle. Quatre le faisaient
+   * — citator, subsequent_history, browse_legislation, get_legislation — plus get_case,
+   * qui ne s'en remettait qu'au domaine de son hyperlien. Ce test est ce qui reste
+   * quand le nom ne le dit plus. Il n'épingle PAS une formulation : il épingle la
+   * PRÉSENCE d'une source, la seule chose dont l'absence soit silencieuse.
+   *
+   * Le pendant local est tout aussi nécessaire : servir une table du MJQ sans nommer le
+   * Ministère laisserait croire que l'adresse vient de la même collection que le reste.
+   */
+  it("chaque description NOMME sa source : CanLII d'un côté, le MJQ de l'autre", () => {
+    for (const [nom, t] of Object.entries(TOOLS)) {
+      const local = nom.startsWith("greffe_") || nom.startsWith("palais_");
+      const texte = `${t.title} ${t.description}`;
+      if (local) {
+        expect(texte, nom).toMatch(/minist|MJQ|Québec/i);
+      } else {
+        expect(texte, nom).toMatch(/canlii/i);
+      }
+    }
+  });
+
   it("le citateur n'expose AUCUN paramètre lang (l'API n'accepte que « en »)", () => {
     expect(TOOLS.canlii_citator!.inputSchema.properties).not.toHaveProperty("lang");
   });
