@@ -6,7 +6,7 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). **C'est un outil juridiq
 résultat faux rendu en silence est le pire défaut possible — refuser vaut toujours mieux
 que deviner.**
 
-La spécification qui fait foi est [`SPEC_CANLII_MCP.md`](SPEC_CANLII_MCP.md), versionnée à la
+La spécification qui fait foi est [`SPEC.md`](SPEC.md), versionnée à la
 racine. Ses §1 (décisions arrêtées) et §2 (contrat de vérité) se lisent **avant** toute
 modification.
 
