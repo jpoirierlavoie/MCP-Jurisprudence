@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "start": "wrangler dev",
-    "deploy": "npm run db:migrate:remote && wrangler deploy",
+    "deploy": "node scripts/deployer.mjs",
     "cf-typegen": "wrangler types --strict-vars=false",
     "type-check": "tsc --noEmit",
     "lint": "biome check .",

@@ -733,7 +733,7 @@ Aucun appel sortant, aucune écriture. Utile au débogage de la table `court_cod
 | `/mcp*` | toute méthode | `403` si l'en-tête `Origin` est présent et inconnu — ré-attachement DNS (§9.6). `Origin` absent (serveur à serveur) ⇒ admis |
 | `/mcp*` | toute méthode | `429` + `Retry-After` au-delà de 60 requêtes/minute par IP : **après** le pré-vol, **avant** le contrôle de méthode et l'authentification (§9.3) |
 | `/mcp*` | `GET`, `DELETE` | `405` — aucun flux SSE, aucune session |
-| `/health` | `GET` | `200 {"status":"ok"}` — sans authentification, sans divulgation |
+| `/health` | `GET` | `200 {"status":"ok","commit":"<sha court>"}` — sans authentification. *Amendé le 2026-09-16 : disait « sans divulgation ». Le champ `commit` EN EST UNE, et elle est assumée — il annonce de quel commit la version en ligne est issue, donc si un correctif publié est déjà déployé. Le dépôt étant public, tout le code l'est déjà ; ce qui s'ajoute est un horodatage de fait. « inconnu » quand la version n'est pas passée par `npm run deploy` : un aveu, pas un remplissage (§12).* |
 | tout le reste | — | `404` |
 
 `MCP_ENABLED !== "true"` ⇒ **`404` sur toutes les routes MCP**, y compris `/health`. Coupe-circuit identique à celui d'Athéna.
@@ -918,6 +918,21 @@ Le réparer n'aurait tenu qu'à déposer le jeton dans les réglages du dépôt.
 ⚠ Le script `deploy` de `package.json` valait jusqu'au 2026-09-16 `wrangler deploy` tout court : **le déploiement seul, sans les migrations, c'est-à-dire l'ordre interdit sous un nom rassurant.** C'était le seul endroit du dépôt où l'invariant pouvait être enfreint par la commande la plus naturelle. Le retrait du workflow a donc eu un effet net POSITIF sur l'invariant : il l'a déplacé d'un fichier inerte vers un script qui s'exécute.
 
 **Si la question était rouverte**, ce qu'il faudrait peser n'est pas la commodité mais le dépôt du jeton, et le fait qu'un déploiement automatique sur `push` retire au praticien le dernier temps d'arrêt avant la mise en ligne d'un outil juridique.
+
+### 12.1 Le coût du manuel, et comment il est payé
+
+Le déploiement manuel a un coût, et il faut le payer plutôt que l'ignorer : **rien ne signale qu'un commit est poussé sans être en ligne.** L'écart se tient de mémoire, et un écart tenu de mémoire dure plus longtemps qu'on ne croit — les dix-neuf échecs de l'ancien workflow en sont la démonstration.
+
+Deux pièces, posées le 2026-09-16, le rendent MESURABLE sans rouvrir ce qui a été refusé :
+
+1. **Le Worker annonce son commit** sur `/health` (§8). La valeur est posée à la volée par `scripts/deployer.mjs`, en `--var COMMIT:<sha>` ; le défaut de `wrangler.jsonc` est « inconnu ».
+2. **`.github/workflows/verifier-deploiement.yml`** compare cette valeur au dernier commit de `main`, **une fois par jour**. Il n'a AUCUN secret, aucun jeton, et `permissions: contents: read` : un `GET` sur un point d'entrée public et une comparaison de chaînes. **Surveiller sans rien pouvoir écrire** — le compromis inverse de celui qui a été écarté.
+
+⚠ **Pas de déclenchement sur `push`, délibérément.** Juste après une poussée, la production est forcément en retard : le contrôle serait rouge à chaque commit, pour une raison normale. C'est exactement le mode de panne qui a fait vivre dix-neuf échecs sans que personne les regarde. Une fois par jour, un rouge veut dire quelque chose. **Et un rouge ici signifie « à déployer », jamais « cassé »** : la production sert toujours, elle sert une version antérieure.
+
+⚠ **Trois issues distinctes, qui ne se confondent pas** : point d'entrée injoignable, coupe-circuit baissé (`404`), et commit « inconnu » ne sont PAS des dérives — ce sont des absences de mesure. Le contrôle refuse alors de conclure plutôt que de supposer la production à jour. C'est la règle d'INDÉTERMINÉE de §2, appliquée au déploiement.
+
+**`scripts/deployer.mjs` refuse un arbre de travail sale**, et ce n'est pas du zèle : déployer un arbre modifié ferait ANNONCER sur `/health` un commit qui ne décrit pas le code en ligne. Un mensonge silencieux, et le mode de panne que ce dépôt combat partout ailleurs.
 
 ---
 

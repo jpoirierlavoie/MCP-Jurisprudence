@@ -399,8 +399,35 @@ export default {
     // compris. Un /health qui répondrait encore révélerait que le service existe.
     const actif = mcpActif(env);
 
+    // `/health` annonce le COMMIT dont la version en ligne est issue (§8, §12).
+    //
+    // ╔══════════════════════════════════════════════════════════════════════════════╗
+    // ║ POURQUOI UN POINT D'ENTRÉE PUBLIC DIT QUELLE VERSION TOURNE.                 ║
+    // ║                                                                              ║
+    // ║ Le déploiement est MANUEL depuis le 2026-09-16 (§12). Rien ne signale donc    ║
+    // ║ qu'un commit est poussé mais pas en ligne : l'écart se tient de mémoire, et   ║
+    // ║ un écart tenu de mémoire dure plus longtemps qu'on ne croit. Ce champ le      ║
+    // ║ rend MESURABLE par un tiers qui n'a aucun droit sur l'infrastructure — le     ║
+    // ║ contrôle de dérive compare cette valeur au dernier commit de `main`, sans     ║
+    // ║ jeton, en lecture seule. C'est l'inverse exact du compromis refusé en §12 :   ║
+    // ║ surveiller sans rien pouvoir écrire.                                         ║
+    // ║                                                                              ║
+    // ║ CE QUE CELA DIVULGUE, énoncé plutôt que passé sous silence : la version       ║
+    // ║ exacte qui tourne, donc si un correctif publié est déjà en ligne. Le dépôt    ║
+    // ║ est PUBLIC — tout le code l'est déjà, et la seule chose ajoutée est un        ║
+    // ║ horodatage de fait. Le gain est de rendre visible une dérive silencieuse ;    ║
+    // ║ la perte est de dater publiquement un retard de déploiement. L'arbitrage      ║
+    // ║ penche parce que le retard, lui, existe qu'on le publie ou non.               ║
+    // ║                                                                              ║
+    // ║ « inconnu » est un AVEU et non un remplissage : il dit que la version en      ║
+    // ║ ligne n'est pas passée par `npm run deploy`, donc qu'on ne sait PAS de quel   ║
+    // ║ commit elle sort. Le contrôle refuse alors de conclure — il ne suppose pas    ║
+    // ║ qu'elle est à jour. C'est la règle d'INDÉTERMINÉE de §2, appliquée au         ║
+    // ║ déploiement.                                                                 ║
+    // ╚══════════════════════════════════════════════════════════════════════════════╝
     if (pathname === "/health") {
-      return actif ? jsonResponse({ status: "ok" }) : notFound();
+      const commit = (env.COMMIT as string | undefined) ?? "inconnu";
+      return actif ? jsonResponse({ status: "ok", commit }) : notFound();
     }
 
     // ── Page publique (§18) ──────────────────────────────────────────────────

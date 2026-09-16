@@ -289,6 +289,21 @@ les migrations puis le déploiement et s'arrête au premier échec.
 valait précisément cela — le déploiement seul, sans les migrations, c'est-à-dire l'ordre
 interdit sous un nom rassurant.
 
+**Et le retard, lui, se voit.** `/health` annonce le commit dont la version en ligne est
+issue, et `.github/workflows/verifier-deploiement.yml` le compare **chaque jour** au dernier
+commit de `main`. Ce contrôle n'a aucun secret, aucun jeton et `contents: read` : il
+regarde, il ne déploie rien et ne le peut pas — c'est le compromis inverse de celui qui a
+été écarté. Un rouge y signifie « à déployer », jamais « cassé » : la production sert
+toujours, elle sert une version antérieure.
+
+```bash
+curl -s https://jurisprudence.poirierlavoie.ca/health
+# {"status":"ok","commit":"ca189ed"}
+```
+
+`scripts/deployer.mjs` **refuse un arbre de travail sale** : déployer un arbre modifié
+ferait annoncer un commit qui ne décrit pas le code en ligne.
+
 
 ```powershell
 $env:CLOUDFLARE_API_TOKEN = (Get-Content cf.token -Raw).Trim()   # gitignoré, jamais affiché

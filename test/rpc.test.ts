@@ -272,12 +272,26 @@ describe("§9.3 — limitation de débit", () => {
 });
 
 describe("§8 — routage", () => {
-  it("GET /health répond 200 sans authentification", async () => {
+  it("GET /health répond 200 sans authentification, et ANNONCE son commit", async () => {
     const ctx = createExecutionContext();
-    const res = await worker.fetch(new Request("https://x/health"), envAvec(), ctx);
+    const e = envAvec({ COMMIT: "abc1234" });
+    const res = await worker.fetch(new Request("https://x/health"), e, ctx);
     await waitOnExecutionContext(ctx);
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ status: "ok" });
+    expect(await res.json()).toEqual({ status: "ok", commit: "abc1234" });
+  });
+
+  it("/health avoue « inconnu » quand le commit n'a pas été posé", async () => {
+    // L'aveu vaut mieux que le silence, et bien mieux qu'une valeur plausible : le
+    // contrôle de dérive traite « inconnu » comme un REFUS DE CONCLURE, et non comme
+    // « à jour ». C'est la règle d'INDÉTERMINÉE de §2 appliquée au déploiement — un
+    // déploiement fait hors de `npm run deploy` ne doit pas se faire passer pour une
+    // production dont on connaît la version.
+    const ctx = createExecutionContext();
+    const sansCommit = { ...envAvec(), COMMIT: undefined } as unknown as Env;
+    const res = await worker.fetch(new Request("https://x/health"), sansCommit, ctx);
+    await waitOnExecutionContext(ctx);
+    expect(await res.json()).toEqual({ status: "ok", commit: "inconnu" });
   });
 
   it("GET et DELETE sur /mcp répondent 405 — aucun flux SSE, aucune session", async () => {
