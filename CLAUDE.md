@@ -118,7 +118,7 @@ table en mémoire (aucune E/S). Ne pas fusionner.
 ```bash
 npx wrangler types && npx tsc --noEmit     # toujours avant commit
 npx biome check .                          # --write pour corriger
-npx vitest run                             # 462 tests, sans réseau ni clef
+npx vitest run                             # 464 tests, sans réseau ni clef
 npx wrangler dev                           # exige .dev.vars
 npx wrangler deploy --dry-run              # valide paquet + config, sans jeton
 npx wrangler d1 migrations apply canlii --local|--remote
@@ -282,7 +282,7 @@ inexistantes.
 
 ## État
 
-**Livré et en production** sur `jurisprudence.poirierlavoie.ca`, 462 tests verts. Treize
+**Livré et en production** sur `jurisprudence.poirierlavoie.ca`, 464 tests verts. Treize
 outils — dix `canlii_*`, trois `greffe_*`/`palais_*` — et une page publique bilingue sur
 la même origine (§18).
 

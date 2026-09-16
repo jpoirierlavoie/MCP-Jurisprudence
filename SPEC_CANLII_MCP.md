@@ -625,13 +625,13 @@ Gabarit : **Annexe A.2**.
 
 ### 7.3 `canlii_get_case`
 
-> **Description :** « Fiche officielle d'une décision : intitulé, citation, date, numéro de dossier de cour, mots-clés et hyperlien canlii.ca. Accepte soit une citation (« 2020 QCCA 495 »), soit le couple database_id + case_id. Ne renvoie PAS le texte de la décision : suivre l'hyperlien. »
+> **Description :** « Fiche CanLII d'une décision : intitulé, citation, date, numéro de dossier de cour, mots-clés et hyperlien canlii.ca. Accepte soit une citation (« 2020 QCCA 495 »), soit le couple database_id + case_id. Ne renvoie PAS le texte de la décision : suivre l'hyperlien. »
 
 Paramètres : `citation` **ou** (`database_id` + `case_id`) ; `lang` ; `refresh`. Valider qu'exactement l'une des deux formes est fournie.
 
 ### 7.4 `canlii_citator`
 
-> **Description :** « Citateur : décisions citées PAR une décision (`cited`), décisions qui LA citent (`citing`), ou dispositions législatives qu'elle cite (`legislation`). Les listes sont brutes : elles n'indiquent aucun sens de traitement (suivi, distingué, infirmé). Pour les dispositions québécoises, enchaîner avec le connecteur « Législation du Québec » afin d'en lire le texte officiel. »
+> **Description :** « Citateur, sur la collection de CanLII : décisions citées PAR une décision (`cited`), décisions qui LA citent (`citing`), ou dispositions législatives qu'elle cite (`legislation`). Les listes sont brutes : elles n'indiquent aucun sens de traitement (suivi, distingué, infirmé), et leur exhaustivité est celle de la collection de CanLII. Pour les dispositions québécoises, enchaîner avec le connecteur « Législation du Québec » afin d'en lire le texte officiel. »
 
 Paramètres : `database_id`, `case_id` (ou `citation`), `rel` (`enum ["cited","citing","legislation"]`), `limit` (défaut 50, max 100), `offset`, `refresh`.
 
@@ -641,7 +641,7 @@ Correspondance `rel` → `metadataType` : `cited` → `citedCases`, `citing` →
 
 ### 7.5 `canlii_subsequent_history`
 
-> **Description :** « Indice heuristique de sorts ultérieurs : parmi les décisions qui citent la décision de départ, retient celles qui émanent d'une juridiction supérieure et dont l'intitulé ressemble au sien. NE REMPLACE PAS un citateur professionnel : n'indique pas si la décision a été infirmée, confirmée ou distinguée, et ne détecte ni les pourvois pendants, ni les refus de permission d'appeler, ni les désistements. À vérifier systématiquement à la source. »
+> **Description :** « Indice heuristique de sorts ultérieurs : parmi les décisions DE LA COLLECTION DE CANLII qui citent la décision de départ, retient celles qui émanent d'une juridiction supérieure et dont l'intitulé ressemble au sien. NE REMPLACE PAS un citateur professionnel : n'indique pas si la décision a été infirmée, confirmée ou distinguée, et ne détecte ni les pourvois pendants, ni les refus de permission d'appeler, ni les désistements. À vérifier systématiquement à la source. »
 
 Algorithme : `citing` ⇒ filtrer sur (a) `database_id` de rang supérieur selon la table de hiérarchie ci-dessous, (b) similarité d'intitulé ≥ 0,5 (§6.5), (c) `decisionDate` postérieure. Trier par date croissante.
 
@@ -670,11 +670,11 @@ Paramètres : `kind`, `jurisdiction`, `query` (recherche sur `name_norm`), `refr
 
 ### 7.8 `canlii_browse_legislation`
 
-> **Description :** « Liste les lois ou règlements d'une base législative (p. ex. « qcs » pour les lois du Québec), avec leur legislationId, leur citation et leur type. »
+> **Description :** « Liste les lois ou règlements d'une base législative DE CANLII (p. ex. « qcs » pour les lois du Québec), avec leur legislationId, leur citation et leur type. »
 
 ### 7.9 `canlii_get_legislation`
 
-> **Description :** « Fiche d'une loi ou d'un règlement : citation, type, régime de dates (entrée en vigueur), dates de début et de fin, indicateur d'abrogation et découpage en parties. Utile pour dater une disposition ou vérifier une abrogation. Pour le TEXTE d'une loi ou d'un règlement du Québec, utiliser le connecteur « Législation du Québec », qui rend le texte officiel verbatim. »
+> **Description :** « Fiche CanLII d'une loi ou d'un règlement : citation, type, régime de dates (entrée en vigueur), dates de début et de fin, indicateur d'abrogation et découpage en parties. Utile pour dater une disposition ou vérifier une abrogation. Pour le TEXTE d'une loi ou d'un règlement du Québec, utiliser le connecteur « Législation du Québec », qui rend le texte officiel verbatim. »
 
 Rendre `repealed` en français explicite (« Abrogé : oui / non ») et afficher `dateScheme`, `startDate`, `endDate`.
 

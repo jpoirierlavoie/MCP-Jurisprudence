@@ -285,6 +285,18 @@ describe("§18 — le registre est la source, pas une copie", () => {
     }
   });
 
+  it("la version ANGLAISE nomme aussi la source de chaque outil", () => {
+    // Le pendant du test français de `garde.test.ts`. La page est bilingue et le
+    // visiteur anglophone n'en lit qu'une moitié : une réserve portée d'un seul côté
+    // n'est pas portée. Six traductions sur dix ne nommaient CanLII nulle part —
+    // le préfixe le disait pour elles, et il ne le dira plus.
+    for (const [nom, en] of Object.entries(OUTILS_EN)) {
+      const texte = `${en.titre} ${en.texte}`;
+      const local = nom.startsWith("greffe_") || nom.startsWith("palais_");
+      expect(texte, nom).toMatch(local ? /minist|MJQ|Québec/i : /canlii/i);
+    }
+  });
+
   it("la table des greffes porte EXACTEMENT les greffes de la table", async () => {
     const html = await (await demander("/")).text();
     const corps = html.slice(html.indexOf('<table id="tgreffes"'));

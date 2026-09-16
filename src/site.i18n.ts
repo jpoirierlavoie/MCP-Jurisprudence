@@ -37,7 +37,8 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
   canlii_verify_citations: {
     titre: "Verify citations",
     texte:
-      "The pivot tool. Each citation gets one of five verdicts: CONFIRMÉE, DISCORDANTE, " +
+      "The pivot tool, answering from CanLII's collection. Each citation gets one of five " +
+      "verdicts: CONFIRMÉE, DISCORDANTE, " +
       "INTROUVABLE, NON CONSTRUCTIBLE, ILLISIBLE. A confirmed verdict establishes existence " +
       "and identity — never current authority, never the disposition.",
   },
@@ -56,19 +57,21 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
   canlii_citator: {
     titre: "Citator — raw lists",
     texte:
-      "What a decision cites, what cites it, and the provisions it cites. Raw lists carrying " +
-      "NO treatment sense: nothing here says followed, distinguished or overruled.",
+      "What a decision cites, what cites it, and the provisions it cites, as recorded by " +
+      "CanLII. Raw lists carrying NO treatment sense: nothing here says followed, " +
+      "distinguished or overruled, and their reach is only as wide as CanLII's collection.",
   },
   canlii_subsequent_history: {
     titre: "Subsequent history — heuristic indication",
     texte:
-      "A heuristic hint at what became of a decision, built from citing decisions of higher " +
-      "courts. It is not a professional citator and does not replace one.",
+      "A heuristic hint at what became of a decision, built from CanLII-held citing decisions " +
+      "of higher courts. It is not a professional citator and does not replace one.",
   },
   canlii_browse_cases: {
     titre: "Decisions of a court",
     texte:
-      "Browses one court's decisions, with eight date filters across three distinct axes: " +
+      "Browses one court's decisions as held by CanLII, with eight date filters across three " +
+      "distinct axes: " +
       "decision date, publication date, and modification date.",
   },
   canlii_list_databases: {
@@ -79,18 +82,19 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
   },
   canlii_browse_legislation: {
     titre: "Statutes and regulations of a corpus",
-    texte: "Lists the statutes and regulations of one legislative database.",
+    texte: "Lists the statutes and regulations of one CanLII legislative database.",
   },
   canlii_get_legislation: {
     titre: "Statute or regulation record",
     texte:
-      "Dates, date regime and repeal indicator for one instrument. For the TEXT of Québec " +
+      "CanLII's record for one instrument: dates, date regime and repeal indicator. For the " +
+      "TEXT of Québec " +
       "statutes, use the « Législation du Québec » connector instead.",
   },
   canlii_parse_citation: {
     titre: "Parse a citation (offline)",
     texte:
-      "Diagnostic only, with no outbound call: reports the form recognised and, where the " +
+      "Diagnostic only, with no call to CanLII: reports the form recognised and, where the " +
       "citation is constructible, the identifiers that follow from it. It establishes NOTHING " +
       "about whether the decision exists.",
   },
