@@ -304,6 +304,23 @@ le quota.
   périmètre ; il évite qu'une rotation ou une révocation éteigne les deux clients à la
   fois. Aucun secret configuré ⇒ **tout est refusé** (fermé par défaut), et les deux
   échecs rendent le même `401`, sans jamais dire lequel a servi.
+- **Tout ce qui est présenté est essayé, et rien n'est rogné** (§9.1, corrigé le
+  2026-09-16). L'en-tête `Authorization: Bearer` et le dernier segment du chemin sont deux
+  porteurs **sans préséance** : un en-tête résiduel ne masque plus une URL correcte, ni
+  l'inverse. `/mcp/<secret>/` vaut `/mcp/<secret>` — les clients normalisent l'URL saisie
+  et y ajoutent une barre. Un chemin mal encodé (`/mcp/x%FF`) **refuse en `401`** au lieu
+  de faire sortir le Worker en `500`. Les graphies sont **ajoutées**, jamais substituées :
+  un secret qui contiendrait lui-même une barre finale, un `%` ou une barre médiane
+  continue d'ouvrir. Élargir n'est pas ouvrir — aucun préfixe du secret n'est admis, et
+  c'est testé.
+- **Un refus n'est pas un refus ordinaire.** Un `401` sur `/mcp` est lu par claude.ai comme
+  « ressource OAuth protégée » : il enchaîne sur `.well-known/*`, puis sur `POST /register`,
+  et échoue sur « Impossible de s'inscrire auprès du service de connexion ». Le connecteur
+  jumeau l'a subi en production le 2026-07-23. Le statut reste néanmoins `401` +
+  `WWW-Authenticate: Bearer` : le jumeau refuse en `404` et a reçu le **même** message —
+  le statut n'est donc pas le déclencheur — et un `404` rendrait indiscernables le
+  coupe-circuit et le secret refusé. Ce qu'il fallait corriger, c'est le refus
+  **injustifié**, pas sa forme.
 - `MCP_ENABLED=false` ⇒ **404 sur toutes les routes MCP**, `/health` compris.
 - Chemin d'évolution vers OAuth 2.1 documenté en §9.4 de la spécification — **non
   implémenté** : la complexité n'est pas justifiée par la valeur protégée, qui est la clef

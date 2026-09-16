@@ -108,7 +108,7 @@ table en mémoire (aucune E/S). Ne pas fusionner.
 ```bash
 npx wrangler types && npx tsc --noEmit     # toujours avant commit
 npx biome check .                          # --write pour corriger
-npx vitest run                             # 443 tests, sans réseau ni clef
+npx vitest run                             # 462 tests, sans réseau ni clef
 npx wrangler dev                           # exige .dev.vars
 npx wrangler deploy --dry-run              # valide paquet + config, sans jeton
 npx wrangler d1 migrations apply canlii --local|--remote
@@ -227,6 +227,24 @@ node scripts/refresh-databases.mjs --remote --sql   # réconciliation §4.3
     cohérence interne : **aucune couleur en dur** hors des deux jeux (une couleur figée ne
     bascule pas et devient invisible dans l'un des thèmes), et les deux jeux déclarent
     **exactement** les mêmes variables.
+22. **Un refus sur `/mcp` est une porte vers OAuth : il ne se donne jamais par accident
+    (§9.1).** Un `401` est lu par claude.ai comme « ressource OAuth protégée » : il
+    enchaîne sur `.well-known/*`, puis sur `POST /register`, et l'inscription dynamique
+    échoue — « Impossible de s'inscrire auprès du service de connexion » ; le connecteur
+    reste coincé là. Subi en production par le jumeau le 2026-07-23, corrigé ici le
+    2026-09-16. D'où trois propriétés de la garde, toutes testées : **tous les porteurs
+    présentés sont essayés** — un en-tête `Bearer` résiduel ne masque pas une URL
+    correcte, ni l'inverse ; **`/mcp/<secret>/` vaut `/mcp/<secret>`** ; **un chemin mal
+    encodé refuse en `401`**, il ne fait pas sortir le Worker en `500`. Et la règle qui
+    les gouverne : la tolérance ne fait qu'**ajouter** des candidats, elle n'en **rogne**
+    aucun. Le secret de production n'est connu ni du code ni de qui le modifie (voir
+    « Secrets »), il peut se terminer par `/` — base64 standard — ou porter un `%` : **on
+    ne resserre pas l'analyse d'un porteur contre une valeur qu'on s'interdit de lire.**
+    Corollaire : ne pas « borner à un seul segment par cohérence avec le jumeau » — lui
+    DOIT le faire, il remonte la requête sur son chemin de montage ; pas nous. Le statut
+    du refus reste `401` + `WWW-Authenticate: Bearer` : le jumeau refuse en `404` et a
+    reçu le MÊME message — le statut n'est donc pas le déclencheur — et un `404` rendrait
+    le coupe-circuit indiscernable d'un secret refusé.
 
 ## Procédure sûre
 
@@ -254,7 +272,7 @@ inexistantes.
 
 ## État
 
-**Livré et en production** sur `jurisprudence.poirierlavoie.ca`, 443 tests verts. Treize
+**Livré et en production** sur `jurisprudence.poirierlavoie.ca`, 462 tests verts. Treize
 outils — dix `canlii_*`, trois `greffe_*`/`palais_*` — et une page publique bilingue sur
 la même origine (§18).
 

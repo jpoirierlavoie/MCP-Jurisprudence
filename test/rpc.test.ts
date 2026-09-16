@@ -348,6 +348,124 @@ describe("§9.1 — authentification", () => {
     expect(res.status).toBe(401);
   });
 
+  // ── Tolérance des FORMES de présentation (correctif du 2026-09-16) ───────
+  //
+  // Les trois défauts corrigés ici avaient le MÊME effet visible : un refus (401, et
+  // même un 500) sur une requête légitime. Or un refus sur /mcp n'est pas un refus
+  // ordinaire — claude.ai le lit comme « ressource OAuth protégée », enchaîne sur
+  // `.well-known/*` puis sur `POST /register`, et l'inscription dynamique échoue
+  // irrémédiablement. Constaté en production sur le connecteur jumeau le 2026-07-23.
+  // Ces tests existent pour que la tolérance ne se fasse pas « nettoyer ».
+
+  it("la barre oblique finale ne refuse plus : /mcp/<secret>/ vaut /mcp/<secret>", async () => {
+    // Les clients normalisent l'URL saisie et y ajoutent « / ». Avant le correctif, le
+    // segment capturé était « <secret>/ » : 401 sur une URL parfaitement correcte.
+    expect((await appeler(rpc("ping"), { secret: `${SECRET}/` })).status).toBe(200);
+    expect((await appeler(rpc("ping"), { secret: `${SECRET}//` })).status).toBe(200);
+  });
+
+  it("« /mcp/ » nu se comporte comme « /mcp » : 401 seul, 200 avec un en-tête valide", async () => {
+    expect((await appeler(rpc("ping"), { secret: "" })).status).toBe(401);
+    const avecEntete = await appeler(rpc("ping"), {
+      secret: "",
+      headers: { Authorization: `Bearer ${SECRET}` },
+    });
+    expect(avecEntete.status).toBe(200);
+  });
+
+  it("un chemin mal encodé REFUSE en 401 — il ne fait pas sortir le Worker en 500", async () => {
+    // `decodeURIComponent("bogus%FF")` lève une URIError. Nue, elle remontait hors du
+    // gestionnaire et Cloudflare rendait 500 — mesuré en direct sur la production. Un
+    // refus doit refuser. ⚠ Avant le correctif, ce cas ne rendait même pas de réponse :
+    // `worker.fetch()` REJETAIT.
+    const res = await appeler(rpc("ping"), { secret: "bogus%FF" });
+    expect(res.status).toBe(401);
+    expect(res.headers.get("WWW-Authenticate")).toBe("Bearer");
+  });
+
+  it("un chemin mal encodé n'empêche pas un en-tête valide d'authentifier", async () => {
+    // Le décodage rend null ; le candidat BRUT reste essayé, et l'en-tête aussi. Un
+    // porteur illisible ne doit jamais empoisonner un porteur lisible.
+    const res = await appeler(rpc("ping"), {
+      secret: "bogus%FF",
+      headers: { Authorization: `Bearer ${SECRET}` },
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it("un en-tête Bearer résiduel ne masque plus le secret du chemin", async () => {
+    // LE défaut du retour anticipé : tout en-tête non vide gagnait la course, et le
+    // chemin — correct — n'était jamais essayé. §9.1 énonce deux formes SANS préséance.
+    const res = await appeler(rpc("ping"), {
+      secret: SECRET,
+      headers: { Authorization: "Bearer jeton-perime-et-residuel" },
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it("et réciproquement : un chemin erroné ne masque pas un en-tête valide", async () => {
+    // Le symétrique, épinglé exprès : « corriger » le défaut en donnant la préséance au
+    // CHEMIN au lieu de l'en-tête serait le même défaut retourné.
+    const res = await appeler(rpc("ping"), {
+      secret: "mauvais-secret",
+      headers: { Authorization: `Bearer ${SECRET}` },
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it("les deux porteurs se croisent : chemin Athéna + en-tête claude.ai, et l'inverse", async () => {
+    const deux = envAvec({ MCP_SHARED_SECRET_ATHENA: SECRET_ATHENA });
+    const a = await appeler(rpc("ping"), {
+      secret: SECRET_ATHENA,
+      headers: { Authorization: `Bearer ${SECRET}` },
+      env: deux,
+    });
+    expect(a.status).toBe(200);
+    const b = await appeler(rpc("ping"), {
+      secret: SECRET,
+      headers: { Authorization: `Bearer ${SECRET_ATHENA}` },
+      env: deux,
+    });
+    expect(b.status).toBe(200);
+  });
+
+  it("ÉLARGIR N'EST PAS OUVRIR : deux porteurs faux restent un seul refus", async () => {
+    const res = await appeler(rpc("ping"), {
+      secret: "mauvais-secret",
+      headers: { Authorization: "Bearer mauvais-aussi" },
+    });
+    expect(res.status).toBe(401);
+    expect(res.headers.get("WWW-Authenticate")).toBe("Bearer");
+  });
+
+  it("un secret qui se TERMINE par « / » ouvre encore : on essaie, on ne rogne pas", async () => {
+    // Le risque neutralisé par la conception. Le secret de PRODUCTION n'est connu ni du
+    // code ni de qui le modifie, et l'alphabet base64 standard produit des « / ». Un
+    // rognage destructif casserait ICI une authentification qui fonctionne, en silence.
+    const finitParSlash = "abcdef/";
+    const e = envAvec({ MCP_SHARED_SECRET: finitParSlash });
+    expect((await appeler(rpc("ping"), { secret: finitParSlash, env: e })).status).toBe(200);
+  });
+
+  it("la PROFONDEUR du chemin est conservée : un secret contenant « / » s'authentifie", async () => {
+    // On ne borne PAS à un seul segment, contrairement au jumeau — qui, lui, DOIT le
+    // faire parce qu'il remonte la requête sur son chemin de montage. Borner ici serait
+    // un rétrécissement contre une valeur qu'on s'interdit de lire.
+    const avecSlash = "abc/def";
+    const e = envAvec({ MCP_SHARED_SECRET: avecSlash });
+    expect((await appeler(rpc("ping"), { secret: avecSlash, env: e })).status).toBe(200);
+    // Et sa forme échappée aussi, puisque le chemin est essayé décodé.
+    expect((await appeler(rpc("ping"), { secret: "abc%2Fdef", env: e })).status).toBe(200);
+  });
+
+  it("le nom du schéma est insensible à la casse (RFC 7235) : « bearer » authentifie", async () => {
+    const res = await appeler(rpc("ping"), {
+      secret: null,
+      headers: { Authorization: `bearer ${SECRET}` },
+    });
+    expect(res.status).toBe(200);
+  });
+
   // ── Second porteur (§19) ─────────────────────────────────────────────────
   //
   // Le clavardage de Pallas Athéna présente SON secret, aux droits identiques. Ce qui

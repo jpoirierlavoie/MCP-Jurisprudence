@@ -688,10 +688,15 @@ Aucun appel sortant, aucune écriture. Utile au débogage de la table `court_cod
 
 ## 8. Transport MCP et routage
 
+*Tableau amendé le 2026-09-16 : il ne connaissait ni `/mcp/<secret>/` ni le chemin mal encodé. La première forme rendait `401` sur une URL correcte, la seconde faisait sortir le Worker en `500` — deux refus qu'il ne décrivait pas parce qu'il ignorait qu'ils existaient. Voir §9.1.*
+
 | Route | Méthode | Réponse |
 |---|---|---|
 | `/mcp/<secret>` | `POST` | Point d'entrée MCP (Streamable HTTP, mode JSON sans état) |
-| `/mcp` | `POST` | `401` + `WWW-Authenticate: Bearer` (le secret peut aussi venir de l'en-tête `Authorization`) |
+| `/mcp/<secret>/` | `POST` | **Identique** — la barre oblique finale est tolérée (§9.1) |
+| `/mcp/<secret>/<suite>` | `POST` | **Identique si le secret contient `/`** — la profondeur est conservée, on ne borne pas à un segment (§9.1) |
+| `/mcp` · `/mcp/` | `POST` | `401` + `WWW-Authenticate: Bearer` — **sauf** si l'en-tête `Authorization` porte un secret admis |
+| `/mcp/<chemin mal encodé>` | `POST` | `401` — **jamais `500`** (§9.1) |
 | `/mcp*` | `GET`, `DELETE` | `405` — aucun flux SSE, aucune session |
 | `/health` | `GET` | `200 {"status":"ok"}` — sans authentification, sans divulgation |
 | tout le reste | — | `404` |
@@ -718,10 +723,30 @@ Ne **pas** émettre `structuredContent` : `qclaw` ne le fait pas, la sortie est 
 
 ### 9.1 Authentification
 
-Le secret est accepté sous deux formes, afin de couvrir tous les clients :
+*Amendée le 2026-09-16. Cette section énonçait deux formes SANS dire leur préséance — et elle avait raison de n'en énoncer aucune : il n'en faut pas. Le CODE, lui, en avait inventé une (retour anticipé sur l'en-tête), si bien que la spécification décrivait depuis l'origine un comportement qui n'existait pas. Le correctif ne change donc pas la règle : il rend la spécification vraie. L'ancienne rédaction — « Le secret est accepté sous deux formes, afin de couvrir tous les clients », muette sur la précédence — reste citée ici plutôt qu'effacée : qui la retrouverait ailleurs doit savoir qu'elle décrivait une intention, pas le code.*
+
+Le secret est accepté sous deux formes, afin de couvrir tous les clients, et **sans aucune préséance entre elles** :
 
 1. dernier segment du chemin : `POST /mcp/<secret>` ;
-2. en-tête : `Authorization: Bearer <secret>`.
+2. en-tête : `Authorization: Bearer <secret>` (nom de schéma insensible à la casse, RFC 7235 §2.1).
+
+**Tous les porteurs présents sont essayés ; aucun n'en masque un autre.** Le défaut corrigé était concret : un `Authorization` résiduel — périmé, collé d'un autre connecteur, posé par un mandataire — rendait inopérante une URL parfaitement correcte, et son refus était indiscernable d'un mauvais secret.
+
+**Les graphies du chemin tolérées**, la tolérance étant strictement **ÉLARGISSANTE** — on ajoute des candidats, on n'en transforme aucun :
+
+| Forme reçue | Traitement | Défaut fermé |
+|---|---|---|
+| `/mcp/<secret>` | candidat tel quel **et** décodé | le cas normal |
+| `/mcp/<secret>/` · `//` | candidat de plus, barres finales ôtées | `401` sur une URL correcte |
+| `/mcp/x%FF` | `decodeURIComponent` lève ; l'exception est avalée **sans trace**, le candidat brut reste essayé | `500` au lieu d'un refus |
+| `/mcp/a/b` | **conservé entier** — aucune borne à un segment | un secret contenant `/` cesserait d'ouvrir |
+| `/mcp/` nu | aucun candidat par le chemin ; l'en-tête décide seul | se comporte comme `/mcp` |
+
+⚠ **Pourquoi AJOUTER plutôt que ROGNER.** Le secret de production n'est connu ni du code ni de qui le modifie. Il peut se terminer par `/` — l'alphabet base64 **standard** en produit — ou porter un `%`. Un rognage « évident » casserait alors une authentification qui fonctionne, en production, sans qu'aucun test ne le dise. Le pire cas d'un candidat surnuméraire est une empreinte SHA-256 calculée pour rien ; le pire cas d'un rognage est un connecteur mort. **On ne resserre pas l'analyse d'un porteur contre une valeur qu'on s'interdit de lire.** Corollaire sur la profondeur : le connecteur jumeau borne à un seul segment parce qu'il DOIT remonter la requête sur son chemin de montage ; ici le chemin n'est qu'un porteur, rien n'est remonté, et borner serait un rétrécissement sans contrepartie.
+
+⚠ **L'élargissement n'admet aucun PRÉFIXE du secret.** Seules des barres obliques *finales* sont ôtées, et seulement pour produire un candidat de plus. Toute valeur ainsi admise est une valeur dont la connaissance implique déjà celle du secret. Épinglé par un test (« élargir n'est pas ouvrir »).
+
+⚠ **Pourquoi le refus reste `401` + `WWW-Authenticate: Bearer`**, et non `404` comme chez le jumeau. C'est le refus qui pousse claude.ai vers la découverte OAuth — `.well-known/*` (404), `POST /register` (404), puis « Impossible de s'inscrire auprès du service de connexion » — et il est tentant d'en conclure qu'il faut changer de statut. **Le statut n'est pas le déclencheur** : le jumeau refuse en `404` et a reçu le MÊME message. Et un `404` ici rendrait indiscernables le coupe-circuit de §8 (`MCP_ENABLED=false`, qui rend déjà `404` sur tout `/mcp`) et le secret refusé — ambiguïté que le jumeau assume et que ce connecteur n'a pas. Ce qui devait être corrigé, c'est le refus INJUSTIFIÉ.
 
 **Deux secrets sont admis**, aux droits strictement identiques : `MCP_SHARED_SECRET`
 (connecteur claude.ai) et `MCP_SHARED_SECRET_ATHENA` (clavardage de Pallas Athéna,
@@ -745,6 +770,10 @@ async function secretOk(given: string, expected: string): Promise<boolean> {
   return crypto.subtle.timingSafeEqual(a, b);
 }
 ```
+
+**Coût de la garde, et pourquoi il est acceptable.** La comparaison porte sur le produit `candidats × secrets` : au pire **5 × 2 = 10 paires, soit 20 empreintes SHA-256** en une seule vague `Promise.all` — quelques dizaines de microsecondes, sur une requête qui en passera 100 à 600 **milli**secondes en D1 et chez CanLII. Le dédoublonnage des candidats ramène le cas normal (secret hexadécimal, sans barre finale, un seul secret configuré) à **deux** empreintes, c'est-à-dire exactement ce que la garde coûtait avant. On ne mémorise délibérément **pas** l'empreinte des attendus : `secretOk` ci-dessus est la primitive publiée et relue comme telle, et le défaut corrigé le 2026-09-16 était un défaut d'analyse du CHEMIN, non de comparaison.
+
+⚠ **Aucun court-circuit observable.** `Promise.all` résout TOUT le produit avant que `some` ne lise des booléens déjà calculés : ni le porteur ni le secret qui a servi n'est déductible du temps de réponse (§9.2). Le dédoublonnage, lui, n'oppose que des valeurs *présentées* entre elles. Et le défaut fermé joue désormais des deux côtés du produit — aucun secret configuré **ou** aucun porteur présenté ⇒ produit vide ⇒ refus, par la même ligne.
 
 ### 9.2 Journalisation
 
@@ -850,7 +879,7 @@ Dépôt GitHub distinct, calqué sur les protections d'Athéna : **actions épin
 
 **Client :** réessai sur `429` respectant `Retry-After` ; pas de réessai sur `400` ; expiration de délai ; `TOO_LONG` ⇒ `resultCount` halvé puis réessai unique ; **assertion que la clef n'apparaît dans aucune sortie de journal** (test de non-régression sur `redactUrl`).
 
-**Transport (`rpc.test.ts`) :** `initialize` négocie la version ; `tools/list` rend **13** outils tous pourvus d'une description non vide, et la scission des préfixes de §17.1 est vérifiée dans les deux sens ; `tools/call` sur outil inconnu ⇒ `isError`; `GET /mcp/<secret>` ⇒ `405` ; secret erroné ⇒ `401` ; `MCP_ENABLED = "false"` ⇒ `404` partout.
+**Transport (`rpc.test.ts`) :** `initialize` négocie la version ; `tools/list` rend **13** outils tous pourvus d'une description non vide, et la scission des préfixes de §17.1 est vérifiée dans les deux sens ; `tools/call` sur outil inconnu ⇒ `isError`; `GET /mcp/<secret>` ⇒ `405` ; secret erroné ⇒ `401` ; **`/mcp/<secret>/` et `/mcp/<secret>//` ⇒ `200`** (barre oblique finale tolérée) ; **`/mcp/` nu ⇒ `401` seul, `200` avec un en-tête valide** ; **`/mcp/x%FF` ⇒ `401`, jamais `500` ni une exception qui remonte** ; **un en-tête `Bearer` erroné ne masque pas un chemin correct, ni l'inverse, et les deux porteurs se croisent** ; **deux porteurs faux ⇒ `401`** (élargir n'est pas ouvrir) ; **un secret contenant ou terminé par `/` s'authentifie encore** ; `MCP_ENABLED = "false"` ⇒ `404` partout.
 
 **Persistance :** un balayage remplit `cases` **et** `cases_fts` (déclencheurs) ; un second appel identique ne fait aucun appel sortant ; `refresh: true` en refait un.
 

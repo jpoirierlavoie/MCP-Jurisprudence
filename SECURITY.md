@@ -68,9 +68,33 @@ the citation parser. That log records the citation strings submitted, which for
 ## Authentication model
 
 The MCP endpoint is protected by a **256-bit shared secret**, accepted either as the
-last path segment (`POST /mcp/<secret>`) or as an `Authorization: Bearer` header.
-Comparison is constant-time over SHA-256 digests, which also neutralises any length
-difference.
+last path segment (`POST /mcp/<secret>`) or as an `Authorization: Bearer` header,
+**with no precedence between the two**. Every bearer present on a request is tried;
+none masks another. Comparison is constant-time over SHA-256 digests, which also
+neutralises any length difference.
+
+**Accepted spellings of the path bearer, and why the tolerance only ever widens**
+(fixed 2026-09-16). A trailing slash is tolerated — `/mcp/<secret>/` behaves exactly
+like `/mcp/<secret>` — because clients normalise the URL a user types. A malformed
+percent-escape (`/mcp/x%FF`) is **refused with `401`** rather than escaping as a `500`:
+`decodeURIComponent` throws, and the exception is swallowed **without any log line**,
+because the offending segment *is* the presented secret. The path is never trimmed or
+rewritten in place; extra candidates are *added*. The production secret is deliberately
+unknown to the code and to whoever edits it, and it may itself end in `/` (standard
+base64 produces those) or contain a `%`; an "obvious" trim would silently break a
+working deployment. The worst case of a redundant candidate is one SHA-256 digest
+computed for nothing. Widening is not opening: only *trailing* slashes are stripped, so
+no prefix of the secret is ever accepted — any value admitted this way already implies
+knowledge of the secret.
+
+**Why refusals stay `401` with `WWW-Authenticate: Bearer`.** An unauthenticated request
+is what pushes claude.ai into OAuth discovery — `.well-known/*`, then `POST /register`,
+then a dynamic-registration failure the connector does not recover from. The tempting
+conclusion is to change the status code; it is wrong. The twin connector (Législation
+du Québec) refuses with `404` and produced the *same* client error, so the status is not
+the trigger. And `404` here would make the kill switch (`MCP_ENABLED=false`, already
+`404` across `/mcp`) indistinguishable from a rejected secret. What had to be fixed was
+the *unwarranted refusal*, not its shape.
 
 What this protects is **the CanLII API key and its quota**, not confidential content —
 the metadata served is public. That proportionality is deliberate and documented in
@@ -107,6 +131,11 @@ Known and accepted properties of this model:
   that rotating or revoking one bearer does not take the other down with it. If neither
   is configured, everything is refused — the check fails CLOSED — and both failures
   return the same `401`; no response and no log line ever says which one matched.
+- A single request may carry several bearers — a stale `Authorization` header alongside
+  a correct URL, say. All of them are tried, as one `Promise.all` over the full
+  candidates × configured-secrets product: at most 20 SHA-256 digests, typically 2.
+  Nothing short-circuits, so neither the response time nor any log line reveals which
+  bearer or which secret matched.
 - `GET /` serves a public documentation page. It is static, accepts no input, calls
   nothing and writes nothing. It never reads `MCP_SHARED_SECRET` — it documents the
   endpoint's *shape*, `/mcp/<secret>`, and a test rejects any 32+ hex-character
