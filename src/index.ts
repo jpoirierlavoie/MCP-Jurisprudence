@@ -1,5 +1,5 @@
 /**
- * Worker « Jurisprudence canadienne et greffes du Québec » — routage, authentification,
+ * Worker « MCP Jurisprudence » — routage, authentification,
  * coupe-circuit, et gestionnaire planifié (spécification §8, §9, §11).
  *
  * ╔══════════════════════════════════════════════════════════════════════════════╗

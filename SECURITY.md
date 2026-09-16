@@ -1,6 +1,7 @@
 # Security Policy
 
-This repository holds the « Jurisprudence canadienne et greffes du Québec » MCP connector, a
+This repository holds the « MCP Jurisprudence » connector — Canadian case law and Québec
+court registries — a
 read-only Cloudflare Worker used by a practising Quebec lawyer to verify case-law
 citations. It handles no client data (see *Data handled* below), but it does hold a
 personal CanLII API key and a shared authentication secret — both as Cloudflare

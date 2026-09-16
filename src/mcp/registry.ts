@@ -106,10 +106,15 @@ const DATE: JsonSchema = {
 };
 
 export const SERVER_INFO = {
-  // `name` est un IDENTIFIANT, pas un libellé : il ne change pas avec le titre. Le
-  // renommer n'apporterait rien et romprait un point d'appui (test/rpc.test.ts).
-  name: "jurisprudence-canlii",
-  title: "Jurisprudence canadienne et greffes du Québec",
+  // `name` est un IDENTIFIANT, `title` un libellé : les deux ont changé le 2026-09-16,
+  // et pas pour la même raison. Le libellé parce que le praticien a renommé son
+  // connecteur ; l'identifiant parce qu'il contenait « canlii », seul vestige d'un
+  // préfixe que tout le reste du dépôt venait d'abandonner (D8 amendée). Cette note
+  // disait auparavant qu'il « ne change pas avec le titre » et que le renommer
+  // « n'apporterait rien » : vrai tant que le nom restait cohérent avec le reste, faux
+  // le jour où il devient le dernier endroit à dire l'inverse des douze autres.
+  name: "mcp-jurisprudence",
+  title: "MCP Jurisprudence",
   version: "0.2.0",
 };
 

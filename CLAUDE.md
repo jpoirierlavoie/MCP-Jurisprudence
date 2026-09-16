@@ -1,4 +1,4 @@
-# CLAUDE.md — Jurisprudence canadienne et greffes du Québec
+# CLAUDE.md — MCP Jurisprudence
 
 Connecteur MCP exposant la REST API de CanLII, **plus trois outils hors ligne sur les
 greffes et palais du Québec** : `https://jurisprudence.poirierlavoie.ca/mcp/<secret>`.

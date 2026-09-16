@@ -403,7 +403,7 @@ function etat(t: string, fr: string, en: string): string {
 function entete(): string {
   return `<header>
 <div class="bar">
-<h1>${bi("Jurisprudence canadienne et greffes du Québec", EN.titre)}</h1>
+<h1>${bi("MCP Jurisprudence", EN.titre)}</h1>
 <div class="btns">
 <button id="theme" type="button" title="Thème / Theme">${etat("auto", "◐ Auto", "◐ Auto")}${etat("light", `${SOLEIL} Clair`, `${SOLEIL} Light`)}${etat("dark", "☾ Sombre", "☾ Dark")}</button>
 <button id="bascule" type="button" title="Français / English">FR&nbsp;·&nbsp;EN</button>
@@ -780,7 +780,7 @@ export function renderSite(): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Jurisprudence canadienne et greffes du Québec — serveur MCP</title>
+<title>MCP Jurisprudence — jurisprudence canadienne et greffes du Québec</title>
 <meta name="description" content="Serveur MCP en lecture seule : vérification de citations de jurisprudence contre la collection de CanLII, et nomenclature judiciaire québécoise (numéros de dossier, greffes, palais de justice).">
 <style>${CSS}</style>
 <script>${BOOT}</script>
