@@ -63,7 +63,7 @@ est une recherche de chaîne dans les documents du praticien, pas une commande d
 | **un outil** (ajout, retrait, renommage) | `src/mcp/registry.ts` · le gestionnaire dans `src/mcp/handlers/` · `OUTILS_EN` dans `src/site.i18n.ts` (parité testée **dans les deux sens**) · le tableau ET le compte de `README.md` §« Les treize outils » · §7 ou §17 de la spécification · les compteurs de `test/garde.test.ts`, `test/rpc.test.ts` et `test/doc.test.ts` (ce dernier affirme `NOMS.length === 13` AVANT toute confrontation — c'est l'assertion qui l'empêche de réussir sur le vide — et porte en plus `EN_LETTRES`, par quoi il éprouve le compte écrit en toutes lettres du README) · la **liste triée des noms** dans `test/rpc.test.ts` · la FAMILLE choisie (`jurisprudence_` = réponse de CanLII ; `greffe_`/`palais_` = table locale — invariant 16) · la DESCRIPTION doit nommer sa source, en français ET en anglais (c'est elle qui porte l'annonce depuis le 2026-09-16, et non plus le préfixe) · **hors dépôt, et aucune commande d'ici ne le voit** : la Compétence claude.ai de recherche juridique, qui code en dur les treize noms (voir plus haut) |
 | **une description ou un titre** | la page les rend **verbatim** : relancer `test/site.test.ts` (formulations interdites) et `test/garde.test.ts` (sous-chaînes épinglées) · `OUTILS_EN` doit rester une TRADUCTION, jamais une copie |
 | **un `inputSchema`** | `src/mcp/validate.ts` n'implémente qu'un SOUS-ENSEMBLE de JSON-Schema : ne pas déclarer ce qu'il ne sait pas imposer · la page génère ses tableaux de schéma depuis le même objet · `additionalProperties: false` reste obligatoire |
-| **une constante `GARDE_*`** | elle vit dans le corps des réponses **et** sur la page · `test/garde.test.ts` · | **une constante `GARDE_*`** | elle vit dans le corps des réponses **et** sur la page · `test/garde.test.ts` · ⚠ *corrigé le 2026-09-16* : cette case disait « `MARQUEUR_RECONCILIATION` est en plus une chaîne de COUPLAGE lue par `scripts/refresh-databases.mjs` ». C'est l'inverse — le script se refuse à découper la sortie sur un marqueur et repère les écarts par leur FORME (`/^·\s+.+\s+->\s+\S+/`), précisément parce qu'un marqueur recopié vivrait des deux côtés d'une frontière TypeScript/JavaScript qu'aucun compilateur ne vérifie et rendrait un feu vert mensonger le jour où la formulation change. La chaîne de couplage réelle est l'en-tête `« base(s) au répertoire de CanLII »` (`src/mcp/handlers/listDatabases.ts`), sur lequel le script pose son garde-fou : la modifier sans le prévenir le fait sortir en code 2 — refus de statuer — et non conclure de travers. C'est elle qu'il faut propager. | |
+| **une constante `GARDE_*`** | elle vit dans le corps des réponses **et** sur la page · `test/garde.test.ts` · ⚠ *corrigé le 2026-09-16* : cette case disait « `MARQUEUR_RECONCILIATION` est en plus une chaîne de COUPLAGE lue par `scripts/refresh-databases.mjs` ». C+est l+inverse — le script refuse de découper la sortie sur un marqueur et repère les écarts par leur FORME (`/^·s+.+s+->s+S+/`), parce qu+un marqueur recopié vivrait des deux côtés d+une frontière TypeScript/JavaScript qu+aucun compilateur ne vérifie, et rendrait un feu vert mensonger le jour où la formulation change. La chaîne de couplage RÉELLE est l+en-tête « base(s) au répertoire de CanLII » (`src/mcp/handlers/listDatabases.ts`), sur laquelle le script pose son garde-fou : la modifier sans le prévenir le fait sortir en code 2 — refus de statuer — plutôt que conclure de travers. C+est elle qu+il faut propager. |
 | **une table de `src/qc/`** | les comptes de `test/qc.tables.test.ts` (51 palais · 57 greffes · 27 juridictions · 20 forums · 36 districts) · le nombre de lignes de la table de la page (`test/site.test.ts`) · « 43 palais et 8 points de service » dans `README.md` · les dates `RELEVE_LE` et `MJQ_MAJ` affichées |
 | **la page** | `test/site.test.ts` · §18 de la spécification · la section « Page publique » de `README.md` · le style reste **identique** à celui du connecteur jumeau (invariant 21) |
 | **le comportement d'un outil** | la page peut le DOCUMENTER : les exemples d'analyse y sont produits par le vrai parseur au rendu, mais la prose qui les entoure, elle, est écrite à la main |
@@ -307,14 +307,26 @@ déploiement** : l'ordre inverse met en ligne du code qui lit des colonnes inexi
 
 ⚠ *Amendé le 2026-09-16.* Cette phrase attribuait l'ordre au workflow — « **Les migrations
 D1 passent AVANT le déploiement** (`deploy.yml`) ». L'ordre est juste ; l'attribution est
-fausse, et elle l'a toujours été : `deploy.yml` n'a **jamais réussi** — 17 exécutions
-depuis le 2026-07-23, 17 échecs, tous à l'étape « Migrations D1 (AVANT le déploiement) »,
-l'étape « Déploiement » étant alors SAUTÉE. Cause probable, non encore corrigée : le jeton
-ouvre DEUX comptes Cloudflare et `wrangler` ne sait pas trancher hors interaction ; il
-manque vraisemblablement un `CLOUDFLARE_ACCOUNT_ID` dans le workflow. Tant qu'il n'est pas
-réparé, **c'est l'opérateur qui tient l'ordre, à la main** (voir « Commandes »). Le fichier
-reste au dépôt parce qu'il décrit l'ordre voulu — mais il ne l'exécute pas, et lire ici
-une garantie automatique ferait croire qu'un `git push` livre quoi que ce soit.
+fausse, et elle l'a toujours été : `deploy.yml` n'a **jamais réussi** — dix-neuf exécutions
+depuis le 2026-07-23, dix-neuf échecs, tous à l'étape « Migrations D1 (AVANT le
+déploiement) », l'étape « Déploiement » étant alors SAUTÉE. Tant qu'il n'est pas réparé,
+**c'est l'opérateur qui tient l'ordre, à la main** (voir « Commandes »). Le fichier reste
+au dépôt parce qu'il décrit l'ordre voulu — mais il ne l'exécute pas, et lire ici une
+garantie automatique ferait croire qu'un `git push` livre quoi que ce soit.
+
+⚠ *Cause établie le 2026-09-16, et une fausse piste retirée le même jour.* Cette note a
+porté quelques heures « le jeton ouvre DEUX comptes Cloudflare et wrangler ne sait pas
+trancher ». **C'était faux, et l'erreur était de comptage** — la ligne d'en-tête du
+tableau de `wrangler whoami` prise pour une ligne de données ; le jeton n'en voit qu'UN.
+La vraie cause est mesurée : l'audit de sortie de `harden-runner`, **public** alors que
+les journaux exigent des droits d'administration, ne montre **aucun appel à
+`api.cloudflare.com`** — ni à la dernière exécution, ni à celle d'un mois plus tôt. Le
+jeton n'a donc jamais été présenté à Cloudflare : `wrangler` renonce à
+`requireAuth()`, AVANT tout réseau, ce que confirme la durée — une à deux secondes. Le
+secret `CLOUDFLARE_API_TOKEN` n'arrive pas jusqu'au job. Reste à dire lequel des trois
+cas : absent, nommé autrement, ou posé en « variable » plutôt qu'en « secret ».
+`deploy.yml` porte désormais quatre contrôles qui le nomment **dans le titre de l'étape**,
+parce que c'est la seule chose que l'API publique laisse lire.
 
 ## Secrets
 

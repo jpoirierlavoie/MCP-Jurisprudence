@@ -279,10 +279,18 @@ déclenche bien sur `push: [main]`, et **n'a jamais réussi** : 17 exécutions d
 après quoi l'étape de déploiement est simplement sautée. Une porte qui échoue toujours
 cesse d'être lue ; il faut donc l'écrire ici plutôt que de la laisser deviner.
 
-Cause probable, à vérifier avant tout correctif : le jeton d'API donne accès à **deux
-comptes Cloudflare**, et `wrangler` ne sait pas en choisir un en mode non interactif ;
-il manque vraisemblablement un `CLOUDFLARE_ACCOUNT_ID` dans le flux de travail (le
-dépôt n'en déclare pas non plus dans `wrangler.jsonc`).
+**Cause établie le 2026-09-16 :** le secret `CLOUDFLARE_API_TOKEN` n'arrive jamais
+jusqu'au job. L'audit de sortie de `harden-runner` — **public**, alors que les journaux
+de la CI exigent des droits d'administration — ne montre **aucun appel à
+`api.cloudflare.com`**, sur deux exécutions séparées d'un mois. `wrangler` renonce donc
+avant tout réseau, ce que confirme la durée : une à deux secondes. Reste à dire lequel des
+trois cas — secret absent, nommé autrement, ou posé en « variable » plutôt qu'en
+« secret ». `deploy.yml` porte désormais quatre contrôles qui le nomment dans le TITRE de
+l'étape, seule chose que l'API publique laisse lire.
+
+*(Une note antérieure du même jour avançait que le jeton ouvrait deux comptes Cloudflare.
+C'était une erreur de comptage de ma part, et elle est retirée : le jeton n'en voit
+qu'un.)*
 
 La voie réelle, et la seule éprouvée — **migrations d'abord, déploiement ensuite**
 (§12) : l'ordre inverse met en ligne du code qui lit des colonnes inexistantes.
