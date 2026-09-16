@@ -1,4 +1,6 @@
-# Spécification — Connecteur MCP « Jurisprudence canadienne et greffes du Québec »
+# Spécification — Connecteur MCP « MCP Jurisprudence »
+
+*Renommé le 2026-09-16. Le connecteur s'intitulait « +N+ » ; ce libellé reste la description du connecteur, il n'en est plus le nom.*
 
 **Destinataire :** Claude Code
 **Auteur de la spéc. :** (préparé pour Jason Poirier Lavoie)
@@ -710,7 +712,7 @@ Aucun appel sortant, aucune écriture. Utile au débogage de la table `court_cod
 
 **Méthodes JSON-RPC :** `initialize`, `notifications/initialized` (⇒ `202`, corps vide), `tools/list`, `tools/call`, `ping`. Toute autre méthode ⇒ `-32601`.
 
-`initialize` : négocier `protocolVersion` (accepter `2025-06-18` et `2025-03-26` ; renvoyer la plus élevée commune) ; `serverInfo: { name: "jurisprudence-canlii", version: <package.json> }` ; `capabilities: { tools: {} }`.
+`initialize` : négocier `protocolVersion` (accepter `2025-06-18` et `2025-03-26` ; renvoyer la plus élevée commune) ; `serverInfo: { name: "mcp-jurisprudence", title: "MCP Jurisprudence", version: <package.json> }` *(identifiant et libellé renommés le 2026-09-16 ; l'identifiant s'écrivait `jurisprudence-canlii`)* ; `capabilities: { tools: {} }`.
 
 **Enveloppe de résultat**, calquée sur `mcp/tools.py` d'Athéna :
 
@@ -903,7 +905,7 @@ Dépôt GitHub distinct, calqué sur les protections d'Athéna : **actions épin
 6. `wrangler deploy`.
 7. **Amorçage du répertoire** : appeler `jurisprudence_list_databases` avec `refresh: true`, puis réconcilier `court_codes` et `paren_codes` (§4.3) ; passer `verified = 1` sur les lignes confirmées.
 8. **Recette manuelle** : vérifier `2008 CSC 9` (⇒ *Dunsmuir*), une décision de la Cour d'appel du Québec connue, une citation volontairement fausse (`2020 QCCA 999999` ⇒ `INTROUVABLE`), une citation de recueil (⇒ `NON CONSTRUCTIBLE` avec candidats).
-9. Ajouter le connecteur dans `claude.ai` : URL `https://jurisprudence.poirierlavoie.ca/mcp/<secret>`, nom « Jurisprudence canadienne et greffes du Québec ».
+9. Ajouter le connecteur dans `claude.ai` : URL `https://jurisprudence.poirierlavoie.ca/mcp/<secret>`, nom « MCP Jurisprudence ».
 10. Activer la règle de limitation de débit (§9.3).
 11. Après une semaine d'usage : dépouiller `search_log` (§10) et corriger l'analyseur sur les formes réellement rencontrées.
 

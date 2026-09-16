@@ -1,4 +1,6 @@
-# Jurisprudence canadienne et greffes du Québec — connecteur MCP
+# MCP Jurisprudence
+
+*Jurisprudence canadienne et greffes du Québec.*
 
 Serveur MCP autonome sur Cloudflare Workers, exposant la **REST API de CanLII** sous forme
 d'outils orientés **vérification de références** plutôt que d'enveloppes d'endpoints, plus
@@ -259,7 +261,7 @@ concurrentes) · `[1985] C.A. 105` NON CONSTRUCTIBLE (avec renvoi à `jurisprude
 
 - Ajouter le connecteur dans `claude.ai` : URL
   `https://jurisprudence.poirierlavoie.ca/mcp/<secret>`, nom
-  « Jurisprudence canadienne et greffes du Québec ».
+  « MCP Jurisprudence ».
 - ~~Créer une règle de limitation de débit au tableau de bord~~ — **fait, mais autrement**
   (2026-07-23). La limitation de débit de §9.3 est implémentée **dans le Worker**
   (binding `ratelimits`, 60 requêtes/minute par IP), et non par une règle WAF de zone :

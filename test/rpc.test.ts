@@ -528,7 +528,10 @@ describe("§8 — méthodes JSON-RPC", () => {
     const res = await appeler(rpc("initialize", { protocolVersion: "2025-03-26" }));
     const body = (await res.json()) as { result: Record<string, unknown> };
     expect(body.result.protocolVersion).toBe("2025-03-26");
-    expect(body.result.serverInfo).toMatchObject({ name: "jurisprudence-canlii" });
+    expect(body.result.serverInfo).toMatchObject({
+      name: "mcp-jurisprudence",
+      title: "MCP Jurisprudence",
+    });
     expect(body.result.capabilities).toEqual({ tools: { listChanged: false } });
   });
 

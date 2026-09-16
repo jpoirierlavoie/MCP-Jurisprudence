@@ -1,8 +1,8 @@
 {
-  "name": "jurisprudence-canlii",
+  "name": "mcp-jurisprudence",
   "version": "0.2.0",
   "private": true,
-  "description": "Serveur MCP « Jurisprudence canadienne et greffes du Québec » — Worker Cloudflare, lecture seule.",
+  "description": "Serveur MCP « MCP Jurisprudence » — jurisprudence canadienne et greffes du Québec. Worker Cloudflare, lecture seule.",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
