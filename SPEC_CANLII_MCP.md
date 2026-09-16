@@ -1,6 +1,6 @@
 # Spécification — Connecteur MCP « MCP Jurisprudence »
 
-*Renommé le 2026-09-16. Le connecteur s'intitulait « +N+ » ; ce libellé reste la description du connecteur, il n'en est plus le nom.*
+*Renommé le 2026-09-16. Le connecteur s'intitulait « Jurisprudence canadienne et greffes du Québec » ; ce libellé reste sa DESCRIPTION — il n'en est plus le nom. L'identifiant de `serverInfo` a suivi : `jurisprudence-canlii` est devenu `mcp-jurisprudence` (§8).*
 
 **Destinataire :** Claude Code
 **Auteur de la spéc. :** (préparé pour Jason Poirier Lavoie)
