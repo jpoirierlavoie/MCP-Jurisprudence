@@ -1,0 +1,95 @@
+name: verifier-deploiement
+
+# CONTRÔLE DE DÉRIVE — il REGARDE, il ne déploie rien et ne le peut pas.
+#
+# ╔═════════════════════════════════════════════════════════════════════════════╗
+# ║ Le déploiement est MANUEL depuis le 2026-09-16 (§12), par choix : confier à ║
+# ║ un tiers un pouvoir d'ÉCRITURE sur l'infrastructure — appliquer des         ║
+# ║ migrations, remplacer le Worker — ne valait pas la commodité. Mais le       ║
+# ║ manuel a un coût, et il faut le payer plutôt que l'ignorer : RIEN ne        ║
+# ║ signale qu'un commit est poussé sans être en ligne. L'écart se tient de     ║
+# ║ mémoire, et un écart tenu de mémoire dure plus longtemps qu'on ne croit.    ║
+# ║                                                                             ║
+# ║ Ce workflow paie ce coût sans rouvrir ce qui a été refusé. Il n'a AUCUN     ║
+# ║ secret, AUCUN jeton, et `permissions: contents: read`. Tout ce qu'il fait   ║
+# ║ est un GET sur un point d'entrée public, et une comparaison de chaînes.     ║
+# ║ Surveiller sans rien pouvoir écrire : c'est exactement le compromis         ║
+# ║ inverse de celui qui a été écarté.                                          ║
+# ╚═════════════════════════════════════════════════════════════════════════════╝
+#
+# ⚠ PAS DE DÉCLENCHEMENT SUR `push`, et c'est délibéré. Juste après une poussée, la
+#   production est forcément en retard — le contrôle serait rouge à chaque commit,
+#   pour une raison normale. C'est exactement le mode de panne qui a fait vivre
+#   dix-neuf échecs sans que personne les regarde : un feu rouge permanent auquel on
+#   cesse de croire. Une fois par jour, un rouge veut dire quelque chose.
+#
+# ⚠ UN ROUGE ICI SIGNIFIE « À DÉPLOYER », PAS « CASSÉ ». La production sert toujours ;
+#   elle sert simplement une version antérieure. Le remède est `npm run deploy`.
+
+on:
+  schedule:
+    # Une fois par jour, 11h23 UTC — en semaine comme en fin de semaine : un retard de
+    # déploiement ne s'interrompt pas le samedi.
+    - cron: "23 11 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verifier-deploiement
+  cancel-in-progress: true
+
+jobs:
+  comparer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
+        with:
+          egress-policy: audit
+
+      # Aucun `checkout` : on n'a besoin ni du code, ni de l'historique. `github.sha`
+      # porte déjà le commit de tête de la branche par défaut. Moins on télécharge,
+      # moins il y a de surface.
+      - name: La version en ligne est-elle celle de main ?
+        env:
+          ATTENDU_LONG: ${{ github.sha }}
+          SANTE: https://jurisprudence.poirierlavoie.ca/health
+        run: |
+          set -euo pipefail
+          attendu="${ATTENDU_LONG:0:7}"
+
+          code=$(curl -sS --max-time 20 -o /tmp/sante.json -w '%{http_code}' "$SANTE" || echo 000)
+
+          # TROIS ISSUES DISTINCTES, et elles ne se confondent pas. Les mélanger
+          # rendrait ce contrôle aussi muet que celui qu'il remplace.
+          if [ "$code" = "000" ]; then
+            echo "::error title=Le point d'entrée de santé est injoignable::Aucune conclusion possible sur la version en ligne. Ce n'est PAS une dérive — c'est une absence de mesure, et la distinguer est tout l'objet de ce contrôle."
+            exit 1
+          fi
+          if [ "$code" = "404" ]; then
+            echo "::error title=Le connecteur est COUPÉ (MCP_ENABLED=false)::/health rend 404 par le coupe-circuit de §8. La version en ligne n'est pas interrogeable tant qu'il est baissé ; rien ne peut être conclu sur la dérive."
+            exit 1
+          fi
+          if [ "$code" != "200" ]; then
+            echo "::error title=/health a répondu ${code}::Ni « à jour » ni « en retard » : la mesure elle-même a échoué."
+            exit 1
+          fi
+
+          enligne=$(jq -r '.commit // "absent"' /tmp/sante.json)
+
+          if [ "$enligne" = "absent" ] || [ "$enligne" = "inconnu" ]; then
+            echo "::error title=La version en ligne n'annonce pas son commit::Elle n'est pas passée par « npm run deploy » — ou elle est antérieure au 2026-09-16, date où cette annonce a été posée. On ne sait donc PAS de quel commit elle sort, et ce contrôle refuse de conclure plutôt que de supposer qu'elle est à jour. Un « npm run deploy » le rétablit."
+            exit 1
+          fi
+
+          if [ "$enligne" = "$attendu" ]; then
+            echo "::notice title=Production à jour::La version en ligne est le commit ${attendu}, dernier de main."
+            exit 0
+          fi
+
+          echo "::error title=La production est en retard sur main::En ligne : ${enligne}. Dernier commit de main : ${attendu}. La production SERT TOUJOURS — elle sert une version antérieure. Remède : « npm run deploy » (migrations puis Worker, §12)."
+          echo "Comparer les deux : https://github.com/${GITHUB_REPOSITORY}/compare/${enligne}...${attendu}"
+          exit 1

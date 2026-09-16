@@ -72,6 +72,13 @@
   "vars": {
     // Coupe-circuit : "false" => toute route MCP renvoie 404, /health compris.
     "MCP_ENABLED": "true",
+    // Commit dont la version en ligne est issue, ANNONCÉ par /health (§8).
+    // Cette valeur-ci est le DÉFAUT — celle d'un `wrangler dev`, ou d'un déploiement
+    // fait sans passer par `npm run deploy`. La vraie est posée à la volée par
+    // `scripts/deployer.mjs`, en `--var COMMIT:<sha>`. « inconnu » n'est donc pas un
+    // remplissage : c'est un AVEU, et le contrôle de dérive le traite comme tel —
+    // il refuse de conclure plutôt que de supposer que la production est à jour.
+    "COMMIT": "inconnu",
     // Étranglement sortant. Le quota de CanLII n'est pas publié (§16.2) : ces valeurs
     // sont délibérément prudentes et se resserrent, jamais l'inverse, sans mesure.
     "CANLII_MIN_INTERVAL_MS": "600",

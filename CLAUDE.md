@@ -130,7 +130,7 @@ table en mémoire (aucune E/S). Ne pas fusionner.
 ```bash
 npx wrangler types && npx tsc --noEmit     # toujours avant commit
 npx biome check .                          # --write pour corriger
-npx vitest run                             # 468 tests, sans réseau ni clef
+npx vitest run                             # 469 tests, sans réseau ni clef
 npx wrangler dev                           # exige .dev.vars
 npx wrangler deploy --dry-run              # valide paquet + config, sans jeton
 npx wrangler d1 migrations apply canlii --local
@@ -140,9 +140,19 @@ node scripts/refresh-databases.mjs --remote --sql   # réconciliation §4.3
 
 **Déploiement — MANUEL, et c'est assumé** (§12 ; le déploiement automatique a été retiré le
 2026-09-16 après dix-neuf échecs et zéro mise en ligne). **Les migrations passent d'abord,
-sans exception** — et c'est désormais `npm run deploy` qui le garantit : il enchaîne
-`db:migrate:remote` puis `wrangler deploy`, et s'arrête au premier échec. Ne pas appeler
-`npx wrangler deploy` directement : c'est l'ordre inverse.
+sans exception** — et c'est `npm run deploy` qui le garantit, via `scripts/deployer.mjs`.
+Ne pas appeler `npx wrangler deploy` directement : c'est l'ordre inverse.
+
+Ce script fait trois choses qu'une ligne de `package.json` ne saurait faire : il **refuse
+un arbre sale** — le Worker annonce son commit sur `/health`, et déployer un arbre modifié
+ferait annoncer un commit qui ne décrit pas le code en ligne ; il **passe le commit** au
+déploiement (`--var COMMIT:<sha>`) ; et il marche **sous Windows**, où `$(git rev-parse)`
+dans un script npm ne s'évalue pas.
+
+**Le contrôle de dérive** (`.github/workflows/verifier-deploiement.yml`) compare chaque jour
+la version en ligne au dernier commit de `main`. Aucun secret, aucun jeton,
+`contents: read` : il REGARDE, il ne déploie rien et ne le peut pas. Un rouge y signifie
+« à déployer », jamais « cassé ».
 
 Le jeton d'API Cloudflare vit dans `cf.token` (gitignoré) : il se LIT dans une variable
 d'environnement, il ne s'affiche pas — un `cat` ou une capture de terminal le publient
@@ -364,7 +374,7 @@ qu'elle vaudra encore le jour où l'on voudra rouvrir la question (§12).
 
 ## État
 
-**Livré et en production** sur `jurisprudence.poirierlavoie.ca`, 468 tests verts en quinze
+**Livré et en production** sur `jurisprudence.poirierlavoie.ca`, 469 tests verts en quinze
 fichiers. Treize outils — dix `jurisprudence_*`, trois `greffe_*`/`palais_*` — et une page
 publique bilingue sur la même origine (§18). La version en ligne (`f6bab151`, 2026-09-16)
 a été déployée **à la main**, comme toutes celles qui l'ont précédée. Le déploiement
