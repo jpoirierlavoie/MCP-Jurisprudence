@@ -6,7 +6,7 @@
 **Auteur de la spéc. :** (préparé pour Jason Poirier Lavoie)
 **Cible :** nouveau dépôt autonome — Worker Cloudflare, D1, TypeScript
 **Modèle de référence :** le Worker `legislation` / base D1 `qclaw` (connecteur « Législation du Québec »)
-**Statut :** prêt à implémenter — lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code
+**Statut :** **livré et en production** sur `jurisprudence.poirierlavoie.ca` — treize outils, 468 tests, page publique bilingue. *Amendé le 2026-09-16 ; l'en-tête portait « prêt à implémenter », vrai jusqu'au premier déploiement du 2026-07-23 et faux depuis.* Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
 
 ---
 
@@ -77,7 +77,7 @@ Un vérificateur de citations qui promet plus qu'il ne tient est **pire qu'aucun
 ### 3.1 Vue d'ensemble
 
 ```
-claude.ai / Claude Code / Athéna (plus tard)
+claude.ai / Claude Code      (Athéna : client du 2026-08-27 au 2026-09-02, retiré — §19)
         │  POST /mcp/<secret>   (JSON-RPC 2.0, un message par requête)
         ▼
 ┌──────────────────────────────────────────────┐
@@ -153,12 +153,22 @@ arrivés après la rédaction initiale : ils figurent ici, à leur place.*
 ├── migrations/
 │   ├── 0001_initial.sql
 │   ├── 0002_seed_court_codes.sql
-│   └── 0003_reconcile_court_codes.sql   # §4.3, avec sa preuve d'observation
+│   ├── 0003_reconcile_court_codes.sql   # §4.3, avec sa preuve d'observation
+│   └── 0004_rename_tool_prefix.sql      # 2026-09-16 — rattrape la DONNÉE déjà écrite
+│                                        #   sous `canlii_*` : search_log.tool et
+│                                        #   court_codes.note. Aucun schéma touché.
 ├── scripts/
 │   ├── mcp-client.mjs        # client de recette (§14) — ne divulgue jamais le secret
 │   ├── refresh-databases.mjs # réconciliation du répertoire (§4.3)
 │   └── extraire-lieux-mjq.mjs # transcription du relevé MJQ (§17.6 : générée, non recopiée)
-├── test/                     # 443 tests, sans réseau ni clef
+├── test/                     # 468 tests en 15 fichiers, sans réseau ni clef
+│   ├── citation.parse.test.ts · citation.compare.test.ts · verify.test.ts
+│   ├── client.test.ts · rpc.test.ts · persist.test.ts · tools.test.ts
+│   ├── qc.tables.test.ts · qc.outils.test.ts · qc.dossier.test.ts
+│   ├── qc.dossier.differentiel.test.ts   # 127 entrées rejouées contre Athéna
+│   ├── site.test.ts · garde.test.ts · backfill.test.ts
+│   ├── doc.test.ts           # README contre REGISTRE (§13) — remplace la porte shell
+│   └── fixtures/             # réponses JSON figées + dossier-athena.json
 │   ├── citation.parse.test.ts · citation.compare.test.ts · verify.test.ts
 │   ├── client.test.ts · rpc.test.ts · persist.test.ts · tools.test.ts
 │   ├── qc.tables.test.ts · qc.outils.test.ts · qc.dossier.test.ts
@@ -205,9 +215,22 @@ arrivés après la rédaction initiale : ils figurent ici, à leur place.*
     "CANLII_TIMEOUT_MS": "15000",
     "PERSIST_SWEEPS": "true",
     "BACKFILL_ENABLED": "false",
-    "DEFAULT_LANG": "fr"
-  }
+    "BACKFILL_DATABASES": "qcca,qccs,qccq,qctal",
+    "DEFAULT_LANG": "fr",
+    // Origines de navigateur admises EN PLUS de claude.ai et claude.com, séparées par
+    // des virgules ; vide en temps normal. Toute origine de navigateur absente de la
+    // liste est refusée par un 403 (§9.6).
+    "ALLOWED_ORIGINS": ""
+  },
+  // Limitation de débit (§9.3) : DANS le Worker, jamais par une règle WAF de zone —
+  // une expression WAF viserait un chemin qui CONTIENT le secret partagé.
+  "ratelimits": [
+    { "name": "RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 60, "period": 60 } }
+  ]
 }
+```
+
+*Bloc relevé sur le `wrangler.jsonc` versionné le 2026-09-16 ; en cas d'écart, **le fichier fait foi** — c'est lui que Cloudflare lit.*
 ```
 
 > **Création de la base :** `wrangler d1 create canlii --location enam` — `enam` (est de l'Amérique du Nord) est le repère de localisation le plus proche de Montréal. Aucune contrainte de résidence des données ne s'applique ici : rien de confidentiel n'y transite (§9.5).
@@ -220,7 +243,7 @@ arrivés après la rédaction initiale : ils figurent ici, à leur place.*
 |---|---|---|
 | `CANLII_API_KEY` | secret (`wrangler secret put`) | Clef d'API CanLII. **Jamais journalisée, jamais renvoyée, jamais dans une trace.** |
 | `MCP_SHARED_SECRET` | secret | 32 octets aléatoires en hexadécimal (`openssl rand -hex 32`). |
-| `MCP_SHARED_SECRET_ATHENA` | secret, **facultatif** | Second porteur du même point d'entrée, aux droits identiques : le clavardage de Pallas Athéna. Distinct pour être **révocable seul** (§9.1). Absent ⇒ un seul porteur admis. |
+| `MCP_SHARED_SECRET_ATHENA` | secret, **facultatif** | Second porteur du même point d'entrée, aux droits identiques. Distinct pour être **révocable seul** (§9.1). Absent ⇒ un seul porteur admis. **Sans porteur depuis le 2026-09-02** : il servait le clavardage de Pallas Athéna, retiré de son dépôt ce jour-là (§19). Conservé — il ne coûte rien et n'ouvre aucun droit de plus — mais plus aucun client réel ne signalerait qu'on a cassé la forme par en-tête. | Distinct pour être **révocable seul** (§9.1). Absent ⇒ un seul porteur admis. |
 | `MCP_ENABLED` | var | Coupe-circuit : `"false"` ⇒ toute route MCP renvoie `404`. Calque `MCP_ENABLED` d'Athéna. |
 | `CANLII_MIN_INTERVAL_MS` | var | Intervalle minimal entre deux appels sortants. |
 | `CANLII_MAX_CALLS_PER_INVOCATION` | var | Plafond d'appels sortants par invocation d'outil. |
@@ -415,7 +438,9 @@ INSERT INTO paren_codes (juris_code, court_code, database_id, verified) VALUES
   ('CA', 'CSC', 'csc-scc', 1);
 ```
 
-> **Tâche d'amorçage obligatoire après le premier déploiement.** Exécuter `scripts/refresh-databases.ts` (ou l'outil `jurisprudence_list_databases` avec `refresh: true`), puis réconcilier `court_codes.database_id` contre les `databaseId` réellement renvoyés par `caseBrowse/fr/`. **Ne pas livrer les lignes fédérales `verified = 0` sans cette réconciliation** ; si un `databaseId` amorcé n'existe pas au répertoire, corriger la ligne et passer `verified = 1`.
+> **Tâche d'amorçage — FAITE le 2026-07-23, conservée pour qui repart d'une base neuve.** Exécuter `scripts/refresh-databases.mjs --remote --sql` — extension `.mjs` et non `.ts` : le dépôt n'embarque aucun exécuteur TypeScript (D2), et la commande donnée jusqu'au 2026-09-16 ne s'exécutait donc pas. Ou l'outil `jurisprudence_list_databases` avec `refresh: true`. Puis réconcilier `court_codes.database_id` contre les `databaseId` réellement renvoyés par `caseBrowse/fr/`. **Ne pas livrer les lignes fédérales `verified = 0` sans cette réconciliation** ; si un `databaseId` amorcé n'existe pas au répertoire, corriger la ligne et passer `verified = 1`.
+>
+> La réconciliation menée contre l'API vivante a démenti **cinq** hypothèses d'amorçage — `caf-fca` et `cf-fc` n'existent pas (les vraies bases sont `fca` et `fct`), le fragment français est `cci` et non `tcc`, et le TAL a gardé le `databaseId` de la Régie du logement (`qcrdl`). Elle est consignée AVEC sa preuve d'observation dans `migrations/0003_reconcile_court_codes.sql` et verrouillée par `test/persist.test.ts`, de sorte qu'une réapplication de 0002 seule sur une base neuve ne puisse pas ressusciter les hypothèses fausses. La refaire sans relire 0003, c'est risquer de réécrire par une hypothèse ce qu'une observation a tranché.
 
 ---
 
@@ -704,6 +729,9 @@ Aucun appel sortant, aucune écriture. Utile au débogage de la table `court_cod
 | `/mcp/<secret>/<suite>` | `POST` | **Identique si le secret contient `/`** — la profondeur est conservée, on ne borne pas à un segment (§9.1) |
 | `/mcp` · `/mcp/` | `POST` | `401` + `WWW-Authenticate: Bearer` — **sauf** si l'en-tête `Authorization` porte un secret admis |
 | `/mcp/<chemin mal encodé>` | `POST` | `401` — **jamais `500`** (§9.1) |
+| `/mcp*` | `OPTIONS` | Pré-vol CORS, répondu **avant** l'authentification lorsque l'`Origin` est admise — un pré-vol ne porte aucun secret ; l'exiger casserait le connecteur sans rien protéger (§9.6) |
+| `/mcp*` | toute méthode | `403` si l'en-tête `Origin` est présent et inconnu — ré-attachement DNS (§9.6). `Origin` absent (serveur à serveur) ⇒ admis |
+| `/mcp*` | toute méthode | `429` + `Retry-After` au-delà de 60 requêtes/minute par IP : **après** le pré-vol, **avant** le contrôle de méthode et l'authentification (§9.3) |
 | `/mcp*` | `GET`, `DELETE` | `405` — aucun flux SSE, aucune session |
 | `/health` | `GET` | `200 {"status":"ok"}` — sans authentification, sans divulgation |
 | tout le reste | — | `404` |
@@ -712,7 +740,9 @@ Aucun appel sortant, aucune écriture. Utile au débogage de la table `court_cod
 
 **Méthodes JSON-RPC :** `initialize`, `notifications/initialized` (⇒ `202`, corps vide), `tools/list`, `tools/call`, `ping`. Toute autre méthode ⇒ `-32601`.
 
-`initialize` : négocier `protocolVersion` (accepter `2025-06-18` et `2025-03-26` ; renvoyer la plus élevée commune) ; `serverInfo: { name: "mcp-jurisprudence", title: "MCP Jurisprudence", version: <package.json> }` *(identifiant et libellé renommés le 2026-09-16 ; l'identifiant s'écrivait `jurisprudence-canlii`)* ; `capabilities: { tools: {} }`.
+`initialize` : négocier `protocolVersion` (accepter `2025-06-18` et `2025-03-26` ; renvoyer la plus élevée commune) ; `initialize` : négocier `protocolVersion` (accepter `2025-06-18` et `2025-03-26` ; renvoyer la plus élevée commune) ; `serverInfo: { name: "mcp-jurisprudence", title: "MCP Jurisprudence", version }` *(identifiant et libellé renommés le 2026-09-16 ; l'identifiant s'écrivait `jurisprudence-canlii`)* ; `capabilities: { tools: {} }`.
+
+⚠ **`version` est aujourd'hui un LITTÉRAL recopié de `package.json` dans `SERVER_INFO` (`src/mcp/registry.ts`) — constaté le 2026-09-16.** La rédaction antérieure prescrivait « `version: <package.json>` » : elle décrivait une intention que le code n'a jamais eue, le paquet du Worker n'important pas `package.json`. Les deux valeurs coïncident (`0.2.0`) et rien ne les tient ensemble ; le premier `npm version` les fera diverger **en silence**, et le client recevra une version qui n'est celle d'aucune livraison. Deux sorties acceptables, une seule à choisir : importer la valeur (`resolveJsonModule`), ou l'épingler par un test qui confronte `SERVER_INFO.version` au `package.json` lu en `?raw` — comme `test/doc.test.ts` confronte déjà le registre au README. Tant que ni l'une ni l'autre n'est faite, la présente ligne décrit un littéral, et surtout pas un emprunt. *(identifiant et libellé renommés le 2026-09-16 ; l'identifiant s'écrivait `jurisprudence-canlii`)* ; `capabilities: { tools: {} }`.
 
 **Enveloppe de résultat**, calquée sur `mcp/tools.py` d'Athéna :
 
@@ -760,8 +790,12 @@ Le secret est accepté sous deux formes, afin de couvrir tous les clients, et **
 §19). Le second est facultatif ; absent, un seul porteur est admis et le comportement
 est celui d'avant. Ils ne délimitent aucun périmètre — ce que protège D7 reste la clef
 d'API et son quota — et n'existent séparément que pour la **révocation** : faire
-tourner le secret de claude.ai ne doit pas éteindre le clavardage du cabinet, ni
-l'inverse. Corollaires : le Worker reste **fermé par défaut** (aucun secret configuré ⇒
+tourner le secret de claude.ai ne devait pas éteindre le clavardage du cabinet, ni
+l'inverse. *Amendé le 2026-09-16 : ce clavardage a été retiré le 2026-09-02 (§19) et
+`MCP_SHARED_SECRET_ATHENA` n'a plus de porteur. La règle ne bouge pas — le second secret
+reste admis, et elle vaudra pour le prochain client — mais son témoin vivant a disparu :
+depuis cette date, la forme par en-tête n'est couverte que par `test/rpc.test.ts` et par
+un `curl` à la main, à refaire explicitement après toute retouche de la garde d'entrée.* Corollaires : le Worker reste **fermé par défaut** (aucun secret configuré ⇒
 tout est refusé), les deux échecs rendent le **même** `401`, et aucune réponse ni aucune
 trace ne dit lequel a servi.
 
@@ -788,7 +822,13 @@ L'URL complète d'une requête entrante contient le secret. **Ne jamais journali
 
 ### 9.3 Étranglement au bord
 
-Ajouter dans le tableau de bord Cloudflare une règle de limitation de débit sur `jurisprudence.poirierlavoie.ca` : **60 requêtes/minute par IP**, action « bloquer ». Défense en profondeur si le secret fuit.
+### 9.3 Étranglement au bord
+
+*Amendée le 2026-09-16, sur constat du code livré. La rédaction du 2026-07-15 disait : « Ajouter dans le tableau de bord Cloudflare une règle de limitation de débit sur `jurisprudence.poirierlavoie.ca` : 60 requêtes/minute par IP, action “bloquer”. » Elle est citée et non effacée : la MESURE est inchangée, seul son lieu a changé — et personne n'a jamais créé cette règle de zone.*
+
+La limitation vit **dans le Worker**, par le binding `ratelimits` de `wrangler.jsonc` (`RATE_LIMITER`, 60 requêtes / 60 s), et non par une règle WAF. Trois motifs, dans l'ordre croissant : la règle est versionnée, relue en revue et éprouvée par des tests ; le binding ne dépend pas du forfait de la ZONE ; et surtout une expression WAF viserait `/mcp` **par un motif de chemin**, or ce chemin porte le secret partagé (D7) et une expression WAF se lit au tableau de bord comme dans les journaux d'audit — la défense en profondeur aurait publié ce qu'elle protège.
+
+Ordre d'application, délibéré des deux côtés : **après** le pré-vol CORS — un `429` sur un pré-vol ne parvient au navigateur que sous la forme d'un échec CORS, illisible — et **avant** le contrôle de méthode et l'authentification, pour qu'une rafale mal authentifiée cesse de coûter, ce qui est l'objet même de la mesure. Deux limites énoncées plutôt que découvertes : le compteur est **local à chaque emplacement** Cloudflare (60/min par point de présence : protection contre l'emballement et le coût, non contre un attaquant réparti) et le compte n'est qu'éventuellement cohérent. Binding absent ou en panne ⇒ **la requête passe** : un connecteur juridique devenu muet est un défaut plus grave qu'une rafale non comptée, et l'authentification, elle, reste fermée par défaut. Défense en profondeur si le secret fuit.
 
 ### 9.4 Chemin d'évolution vers OAuth 2.1
 
@@ -800,12 +840,24 @@ Ce connecteur est, sur ce plan, exceptionnellement propre : ce qui sort de l'inf
 
 **Une seule réserve, à documenter dans le README** : `jurisprudence_find_case` prend des **noms de parties**. Si ce nom est celui d'une partie à un dossier en cours plutôt que celui d'une décision publiée, la requête révèle à CanLII un intérêt de recherche. Le risque est faible — CanLII est un organisme sans but lucratif canadien, et la recherche jurisprudentielle nominative est l'usage normal du site — mais il n'est pas nul, et il mérite d'être connu plutôt que découvert.
 
+### 9.6 Contrôle d'origine — défense contre le ré-attachement DNS
+
+*Ajoutée le 2026-09-16. Le contrôle existait dans `src/index.ts` depuis l'origine, six tests de `test/rpc.test.ts` le tiennent, et §18.2 y renvoyait déjà — vers un numéro qui n'avait jamais été écrit. Une règle vivante sans section est une règle qu'on retire « par simplification » sans trouver personne qui l'ait défendue.*
+
+Sur `/mcp*`, un en-tête `Origin` **présent mais inconnu** est refusé d'emblée par un `403`, avant le pré-vol, avant la limitation de débit et avant l'authentification. Les origines admises sont `https://claude.ai` et `https://claude.com`, plus celles qu'ajoute la variable `ALLOWED_ORIGINS` (liste séparée par des virgules, vide en temps normal) : elles s'**ajoutent**, elles ne remplacent pas.
+
+Une origine **absente** passe, et ce n'est pas un relâchement : un appel serveur à serveur n'est pas soumis à la politique de même origine et ne peut donc pas être détourné de cette façon. C'est le trajet de `scripts/mcp-client.mjs` — et c'était celui du clavardage retiré le 2026-09-02 (§19).
+
+Trois corollaires, tous testés. Le **pré-vol** `OPTIONS` est répondu **sans** exiger de porteur : un navigateur n'en envoie jamais sur un pré-vol, et l'exiger casserait le connecteur sans rien protéger. Un `401` porte lui aussi les en-têtes CORS, faute de quoi le navigateur rapporte un échec de CORS au lieu du refus réel — un défaut indiscernable d'une panne. Et `Vary: Origin` accompagne toute réponse reflétée, sans quoi un cache intermédiaire resservirait à une origine la réponse calculée pour une autre. La page publique de §18 est **délibérément hors** de ce contrôle (§18.2, point 1).
+
 ---
 
 ## 10. Observabilité
 
 - `observability: { enabled: true }` dans `wrangler.jsonc` ; consultation par `wrangler tail`.
-- **Une ligne `search_log` par invocation d'outil**, y compris en cas de succès : c'est la matière première du réglage de l'analyseur. Les échecs (`result_count = 0`) sont indexés séparément.
+- **Une ligne `search_log` par invocation d'outil qui TOUCHE D1**, succès compris : un succès non consigné rend les échecs inexploitables faute de dénominateur. Les échecs (`result_count = 0`) sont indexés séparément.
+
+  **Quatre outils sur treize n'écrivent rien, par construction et non par omission** (constaté le 2026-09-16) : `greffe_parse_court_file_number`, `palais_list` et `palais_get` sont purs — aucune lecture D1, donc aucune écriture (§17.6) — et `jurisprudence_parse_citation` ne fait aucun appel sortant. Leur silence dans `search_log` ne se lit donc pas comme un défaut d'usage, et **on ne le corrige pas** : leur ouvrir D1 pour les compter échangerait une statistique contre la disponibilité qui est leur seule garantie. Les échecs (`result_count = 0`) sont indexés séparément.
 - **`api_usage`** incrémentée à chaque appel sortant (`calls`), erreur (`errors`) et `429` (`throttled`). Requête d'exploitation :
 
 ```sql
@@ -825,7 +877,7 @@ GROUP BY query ORDER BY n DESC LIMIT 50;
 
 ## 11. Moissonnage planifié — facultatif, désactivé par défaut
 
-**Ne pas activer sans la détermination de §16.1.**
+**§16.1 est TRANCHÉE (2026-07-23) : pas de moissonnage de masse. Ne pas basculer `BACKFILL_ENABLED`, même « pour essayer ».** *La rédaction du 2026-07-15 disait : « Ne pas activer sans la détermination de §16.1 » — elle décrivait une attente ; la réponse est venue, et elle est négative.* Ce n'est donc plus une condition suspendue mais une décision du praticien, tenue par deux verrous : le drapeau à `"false"` et l'absence de tout cron quotidien. Ce qui suit reste écrit, testé et **inerte**, parce qu'une conception documentée se relit tandis qu'un code supprimé se réinvente de travers.
 
 Motif : un index local complet des cours du Québec rendrait `jurisprudence_find_case` instantané et fiable, au lieu de dépendre d'un balayage. La documentation de l'API paraît prévoir cet usage — les filtres `changedAfter` / `modifiedAfter` n'ont guère d'autre raison d'être que la tenue à jour d'une copie locale, et `resultCount` monte à 10 000. Cela reste une **lecture de la documentation, non une autorisation**.
 
@@ -855,6 +907,10 @@ Dépôt GitHub distinct, calqué sur les protections d'Athéna : **actions épin
 | `.github/workflows/deploy.yml` | Sur `push` vers `main` : `wrangler d1 migrations apply canlii --remote` **puis** `wrangler deploy` |
 
 **Ordre impératif dans `deploy.yml` : les migrations d'abord, le déploiement ensuite.** Le schéma inverse déploie du code qui lit des colonnes inexistantes. Secret de dépôt : `CLOUDFLARE_API_TOKEN` (portée : édition des Workers + D1 sur le seul compte visé).
+
+⚠ **`deploy.yml` n'a JAMAIS abouti, et le déploiement réel est MANUEL — constaté le 2026-09-16.** Dix-sept exécutions depuis le 2026-07-23, dix-sept échecs, toujours à l'étape « Migrations D1 (AVANT le déploiement) » ; l'étape « Déploiement » qui la suit dans le même job a donc toujours été SAUTÉE. Aucune version en production n'est sortie de la CI — celle du 2026-09-16 (`f6bab151`) pas plus que les autres. **Cause la plus probable, non encore confirmée : le jeton ouvre DEUX comptes Cloudflare et `wrangler` ne sait pas en choisir un en mode non interactif ; il manque vraisemblablement un `CLOUDFLARE_ACCOUNT_ID` dans l'environnement des deux étapes.** La marche à suivre réelle est celle de §14, étape 6.
+
+Le mode de panne à nommer est celui de l'illusion, non celui de la panne : un workflow rouge se voit, mais une spécification qui le désigne comme la voie de déploiement fait croire qu'un `git push` met en ligne. Il ne met rien en ligne. **Deux issues, et une seule à choisir : réparer `deploy.yml` (nommer le compte, revérifier la portée du jeton), ou le retirer.** Un workflow de déploiement conservé « pour mémoire » mais jamais vert est un feu rouge permanent auquel on cesse de croire — y compris le jour où il échouera pour une autre raison.
 
 ---
 
@@ -892,9 +948,13 @@ Dépôt GitHub distinct, calqué sur les protections d'Athéna : **actions épin
 
 **Contrat de vérité (test de garde) :** pour chaque outil heuristique, assertion que la sortie **contient** sa mise en garde. Ce test empêche qu'une refonte du gabarit la fasse disparaître silencieusement.
 
+**Documentation (`doc.test.ts`) — le README contre le REGISTRE.** Ajouté le 2026-09-16, en remplacement de la confrontation `diff` de deux `grep` qui vivait dans `CLAUDE.md`. Cette commande FILTRAIT ses deux côtés par une liste de préfixes écrite à la main (`(canlii|greffe|palais)_`) : le jour du renommage, les deux côtés se sont réduits au même sous-ensemble de trois outils, sont restés égaux, et `diff` aurait rendu 0 — « aucune dérive » affirmé sans avoir regardé dix outils sur treize, et aussi longtemps que personne ne l'aurait relue. On ne répare pas cela en corrigeant la liste : on la corrigerait cette fois, et le prochain renommage rouvrirait le même trou au même endroit. Le test prend `TOOLS` **lui-même** pour l'un de ses deux côtés — non vide par construction, sa longueur (13) affirmée AVANT tout le reste — et le texte du README pour l'autre, lu en `?raw`, sans aucune liste de préfixes. Il éprouve aussi le compte écrit **en toutes lettres**, qui vieillit autrement sans bruit. Ce test empêche qu'une refonte du gabarit la fasse disparaître silencieusement.
+
 ---
 
-## 14. Déploiement — marche à suivre
+## 14. Mise en service — marche à suivre, et ce qu'elle est devenue
+
+*Les onze étapes ont TOUTES été franchies ; le connecteur est en production depuis le 2026-07-23. La liste est conservée — datée et corrigée sur place le 2026-09-16 — parce qu'elle sert deux fois : à repartir d'une base neuve, et à savoir ce qui a été fait le jour où une étape se révèle fausse. Trois ont bougé : la 4 (son second porteur n'a plus de client, §19), la 6 (le déploiement est manuel, §12) et la 10 (la limitation de débit voyage désormais avec le Worker, §9.3).*
 
 1. Demander la clef d'API par le formulaire de commentaires de CanLII, en décrivant l'usage : outil interne de vérification de références pour une pratique d'avocat au Québec. **Y poser les questions de §16.1 et §16.2 dans le même message.**
 2. `wrangler d1 create canlii --location enam` ; reporter l'`database_id` dans `wrangler.jsonc`.
@@ -902,11 +962,19 @@ Dépôt GitHub distinct, calqué sur les protections d'Athéna : **actions épin
 4. `wrangler secret put CANLII_API_KEY` ; `openssl rand -hex 32` puis `wrangler secret put MCP_SHARED_SECRET`. **Un second porteur, facultatif** (§19) : refaire l'opération pour `MCP_SHARED_SECRET_ATHENA`. ⚠ Le secret doit être transmis **octet pour octet** aux deux systèmes qui le portent : un saut de ligne final suffit à faire diverger les valeurs — donc un `401` permanent que rien n'explique. Sous Windows, `openssl` termine en CRLF et `tr -d '
 '` n'enlève que la moitié du problème.
 5. Créer l'enregistrement DNS `jurisprudence` sur la zone `poirierlavoie.ca` (domaine personnalisé du Worker — Cloudflare le gère).
-6. `wrangler deploy`.
+6. **Déployer — À LA MAIN, et non par la CI.** `deploy.yml` n'a jamais abouti (§12) : le jeton d'API est donc présenté localement, par l'environnement, et jamais écrit dans un fichier versionné.
+
+   ```powershell
+   $env:CLOUDFLARE_API_TOKEN = (Get-Content cf.token -Raw).Trim()
+   npx wrangler d1 migrations apply canlii --remote   # les migrations D'ABORD (§12)
+   npx wrangler deploy
+   ```
+
+   `cf.token` est **gitignoré**, au même titre que `.dev.vars` et `mcp.url`, et `.Trim()` n'est pas décoratif : un saut de ligne final dans un jeton produit un refus d'authentification que rien n'explique — le même piège qu'à l'étape 4. **L'ordre migrations → déploiement vaut ici autant qu'en CI** : passer à la main ne dispense pas de la règle, cela en retire seulement le garde-fou.
 7. **Amorçage du répertoire** : appeler `jurisprudence_list_databases` avec `refresh: true`, puis réconcilier `court_codes` et `paren_codes` (§4.3) ; passer `verified = 1` sur les lignes confirmées.
 8. **Recette manuelle** : vérifier `2008 CSC 9` (⇒ *Dunsmuir*), une décision de la Cour d'appel du Québec connue, une citation volontairement fausse (`2020 QCCA 999999` ⇒ `INTROUVABLE`), une citation de recueil (⇒ `NON CONSTRUCTIBLE` avec candidats).
 9. Ajouter le connecteur dans `claude.ai` : URL `https://jurisprudence.poirierlavoie.ca/mcp/<secret>`, nom « MCP Jurisprudence ».
-10. Activer la règle de limitation de débit (§9.3).
+10. **Rien à activer : la limitation de débit voyage avec le Worker** (§9.3) — binding `ratelimits` déclaré dans `wrangler.jsonc`, donc posé par l'étape 6 et non au tableau de bord. *Cette étape disait, du 2026-07-15 au 2026-09-16 : « Activer la règle de limitation de débit (§9.3). » Elle visait une règle WAF de zone qui n'a jamais été créée.* Vérifier plutôt qu'elle mord : plus de 60 requêtes en une minute doivent rendre `429` avec `Retry-After`, et un pré-vol `OPTIONS` ne doit JAMAIS être limité.
 11. Après une semaine d'usage : dépouiller `search_log` (§10) et corriger l'analyseur sur les formes réellement rencontrées.
 
 ---
@@ -922,7 +990,7 @@ Dépôt GitHub distinct, calqué sur les protections d'Athéna : **actions épin
 7. `src/qc/` — §17 : tables du Québec (palais, greffes, lieux du MJQ, juridictions, forums), analyseur de numéros de dossier, consultation en mémoire. **Constantes, aucune E/S, aucun D1.**
 8. `src/site.ts` + `src/site.i18n.ts` — §18 : la page publique bilingue, DÉRIVÉE des données vives.
 9. `src/backfill.ts` — §11, écrit et testé, **inerte** (invariant : la question est tranchée, pas ouverte).
-10. `migrations/0001_initial.sql`, `0002_seed_court_codes.sql`, `0003_reconcile_court_codes.sql` — la troisième consigne la réconciliation de §4.3 **avec sa preuve d'observation**.
+10. `migrations/0001_initial.sql`, `0002_seed_court_codes.sql`, `0003_reconcile_court_codes.sql`, `0004_rename_tool_prefix.sql` — la troisième consigne la réconciliation de §4.3 **avec sa preuve d'observation** ; la quatrième (2026-09-16, appliquée en production) rattrape la DONNÉE déjà écrite sous `canlii_*` (`search_log.tool`, `court_codes.note`) sans toucher au schéma : sans elle, la télémétrie de §10 serait coupée en deux séries à la date du renommage, dont aucune ne serait fausse et dont la somme ne serait faite nulle part.
 11. `scripts/` — `mcp-client.mjs` (recette), `refresh-databases.mjs` (réconciliation §4.3), `extraire-lieux-mjq.mjs` (transcription du relevé MJQ ; §17.6 : générée, jamais recopiée).
 12. `test/` — matrice de l'analyseur, comparaison, vérification, client, transport, persistance, tables du Québec, différentiel du parseur de dossiers, page publique, garde du contrat de vérité.
 13. `.github/workflows/` — 6 workflows + `dependabot.yml`, actions épinglées par SHA.
@@ -932,8 +1000,10 @@ Dépôt GitHub distinct, calqué sur les protections d'Athéna : **actions épin
 
 ## 16. Questions ouvertes pour le praticien
 
-*Relevé au 2026-08-27. Quatre des six sont closes ; on garde la question ET sa
-réponse, parce qu'une question effacée se repose.*
+*Relevé au 2026-08-27, recompté le 2026-09-16. **Cinq des six sont closes** — la 3
+l'était depuis le 2026-07-23 sans que la section l'enregistre ; seul le CHIFFRE de la 2
+reste ouvert, la conduite étant réglée. On garde la question ET sa réponse, parce qu'une
+question effacée se repose.*
 
 1. ~~**Conditions d'utilisation et copie locale.**~~ **TRANCHÉE le 2026-07-23 : pas de moissonnage de masse.** La sédimentation par l'usage (D6) reste ; le §11 reste **inerte**, et ce n'est plus une question ouverte mais une décision du praticien — ne pas basculer le drapeau, même « pour essayer ». Deux verrous : `BACKFILL_ENABLED="false"` et aucun cron quotidien déclaré.
 2. **Quota et débit — la question reste ouverte, la CONDUITE est réglée (2026-08-27).** Rien n'est publié, et la télémétrie de §10 a montré des `429` **récurrents** : 8 le 2026-08-24 pour 64 appels, 7 le 2026-08-20 pour 38 appels — soit un appel sur huit refusé puis rejoué, donc deux fois le quota pour un seul résultat. Trois mesures en réponse, décrites en §5.2 : intervalle porté de 250 à **600 ms**, intervalle **adaptatif** qui double à chaque `429`, et temporisation propre au `429` (2 s au lieu de 500 ms).
@@ -947,12 +1017,12 @@ réponse, parce qu'une question effacée se repose.*
    ```
 
    Le repère : `pct` était de 12 à 18 % les journées chargées d'août 2026. S'il ne descend pas nettement, relever encore `CANLII_MIN_INTERVAL_MS` — et si le connecteur devient lent sans être étranglé, c'est le signe inverse et l'on peut redescendre. **Ne jamais lire un `429` comme une erreur d'exactitude** : le client réessaie, §2 est préservé, et l'étranglement est désormais DIT au modèle plutôt que laissé à deviner.
-3. **Forfait Cloudflare Workers.** Sans objet pour §11, qui ne sera pas activé. Reste pertinent pour le **balayage vif** : le forfait gratuit plafonne à 50 sous-requêtes externes et 10 ms de CPU par invocation, et `jurisprudence_find_case` en consomme plusieurs. Aucun symptôme observé à ce jour.
+3. ~~**Forfait Cloudflare Workers.**~~ **TRANCHÉE : forfait PAYANT.** Sans objet pour §11, qui ne sera pas activé. Reste pertinent pour le **balayage vif** : le forfait gratuit plafonne à 50 sous-requêtes externes et 10 ms de CPU par invocation, et `jurisprudence_find_case` en consomme plusieurs. La confirmation vit dans `wrangler.jsonc`, au-dessus du bloc `limits`, et elle y est load-bearing : `limits` (30 s de CPU, 200 sous-requêtes) n'est honoré que sur le modèle d'usage Standard ; sur le forfait gratuit le bloc serait inopérant. Aucun symptôme de plafond observé à ce jour. Corollaire : **ne pas ramener `CANLII_MAX_CALLS_PER_INVOCATION` à 20 « par prudence »** — ce serait tronquer un balayage vivant pour parer un plafond qui ne s'applique pas.
 4. ~~**Modèle d'authentification.**~~ **RÉPONDUE : secret partagé (D7) maintenu.** Étendu le 2026-08-27 à un **second porteur** aux droits identiques, révocable seul (§9.1, §19). OAuth 2.1 (§9.4) reste conçu et non implémenté — la valeur protégée ne le justifie toujours pas.
 5. ~~**Bases à indexer** si §11 est activé.~~ **Sans objet** : voir 1.
 6. **Langue de la spécification.** Rédigée en français, comme `claude_spec-elabore-theorie-de-la-cause.md`. Le code, les identifiants et les noms d'outils restent en anglais.
 
-**Ce qui reste réellement à faire, tout §confondus :** les **coordonnées** des palais (§17.7), et le réglage de `CANLII_MIN_INTERVAL_MS` ci-dessus. Le reste de la spécification est livré.
+**Ce qui reste réellement à faire, tout § confondus** *(relevé du 2026-09-16)* : les **coordonnées** des palais (§17.7) ; le réglage de `CANLII_MIN_INTERVAL_MS` ci-dessus ; **`deploy.yml`, à réparer ou à retirer** — dix-sept exécutions, dix-sept échecs, tout déploiement réel étant manuel (§12) ; et **`SERVER_INFO.version`**, littéral recopié de `package.json` que rien n'épingle (§8). Les deux derniers figurent ici pour un même motif : ils ne cassent rien, ils font seulement croire — l'un qu'un `git push` met en ligne, l'autre qu'un client connaît la version qu'il interroge.
 
 ---
 
@@ -1061,7 +1131,7 @@ Elle n'est **pas** une console, n'accepte aucune saisie, n'appelle rien et n'éc
 
 Trois propriétés, toutes testées :
 
-1. **Hors du bloc `/mcp`.** Le contrôle d'origine (§9.6), la limitation de débit (§9.3) et l'authentification (§9.1) y vivent tous. Une page publique doit répondre à n'importe quel navigateur : elle ne passe donc par aucun d'eux. **Corollaire impératif** : ne jamais remonter ces contrôles en portée globale « par cohérence », ce qui refuserait la page à tout visiteur arrivant d'un lien externe.
+1. **Hors du bloc `/mcp`.** Le contrôle d'origine (**§9.6** — section écrite le 2026-09-16 : le renvoi pointait jusque-là vers un numéro inexistant, la section 9 s'arrêtant à §9.5), la limitation de débit (§9.3) et l'authentification (§9.1) y vivent tous. Une page publique doit répondre à n'importe quel navigateur : elle ne passe donc par aucun d'eux. **Corollaire impératif** : ne jamais remonter ces contrôles en portée globale « par cohérence », ce qui refuserait la page à tout visiteur arrivant d'un lien externe. Une page publique doit répondre à n'importe quel navigateur : elle ne passe donc par aucun d'eux. **Corollaire impératif** : ne jamais remonter ces contrôles en portée globale « par cohérence », ce qui refuserait la page à tout visiteur arrivant d'un lien externe.
 2. **Aucun en-tête CORS**, comme `/health`. Sans `Access-Control-Allow-Origin`, aucun script d'une autre origine ne peut LIRE la réponse : la page ne peut pas servir d'oracle.
 3. **Le secret n'y paraît jamais.** La page documente la FORME `/mcp/<secret>`. Un test refuse toute chaîne de 32 caractères hexadécimaux ou plus, tout `Bearer`, et toute mention de `api.canlii.org` ou `api_key`.
 

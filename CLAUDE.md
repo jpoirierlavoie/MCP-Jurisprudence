@@ -60,10 +60,10 @@ est une recherche de chaîne dans les documents du praticien, pas une commande d
 
 | Si vous touchez… | …vérifiez ET mettez à jour |
 |---|---|
-| **un outil** (ajout, retrait, renommage) | `src/mcp/registry.ts` · le gestionnaire dans `src/mcp/handlers/` · `OUTILS_EN` dans `src/site.i18n.ts` (parité testée **dans les deux sens**) · le tableau ET le compte de `README.md` §« Les treize outils » · §7 ou §17 de la spécification · les compteurs de `test/garde.test.ts` et `test/rpc.test.ts` · la **liste triée des noms** dans `test/rpc.test.ts` · la FAMILLE choisie (`jurisprudence_` = réponse de CanLII ; `greffe_`/`palais_` = table locale — invariant 16) · la DESCRIPTION doit nommer sa source, en français ET en anglais (c'est elle qui porte l'annonce depuis le 2026-09-16, et non plus le préfixe) · **hors dépôt, et aucune commande d'ici ne le voit** : la Compétence claude.ai de recherche juridique, qui code en dur les treize noms (voir plus haut) |
+| **un outil** (ajout, retrait, renommage) | `src/mcp/registry.ts` · le gestionnaire dans `src/mcp/handlers/` · `OUTILS_EN` dans `src/site.i18n.ts` (parité testée **dans les deux sens**) · le tableau ET le compte de `README.md` §« Les treize outils » · §7 ou §17 de la spécification · les compteurs de `test/garde.test.ts`, `test/rpc.test.ts` et `test/doc.test.ts` (ce dernier affirme `NOMS.length === 13` AVANT toute confrontation — c'est l'assertion qui l'empêche de réussir sur le vide — et porte en plus `EN_LETTRES`, par quoi il éprouve le compte écrit en toutes lettres du README) · la **liste triée des noms** dans `test/rpc.test.ts` · la FAMILLE choisie (`jurisprudence_` = réponse de CanLII ; `greffe_`/`palais_` = table locale — invariant 16) · la DESCRIPTION doit nommer sa source, en français ET en anglais (c'est elle qui porte l'annonce depuis le 2026-09-16, et non plus le préfixe) · **hors dépôt, et aucune commande d'ici ne le voit** : la Compétence claude.ai de recherche juridique, qui code en dur les treize noms (voir plus haut) |
 | **une description ou un titre** | la page les rend **verbatim** : relancer `test/site.test.ts` (formulations interdites) et `test/garde.test.ts` (sous-chaînes épinglées) · `OUTILS_EN` doit rester une TRADUCTION, jamais une copie |
 | **un `inputSchema`** | `src/mcp/validate.ts` n'implémente qu'un SOUS-ENSEMBLE de JSON-Schema : ne pas déclarer ce qu'il ne sait pas imposer · la page génère ses tableaux de schéma depuis le même objet · `additionalProperties: false` reste obligatoire |
-| **une constante `GARDE_*`** | elle vit dans le corps des réponses **et** sur la page · `test/garde.test.ts` · `MARQUEUR_RECONCILIATION` est en plus une chaîne de COUPLAGE lue par `scripts/refresh-databases.mjs` |
+| **une constante `GARDE_*`** | elle vit dans le corps des réponses **et** sur la page · `test/garde.test.ts` · | **une constante `GARDE_*`** | elle vit dans le corps des réponses **et** sur la page · `test/garde.test.ts` · ⚠ *corrigé le 2026-09-16* : cette case disait « `MARQUEUR_RECONCILIATION` est en plus une chaîne de COUPLAGE lue par `scripts/refresh-databases.mjs` ». C'est l'inverse — le script se refuse à découper la sortie sur un marqueur et repère les écarts par leur FORME (`/^·\s+.+\s+->\s+\S+/`), précisément parce qu'un marqueur recopié vivrait des deux côtés d'une frontière TypeScript/JavaScript qu'aucun compilateur ne vérifie et rendrait un feu vert mensonger le jour où la formulation change. La chaîne de couplage réelle est l'en-tête `« base(s) au répertoire de CanLII »` (`src/mcp/handlers/listDatabases.ts`), sur lequel le script pose son garde-fou : la modifier sans le prévenir le fait sortir en code 2 — refus de statuer — et non conclure de travers. C'est elle qu'il faut propager. | |
 | **une table de `src/qc/`** | les comptes de `test/qc.tables.test.ts` (51 palais · 57 greffes · 27 juridictions · 20 forums · 36 districts) · le nombre de lignes de la table de la page (`test/site.test.ts`) · « 43 palais et 8 points de service » dans `README.md` · les dates `RELEVE_LE` et `MJQ_MAJ` affichées |
 | **la page** | `test/site.test.ts` · §18 de la spécification · la section « Page publique » de `README.md` · le style reste **identique** à celui du connecteur jumeau (invariant 21) |
 | **le comportement d'un outil** | la page peut le DOCUMENTER : les exemples d'analyse y sont produits par le vrai parseur au rendu, mais la prose qui les entoure, elle, est écrite à la main |
@@ -101,9 +101,14 @@ Worker TypeScript sans cadriciel, **zéro dépendance d'exécution** (D2), base 
 transport Streamable HTTP en **mode JSON sans état** (D3). Config : `wrangler.jsonc`.
 
 ```
-src/index.ts      routage, authentification à temps constant, coupe-circuit, cron
+src/index.ts      routage, authentification à temps constant (§9.1), coupe-circuit, cron
+src/config.ts     lecture des `vars` : `flag()`, `entier()`. `wrangler types` les type en
+                  LITTÉRAUX — `env.MCP_ENABLED === "true"` écrit en direct ne compile pas,
+                  ou se réduit à une constante aux yeux du lecteur. Passer par ici.
 src/mcp/          rpc.ts (JSON-RPC) · validate.ts (JSON-Schema en sous-ensemble)
-                  registry.ts (les 13 descripteurs) · handlers/ (un par outil)
+                  registry.ts (les 13 descripteurs, `SERVER_INFO`, `INSTRUCTIONS`) ·
+                  handlers/ (un par outil, plus `cible.ts` — la résolution de la décision
+                  de départ, partagée par le citateur et les sorts ultérieurs)
 src/citation/     analyseur PUR — parse, normalize, compare. AUCUNE E/S.
 src/canlii/       client sortant : étranglement, réessais, redactUrl
 src/store/        D1 : cases (+FTS) · databases (auto-correction) · citator · telemetry
@@ -128,9 +133,23 @@ npx biome check .                          # --write pour corriger
 npx vitest run                             # 468 tests, sans réseau ni clef
 npx wrangler dev                           # exige .dev.vars
 npx wrangler deploy --dry-run              # valide paquet + config, sans jeton
-npx wrangler d1 migrations apply canlii --local|--remote
+npx wrangler d1 migrations apply canlii --local
 node scripts/mcp-client.mjs --local tools/list
 node scripts/refresh-databases.mjs --remote --sql   # réconciliation §4.3
+```
+
+**Déploiement RÉEL — à la main, et c'est la seule voie qui ait jamais abouti.** Relevé le
+2026-09-16 : `deploy.yml` échoue depuis le 2026-07-23, **dix-sept fois sur dix-sept**, à
+l'étape des migrations — et l'étape de déploiement, qui la suit dans le même job, est donc
+toujours sautée. Aucune version en production n'est sortie de la CI. **Les migrations
+passent d'abord, sans exception.** Le jeton d'API Cloudflare vit dans `cf.token`
+(gitignoré) : il se LIT dans une variable d'environnement, il ne s'affiche pas — un `cat`
+ou une capture de terminal le publient aussi sûrement qu'un commit.
+
+```powershell
+$env:CLOUDFLARE_API_TOKEN = (Get-Content cf.token -Raw).Trim()
+npx wrangler d1 migrations apply canlii --remote
+npx wrangler deploy
 ```
 
 ## Invariants critiques
@@ -282,8 +301,20 @@ Coder → **propager (règle ci-dessus)** → `wrangler types` → `tsc --noEmit
 
 La propagation vient **avant** la porte technique, et non après : c'est la seule étape
 qu'aucune commande ne peut réclamer à votre place. **Les migrations D1 passent AVANT le
-déploiement** (`deploy.yml`) : l'ordre inverse met en ligne du code qui lit des colonnes
-inexistantes.
+La propagation vient **avant** la porte technique, et non après : c'est la seule étape
+qu'aucune commande ne peut réclamer à votre place. **Les migrations D1 passent AVANT le
+déploiement** : l'ordre inverse met en ligne du code qui lit des colonnes inexistantes.
+
+⚠ *Amendé le 2026-09-16.* Cette phrase attribuait l'ordre au workflow — « **Les migrations
+D1 passent AVANT le déploiement** (`deploy.yml`) ». L'ordre est juste ; l'attribution est
+fausse, et elle l'a toujours été : `deploy.yml` n'a **jamais réussi** — 17 exécutions
+depuis le 2026-07-23, 17 échecs, tous à l'étape « Migrations D1 (AVANT le déploiement) »,
+l'étape « Déploiement » étant alors SAUTÉE. Cause probable, non encore corrigée : le jeton
+ouvre DEUX comptes Cloudflare et `wrangler` ne sait pas trancher hors interaction ; il
+manque vraisemblablement un `CLOUDFLARE_ACCOUNT_ID` dans le workflow. Tant qu'il n'est pas
+réparé, **c'est l'opérateur qui tient l'ordre, à la main** (voir « Commandes »). Le fichier
+reste au dépôt parce qu'il décrit l'ordre voulu — mais il ne l'exécute pas, et lire ici
+une garantie automatique ferait croire qu'un `git push` livre quoi que ce soit.
 
 ## Secrets
 
@@ -292,16 +323,36 @@ inexistantes.
   fichier versionné.**
 - `MCP_SHARED_SECRET_ATHENA` : **facultatif**, même règle. Second porteur du point
   d'entrée, aux droits IDENTIQUES — il n'ouvre aucun outil de plus. Il existe pour que
+  - `MCP_SHARED_SECRET_ATHENA` : **facultatif**, même règle. Second porteur du point
+  d'entrée, aux droits IDENTIQUES — il n'ouvre aucun outil de plus. Il a existé pour que
   le clavardage de Pallas Athéna et le connecteur claude.ai se révoquent SÉPARÉMENT
-  (§9.1, §19). L'authentification reste **fermée par défaut** : aucun secret configuré
+  (§9.1, §19). **Depuis le 2026-09-02, ce porteur n'existe plus** : le clavardage a été
+  retiré du dépôt d'Athéna (commit `ef854733`). Le secret reste configuré et n'est pas à
+  retirer — il ne coûte rien, n'ouvre aucun droit de plus — mais **il n'a plus personne
+  pour signaler qu'on l'a cassé** : un correctif de la garde d'entrée ne s'éprouve plus
+  que par `test/rpc.test.ts` et un `curl` à la main, jamais par un second client vivant.
+  L'authentification reste **fermée par défaut** : aucun secret configuré ⇒ tout est
+  refusé. Ne jamais journaliser lequel des deux a servi. L'authentification reste **fermée par défaut** : aucun secret configuré
   ⇒ tout est refusé. Ne jamais journaliser lequel des deux a servi.
 - `.dev.vars` (dev), `mcp.url` (URL de prod avec secret), `*.token` : **gitignorés**.
+  Parmi eux, **`cf.token` porte le jeton d'API Cloudflare, et c'est lui qui déploie
+  réellement la production** (voir « Commandes ») : il se lit dans une variable
+  d'environnement, jamais par un affichage — `cat`, `echo` ou une capture de terminal
+  le publient aussi sûrement qu'un commit. Même règle que les deux précédents : ne
+  jamais l'afficher, ne jamais le lire en contexte, ne jamais le versionner.
 - Commits signés, footer `Co-Authored-By:` adapté au modèle courant. Un commit par
   sous-tâche.
 
 ## État
 
-**Livré et en production** sur `jurisprudence.poirierlavoie.ca`, 468 tests verts. Treize
+**Livré et en production** sur `jurisprudence.poirierlavoie.ca`, 468 tests verts en quinze
+fichiers. Treize outils — dix `jurisprudence_*`, trois `greffe_*`/`palais_*` — et une page
+publique bilingue sur la même origine (§18). La version en ligne (`f6bab151`, 2026-09-16)
+a été déployée **à la main**, comme toutes celles qui l'ont précédée : `deploy.yml` n'a
+jamais abouti (voir « Procédure sûre »). `migrations/0004_rename_tool_prefix.sql` est
+**appliquée en production** : `search_log.tool` et `court_codes.note` portent les noms
+d'aujourd'hui, et aucune ligne ne subsiste sous un ancien nom — l'historique de §10 n'est
+donc pas coupé en deux à la date du renommage.
 outils — dix `jurisprudence_*`, trois `greffe_*`/`palais_*` — et une page publique bilingue sur
 la même origine (§18).
 
