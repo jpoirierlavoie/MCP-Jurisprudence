@@ -75,16 +75,23 @@ La porte habituelle ne suffit pas : elle attrape la dérive **testée**, pas la 
 
 ```bash
 npx wrangler types && npx tsc --noEmit && npx biome check . && npx vitest run
-
-# Puis, pour tout changement d'outil : CONFRONTER le registre au README.
-# Un écart ici est une dérive, MÊME SI la suite entière est verte.
-diff <(grep -oE "^  (jurisprudence|greffe|palais)_[a-z_]+" src/mcp/registry.ts | tr -d ' ' | sort) \
-     <(grep -oE '`(jurisprudence|greffe|palais)_[a-z_]+`' README.md | tr -d '`' | sort -u)
 ```
+
+La confrontation registre ↔ README n'est plus une commande à copier : c'est
+`test/doc.test.ts`, et elle tourne dans `vitest run`. **Le motif du déplacement est écrit
+en tête de ce fichier, et il mérite d'être lu avant d'en écrire une autre du même
+genre.** La commande `diff` qu'elle remplace filtrait ses DEUX côtés par une liste de
+préfixes tenue à la main ; le 2026-09-16 les préfixes ont changé, les deux côtés se sont
+réduits au même sous-ensemble de trois outils, et elle aurait rendu 0 — « aucune dérive »,
+sans avoir regardé dix outils sur treize. **Une vérification dont aucun côté n'est non
+vide par construction ne vérifie pas.** Corriger la liste aurait rouvert le même trou au
+renommage suivant ; le test, lui, affirme d'abord que le registre compte treize outils,
+puis confronte dans les deux sens, sans aucune liste de préfixes.
 
 La page, elle, ne peut pas dériver sur ce point : elle DÉRIVE du registre (invariant 19).
 C'est le README et la spécification qui prennent du retard, parce qu'ils sont écrits à la
-main — d'où la confrontation ci-dessus, et la relecture des §7, §17 et §18.
+main — d'où la confrontation automatisée, **et la relecture des §7, §17 et §18, qu'aucune
+commande ne sait réclamer**.
 
 ---
 
@@ -118,7 +125,7 @@ table en mémoire (aucune E/S). Ne pas fusionner.
 ```bash
 npx wrangler types && npx tsc --noEmit     # toujours avant commit
 npx biome check .                          # --write pour corriger
-npx vitest run                             # 464 tests, sans réseau ni clef
+npx vitest run                             # 468 tests, sans réseau ni clef
 npx wrangler dev                           # exige .dev.vars
 npx wrangler deploy --dry-run              # valide paquet + config, sans jeton
 npx wrangler d1 migrations apply canlii --local|--remote
@@ -294,7 +301,7 @@ inexistantes.
 
 ## État
 
-**Livré et en production** sur `jurisprudence.poirierlavoie.ca`, 464 tests verts. Treize
+**Livré et en production** sur `jurisprudence.poirierlavoie.ca`, 468 tests verts. Treize
 outils — dix `jurisprudence_*`, trois `greffe_*`/`palais_*` — et une page publique bilingue sur
 la même origine (§18).
 
