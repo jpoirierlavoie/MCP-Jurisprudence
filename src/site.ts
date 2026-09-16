@@ -482,9 +482,11 @@ ${biP(
   [
     "Trois outils qui lisent des tables de référence compilées dans le Worker, relevées auprès " +
       "du ministère de la Justice du Québec. Ils ne font aucune requête sortante et n'écrivent rien.",
-    "Le préfixe annonce la SOURCE. Servir une adresse de palais sous canlii_ attribuerait à " +
-      "CanLII une donnée dont il n'est pas la source ; la scission est vérifiée par des tests, " +
-      "et non seulement documentée.",
+    "La source est nommée dans la description de chaque outil, et non plus par son préfixe : " +
+      "un préfixe ne sait pas porter une réserve, il n'en donne que l'illusion. Le préfixe, lui, " +
+      "partitionne toujours les deux familles — ranger une adresse de palais du côté de CanLII " +
+      "attribuerait au tiers une donnée dont il n'est pas la source. La scission est vérifiée " +
+      "par des tests, dans les deux langues, et non seulement documentée.",
   ],
   EN.familleQcTexte,
 )}

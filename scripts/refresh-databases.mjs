@@ -3,7 +3,7 @@
  *
  * ╔══════════════════════════════════════════════════════════════════════════════╗
  * ║ CE SCRIPT N'ÉCRIT RIEN EN BASE. Il rafraîchit le répertoire par l'outil       ║
- * ║ `canlii_list_databases`, compare les hypothèses d'amorçage de la migration    ║
+ * ║ `jurisprudence_list_databases`, compare les hypothèses d'amorçage de la migration    ║
  * ║ 0002 aux databaseId RÉELLEMENT renvoyés par CanLII, et produit un RAPPORT     ║
  * ║ plus un fichier SQL de correction — à RELIRE avant de l'exécuter.             ║
  * ║                                                                              ║
@@ -32,7 +32,7 @@ const s = await session(mode);
 console.log(`→ ${redacted(s.url)}\n`);
 
 // 1. Rafraîchissement : deux appels sortants (cours + corpus législatifs).
-const repertoire = texte(await s.appeler("canlii_list_databases", { refresh: true }));
+const repertoire = texte(await s.appeler("jurisprudence_list_databases", { refresh: true }));
 console.log(repertoire);
 
 // 2. Le rapport de réconciliation est DANS la sortie de l'outil : celui-ci dénonce
@@ -51,7 +51,7 @@ const LIGNE_ECART = /^·\s+.+\s+->\s+\S+/;
 // « tout va bien » — un feu vert mensonger est pire qu'une erreur.
 if (!repertoire.includes("base(s) au répertoire de CanLII")) {
   console.error(
-    "\n❌ Sortie inattendue de canlii_list_databases : impossible de statuer sur la\n" +
+    "\n❌ Sortie inattendue de jurisprudence_list_databases : impossible de statuer sur la\n" +
       "   réconciliation. NE PAS considérer le répertoire comme livrable.",
   );
   process.exit(2);
@@ -86,7 +86,7 @@ if (ecrireSql) {
   const gabarit = [
     "-- Réconciliation du répertoire (§4.3, §14 étape 7).",
     "-- ⚠ GABARIT À RELIRE ET À COMPLÉTER À LA MAIN : les databaseId de remplacement",
-    "--   doivent être lus dans la sortie de canlii_list_databases, pas devinés.",
+    "--   doivent être lus dans la sortie de jurisprudence_list_databases, pas devinés.",
     "--   Ne passer `verified = 1` qu'après un appel RÉUSSI sur une vraie citation.",
     "",
     ...lignes.map((l) => {

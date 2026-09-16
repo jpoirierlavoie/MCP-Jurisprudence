@@ -1,5 +1,5 @@
 /**
- * `canlii_find_case` (spécification §7.2, annexe A.2).
+ * `jurisprudence_find_case` (spécification §7.2, annexe A.2).
  *
  * Index local d'abord, puis balayage vif. Tout ce qui est moissonné est PERSISTÉ
  * (décision D6) : c'est ainsi que l'index se construit — pas par téléchargement de
@@ -85,7 +85,7 @@ export async function findCase(
     if (!databaseId && etendue > FENETRE_MAX_SANS_TRIBUNAL) {
       return err(
         `Sans « database_id », la fenêtre de dates ne peut pas dépasser ${FENETRE_MAX_SANS_TRIBUNAL} ans ` +
-          `(demandée : ${etendue} ans, ${debut}→${fin}). Préciser le tribunal (voir canlii_list_databases) ` +
+          `(demandée : ${etendue} ans, ${debut}→${fin}). Préciser le tribunal (voir jurisprudence_list_databases) ` +
           "ou resserrer year_from / year_to.",
       );
     }
@@ -114,7 +114,7 @@ export async function findCase(
   const rendus = tous.slice(0, limit);
 
   await logSearch(ctx.db, {
-    tool: "canlii_find_case",
+    tool: "jurisprudence_find_case",
     query: titre,
     database_id: databaseId,
     lang,

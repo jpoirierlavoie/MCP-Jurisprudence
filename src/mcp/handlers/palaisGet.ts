@@ -3,7 +3,7 @@
  *
  * AUCUN appel sortant, AUCUNE lecture D1 : table en mémoire, relevé du MJQ.
  *
- * Deux formes d'entrée, exactement l'une des deux — comme `canlii_get_case`. Le
+ * Deux formes d'entrée, exactement l'une des deux — comme `jurisprudence_get_case`. Le
  * validateur de schéma ne sait pas exprimer « l'un ou l'autre » (pas de `oneOf`),
  * le contrôle est donc ici, sur le modèle de `handlers/cible.ts`.
  */

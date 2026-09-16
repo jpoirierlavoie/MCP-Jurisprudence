@@ -56,14 +56,14 @@ case citation does, so the tuning value of logging it does not justify keeping i
 The tools are stateless by design, and a guard test enforces it.
 
 One reservation, stated plainly because it is better known than discovered:
-`canlii_find_case` accepts **party names**. If a name searched is that of a party to a
+`jurisprudence_find_case` accepts **party names**. If a name searched is that of a party to a
 live matter rather than a published decision, the query discloses a research interest
 to CanLII. The risk is low — CanLII is a Canadian non-profit and name-based case-law
 research is the site's normal use — but it is not nil.
 
 The D1 database stores public case-law metadata plus a `search_log` table used to tune
 the citation parser. That log records the citation strings submitted, which for
-`canlii_find_case` may include party names.
+`jurisprudence_find_case` may include party names.
 
 ## Authentication model
 

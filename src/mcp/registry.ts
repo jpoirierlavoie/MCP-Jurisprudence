@@ -8,17 +8,28 @@
  *   surface de contrat, pas de la prose.
  *
  * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║ DEUX FAMILLES DE PRÉFIXES, ET LA FRONTIÈRE EST SÉMANTIQUE (D8, §17).          ║
+ * ║ DEUX FAMILLES DE PRÉFIXES, ET LA FRONTIÈRE RESTE SÉMANTIQUE (D8, amendée le  ║
+ * ║ 2026-09-16 ; §17).                                                           ║
  * ║                                                                              ║
- * ║   `canlii_*`            la réponse vient de la COLLECTION DE CANLII, et sa    ║
+ * ║   `jurisprudence_*`     la réponse vient de la COLLECTION DE CANLII, et sa   ║
  * ║   (10 outils)           couverture comme ses verdicts en dépendent.          ║
  * ║                                                                              ║
- * ║   `greffe_*` `palais_*` la réponse vient d'un RELEVÉ LOCAL du ministère de    ║
+ * ║   `greffe_*` `palais_*` la réponse vient d'un RELEVÉ LOCAL du ministère de   ║
  * ║   (3 outils)            la Justice du Québec, daté, sans aucun appel.        ║
  * ║                                                                              ║
- * ║ Préfixer les seconds en `canlii_` attribuerait à CanLII une adresse de palais ║
- * ║ dont il n'est pas la source. La scission est VÉRIFIÉE par test/rpc.test.ts :  ║
- * ║ elle ne tient pas qu'à cette note.                                           ║
+ * ║ CE QUI A CHANGÉ, ET CE QUI NE CHANGE PAS. Le préfixe s'appelait `canlii_` et ║
+ * ║ portait à lui seul l'annonce de la source. Il ne la porte plus : un préfixe  ║
+ * ║ ne peut de toute façon pas porter une RÉSERVE — il ne dit ni la couverture   ║
+ * ║ bornée, ni qu'une absence n'est pas une inexistence, ni que l'API ne rend que║
+ * ║ des métadonnées. Il en donnait seulement l'illusion. L'annonce vit désormais ║
+ * ║ dans la DESCRIPTION de chacun des dix, dans `INSTRUCTIONS` et sur la page —  ║
+ * ║ trois surfaces qui sont des PHRASES, et que des tests épinglent (« chaque    ║
+ * ║ description NOMME sa source », dans les deux langues).                       ║
+ * ║                                                                              ║
+ * ║ Le préfixe ne fait plus que PARTITIONNER. Cette partition, elle, reste       ║
+ * ║ load-bearing et vérifiée par test/rpc.test.ts : servir une adresse de palais ║
+ * ║ dans la même famille qu'une réponse de CanLII resterait une attribution      ║
+ * ║ fausse. Ajouter un outil oblige donc encore à choisir sa famille.            ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  *
  * Conventions communes appliquées sans exception :
@@ -64,7 +75,7 @@ export interface ToolDescriptor {
    *
    * C'est ce que le praticien lit dans l'invite d'AUTORISATION, au moment précis
    * où il décide de laisser l'outil s'exécuter. « Sorts ultérieurs — indice
-   * heuristique » y est plus utile que `canlii_subsequent_history`, et la réserve
+   * heuristique » y est plus utile que `jurisprudence_subsequent_history`, et la réserve
    * portée par le titre se lit AVANT l'appel plutôt qu'après.
    *
    * Un client qui ignore ce champ retombe sur `name` : rien ne casse.
@@ -111,15 +122,17 @@ export const INSTRUCTIONS =
   "(aucun historique d'appel, aucun indicateur de traitement, aucun pourvoi pendant), " +
   "NI le contenu de son dispositif. Pour éprouver des citations tirées de la doctrine, " +
   "d'un moteur de recherche ou d'un texte rédigé par une IA, commencer par " +
-  "canlii_verify_citations ; si la citation n'est pas constructible (recueils R.C.S. / " +
-  "R.J.Q. / C.A., identifiants J.E. / REJB / EYB / AZ), enchaîner avec canlii_find_case. " +
+  "jurisprudence_verify_citations ; si la citation n'est pas constructible (recueils R.C.S. / " +
+  "R.J.Q. / C.A., identifiants J.E. / REJB / EYB / AZ), enchaîner avec jurisprudence_find_case. " +
   "Pour le TEXTE des lois et règlements du Québec, employer le connecteur « Législation " +
   "du Québec ». Les verdicts et la couverture dépendent de la collection de CanLII : " +
   "une absence n'est jamais une preuve d'inexistence. " +
   // §17 — la frontière des sources, énoncée au modèle AVANT tout appel : sans elle,
   // il attribuerait à CanLII une adresse de palais, ou chercherait dans CanLII un
   // numéro de greffe. Les deux erreurs sont silencieuses.
-  "DEUX SOURCES DISTINCTES coexistent ici. Les outils canlii_* interrogent CanLII. Les " +
+  "DEUX SOURCES DISTINCTES coexistent ici, et le PRÉFIXE ne les annonce plus : c'est la " +
+  "description de chaque outil qui nomme sa source. Les outils jurisprudence_* interrogent " +
+  "CanLII. Les " +
   "outils greffe_* et palais_* lisent des TABLES LOCALES relevées auprès du ministère de " +
   "la Justice du Québec le 2026-07-15 : ils ne font aucun appel, ne consultent aucun " +
   "registre de dossiers ni plumitif, et n'établissent donc PAS qu'un dossier existe. " +
@@ -131,7 +144,7 @@ export const INSTRUCTIONS =
 
 export const TOOLS: Record<string, ToolDescriptor> = {
   // ── 7.1 — l'outil pivot ────────────────────────────────────────────────────
-  canlii_verify_citations: {
+  jurisprudence_verify_citations: {
     title: "Vérifier des citations",
     description:
       "Vérifie une ou plusieurs citations de jurisprudence contre la collection de CanLII. " +
@@ -143,7 +156,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
       "éprouver des références tirées de la doctrine, d'un moteur de recherche ou d'un texte " +
       "rédigé par une IA. Les citations de recueils (R.C.S., R.J.Q., C.A.) et les identifiants " +
       "d'éditeurs (J.E., REJB, EYB, AZ) ne sont pas résolubles directement : enchaîner avec " +
-      "canlii_find_case.",
+      "jurisprudence_find_case.",
     inputSchema: {
       type: "object",
       properties: {
@@ -188,7 +201,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 
   // ── 7.2 ────────────────────────────────────────────────────────────────────
-  canlii_find_case: {
+  jurisprudence_find_case: {
     title: "Retrouver une décision par les parties",
     description:
       "Recherche une décision par les noms des parties ou un fragment d'intitulé, avec " +
@@ -210,7 +223,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
         database_id: {
           type: "string",
           maxLength: 20,
-          description: "Tribunal ciblé, p. ex. « qcca ». Voir canlii_list_databases.",
+          description: "Tribunal ciblé, p. ex. « qcca ». Voir jurisprudence_list_databases.",
         },
         year_from: { type: "integer", minimum: 1800, maximum: 2100 },
         year_to: { type: "integer", minimum: 1800, maximum: 2100 },
@@ -235,7 +248,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 
   // ── 7.3 ────────────────────────────────────────────────────────────────────
-  canlii_get_case: {
+  jurisprudence_get_case: {
     title: "Fiche d'une décision",
     description:
       "Fiche CanLII d'une décision : intitulé, citation, date, numéro de dossier de cour, " +
@@ -257,7 +270,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 
   // ── 7.4 ────────────────────────────────────────────────────────────────────
-  canlii_citator: {
+  jurisprudence_citator: {
     title: "Citateur — listes brutes",
     description:
       "Citateur, sur la collection de CanLII : décisions citées PAR une décision (`cited`), " +
@@ -292,7 +305,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 
   // ── 7.5 ────────────────────────────────────────────────────────────────────
-  canlii_subsequent_history: {
+  jurisprudence_subsequent_history: {
     title: "Sorts ultérieurs — indice heuristique",
     description:
       "Indice heuristique de sorts ultérieurs : parmi les décisions DE LA COLLECTION DE " +
@@ -317,7 +330,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 
   // ── 7.6 ────────────────────────────────────────────────────────────────────
-  canlii_browse_cases: {
+  jurisprudence_browse_cases: {
     title: "Décisions d'un tribunal",
     description:
       "Liste les décisions d'un tribunal, les plus récemment diffusées en tête, avec filtres " +
@@ -354,7 +367,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 
   // ── 7.7 ────────────────────────────────────────────────────────────────────
-  canlii_list_databases: {
+  jurisprudence_list_databases: {
     title: "Répertoire des tribunaux et corpus",
     description:
       "Répertoire des bases de CanLII : cours et tribunaux (`kind='case'`) ou corpus " +
@@ -379,7 +392,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 
   // ── 7.8 ────────────────────────────────────────────────────────────────────
-  canlii_browse_legislation: {
+  jurisprudence_browse_legislation: {
     title: "Lois et règlements d'un corpus",
     description:
       "Liste les lois ou règlements d'une base législative DE CANLII (p. ex. « qcs » pour " +
@@ -400,7 +413,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 
   // ── 7.9 ────────────────────────────────────────────────────────────────────
-  canlii_get_legislation: {
+  jurisprudence_get_legislation: {
     title: "Fiche d'une loi ou d'un règlement",
     description:
       "Fiche CanLII d'une loi ou d'un règlement : citation, type, régime de dates (entrée en " +
@@ -422,13 +435,13 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 
   // ── 7.10 ───────────────────────────────────────────────────────────────────
-  canlii_parse_citation: {
+  jurisprudence_parse_citation: {
     title: "Analyser une citation (hors ligne)",
     description:
       "Analyse une citation sans appeler CanLII : indique la forme reconnue (citation neutre, " +
       "citation attribuée par CanLII, recueil, identifiant d'éditeur), et, si elle est " +
       "constructible, le database_id et le case_id qui en découlent. Outil de diagnostic ; " +
-      "pour vérifier réellement l'existence d'une décision, utiliser canlii_verify_citations.",
+      "pour vérifier réellement l'existence d'une décision, utiliser jurisprudence_verify_citations.",
     inputSchema: {
       type: "object",
       properties: {

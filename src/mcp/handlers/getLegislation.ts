@@ -1,5 +1,5 @@
 /**
- * `canlii_get_legislation` (spécification §7.9).
+ * `jurisprudence_get_legislation` (spécification §7.9).
  *
  * Rend `repealed` en français EXPLICITE (« Abrogé : oui / non ») plutôt que la valeur
  * brute : un « false » anglais au milieu d'une fiche française se lit mal, et
@@ -40,7 +40,7 @@ export async function getLegislation(
     );
   } catch (e) {
     await logSearch(ctx.db, {
-      tool: "canlii_get_legislation",
+      tool: "jurisprudence_get_legislation",
       query: `${databaseId}/${legislationId}`,
       database_id: databaseId,
       lang,
@@ -53,7 +53,7 @@ export async function getLegislation(
   }
 
   await logSearch(ctx.db, {
-    tool: "canlii_get_legislation",
+    tool: "jurisprudence_get_legislation",
     query: `${databaseId}/${legislationId}`,
     database_id: databaseId,
     lang,

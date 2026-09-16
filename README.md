@@ -29,11 +29,19 @@ La distinction est **sémantique**, pas cosmétique, et elle est **vérifiée pa
 
 | Préfixe | Source | Appels |
 |---|---|---|
-| `canlii_` (10) | la collection de **CanLII** — couverture et verdicts en dépendent | oui |
+| `jurisprudence_` (10) | la collection de **CanLII** — couverture et verdicts en dépendent | oui |
 | `greffe_` `palais_` (3) | un **relevé local** du ministère de la Justice du Québec, daté | **aucun** |
 
-Servir une adresse de palais sous `canlii_` attribuerait à CanLII une donnée dont il n'est
-pas la source. C'est précisément ce que la décision D8 interdit.
+**Le préfixe ne NOMME plus la source** — il s'écrivait `canlii_` jusqu'au 2026-09-16 (D8
+amendée) : un préfixe ne sait pas porter une réserve, il n'en donne que l'illusion, et
+quatre descriptions sur dix s'en remettaient à lui au point de ne jamais écrire « CanLII ».
+L'annonce vit désormais dans la **description de chaque outil**, dans les instructions du
+serveur et sur la page publique — trois surfaces qui sont des phrases, et que des tests
+épinglent dans les deux langues.
+
+Ce que le préfixe fait toujours, c'est **partitionner** : ranger une adresse de palais du
+côté de CanLII lui attribuerait une donnée dont il n'est pas la source, et c'est ce que la
+décision D8 interdit depuis l'origine. La partition, elle, reste vérifiée.
 
 ---
 
@@ -66,7 +74,7 @@ pas la source. C'est précisément ce que la décision D8 interdit.
 
 ### Conséquences imposées au code
 
-1. Toute sortie d'outil **heuristique** (`canlii_find_case`, `canlii_subsequent_history`)
+1. Toute sortie d'outil **heuristique** (`jurisprudence_find_case`, `jurisprudence_subsequent_history`)
    se termine par sa mise en garde, **dans le corps de la réponse** et non seulement dans
    la description de l'outil.
 2. Un verdict `INTROUVABLE` n'est **jamais** formulé comme « cette décision n'existe pas ».
@@ -91,16 +99,16 @@ n'est pas de l'ajuster pour qu'il passe : c'est de remettre la mise en garde.
 
 | Outil | Rôle |
 |---|---|
-| `canlii_verify_citations` | **Pivot.** Verdict par citation : CONFIRMÉE · DISCORDANTE · INTROUVABLE · NON CONSTRUCTIBLE · ILLISIBLE |
-| `canlii_find_case` | Recherche par noms des parties ; index local puis balayage vif |
-| `canlii_get_case` | Fiche officielle d'une décision |
-| `canlii_citator` | Ce qu'une décision cite, ce qui la cite, les dispositions qu'elle cite |
-| `canlii_subsequent_history` | **Indice heuristique** de sorts ultérieurs — ne remplace pas un citateur |
-| `canlii_browse_cases` | Décisions d'un tribunal, avec les huit filtres de dates |
-| `canlii_list_databases` | Répertoire des cours et corpus législatifs |
-| `canlii_browse_legislation` | Lois et règlements d'une base législative |
-| `canlii_get_legislation` | Fiche d'une loi : dates, abrogation, découpage |
-| `canlii_parse_citation` | Analyse hors ligne d'une citation — **aucun appel** |
+| `jurisprudence_verify_citations` | **Pivot.** Verdict par citation : CONFIRMÉE · DISCORDANTE · INTROUVABLE · NON CONSTRUCTIBLE · ILLISIBLE |
+| `jurisprudence_find_case` | Recherche par noms des parties ; index local puis balayage vif |
+| `jurisprudence_get_case` | Fiche officielle d'une décision |
+| `jurisprudence_citator` | Ce qu'une décision cite, ce qui la cite, les dispositions qu'elle cite |
+| `jurisprudence_subsequent_history` | **Indice heuristique** de sorts ultérieurs — ne remplace pas un citateur |
+| `jurisprudence_browse_cases` | Décisions d'un tribunal, avec les huit filtres de dates |
+| `jurisprudence_list_databases` | Répertoire des cours et corpus législatifs |
+| `jurisprudence_browse_legislation` | Lois et règlements d'une base législative |
+| `jurisprudence_get_legislation` | Fiche d'une loi : dates, abrogation, découpage |
+| `jurisprudence_parse_citation` | Analyse hors ligne d'une citation — **aucun appel** |
 
 ### Tables locales du Québec — **aucun appel, jamais**
 
@@ -129,7 +137,7 @@ Ce connecteur est, sur ce plan, exceptionnellement propre : ce qui sort de l'inf
 ce sont des **citations, des identifiants de tribunaux et des dates**. Aucun nom de client,
 aucun fait de dossier, aucun document.
 
-**Une seule réserve** : `canlii_find_case` prend des **noms de parties**. Si ce nom est celui
+**Une seule réserve** : `jurisprudence_find_case` prend des **noms de parties**. Si ce nom est celui
 d'une partie à un dossier en cours plutôt que celui d'une décision publiée, la requête révèle
 à CanLII un intérêt de recherche. Le risque est faible — CanLII est un organisme sans but
 lucratif canadien, et la recherche jurisprudentielle nominative est l'usage normal du site —
@@ -240,12 +248,12 @@ dernière étape reste un geste humain.
 ### Recette manuelle (§14 étape 8)
 
 ```bash
-node scripts/mcp-client.mjs --remote tools/call canlii_verify_citations \
+node scripts/mcp-client.mjs --remote tools/call jurisprudence_verify_citations \
   '{"citations":[{"citation":"2008 CSC 9"},{"citation":"2020 QCCA 999999"},{"citation":"[1985] C.A. 105"}]}'
 ```
 
 Attendu : *Dunsmuir* CONFIRMÉE · `2020 QCCA 999999` INTROUVABLE (avec les explications
-concurrentes) · `[1985] C.A. 105` NON CONSTRUCTIBLE (avec renvoi à `canlii_find_case`).
+concurrentes) · `[1985] C.A. 105` NON CONSTRUCTIBLE (avec renvoi à `jurisprudence_find_case`).
 
 ### Après le déploiement
 
@@ -265,7 +273,7 @@ concurrentes) · `[1985] C.A. 105` NON CONSTRUCTIBLE (avec renvoi à `canlii_fin
 
 ```sql
 SELECT query, COUNT(*) n FROM search_log
-WHERE tool = 'canlii_verify_citations' AND verdict IN ('ILLISIBLE','INTROUVABLE')
+WHERE tool = 'jurisprudence_verify_citations' AND verdict IN ('ILLISIBLE','INTROUVABLE')
 GROUP BY query ORDER BY n DESC LIMIT 50;
 ```
 

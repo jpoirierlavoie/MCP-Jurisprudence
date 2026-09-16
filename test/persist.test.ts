@@ -334,7 +334,7 @@ describe("répertoire et auto-correction", () => {
 describe("télémétrie : elle n'échoue jamais l'outil qu'elle observe", () => {
   it("consigne une ligne par invocation, verdict compris", async () => {
     await logSearch(db, {
-      tool: "canlii_verify_citations",
+      tool: "jurisprudence_verify_citations",
       query: "2008 CSC 9",
       result_count: 1,
       verdict: "CONFIRMÉE",
@@ -343,7 +343,7 @@ describe("télémétrie : elle n'échoue jamais l'outil qu'elle observe", () => 
       .prepare("SELECT tool, query, verdict, result_count FROM search_log")
       .first<{ tool: string; verdict: string; result_count: number }>();
     expect(r).toMatchObject({
-      tool: "canlii_verify_citations",
+      tool: "jurisprudence_verify_citations",
       verdict: "CONFIRMÉE",
       result_count: 1,
     });

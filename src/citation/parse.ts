@@ -356,7 +356,7 @@ export interface Resolution {
   constructible: Constructible;
   databaseId: string | null;
   caseId: string | null;
-  /** Explication en français, destinée à la sortie de `canlii_parse_citation`. */
+  /** Explication en français, destinée à la sortie de `jurisprudence_parse_citation`. */
   raison: string;
   /** Le databaseId déduit figure-t-il au répertoire local des bases ? */
   databaseConnue: boolean;
@@ -424,7 +424,7 @@ export function resolve(form: CitationForm | UnparsedForm, dir: Directory): Reso
         constructible: "non",
         databaseId: null,
         caseId,
-        raison: `Couple de codes « ${form.juris} ${form.court} » absent du répertoire. Consulter canlii_list_databases.`,
+        raison: `Couple de codes « ${form.juris} ${form.court} » absent du répertoire. Consulter jurisprudence_list_databases.`,
         databaseConnue: false,
       };
     }
@@ -464,7 +464,7 @@ export function resolve(form: CitationForm | UnparsedForm, dir: Directory): Reso
     constructible: "probable",
     databaseId: devine,
     caseId,
-    raison: `Code de tribunal « ${form.code} » absent du répertoire. Hypothèse d'identité : ${devine} / ${caseId}. À confirmer par un appel ; consulter canlii_list_databases.`,
+    raison: `Code de tribunal « ${form.code} » absent du répertoire. Hypothèse d'identité : ${devine} / ${caseId}. À confirmer par un appel ; consulter jurisprudence_list_databases.`,
     databaseConnue: dir.knownDatabases.has(devine),
   };
 }

@@ -37,8 +37,8 @@ Ces décisions sont prises. Ne pas les rouvrir sans instruction contraire ; les 
 | D5 | **D1 sert à la fois d'index et de cache**, pas de KV | Le compte ne possède aucun *namespace* KV ; `qclaw` fonctionne sur D1 seul. Les métadonnées d'une décision sont quasi immuables : un cache permanent est correct. |
 | D6 | **Le cache se remplit par l'usage** | Tout balayage effectué pour répondre à une requête est **persisté**. Le « miroir » n'est donc pas un téléchargement en masse, mais la sédimentation des appels déjà faits. Le moissonnage planifié (§11) reste facultatif et désactivé par défaut. |
 | D7 | **Authentification par secret partagé** dans le chemin *ou* l'en-tête `Authorization` | Ce qui est protégé n'est pas du contenu confidentiel — les métadonnées sont publiques — mais **la clef d'API et son quota**. Un secret de 256 bits sur TLS est proportionné. Chemin d'évolution vers OAuth 2.1 documenté en §9.4. |
-| D8 | **Nom d'hôte `jurisprudence.poirierlavoie.ca`**, Worker `jurisprudence`, base D1 `canlii`, préfixe d'outils `canlii_` | Symétrie avec `legislation.poirierlavoie.ca`. Le nom d'hôte évite d'employer la marque d'un tiers ; le préfixe d'outil la conserve, parce que la couverture et les verdicts *dépendent* de la collection de CanLII et que le modèle doit le savoir. |
-| D9 | **Outils composites**, pas des enveloppes 1:1 d'endpoints | Un outil `canlii_verify_citations` qui analyse, construit, appelle, compare et rend un verdict fait en un aller-retour ce qui en exigerait quatre. C'est aussi la seule façon d'imposer la mise en garde au bon endroit. |
+| D8 | **Nom d'hôte `jurisprudence.poirierlavoie.ca`**, Worker `jurisprudence`, base D1 `canlii`, préfixe d'outils `jurisprudence_` | **AMENDÉE le 2026-09-16.** Symétrie avec `legislation.poirierlavoie.ca` : ni le nom d'hôte ni le préfixe d'outil n'emploient plus la marque d'un tiers. *La rédaction en vigueur du 2026-07-15 au 2026-09-16 disait : « Le nom d'hôte évite d'employer la marque d'un tiers ; le préfixe d'outil la conserve, parce que la couverture et les verdicts dépendent de la collection de CanLII et que le modèle doit le savoir. » Elle est citée et non effacée, parce que sa prémisse était juste et que seule sa conclusion a changé.* Le modèle doit toujours savoir que la couverture et les verdicts dépendent de la collection de CanLII — mais **un préfixe ne sait pas porter une réserve** : il ne dit ni la couverture bornée, ni qu'une absence n'est pas une inexistence, ni que l'API ne rend que des métadonnées. Il en donnait l'illusion, et quatre descriptions sur dix s'en remettaient à lui au point de ne jamais écrire « CanLII » (six sur dix côté anglais). L'annonce a donc MIGRÉ vers des PHRASES — description de chaque outil, `INSTRUCTIONS`, page publique — que des tests épinglent dans les deux langues. Ce que le préfixe conserve, c'est la PARTITION en deux familles (§17.1), et elle reste vérifiée. |
+| D9 | **Outils composites**, pas des enveloppes 1:1 d'endpoints | Un outil `jurisprudence_verify_citations` qui analyse, construit, appelle, compare et rend un verdict fait en un aller-retour ce qui en exigerait quatre. C'est aussi la seule façon d'imposer la mise en garde au bon endroit. |
 | D10 | **Auto-correction du répertoire des tribunaux** | La correspondance code de citation → `databaseId` n'est documentée que pour `csc-scc`. Les identifiants fédéraux sont incertains. Le système apprend : sur échec, il essaie la variante linguistique et consigne celle qui a fonctionné (§6.4). |
 
 ---
@@ -63,7 +63,7 @@ Un vérificateur de citations qui promet plus qu'il ne tient est **pire qu'aucun
 
 **Conséquences imposées au code :**
 
-1. Toute sortie d'outil **heuristique** (`canlii_find_case`, `canlii_subsequent_history`) se termine par sa mise en garde, dans le corps de la réponse et non seulement dans la description de l'outil — c'est le motif retenu par `qclaw_find_relevant`.
+1. Toute sortie d'outil **heuristique** (`jurisprudence_find_case`, `jurisprudence_subsequent_history`) se termine par sa mise en garde, dans le corps de la réponse et non seulement dans la description de l'outil — c'est le motif retenu par `qclaw_find_relevant`.
 2. Un verdict `INTROUVABLE` n'est **jamais** formulé comme « cette décision n'existe pas ». Il énumère les explications concurrentes (numéro erroné, hors collection, diffusion récente).
 3. Un verdict `CONFIRMÉE` porte, dans la même sortie, la phrase indiquant qu'il n'établit ni l'autorité actuelle ni le dispositif.
 4. Les valeurs brutes renvoyées par CanLII sont **toujours affichées** en cas d'écart — le praticien tranche, l'outil ne masque pas.
@@ -210,7 +210,7 @@ arrivés après la rédaction initiale : ils figurent ici, à leur place.*
 
 > **Création de la base :** `wrangler d1 create canlii --location enam` — `enam` (est de l'Amérique du Nord) est le repère de localisation le plus proche de Montréal. Aucune contrainte de résidence des données ne s'applique ici : rien de confidentiel n'y transite (§9.5).
 
-**Dépendance au forfait.** Le forfait *Workers Free* plafonne à **50 sous-requêtes externes par invocation** et **10 ms de CPU** ; le forfait payant offre 10 000 sous-requêtes (jusqu'à 10 M) et 30 s de CPU par défaut. Les outils de balayage (`canlii_find_case` en mode vif, le moissonnage de §11) supposent le forfait **payant**. Sur le forfait gratuit, ramener `CANLII_MAX_CALLS_PER_INVOCATION` à `20` et désactiver §11. **Vérifier le forfait du compte avant d'implémenter §11.**
+**Dépendance au forfait.** Le forfait *Workers Free* plafonne à **50 sous-requêtes externes par invocation** et **10 ms de CPU** ; le forfait payant offre 10 000 sous-requêtes (jusqu'à 10 M) et 30 s de CPU par défaut. Les outils de balayage (`jurisprudence_find_case` en mode vif, le moissonnage de §11) supposent le forfait **payant**. Sur le forfait gratuit, ramener `CANLII_MAX_CALLS_PER_INVOCATION` à `20` et désactiver §11. **Vérifier le forfait du compte avant d'implémenter §11.**
 
 ### 3.4 Secrets et variables
 
@@ -413,7 +413,7 @@ INSERT INTO paren_codes (juris_code, court_code, database_id, verified) VALUES
   ('CA', 'CSC', 'csc-scc', 1);
 ```
 
-> **Tâche d'amorçage obligatoire après le premier déploiement.** Exécuter `scripts/refresh-databases.ts` (ou l'outil `canlii_list_databases` avec `refresh: true`), puis réconcilier `court_codes.database_id` contre les `databaseId` réellement renvoyés par `caseBrowse/fr/`. **Ne pas livrer les lignes fédérales `verified = 0` sans cette réconciliation** ; si un `databaseId` amorcé n'existe pas au répertoire, corriger la ligne et passer `verified = 1`.
+> **Tâche d'amorçage obligatoire après le premier déploiement.** Exécuter `scripts/refresh-databases.ts` (ou l'outil `jurisprudence_list_databases` avec `refresh: true`), puis réconcilier `court_codes.database_id` contre les `databaseId` réellement renvoyés par `caseBrowse/fr/`. **Ne pas livrer les lignes fédérales `verified = 0` sans cette réconciliation** ; si un `databaseId` amorcé n'existe pas au répertoire, corriger la ligne et passer `verified = 1`.
 
 ---
 
@@ -441,7 +441,7 @@ Le quota de CanLII n'est pas publié (§16.2). Le comportement par défaut est d
 - **Intervalle minimal** de `CANLII_MIN_INTERVAL_MS` (**600 ms**, ≈ 1,7 appel/s) entre deux appels de la même invocation. *Relevé de 250 ms le 2026-08-27 : à 4 appels/s, la production était étranglée sur 12 à 18 % des appels des journées chargées (§16.2).*
 - **Intervalle ADAPTATIF.** À chaque `429`, l'intervalle de l'invocation en cours **double**, plafonné à 4 s. Le quota n'étant pas publié, le refus est la seule mesure dont on dispose : un petit lot qui ne touche jamais la limite reste rapide, un gros lot qui la touche cesse de s'y cogner. L'adaptation **meurt avec l'invocation** — le client ne vit que le temps d'un appel d'outil, et un état partagé entre invocations exigerait un objet durable que la valeur ne justifie pas.
 - **Réessais** sur `429`, `500`, `502`, `503`, `504` : trois tentatives, temporisation exponentielle plus gigue de 0–200 ms ; si un en-tête `Retry-After` est présent, il **prime**. La BASE dépend de la cause — **2 s pour un `429`**, 500 ms pour un `5xx` : un `5xx` est un incident, un `429` est une consigne, et 500 ms n'est pas ralentir. Incrémenter `api_usage.throttled` à chaque `429`.
-- **L'étranglement est DIT au modèle** quand il a eu lieu (§16.2) : `canlii_verify_citations` et `canlii_find_case` ajoutent une note nommant les `429` subis, en précisant que les résultats n'en sont **ni tronqués ni affaiblis**. Ce n'est PAS une mise en garde de §2 — elle ne borne pas ce que le résultat établit, elle explique un rythme — mais elle sert le même contrat : sans elle, un « aucun candidat » obtenu sous étranglement se lit comme une inexistence. Muette quand rien n'a été étranglé.
+- **L'étranglement est DIT au modèle** quand il a eu lieu (§16.2) : `jurisprudence_verify_citations` et `jurisprudence_find_case` ajoutent une note nommant les `429` subis, en précisant que les résultats n'en sont **ni tronqués ni affaiblis**. Ce n'est PAS une mise en garde de §2 — elle ne borne pas ce que le résultat établit, elle explique un rythme — mais elle sert le même contrat : sans elle, un « aucun candidat » obtenu sous étranglement se lit comme une inexistence. Muette quand rien n'a été étranglé.
 - **Pas de réessai** sur `400`, `401`, `403`, `404`.
 - **Délai** : `AbortSignal.timeout(CANLII_TIMEOUT_MS)`.
 - **Plafond dur** : au-delà de `CANLII_MAX_CALLS_PER_INVOCATION`, lever `CanliiBudgetError` ; le gestionnaire d'outil renvoie alors les résultats **partiels** obtenus, assortis d'une mention explicite (« budget d'appels épuisé — résultat partiel »), plutôt qu'une erreur sèche.
@@ -516,7 +516,7 @@ Lorsqu'une résolution directe échoue par `404` alors que la forme est bien con
 
 1. Si `court_codes.lang` n'est pas nul, **réessayer avec le code de la langue opposée** dans le `caseId` (`2008csc9` ↔ `2008scc9`). Réussite ⇒ mettre à jour `court_codes.caseid_code`, passer `verified = 1`, consigner dans `note`.
 2. Si le `databaseId` est composé (`a-b`) et que l'échec persiste, **réessayer avec chaque moitié** comme `databaseId`. Réussite ⇒ corriger `court_codes.database_id`.
-3. Si le `databaseId` déduit **n'existe pas** dans `databases`, ne pas appeler l'API : renvoyer `INTROUVABLE` en indiquant que le tribunal n'est pas au répertoire, et proposer `canlii_list_databases`.
+3. Si le `databaseId` déduit **n'existe pas** dans `databases`, ne pas appeler l'API : renvoyer `INTROUVABLE` en indiquant que le tribunal n'est pas au répertoire, et proposer `jurisprudence_list_databases`.
 4. Chaque échec définitif est consigné dans `search_log` avec `fallback = 'unknown_court'`.
 
 Le coût de cette boucle est plafonné : **au plus deux tentatives supplémentaires par citation**, comptées dans le budget d'appels.
@@ -539,10 +539,15 @@ Un **appariement partiel** produit le verdict `DISCORDANTE`, jamais `CONFIRMÉE`
 
 ## 7. Les dix outils adossés à CanLII
 
-*Le connecteur en compte **treize**. Les dix décrits ici portent le préfixe `canlii_`
-et interrogent la collection de CanLII ; les trois autres — `greffe_*`, `palais_*` —
-lisent un relevé local et sont décrits en **§17**, séparément et délibérément (§17.1 :
-le préfixe annonce la source).*
+*Le connecteur en compte **treize**. Les dix décrits ici portent le préfixe
+`jurisprudence_` et interrogent la collection de CanLII ; les trois autres —
+`greffe_*`, `palais_*` — lisent un relevé local et sont décrits en **§17**, séparément
+et délibérément (§17.1 : le préfixe partitionne, la description nomme la source).*
+
+*Préfixe renommé le 2026-09-16 : il s'écrivait `canlii_`. Les descriptions ci-dessous
+sont reproduites verbatim du registre et ont été amendées dans le même changement —
+chacune nomme désormais CanLII, ce que quatre d'entre elles ne faisaient pas tant que
+leur nom le faisait pour elles.*
 
 **Conventions communes** — appliquées sans exception :
 
@@ -554,9 +559,9 @@ le préfixe annonce la source).*
 - Toute sortie d'outil heuristique se termine par sa mise en garde (§2).
 - Erreur d'exécution ⇒ `{ content: [...], isError: true }` en français, **jamais** une erreur JSON-RPC (réservée aux fautes de protocole).
 
-### 7.1 `canlii_verify_citations` — l'outil pivot
+### 7.1 `jurisprudence_verify_citations` — l'outil pivot
 
-> **Description (verbatim) :** « Vérifie une ou plusieurs citations de jurisprudence contre la collection de CanLII. Pour chacune : un verdict (CONFIRMÉE, DISCORDANTE, INTROUVABLE, NON CONSTRUCTIBLE, ILLISIBLE), la fiche officielle (intitulé, citation, date, n° de dossier, hyperlien) et, s'il y a lieu, l'écart avec l'intitulé attendu. Établit l'EXISTENCE et l'IDENTITÉ d'une décision ; n'établit NI son autorité actuelle (aucun historique d'appel, aucun indicateur de traitement), NI le contenu de son dispositif. Outil de choix pour éprouver des références tirées de la doctrine, d'un moteur de recherche ou d'un texte rédigé par une IA. Les citations de recueils (R.C.S., R.J.Q., C.A.) et les identifiants d'éditeurs (J.E., REJB, EYB, AZ) ne sont pas résolubles directement : enchaîner avec canlii_find_case. »
+> **Description (verbatim) :** « Vérifie une ou plusieurs citations de jurisprudence contre la collection de CanLII. Pour chacune : un verdict (CONFIRMÉE, DISCORDANTE, INTROUVABLE, NON CONSTRUCTIBLE, ILLISIBLE), la fiche officielle (intitulé, citation, date, n° de dossier, hyperlien) et, s'il y a lieu, l'écart avec l'intitulé attendu. Établit l'EXISTENCE et l'IDENTITÉ d'une décision ; n'établit NI son autorité actuelle (aucun historique d'appel, aucun indicateur de traitement), NI le contenu de son dispositif. Outil de choix pour éprouver des références tirées de la doctrine, d'un moteur de recherche ou d'un texte rédigé par une IA. Les citations de recueils (R.C.S., R.J.Q., C.A.) et les identifiants d'éditeurs (J.E., REJB, EYB, AZ) ne sont pas résolubles directement : enchaîner avec jurisprudence_find_case. »
 
 ```jsonc
 {
@@ -593,7 +598,7 @@ le préfixe annonce la source).*
 
 Gabarit de sortie : **Annexe A.1**.
 
-### 7.2 `canlii_find_case`
+### 7.2 `jurisprudence_find_case`
 
 > **Description :** « Recherche une décision par les noms des parties ou un fragment d'intitulé, avec tribunal et bornes de date facultatifs. Sert de rattrapage lorsque la citation n'est pas constructible (recueils, SOQUIJ) ou lorsqu'on ne connaît que les parties et l'année. Interroge d'abord l'index local, puis balaie la base de CanLII sur la fenêtre demandée. La recherche porte sur l'INTITULÉ et les mots-clés uniquement — l'API de CanLII n'expose pas le texte des décisions et ne permet aucune recherche par mots du texte. »
 
@@ -623,13 +628,13 @@ Gabarit de sortie : **Annexe A.1**.
 
 Gabarit : **Annexe A.2**.
 
-### 7.3 `canlii_get_case`
+### 7.3 `jurisprudence_get_case`
 
 > **Description :** « Fiche CanLII d'une décision : intitulé, citation, date, numéro de dossier de cour, mots-clés et hyperlien canlii.ca. Accepte soit une citation (« 2020 QCCA 495 »), soit le couple database_id + case_id. Ne renvoie PAS le texte de la décision : suivre l'hyperlien. »
 
 Paramètres : `citation` **ou** (`database_id` + `case_id`) ; `lang` ; `refresh`. Valider qu'exactement l'une des deux formes est fournie.
 
-### 7.4 `canlii_citator`
+### 7.4 `jurisprudence_citator`
 
 > **Description :** « Citateur, sur la collection de CanLII : décisions citées PAR une décision (`cited`), décisions qui LA citent (`citing`), ou dispositions législatives qu'elle cite (`legislation`). Les listes sont brutes : elles n'indiquent aucun sens de traitement (suivi, distingué, infirmé), et leur exhaustivité est celle de la collection de CanLII. Pour les dispositions québécoises, enchaîner avec le connecteur « Législation du Québec » afin d'en lire le texte officiel. »
 
@@ -639,7 +644,7 @@ Paramètres : `database_id`, `case_id` (ou `citation`), `rel` (`enum ["cited","c
 
 Correspondance `rel` → `metadataType` : `cited` → `citedCases`, `citing` → `citingCases`, `legislation` → `citedLegislations`.
 
-### 7.5 `canlii_subsequent_history`
+### 7.5 `jurisprudence_subsequent_history`
 
 > **Description :** « Indice heuristique de sorts ultérieurs : parmi les décisions DE LA COLLECTION DE CANLII qui citent la décision de départ, retient celles qui émanent d'une juridiction supérieure et dont l'intitulé ressemble au sien. NE REMPLACE PAS un citateur professionnel : n'indique pas si la décision a été infirmée, confirmée ou distinguée, et ne détecte ni les pourvois pendants, ni les refus de permission d'appeler, ni les désistements. À vérifier systématiquement à la source. »
 
@@ -654,7 +659,7 @@ Algorithme : `citing` ⇒ filtrer sur (a) `database_id` de rang supérieur selon
 
 La sortie porte **en tête et en pied** la mise en garde. Aucune formulation affirmative (« a été infirmée ») n'est permise : uniquement « indice », « susceptible », « à vérifier ».
 
-### 7.6 `canlii_browse_cases`
+### 7.6 `jurisprudence_browse_cases`
 
 > **Description :** « Liste les décisions d'un tribunal, les plus récemment diffusées en tête, avec filtres de date : date de la décision (`decision_date_*`), date de diffusion sur CanLII (`published_*`) ou date de dernière modification (`modified_*`, `changed_*`). Utile pour la veille et pour cerner la couverture de CanLII pour un tribunal donné. »
 
@@ -662,25 +667,25 @@ Paramètres : `database_id` (obligatoire), `lang`, `offset` (défaut 0), `limit`
 
 Rappeler dans la sortie, lorsqu'un filtre `published_*` est employé, le délai de diffusion et le jeu de deux jours recommandé.
 
-### 7.7 `canlii_list_databases`
+### 7.7 `jurisprudence_list_databases`
 
 > **Description :** « Répertoire des bases de CanLII : cours et tribunaux (`kind='case'`) ou corpus législatifs (`kind='legislation'`), avec leur databaseId et leur ressort. Point de départ de toute commande exigeant un database_id. »
 
 Paramètres : `kind`, `jurisdiction`, `query` (recherche sur `name_norm`), `refresh`. Sert le répertoire local si `refreshed_at` a moins de 7 jours ; sinon `GET caseBrowse/{lang}/` et `GET legislationBrowse/{lang}/`, puis mise à jour (deux appels — le rafraîchissement est aussi ce que fait le cron).
 
-### 7.8 `canlii_browse_legislation`
+### 7.8 `jurisprudence_browse_legislation`
 
 > **Description :** « Liste les lois ou règlements d'une base législative DE CANLII (p. ex. « qcs » pour les lois du Québec), avec leur legislationId, leur citation et leur type. »
 
-### 7.9 `canlii_get_legislation`
+### 7.9 `jurisprudence_get_legislation`
 
 > **Description :** « Fiche CanLII d'une loi ou d'un règlement : citation, type, régime de dates (entrée en vigueur), dates de début et de fin, indicateur d'abrogation et découpage en parties. Utile pour dater une disposition ou vérifier une abrogation. Pour le TEXTE d'une loi ou d'un règlement du Québec, utiliser le connecteur « Législation du Québec », qui rend le texte officiel verbatim. »
 
 Rendre `repealed` en français explicite (« Abrogé : oui / non ») et afficher `dateScheme`, `startDate`, `endDate`.
 
-### 7.10 `canlii_parse_citation`
+### 7.10 `jurisprudence_parse_citation`
 
-> **Description :** « Analyse une citation sans appeler CanLII : indique la forme reconnue (citation neutre, citation attribuée par CanLII, recueil, identifiant d'éditeur), et, si elle est constructible, le database_id et le case_id qui en découlent. Outil de diagnostic ; pour vérifier réellement l'existence d'une décision, utiliser canlii_verify_citations. »
+> **Description :** « Analyse une citation sans appeler CanLII : indique la forme reconnue (citation neutre, citation attribuée par CanLII, recueil, identifiant d'éditeur), et, si elle est constructible, le database_id et le case_id qui en découlent. Outil de diagnostic ; pour vérifier réellement l'existence d'une décision, utiliser jurisprudence_verify_citations. »
 
 Aucun appel sortant, aucune écriture. Utile au débogage de la table `court_codes` et pour expliquer un `NON CONSTRUCTIBLE`.
 
@@ -791,7 +796,7 @@ Si le connecteur est un jour partagé, ou si un audit l'exige, remplacer §9.1 p
 
 Ce connecteur est, sur ce plan, exceptionnellement propre : ce qui sort de l'infrastructure, ce sont des **citations, des identifiants de tribunaux et des dates**. Aucun nom de client, aucun fait de dossier, aucun document.
 
-**Une seule réserve, à documenter dans le README** : `canlii_find_case` prend des **noms de parties**. Si ce nom est celui d'une partie à un dossier en cours plutôt que celui d'une décision publiée, la requête révèle à CanLII un intérêt de recherche. Le risque est faible — CanLII est un organisme sans but lucratif canadien, et la recherche jurisprudentielle nominative est l'usage normal du site — mais il n'est pas nul, et il mérite d'être connu plutôt que découvert.
+**Une seule réserve, à documenter dans le README** : `jurisprudence_find_case` prend des **noms de parties**. Si ce nom est celui d'une partie à un dossier en cours plutôt que celui d'une décision publiée, la requête révèle à CanLII un intérêt de recherche. Le risque est faible — CanLII est un organisme sans but lucratif canadien, et la recherche jurisprudentielle nominative est l'usage normal du site — mais il n'est pas nul, et il mérite d'être connu plutôt que découvert.
 
 ---
 
@@ -810,7 +815,7 @@ SELECT day, calls, errors, throttled FROM api_usage ORDER BY day DESC LIMIT 30;
 
 ```sql
 SELECT query, COUNT(*) n FROM search_log
-WHERE tool = 'canlii_verify_citations' AND verdict IN ('ILLISIBLE','INTROUVABLE')
+WHERE tool = 'jurisprudence_verify_citations' AND verdict IN ('ILLISIBLE','INTROUVABLE')
 GROUP BY query ORDER BY n DESC LIMIT 50;
 ```
 
@@ -820,7 +825,7 @@ GROUP BY query ORDER BY n DESC LIMIT 50;
 
 **Ne pas activer sans la détermination de §16.1.**
 
-Motif : un index local complet des cours du Québec rendrait `canlii_find_case` instantané et fiable, au lieu de dépendre d'un balayage. La documentation de l'API paraît prévoir cet usage — les filtres `changedAfter` / `modifiedAfter` n'ont guère d'autre raison d'être que la tenue à jour d'une copie locale, et `resultCount` monte à 10 000. Cela reste une **lecture de la documentation, non une autorisation**.
+Motif : un index local complet des cours du Québec rendrait `jurisprudence_find_case` instantané et fiable, au lieu de dépendre d'un balayage. La documentation de l'API paraît prévoir cet usage — les filtres `changedAfter` / `modifiedAfter` n'ont guère d'autre raison d'être que la tenue à jour d'une copie locale, et `resultCount` monte à 10 000. Cela reste une **lecture de la documentation, non une autorisation**.
 
 Conception, si activé (`BACKFILL_ENABLED = "true"`) :
 
@@ -896,7 +901,7 @@ Dépôt GitHub distinct, calqué sur les protections d'Athéna : **actions épin
 '` n'enlève que la moitié du problème.
 5. Créer l'enregistrement DNS `jurisprudence` sur la zone `poirierlavoie.ca` (domaine personnalisé du Worker — Cloudflare le gère).
 6. `wrangler deploy`.
-7. **Amorçage du répertoire** : appeler `canlii_list_databases` avec `refresh: true`, puis réconcilier `court_codes` et `paren_codes` (§4.3) ; passer `verified = 1` sur les lignes confirmées.
+7. **Amorçage du répertoire** : appeler `jurisprudence_list_databases` avec `refresh: true`, puis réconcilier `court_codes` et `paren_codes` (§4.3) ; passer `verified = 1` sur les lignes confirmées.
 8. **Recette manuelle** : vérifier `2008 CSC 9` (⇒ *Dunsmuir*), une décision de la Cour d'appel du Québec connue, une citation volontairement fausse (`2020 QCCA 999999` ⇒ `INTROUVABLE`), une citation de recueil (⇒ `NON CONSTRUCTIBLE` avec candidats).
 9. Ajouter le connecteur dans `claude.ai` : URL `https://jurisprudence.poirierlavoie.ca/mcp/<secret>`, nom « Jurisprudence canadienne et greffes du Québec ».
 10. Activer la règle de limitation de débit (§9.3).
@@ -940,7 +945,7 @@ réponse, parce qu'une question effacée se repose.*
    ```
 
    Le repère : `pct` était de 12 à 18 % les journées chargées d'août 2026. S'il ne descend pas nettement, relever encore `CANLII_MIN_INTERVAL_MS` — et si le connecteur devient lent sans être étranglé, c'est le signe inverse et l'on peut redescendre. **Ne jamais lire un `429` comme une erreur d'exactitude** : le client réessaie, §2 est préservé, et l'étranglement est désormais DIT au modèle plutôt que laissé à deviner.
-3. **Forfait Cloudflare Workers.** Sans objet pour §11, qui ne sera pas activé. Reste pertinent pour le **balayage vif** : le forfait gratuit plafonne à 50 sous-requêtes externes et 10 ms de CPU par invocation, et `canlii_find_case` en consomme plusieurs. Aucun symptôme observé à ce jour.
+3. **Forfait Cloudflare Workers.** Sans objet pour §11, qui ne sera pas activé. Reste pertinent pour le **balayage vif** : le forfait gratuit plafonne à 50 sous-requêtes externes et 10 ms de CPU par invocation, et `jurisprudence_find_case` en consomme plusieurs. Aucun symptôme observé à ce jour.
 4. ~~**Modèle d'authentification.**~~ **RÉPONDUE : secret partagé (D7) maintenu.** Étendu le 2026-08-27 à un **second porteur** aux droits identiques, révocable seul (§9.1, §19). OAuth 2.1 (§9.4) reste conçu et non implémenté — la valeur protégée ne le justifie toujours pas.
 5. ~~**Bases à indexer** si §11 est activé.~~ **Sans objet** : voir 1.
 6. **Langue de la spécification.** Rédigée en français, comme `claude_spec-elabore-theorie-de-la-cause.md`. Le code, les identifiants et les noms d'outils restent en anglais.
@@ -953,16 +958,24 @@ réponse, parce qu'une question effacée se repose.*
 
 *Ajoutée le 2026-07-30. Les §1 à §16 décrivent un connecteur adossé à la seule collection de CanLII ; la présente section étend le connecteur à des données d'une AUTRE provenance, et pose la frontière entre les deux.*
 
-### 17.1 La frontière des sources, et pourquoi elle est dans le nom des outils
+### 17.1 La frontière des sources : le préfixe partitionne, la description nomme
 
-La décision **D8** conserve le préfixe `canlii_` parce que « la couverture et les verdicts DÉPENDENT de la collection de CanLII et que le modèle doit le savoir ». Le même raisonnement, appliqué à des données qui ne viennent PAS de CanLII, impose la conclusion inverse : leur donner le préfixe `canlii_` attribuerait à CanLII une adresse de palais de justice dont il n'est pas la source. D'où **deux familles** :
+*Amendée le 2026-09-16, en même temps que D8. Cette section s'intitulait « La frontière des sources, et pourquoi elle est dans le NOM des outils », et elle tenait que le préfixe `canlii_` ANNONÇAIT la source. Elle est réécrite, non parce que la frontière a bougé — elle n'a pas bougé — mais parce que le porteur de l'annonce a changé. L'ancienne rédaction est citée au fil du texte.*
+
+**Ce qui était écrit, et pourquoi c'était insuffisant.** « La décision D8 conserve le préfixe `canlii_` parce que la couverture et les verdicts DÉPENDENT de la collection de CanLII et que le modèle doit le savoir. » La prémisse reste vraie ; la conclusion ne tenait pas. **Un préfixe ne sait pas porter une réserve.** `canlii_get_case` ne dit ni que la couverture a des bornes historiques, ni qu'une absence n'est pas une inexistence, ni que l'API ne rend que des métadonnées — il donne seulement l'impression que quelque chose a été dit. Le prix de cette illusion s'est mesuré : **quatre descriptions sur dix ne nommaient CanLII nulle part** (citator, subsequent_history, browse_legislation, get_legislation), et **six sur dix côté anglais**. Le nom le disait pour elles, et le nom ne dit rien.
+
+**Où vit l'annonce désormais.** Dans trois surfaces qui sont des PHRASES, et que des tests épinglent : la **description** de chacun des treize outils, les **`INSTRUCTIONS`** rendues à l'initialisation, et la **page publique** dans ses deux langues. Le test est formulé sur la PRÉSENCE d'une source et non sur une formulation — « CanLII » pour les dix, le Ministère ou le Québec pour les trois — parce que c'est l'absence, et elle seule, qui est silencieuse.
+
+**Ce que le préfixe conserve, et qui reste load-bearing : la PARTITION.**
 
 | Préfixe | Source | Appels sortants | Mode de panne redouté |
 |---|---|---|---|
-| `canlii_` (10) | collection de CanLII | oui | l'absence prise pour une inexistence |
+| `jurisprudence_` (10) | collection de CanLII | oui | l'absence prise pour une inexistence |
 | `greffe_`, `palais_` (3) | relevé local du ministère de la Justice du Québec (MJQ) | **aucun** | la **péremption** prise pour une vérité |
 
-La scission est **vérifiée par `test/rpc.test.ts`** : aucun outil ne relève des deux familles ni n'échappe aux deux, et aucun outil local ne porte la chaîne `canlii` dans son nom. Ajouter un outil oblige donc à choisir sa famille délibérément.
+Ranger un outil qui lit une table du MJQ parmi ceux qui interrogent CanLII resterait une attribution fausse. La partition est donc **vérifiée par `test/rpc.test.ts`** : aucun outil ne relève des deux familles ni n'échappe aux deux, et le compte de chacune est figé. Ajouter un outil oblige encore à choisir sa famille délibérément.
+
+⚠ L'assertion « aucun outil local ne porte la chaîne `canlii` dans son nom » a été **retirée** du test, et non conservée : sous le nouveau préfixe, aucun nom nulle part ne contient plus cette chaîne, donc elle ne peut plus échouer. Une assertion qui ne peut plus échouer achète une confiance qu'elle ne finance pas.
 
 ### 17.2 `greffe_parse_court_file_number`
 
@@ -1084,7 +1097,7 @@ Les exemples d'analyse sont **vivants** : la page appelle le vrai parseur et aff
 - Les **trois réserves imposées** (`GARDE_PALAIS` avec sa date, `GARDE_SANS_ADRESSE`, `GARDE_DOSSIER`), verbatim et dans le corps.
 - **Aucune coordonnée n'est portée** — ni téléphone, ni courriel, ni heures — pour aucun palais, avec renvoi au ministère de la Justice. C'est une propriété de la donnée, énoncée plutôt que laissée à découvrir.
 - Les **six greffes sans adresse publiée**, formulés comme « inconnue » et jamais « inexistante ».
-- La **frontière des sources** : `canlii_*` contre `greffe_*`/`palais_*`. La section des greffes ne mentionne pas CanLII, et un test le vérifie.
+- La **frontière des sources** : `jurisprudence_*` contre `greffe_*`/`palais_*`. La section des greffes ne mentionne pas CanLII, et un test le vérifie. Depuis le 2026-09-16 (D8 amendée), la prose de la page dit explicitement que la source est nommée dans la DESCRIPTION de chaque outil et non plus par son préfixe — dans les deux langues, et la version anglaise est éprouvée séparément.
 - Les **formulations interdites** de §2 sont refusées dans la prose propre à la page. Les fiches d'outils en sont exclues du balayage : elles rendent les descriptions de §7 **verbatim**, dont l'une contient « a été infirmée » à l'intérieur d'une négation.
 
 ### 18.6 Autonomie
@@ -1137,7 +1150,7 @@ quota d'API CanLII, et c'est bien ce quota que D7 protège.
 
 ## Annexe A — Gabarits de sortie (verbatim)
 
-### A.1 `canlii_verify_citations`
+### A.1 `jurisprudence_verify_citations`
 
 ```
 Vérification de 3 citation(s) — collection CanLII.
@@ -1152,7 +1165,7 @@ Vérification de 3 citation(s) — collection CanLII.
 2. [1985] C.A. 105 — NON CONSTRUCTIBLE
    Forme reconnue : recueil (Recueils de jurisprudence du Québec, Cour d'appel).
    L'API de CanLII ne résout pas les citations de recueils.
-   → Fournir les noms des parties et l'année à canlii_find_case.
+   → Fournir les noms des parties et l'année à jurisprudence_find_case.
 
 3. 2020 QCCA 999999 — INTROUVABLE
    Forme neutre bien formée (qcca / 2020qcca999999), mais aucune fiche.
@@ -1174,7 +1187,7 @@ Verdict `DISCORDANTE` — les deux valeurs, toujours :
    → La citation existe mais ne désigne pas la décision annoncée. Vérifier la source.
 ```
 
-### A.2 `canlii_find_case`
+### A.2 `jurisprudence_find_case`
 
 ```
 3 candidat(s) pour « Hydro-Québec » (qcca, 2004→2006) :
@@ -1191,7 +1204,7 @@ Recherche sur l'intitulé et les mots-clés uniquement — l'API de CanLII n'exp
 pas le texte des décisions.
 ```
 
-### A.3 `canlii_subsequent_history`
+### A.3 `jurisprudence_subsequent_history`
 
 ```
 Sorts ultérieurs — INDICE HEURISTIQUE, à vérifier à la source.
@@ -1213,11 +1226,11 @@ citateur professionnel.
 
 | Outil | Endpoint | Notes |
 |---|---|---|
-| `canlii_list_databases` | `caseBrowse/{lang}/` · `legislationBrowse/{lang}/` | Deux appels ; rafraîchi hebdomadairement |
-| `canlii_browse_cases`, `canlii_find_case` | `caseBrowse/{lang}/{db}/?offset=&resultCount=` + filtres de dates | `resultCount` ≤ 5 000 par page (marge sous 10 Mo) |
-| `canlii_get_case`, `canlii_verify_citations` | `caseBrowse/{lang}/{db}/{caseId}/` | Le chemin de résolution déterministe |
-| `canlii_citator`, `canlii_subsequent_history` | `caseCitator/en/{db}/{caseId}/{metadataType}` | **`en` obligatoire** dans le chemin |
-| `canlii_browse_legislation` | `legislationBrowse/{lang}/{db}/` | |
-| `canlii_get_legislation` | `legislationBrowse/{lang}/{db}/{legislationId}/` | |
+| `jurisprudence_list_databases` | `caseBrowse/{lang}/` · `legislationBrowse/{lang}/` | Deux appels ; rafraîchi hebdomadairement |
+| `jurisprudence_browse_cases`, `jurisprudence_find_case` | `caseBrowse/{lang}/{db}/?offset=&resultCount=` + filtres de dates | `resultCount` ≤ 5 000 par page (marge sous 10 Mo) |
+| `jurisprudence_get_case`, `jurisprudence_verify_citations` | `caseBrowse/{lang}/{db}/{caseId}/` | Le chemin de résolution déterministe |
+| `jurisprudence_citator`, `jurisprudence_subsequent_history` | `caseCitator/en/{db}/{caseId}/{metadataType}` | **`en` obligatoire** dans le chemin |
+| `jurisprudence_browse_legislation` | `legislationBrowse/{lang}/{db}/` | |
+| `jurisprudence_get_legislation` | `legislationBrowse/{lang}/{db}/{legislationId}/` | |
 
 Contraintes transversales : **HTTPS uniquement** ; charge utile plafonnée à **10 Mo** (erreur `TOO_LONG`) ; dates au format **AAAA-MM-JJ**, bornes **inclusives** ; `caseId` renvoyé dans les listes sous forme d'objet clé par langue (`{"en": "..."}` ou `{"fr": "..."}`) — **aplatir à la lecture**.

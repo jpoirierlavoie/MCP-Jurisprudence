@@ -12,8 +12,8 @@
  *
  * Usage :
  *   node scripts/mcp-client.mjs --local  tools/list
- *   node scripts/mcp-client.mjs --local  tools/call canlii_verify_citations '{"citations":[{"citation":"2008 CSC 9"}]}'
- *   node scripts/mcp-client.mjs --remote tools/call canlii_list_databases '{"refresh":true}'
+ *   node scripts/mcp-client.mjs --local  tools/call jurisprudence_verify_citations '{"citations":[{"citation":"2008 CSC 9"}]}'
+ *   node scripts/mcp-client.mjs --remote tools/call jurisprudence_list_databases '{"refresh":true}'
  */
 
 import { readFileSync } from "node:fs";

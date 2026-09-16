@@ -6,9 +6,10 @@
   "compatibility_flags": ["nodejs_compat"],
 
   // Domaine personnalisé (zone poirierlavoie.ca) : Cloudflare gère DNS + certificat.
-  // Le nom d'hôte n'emploie pas la marque d'un tiers ; le préfixe d'outil `canlii_` la
-  // conserve, parce que la couverture et les verdicts DÉPENDENT de la collection de
-  // CanLII et que le modèle doit le savoir (spéc. D8).
+  // Ni le nom d'hôte ni le préfixe d'outil n'emploient la marque d'un tiers : le
+  // préfixe `canlii_` a été abandonné pour `jurisprudence_` le 2026-09-16 (D8 amendée).
+  // La dépendance à la collection de CanLII, que le modèle doit connaître, est désormais
+  // énoncée dans la DESCRIPTION de chacun des dix outils plutôt que dans leur nom.
   "routes": [{ "pattern": "jurisprudence.poirierlavoie.ca", "custom_domain": true }],
   // workers.dev fermé : surface minimale. Le point d'entrée MCP porte le secret partagé
   // dans le chemin (D7) — une seconde origine publique serait une seconde fuite possible.

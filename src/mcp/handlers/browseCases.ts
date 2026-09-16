@@ -1,5 +1,5 @@
 /**
- * `canlii_browse_cases` (spécification §7.6).
+ * `jurisprudence_browse_cases` (spécification §7.6).
  *
  * Trois familles de filtres de dates, qui ne mesurent PAS la même chose :
  *   - `decision_date_*` : la date de la décision ;
@@ -63,7 +63,7 @@ export async function browseCases(
     page = await ctx.client.get<CaseListResponse>(`caseBrowse/${lang}/${databaseId}/`, params);
   } catch (e) {
     await logSearch(ctx.db, {
-      tool: "canlii_browse_cases",
+      tool: "jurisprudence_browse_cases",
       query: appliques.join(", ") || "(sans filtre)",
       database_id: databaseId,
       lang,
@@ -84,7 +84,7 @@ export async function browseCases(
   if (persisterBalayages(ctx.env)) await upsertCases(ctx.db, lignes);
 
   await logSearch(ctx.db, {
-    tool: "canlii_browse_cases",
+    tool: "jurisprudence_browse_cases",
     query: appliques.join(", ") || "(sans filtre)",
     database_id: databaseId,
     lang,
@@ -97,7 +97,7 @@ export async function browseCases(
         `Aucune décision pour ${databaseId}${appliques.length ? ` (${appliques.join(", ")})` : ""}.`,
         "",
         "Une liste vide n'établit pas l'absence de décisions : vérifier le database_id",
-        "(canlii_list_databases) et les bornes de dates, qui sont INCLUSIVES.",
+        "(jurisprudence_list_databases) et les bornes de dates, qui sont INCLUSIVES.",
         filtreDiffusion ? `\n${GARDE_DIFFUSION}` : null,
       ]
         .filter((s): s is string => s !== null)
@@ -114,7 +114,7 @@ export async function browseCases(
       ? `Page pleine : il y a probablement d'autres résultats. Rappeler avec offset=${nombreFr(offset + limit)}.`
       : null,
     "Les listes de CanLII ne portent ni date de décision, ni numéro de dossier, ni",
-    "hyperlien : pour la fiche complète d'une décision, employer canlii_get_case.",
+    "hyperlien : pour la fiche complète d'une décision, employer jurisprudence_get_case.",
     filtreDiffusion ? `\n${GARDE_DIFFUSION}` : null,
   ]
     .filter((s): s is string => s !== null)

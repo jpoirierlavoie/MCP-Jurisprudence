@@ -557,7 +557,7 @@ describe("§8 — méthodes JSON-RPC", () => {
     expect(await res.text()).toBe("");
   });
 
-  it("tools/list rend les 10 outils, tous décrits et annotés", async () => {
+  it("tools/list rend les treize outils, tous décrits et annotés", async () => {
     const res = await appeler(rpc("tools/list"));
     const body = (await res.json()) as {
       result: {
@@ -572,25 +572,30 @@ describe("§8 — méthodes JSON-RPC", () => {
     const outils = body.result.tools;
     expect(outils).toHaveLength(13);
     for (const t of outils) {
-      expect(t.name).toMatch(/^(canlii|greffe|palais)_/);
+      expect(t.name).toMatch(/^(jurisprudence|greffe|palais)_/);
       expect(t.description.length).toBeGreaterThan(80);
       expect(t.annotations).toEqual({ readOnlyHint: true, openWorldHint: true });
       // §7, conventions : additionalProperties false sur TOUS les schémas.
       expect(t.inputSchema.additionalProperties).toBe(false);
     }
+    // ⚠ Littéral écrit DANS L'ORDRE ALPHABÉTIQUE RÉEL (g < j < p). Le `.sort()` des
+    //   deux côtés rend ce test indifférent à l'ordre d'écriture : il ne dira JAMAIS
+    //   que la liste est trompeuse. C'est donc au lecteur de la tenir juste, et elle a
+    //   dû être réordonnée à la main au renommage du 2026-09-16 — un rechercher-
+    //   remplacer laisse les dix anciens `canlii_*` en tête, où ils ne sont plus.
     expect(outils.map((t) => t.name).sort()).toEqual(
       [
-        "canlii_browse_cases",
-        "canlii_browse_legislation",
-        "canlii_citator",
-        "canlii_find_case",
-        "canlii_get_case",
-        "canlii_get_legislation",
-        "canlii_list_databases",
-        "canlii_parse_citation",
-        "canlii_subsequent_history",
-        "canlii_verify_citations",
         "greffe_parse_court_file_number",
+        "jurisprudence_browse_cases",
+        "jurisprudence_browse_legislation",
+        "jurisprudence_citator",
+        "jurisprudence_find_case",
+        "jurisprudence_get_case",
+        "jurisprudence_get_legislation",
+        "jurisprudence_list_databases",
+        "jurisprudence_parse_citation",
+        "jurisprudence_subsequent_history",
+        "jurisprudence_verify_citations",
         "palais_get",
         "palais_list",
       ].sort(),
@@ -598,25 +603,36 @@ describe("§8 — méthodes JSON-RPC", () => {
   });
 
   /**
-   * La frontière de §17 : `canlii_` promet que la réponse vient de la collection de
-   * CanLII. Un outil servi sous ce préfixe alors qu'il lit une table locale
-   * attribuerait à CanLII une donnée dont il n'est pas la source — l'inverse exact de
-   * ce que D8 protège. Ce test fait de la scission une CONTRAINTE, non une note.
+   * La frontière de §17, telle qu'elle subsiste après l'amendement de D8 (2026-09-16).
+   *
+   * Ce que ce test vérifiait AVANT : que le préfixe `canlii_` ANNONCE la source. Cette
+   * promesse-là n'existe plus — `jurisprudence_` ne nomme aucun tiers, et c'est voulu :
+   * un préfixe ne sait pas porter une réserve, il en donne l'illusion. L'annonce est
+   * passée dans les descriptions, où deux tests la tiennent, un par langue.
+   *
+   * Ce qu'il vérifie MAINTENANT, et qui reste load-bearing : la PARTITION. Tout outil
+   * relève d'exactement une famille, et le compte de chacune est figé. Ranger un outil
+   * qui lit une table du MJQ parmi ceux qui interrogent CanLII resterait une
+   * attribution fausse ; un ajout oblige donc encore à choisir sa famille délibérément.
+   *
+   * ⚠ L'ancienne assertion « aucun outil local ne porte la chaîne canlii dans son nom »
+   *   a été RETIRÉE plutôt que conservée : sous le nouveau préfixe elle est trivialement
+   *   vraie — aucun nom, nulle part, ne contient plus « canlii » — donc elle ne peut
+   *   plus échouer. Une assertion qui ne peut plus échouer achète une confiance qu'elle
+   *   ne finance pas. Son intention vit désormais dans le test des descriptions.
    */
-  it("le préfixe dit la SOURCE : canlii_ pour CanLII, greffe_/palais_ pour le relevé local", async () => {
+  it("la partition des familles tient : dix adossés à CanLII, trois du relevé local", async () => {
     const res = await appeler(rpc("tools/list"));
     const body = (await res.json()) as { result: { tools: Array<{ name: string }> } };
     const noms = body.result.tools.map((t) => t.name);
 
-    const canlii = noms.filter((n) => n.startsWith("canlii_"));
+    const distants = noms.filter((n) => n.startsWith("jurisprudence_"));
     const locaux = noms.filter((n) => n.startsWith("greffe_") || n.startsWith("palais_"));
 
-    expect(canlii).toHaveLength(10);
+    expect(distants).toHaveLength(10);
     expect(locaux).toHaveLength(3);
     // Aucun outil ne relève des deux familles, et aucun n'échappe aux deux.
-    expect(canlii.length + locaux.length).toBe(noms.length);
-    // Les outils locaux ne portent JAMAIS la marque de CanLII, nulle part dans le nom.
-    for (const n of locaux) expect(n).not.toMatch(/canlii/i);
+    expect(distants.length + locaux.length).toBe(noms.length);
   });
 
   it("une méthode inconnue rend -32601", async () => {
@@ -626,7 +642,7 @@ describe("§8 — méthodes JSON-RPC", () => {
   });
 
   it("un outil inconnu rend isError, PAS une erreur JSON-RPC", async () => {
-    const res = await appeler(rpc("tools/call", { name: "canlii_inexistant", arguments: {} }));
+    const res = await appeler(rpc("tools/call", { name: "jurisprudence_inexistant", arguments: {} }));
     const body = (await res.json()) as {
       result: { isError: boolean; content: [{ text: string }] };
     };
@@ -636,7 +652,7 @@ describe("§8 — méthodes JSON-RPC", () => {
 
   it("des arguments invalides rendent isError, PAS une erreur JSON-RPC (§8)", async () => {
     const res = await appeler(
-      rpc("tools/call", { name: "canlii_parse_citation", arguments: { citation: 42 } }),
+      rpc("tools/call", { name: "jurisprudence_parse_citation", arguments: { citation: 42 } }),
     );
     const body = (await res.json()) as {
       result: { isError: boolean; content: [{ text: string }] };
@@ -648,7 +664,7 @@ describe("§8 — méthodes JSON-RPC", () => {
   it("un argument non déclaré est refusé (additionalProperties: false)", async () => {
     const res = await appeler(
       rpc("tools/call", {
-        name: "canlii_parse_citation",
+        name: "jurisprudence_parse_citation",
         arguments: { citation: "2020 QCCA 495", inconnu: true },
       }),
     );
@@ -683,7 +699,7 @@ describe("§8 — méthodes JSON-RPC", () => {
   it("n'émet PAS structuredContent (symétrie avec qclaw, D4)", async () => {
     const res = await appeler(
       rpc("tools/call", {
-        name: "canlii_parse_citation",
+        name: "jurisprudence_parse_citation",
         arguments: { citation: "2020 QCCA 495" },
       }),
     );

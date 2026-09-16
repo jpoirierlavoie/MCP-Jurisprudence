@@ -3,11 +3,14 @@
  *
  * AUCUN appel sortant, AUCUNE lecture D1, AUCUNE écriture : tables en mémoire.
  *
- * ⚠ PRÉFIXE `greffe_` ET NON `canlii_` : la réponse ne vient PAS de CanLII mais d'un
- *   relevé local du ministère de la Justice du Québec. Dire « canlii » ici ferait
- *   attribuer à CanLII une donnée dont il n'est pas la source (D8).
+ * ⚠ PRÉFIXE `greffe_` ET NON `jurisprudence_` : la réponse ne vient PAS de CanLII mais
+ *   d'un relevé local du ministère de la Justice du Québec. Le préfixe ne NOMME plus la
+ *   source depuis le 2026-09-16 (D8 amendée) — c'est la description qui s'en charge —
+ *   mais il partitionne toujours, et cette partition reste load-bearing : ranger cet
+ *   outil du côté de CanLII attribuerait au tiers une donnée dont il n'est pas la
+ *   source.
  *
- * ⚠ AUCUNE TÉLÉMÉTRIE, DÉLIBÉRÉMENT. Les outils `canlii_*` consignent leur requête dans
+ * ⚠ AUCUNE TÉLÉMÉTRIE, DÉLIBÉRÉMENT. Les outils `jurisprudence_*` consignent leur requête dans
  *   `search_log` pour affiner l'analyseur ; celui-ci ne le fait pas. Un numéro de
  *   dossier désigne un DOSSIER EN COURS bien plus directement qu'une citation de
  *   jurisprudence — c'est la réserve de §9.5 appliquée à la lettre. Le gain de réglage
@@ -45,7 +48,7 @@ export async function parseCourtFileTool(
       lignes.push(
         "",
         "Une cour fédérale n'est PAS un tribunal administratif. Pour vérifier une de ses",
-        "décisions, employer canlii_verify_citations.",
+        "décisions, employer jurisprudence_verify_citations.",
       );
     }
     return ok([...lignes, "", GARDE_DOSSIER].join("\n"));

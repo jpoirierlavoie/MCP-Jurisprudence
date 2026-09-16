@@ -60,7 +60,7 @@ est une recherche de chaîne dans les documents du praticien, pas une commande d
 
 | Si vous touchez… | …vérifiez ET mettez à jour |
 |---|---|
-| **un outil** (ajout, retrait, renommage) | `src/mcp/registry.ts` · le gestionnaire dans `src/mcp/handlers/` · `OUTILS_EN` dans `src/site.i18n.ts` (parité testée **dans les deux sens**) · le tableau ET le compte de `README.md` §« Les treize outils » · §7 ou §17 de la spécification · les compteurs de `test/garde.test.ts` et `test/rpc.test.ts` · la **liste triée des noms** dans `test/rpc.test.ts` · le préfixe choisi (`canlii_` = réponse de CanLII ; `greffe_`/`palais_` = table locale — invariant 16) · **hors dépôt, et aucune commande d'ici ne le voit** : la Compétence claude.ai de recherche juridique, qui code en dur les treize noms (voir plus haut) |
+| **un outil** (ajout, retrait, renommage) | `src/mcp/registry.ts` · le gestionnaire dans `src/mcp/handlers/` · `OUTILS_EN` dans `src/site.i18n.ts` (parité testée **dans les deux sens**) · le tableau ET le compte de `README.md` §« Les treize outils » · §7 ou §17 de la spécification · les compteurs de `test/garde.test.ts` et `test/rpc.test.ts` · la **liste triée des noms** dans `test/rpc.test.ts` · la FAMILLE choisie (`jurisprudence_` = réponse de CanLII ; `greffe_`/`palais_` = table locale — invariant 16) · la DESCRIPTION doit nommer sa source, en français ET en anglais (c'est elle qui porte l'annonce depuis le 2026-09-16, et non plus le préfixe) · **hors dépôt, et aucune commande d'ici ne le voit** : la Compétence claude.ai de recherche juridique, qui code en dur les treize noms (voir plus haut) |
 | **une description ou un titre** | la page les rend **verbatim** : relancer `test/site.test.ts` (formulations interdites) et `test/garde.test.ts` (sous-chaînes épinglées) · `OUTILS_EN` doit rester une TRADUCTION, jamais une copie |
 | **un `inputSchema`** | `src/mcp/validate.ts` n'implémente qu'un SOUS-ENSEMBLE de JSON-Schema : ne pas déclarer ce qu'il ne sait pas imposer · la page génère ses tableaux de schéma depuis le même objet · `additionalProperties: false` reste obligatoire |
 | **une constante `GARDE_*`** | elle vit dans le corps des réponses **et** sur la page · `test/garde.test.ts` · `MARQUEUR_RECONCILIATION` est en plus une chaîne de COUPLAGE lue par `scripts/refresh-databases.mjs` |
@@ -78,8 +78,8 @@ npx wrangler types && npx tsc --noEmit && npx biome check . && npx vitest run
 
 # Puis, pour tout changement d'outil : CONFRONTER le registre au README.
 # Un écart ici est une dérive, MÊME SI la suite entière est verte.
-diff <(grep -oE "^  (canlii|greffe|palais)_[a-z_]+" src/mcp/registry.ts | tr -d ' ' | sort) \
-     <(grep -oE '`(canlii|greffe|palais)_[a-z_]+`' README.md | tr -d '`' | sort -u)
+diff <(grep -oE "^  (jurisprudence|greffe|palais)_[a-z_]+" src/mcp/registry.ts | tr -d ' ' | sort) \
+     <(grep -oE '`(jurisprudence|greffe|palais)_[a-z_]+`' README.md | tr -d '`' | sort -u)
 ```
 
 La page, elle, ne peut pas dériver sur ce point : elle DÉRIVE du registre (invariant 19).
@@ -181,7 +181,7 @@ node scripts/refresh-databases.mjs --remote --sql   # réconciliation §4.3
     20495 ») : ils ne contiennent aucun nom de partie, et deux décisions distinctes de la
     même série partagent tous leurs jetons alphabétiques.
 12. **Le citateur n'accepte que `en`** dans le chemin (annexe B). D'où l'absence de tout
-    paramètre `lang` sur `canlii_citator` : en exposer un serait mensonger.
+    paramètre `lang` sur `jurisprudence_citator` : en exposer un serait mensonger.
 13. **La télémétrie n'échoue jamais l'outil qu'elle observe** : table absente, écriture
     refusée — tout est avalé.
 14. **Les fins de ligne sont LF dans la copie de travail** (`.gitattributes`) : sinon Biome
@@ -191,12 +191,24 @@ node scripts/refresh-databases.mjs --remote --sql   # réconciliation §4.3
     quotidien déclaré. Ce n'est plus une question ouverte mais une décision du
     praticien : ne pas basculer le drapeau, même « pour essayer ». Le remplissage du
     cache par l'usage (D6) n'est pas concerné — c'est autre chose.
-16. **Le PRÉFIXE d'un outil annonce sa SOURCE, et c'est vérifié (§17).** `canlii_*` (10)
-    signifie « la réponse vient de la collection de CanLII » ; `greffe_*` et `palais_*` (3)
-    lisent un relevé LOCAL du ministère de la Justice du Québec, sans aucun appel. Servir
-    une adresse de palais sous `canlii_` attribuerait à CanLII une donnée dont il n'est pas
-    la source — l'inverse exact de ce que D8 protège. `test/rpc.test.ts` épingle la
-    scission ; ajouter un outil oblige à choisir sa famille délibérément.
+16. **Le PRÉFIXE PARTITIONNE ; c'est la DESCRIPTION qui nomme la source (§17.1).**
+    *Réécrit le 2026-09-16. Cet invariant disait : « Le PRÉFIXE d'un outil annonce sa
+    SOURCE », `canlii_*` signifiant « la réponse vient de la collection de CanLII ». La
+    formule est conservée ici, datée, parce qu'elle explique une bonne moitié du dépôt —
+    mais elle promettait ce qu'un préfixe ne peut pas tenir.* **Un préfixe ne sait pas
+    porter une réserve** : il ne dit ni la couverture bornée, ni qu'une absence n'est pas
+    une inexistence, ni que l'API ne rend que des métadonnées. Il en donne l'illusion, et
+    le prix s'est mesuré — **quatre descriptions sur dix ne nommaient CanLII nulle part**,
+    six sur dix côté anglais, le nom le disant pour elles.
+    **Donc :** l'annonce vit dans la **description** de chacun des treize, dans
+    `INSTRUCTIONS` et sur la page — trois surfaces qui sont des PHRASES, épinglées par un
+    test **par langue**, formulé sur la PRÉSENCE d'une source et non sur une formulation.
+    **Et :** `jurisprudence_*` (10) contre `greffe_*`/`palais_*` (3) reste une partition
+    load-bearing et vérifiée — ranger une table du MJQ du côté de CanLII resterait une
+    attribution fausse. Ajouter un outil oblige encore à choisir sa famille délibérément.
+    ⚠ L'assertion « aucun outil local ne porte la chaîne `canlii` dans son nom » a été
+    **retirée** du test : sous le nouveau préfixe elle ne peut plus échouer, et une
+    assertion qui ne peut plus échouer achète une confiance qu'elle ne finance pas.
 17. **Les tables de `src/qc/` sont un RELEVÉ DATÉ, pas une vérité.** Leur mode de panne
     n'est pas l'absence mais la **péremption** : une adresse juste hier, fausse aujourd'hui,
     rendue avec le même aplomb. D'où `GARDE_PALAIS`, qui porte la date **dans le corps** de
@@ -283,7 +295,7 @@ inexistantes.
 ## État
 
 **Livré et en production** sur `jurisprudence.poirierlavoie.ca`, 464 tests verts. Treize
-outils — dix `canlii_*`, trois `greffe_*`/`palais_*` — et une page publique bilingue sur
+outils — dix `jurisprudence_*`, trois `greffe_*`/`palais_*` — et une page publique bilingue sur
 la même origine (§18).
 
 **UN seul client aujourd'hui, et un porteur qui attend** (§19). Le connecteur claude.ai

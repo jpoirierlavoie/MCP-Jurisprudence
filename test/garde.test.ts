@@ -81,7 +81,7 @@ describe("§2 — les treize outils existent et se décrivent", () => {
       expect(titre.length, String(d.name)).toBeGreaterThan(3);
       expect(titre, String(d.name)).not.toBe(d.name);
       // Le titre est du français lisible, pas un identifiant recyclé.
-      expect(titre, String(d.name)).not.toMatch(/^(canlii|greffe|palais)_/);
+      expect(titre, String(d.name)).not.toMatch(/^(jurisprudence|greffe|palais)_/);
     }
   });
 
@@ -89,9 +89,9 @@ describe("§2 — les treize outils existent et se décrivent", () => {
     // Le titre s'affiche dans l'invite d'autorisation : c'est le dernier endroit
     // où la réserve peut être lue AVANT que l'outil ne s'exécute.
     const t = Object.fromEntries(listToolDescriptors().map((d) => [d.name, d.title as string]));
-    expect(t.canlii_subsequent_history).toMatch(/heuristique/i);
-    expect(t.canlii_citator).toMatch(/brute/i);
-    expect(t.canlii_parse_citation).toMatch(/hors ligne/i);
+    expect(t.jurisprudence_subsequent_history).toMatch(/heuristique/i);
+    expect(t.jurisprudence_citator).toMatch(/brute/i);
+    expect(t.jurisprudence_parse_citation).toMatch(/hors ligne/i);
     expect(t.greffe_parse_court_file_number).toMatch(/hors ligne/i);
   });
 
@@ -103,20 +103,20 @@ describe("§2 — les treize outils existent et se décrivent", () => {
 
   it("les descriptions des outils PORTENT elles-mêmes leurs limites", () => {
     // §7.1 : l'outil pivot doit dire ce qu'il n'établit pas.
-    expect(TOOLS.canlii_verify_citations!.description).toContain("n'établit NI son autorité");
-    expect(TOOLS.canlii_verify_citations!.description).toContain("dispositif");
+    expect(TOOLS.jurisprudence_verify_citations!.description).toContain("n'établit NI son autorité");
+    expect(TOOLS.jurisprudence_verify_citations!.description).toContain("dispositif");
     // §7.2 : pas de recherche par mots du texte.
-    expect(TOOLS.canlii_find_case!.description).toContain("n'expose pas le texte des décisions");
+    expect(TOOLS.jurisprudence_find_case!.description).toContain("n'expose pas le texte des décisions");
     // §7.3 : la fiche ne rend pas le texte.
-    expect(TOOLS.canlii_get_case!.description).toContain("Ne renvoie PAS le texte");
+    expect(TOOLS.jurisprudence_get_case!.description).toContain("Ne renvoie PAS le texte");
     // §7.4 : listes brutes, aucun sens de traitement.
-    expect(TOOLS.canlii_citator!.description).toContain("aucun sens de traitement");
+    expect(TOOLS.jurisprudence_citator!.description).toContain("aucun sens de traitement");
     // §7.5 : ne remplace pas un citateur professionnel.
-    expect(TOOLS.canlii_subsequent_history!.description).toContain(
+    expect(TOOLS.jurisprudence_subsequent_history!.description).toContain(
       "NE REMPLACE PAS un citateur professionnel",
     );
     // §7.9 : renvoi au connecteur « Législation du Québec » pour le texte.
-    expect(TOOLS.canlii_get_legislation!.description).toContain("Législation du Québec");
+    expect(TOOLS.jurisprudence_get_legislation!.description).toContain("Législation du Québec");
   });
 
   /**
@@ -145,7 +145,7 @@ describe("§2 — les treize outils existent et se décrivent", () => {
   });
 
   it("le citateur n'expose AUCUN paramètre lang (l'API n'accepte que « en »)", () => {
-    expect(TOOLS.canlii_citator!.inputSchema.properties).not.toHaveProperty("lang");
+    expect(TOOLS.jurisprudence_citator!.inputSchema.properties).not.toHaveProperty("lang");
   });
 });
 
@@ -154,7 +154,7 @@ describe("§16.2 — l'étranglement est DIT, et jamais confondu avec un verdict
     const client = fakeClient({ "caseBrowse/fr/csc-scc/2008scc9/": dunsmuir }, { throttled: 3 });
     const t = texte(
       await callTool(
-        "canlii_verify_citations",
+        "jurisprudence_verify_citations",
         { citations: [{ citation: "2008 CSC 9" }] },
         toolCtx(client),
       ),
@@ -171,7 +171,7 @@ describe("§16.2 — l'étranglement est DIT, et jamais confondu avec un verdict
     const client = fakeClient({ "caseBrowse/fr/csc-scc/2008scc9/": dunsmuir }, { throttled: 1 });
     const t = texte(
       await callTool(
-        "canlii_verify_citations",
+        "jurisprudence_verify_citations",
         { citations: [{ citation: "2008 CSC 9" }] },
         toolCtx(client),
       ),
@@ -185,7 +185,7 @@ describe("§16.2 — l'étranglement est DIT, et jamais confondu avec un verdict
     const client = fakeClient({ "caseBrowse/fr/csc-scc/2008scc9/": dunsmuir });
     const t = texte(
       await callTool(
-        "canlii_verify_citations",
+        "jurisprudence_verify_citations",
         { citations: [{ citation: "2008 CSC 9" }] },
         toolCtx(client),
       ),
@@ -195,11 +195,11 @@ describe("§16.2 — l'étranglement est DIT, et jamais confondu avec un verdict
     expect(contient(t, GARDE_VERIFICATION)).toBe(true);
   });
 
-  it("canlii_find_case le dit aussi : c'est l'outil qui appelle le plus", async () => {
+  it("jurisprudence_find_case le dit aussi : c'est l'outil qui appelle le plus", async () => {
     const client = fakeClient({}, { throttled: 2 });
     const t = texte(
       await callTool(
-        "canlii_find_case",
+        "jurisprudence_find_case",
         { title: "Dunsmuir", database_id: "csc-scc" },
         toolCtx(client),
       ),
@@ -210,11 +210,11 @@ describe("§16.2 — l'étranglement est DIT, et jamais confondu avec un verdict
 });
 
 describe("§2 conséquence n° 1 — la mise en garde est dans le CORPS de la réponse", () => {
-  it("canlii_verify_citations la porte en pied, même sur un CONFIRMÉE", async () => {
+  it("jurisprudence_verify_citations la porte en pied, même sur un CONFIRMÉE", async () => {
     const client = fakeClient({ "caseBrowse/fr/csc-scc/2008scc9/": dunsmuir });
     const t = texte(
       await callTool(
-        "canlii_verify_citations",
+        "jurisprudence_verify_citations",
         { citations: [{ citation: "2008 CSC 9" }] },
         toolCtx(client),
       ),
@@ -224,11 +224,11 @@ describe("§2 conséquence n° 1 — la mise en garde est dans le CORPS de la r�
     expect(contient(t, GARDE_VERIFICATION)).toBe(true);
   });
 
-  it("canlii_find_case la porte, même quand rien n'est trouvé", async () => {
+  it("jurisprudence_find_case la porte, même quand rien n'est trouvé", async () => {
     const client = fakeClient({});
     const t = texte(
       await callTool(
-        "canlii_find_case",
+        "jurisprudence_find_case",
         { title: "Untel c. Unetelle", database_id: "qcca", live: false },
         toolCtx(client),
       ),
@@ -236,13 +236,13 @@ describe("§2 conséquence n° 1 — la mise en garde est dans le CORPS de la r�
     expect(contient(t, GARDE_RECHERCHE)).toBe(true);
   });
 
-  it("canlii_subsequent_history la porte EN TÊTE ET EN PIED", async () => {
+  it("jurisprudence_subsequent_history la porte EN TÊTE ET EN PIED", async () => {
     const client = fakeClient({
       "caseBrowse/fr/qcca/2005qcca304/": qcca2005,
       "caseCitator/en/qcca/2005qcca304/citingCases": { citingCases: [] },
     });
     const t = texte(
-      await callTool("canlii_subsequent_history", { citation: "2005 QCCA 304" }, toolCtx(client)),
+      await callTool("jurisprudence_subsequent_history", { citation: "2005 QCCA 304" }, toolCtx(client)),
     );
     expect(contient(t, GARDE_SORTS_TETE)).toBe(true);
     expect(contient(t, GARDE_SORTS_PIED)).toBe(true);
@@ -250,14 +250,14 @@ describe("§2 conséquence n° 1 — la mise en garde est dans le CORPS de la r�
     expect(t.indexOf(GARDE_SORTS_TETE)).toBeLessThan(t.indexOf(GARDE_SORTS_PIED));
   });
 
-  it("canlii_citator la porte", async () => {
+  it("jurisprudence_citator la porte", async () => {
     const client = fakeClient({
       "caseBrowse/fr/qcca/2005qcca304/": qcca2005,
       "caseCitator/en/qcca/2005qcca304/citedCases": { citedCases: [] },
     });
     const t = texte(
       await callTool(
-        "canlii_citator",
+        "jurisprudence_citator",
         { citation: "2005 QCCA 304", rel: "cited" },
         toolCtx(client),
       ),
@@ -270,7 +270,7 @@ describe("§2 conséquence n° 2 — un INTROUVABLE n'est jamais une négation d
   it("énumère les explications concurrentes", async () => {
     const t = texte(
       await callTool(
-        "canlii_verify_citations",
+        "jurisprudence_verify_citations",
         { citations: [{ citation: "2020 QCCA 999999" }] },
         toolCtx(fakeClient({})),
       ),
@@ -290,7 +290,7 @@ describe("§2 conséquence n° 2 — un INTROUVABLE n'est jamais une négation d
     const sorties = [
       texte(
         await callTool(
-          "canlii_verify_citations",
+          "jurisprudence_verify_citations",
           {
             citations: [
               { citation: "2008 CSC 9" },
@@ -303,9 +303,9 @@ describe("§2 conséquence n° 2 — un INTROUVABLE n'est jamais une négation d
         ),
       ),
       texte(
-        await callTool("canlii_parse_citation", { citation: "2020 QCCA 495" }, toolCtx(client)),
+        await callTool("jurisprudence_parse_citation", { citation: "2020 QCCA 495" }, toolCtx(client)),
       ),
-      texte(await callTool("canlii_get_case", { citation: "2008 CSC 9" }, toolCtx(client))),
+      texte(await callTool("jurisprudence_get_case", { citation: "2008 CSC 9" }, toolCtx(client))),
       // §17 — les sorties du Québec obéissent à la MÊME interdiction, y compris sur
       // leurs chemins d'absence, qui sont précisément ceux où la tentation existe.
       texte(await callTool("palais_get", { greffe_number: "999" }, toolCtx(client))),
@@ -402,7 +402,7 @@ describe("§17 — les réserves des outils du Québec ne disparaissent pas", ()
 
   it("les outils du Québec n'écrivent RIEN — pas même dans search_log (§9.5)", async () => {
     // Un numéro de dossier désigne un dossier EN COURS bien plus directement qu'une
-    // citation. Les outils canlii_* consignent leur requête pour affiner l'analyseur ;
+    // citation. Les outils jurisprudence_* consignent leur requête pour affiner l'analyseur ;
     // ceux-ci ne le font pas, et ce n'est pas un oubli. Sans ce test, un ajout de
     // télémétrie « par cohérence » se ferait sans que personne ne voie le glissement.
     const avant = await env.DB.prepare("SELECT COUNT(*) AS n FROM search_log").first<{
@@ -435,7 +435,7 @@ describe("§17 — les réserves des outils du Québec ne disparaissent pas", ()
     ];
     for (const s of sorties) {
       expect(s).not.toMatch(/canlii\.ca|api\.canlii\.org/i);
-      // Le renvoi À l'outil canlii_* reste permis ; l'attribution ne l'est pas.
+      // Le renvoi À l'outil jurisprudence_* reste permis ; l'attribution ne l'est pas.
       expect(s).not.toMatch(/selon CanLII|d'après CanLII|source : CanLII/i);
     }
   });
@@ -446,7 +446,7 @@ describe("§2 conséquence n° 4 — en cas d'écart, les DEUX valeurs brutes", 
     const client = fakeClient({ "caseBrowse/fr/qcca/2005qcca304/": qcca2005 });
     const t = texte(
       await callTool(
-        "canlii_verify_citations",
+        "jurisprudence_verify_citations",
         {
           citations: [
             {
@@ -466,7 +466,7 @@ describe("§2 conséquence n° 4 — en cas d'écart, les DEUX valeurs brutes", 
     const client = fakeClient({ "caseBrowse/fr/qcca/2005qcca304/": qcca2005 });
     const t = texte(
       await callTool(
-        "canlii_verify_citations",
+        "jurisprudence_verify_citations",
         { citations: [{ citation: "2005 QCCA 304", expected_year: 2004 }] },
         toolCtx(client),
       ),
@@ -488,20 +488,20 @@ describe("§5.3 — la clef d'API ne quitte jamais le processus", () => {
     const sorties = [
       texte(
         await callTool(
-          "canlii_verify_citations",
+          "jurisprudence_verify_citations",
           { citations: [{ citation: "2008 CSC 9" }, { citation: "2020 QCCA 999999" }] },
           toolCtx(client),
         ),
       ),
-      texte(await callTool("canlii_get_case", { citation: "2020 QCCA 999999" }, toolCtx(client))),
+      texte(await callTool("jurisprudence_get_case", { citation: "2020 QCCA 999999" }, toolCtx(client))),
       texte(
         await callTool(
-          "canlii_find_case",
+          "jurisprudence_find_case",
           { title: "Hydro-Québec", database_id: "qcca", live: false },
           toolCtx(client),
         ),
       ),
-      texte(await callTool("canlii_list_databases", {}, toolCtx(client))),
+      texte(await callTool("jurisprudence_list_databases", {}, toolCtx(client))),
     ];
     for (const s of sorties) {
       expect(s).not.toContain("api.canlii.org");
@@ -513,20 +513,20 @@ describe("§5.3 — la clef d'API ne quitte jamais le processus", () => {
 
 describe("§7 — conventions communes", () => {
   it("une erreur d'exécution est un RÉSULTAT isError, jamais une erreur JSON-RPC", async () => {
-    const r = await callTool("canlii_get_case", {}, toolCtx(fakeClient({})));
+    const r = await callTool("jurisprudence_get_case", {}, toolCtx(fakeClient({})));
     expect(r.isError).toBe(true);
     expect(r.content[0]!.type).toBe("text");
   });
 
   it("un outil inconnu se plaint en français sans lever", async () => {
-    const r = await callTool("canlii_inexistant", {}, toolCtx(fakeClient({})));
+    const r = await callTool("jurisprudence_inexistant", {}, toolCtx(fakeClient({})));
     expect(r.isError).toBe(true);
     expect(texte(r)).toContain("Outil inconnu");
   });
 
   it("toutes les sorties sont du TEXTE, jamais du JSON structuré (D4)", async () => {
     const r = await callTool(
-      "canlii_parse_citation",
+      "jurisprudence_parse_citation",
       { citation: "2008 CSC 9" },
       toolCtx(fakeClient({})),
     );

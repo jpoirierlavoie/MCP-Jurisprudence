@@ -1,5 +1,5 @@
 /**
- * `canlii_verify_citations` — l'outil pivot (spécification §7.1, §13).
+ * `jurisprudence_verify_citations` — l'outil pivot (spécification §7.1, §13).
  *
  * Éprouve les CINQ verdicts, la boucle d'auto-correction du répertoire, le refus
  * d'appeler quand le tribunal est inconnu, et le résultat partiel sur budget épuisé.
@@ -22,7 +22,7 @@ async function verifier(
   opts: Parameters<typeof fakeClient>[1] = {},
 ) {
   const client = fakeClient(routes, opts);
-  const r = await callTool("canlii_verify_citations", { citations }, toolCtx(client));
+  const r = await callTool("jurisprudence_verify_citations", { citations }, toolCtx(client));
   return { texte: texte(r), isError: r.isError, client };
 }
 
@@ -102,7 +102,7 @@ describe("§7.1 — les cinq verdicts", () => {
     const { texte: t } = await verifier([{ citation: "[1985] C.A. 105" }]);
     expect(t).toContain("NON CONSTRUCTIBLE");
     expect(t).toContain("recueil");
-    expect(t).toContain("canlii_find_case");
+    expect(t).toContain("jurisprudence_find_case");
   });
 
   it("NON CONSTRUCTIBLE : identifiant SOQUIJ", async () => {
@@ -152,7 +152,7 @@ describe("§6.4 — auto-correction du répertoire", () => {
     const { texte: t, client } = await verifier([{ citation: "2020 XXQQ 12" }]);
     expect(t).toContain("INTROUVABLE");
     expect(t).toContain("ne figure pas au répertoire");
-    expect(t).toContain("canlii_list_databases");
+    expect(t).toContain("jurisprudence_list_databases");
     expect(client.chemins).toEqual([]); // le point capital : zéro appel, zéro quota
   });
 });
@@ -187,7 +187,7 @@ describe("une panne réseau n'est PAS une absence", () => {
 
 describe("une fiche de balayage ne peut pas servir de vérification", () => {
   it("refetch quand le cache ne contient qu'une ligne de BALAYAGE", async () => {
-    // Situation réelle : `canlii_browse_cases` a moissonné la base, puis on vérifie
+    // Situation réelle : `jurisprudence_browse_cases` a moissonné la base, puis on vérifie
     // une citation. La ligne moissonnée n'a ni date, ni dossier, ni hyperlien.
     await upsertCases(env.DB, [
       rowFromListItem(
@@ -254,7 +254,7 @@ describe("cache et persistance (§13)", () => {
     await verifier([{ citation: "2008 CSC 9" }], { [CHEMIN_DUNSMUIR]: dunsmuir });
     const client = fakeClient({ [CHEMIN_DUNSMUIR]: dunsmuir });
     await callTool(
-      "canlii_verify_citations",
+      "jurisprudence_verify_citations",
       { citations: [{ citation: "2008 CSC 9" }], refresh: true },
       toolCtx(client),
     );
@@ -266,7 +266,7 @@ describe("cache et persistance (§13)", () => {
       [CHEMIN_DUNSMUIR]: dunsmuir,
     });
     const r = await env.DB.prepare(
-      "SELECT verdict FROM search_log WHERE tool = 'canlii_verify_citations' ORDER BY id",
+      "SELECT verdict FROM search_log WHERE tool = 'jurisprudence_verify_citations' ORDER BY id",
     ).all<{ verdict: string }>();
     expect(r.results?.map((x) => x.verdict)).toEqual(["CONFIRMÉE", "NON CONSTRUCTIBLE"]);
   });
@@ -281,7 +281,7 @@ describe("cache et persistance (§13)", () => {
 describe("validation des arguments (§8)", () => {
   it("un argument inconnu est un RÉSULTAT isError, pas une erreur JSON-RPC", async () => {
     const r = await callTool(
-      "canlii_verify_citations",
+      "jurisprudence_verify_citations",
       { citations: [{ citation: "2008 CSC 9" }], inconnu: 1 },
       toolCtx(fakeClient({})),
     );
@@ -290,7 +290,7 @@ describe("validation des arguments (§8)", () => {
   });
 
   it("refuse une liste vide", async () => {
-    const r = await callTool("canlii_verify_citations", { citations: [] }, toolCtx(fakeClient({})));
+    const r = await callTool("jurisprudence_verify_citations", { citations: [] }, toolCtx(fakeClient({})));
     expect(r.isError).toBe(true);
   });
 });

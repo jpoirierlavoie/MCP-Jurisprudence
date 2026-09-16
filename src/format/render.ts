@@ -22,20 +22,20 @@ import { dateFr, joindre, motsCles, nombreFr, ou } from "./fr";
 
 // ── Mises en garde imposées (§2) ──────────────────────────────────────────────
 
-/** Pied de `canlii_verify_citations` — annexe A.1, verbatim. */
+/** Pied de `jurisprudence_verify_citations` — annexe A.1, verbatim. */
 export const GARDE_VERIFICATION =
   "Établit l'existence et l'identité, jamais l'autorité actuelle (aucun historique\n" +
   "d'appel, aucun indicateur de traitement) ni le contenu du dispositif.";
 
-/** Pied de `canlii_find_case` — annexe A.2, verbatim. */
+/** Pied de `jurisprudence_find_case` — annexe A.2, verbatim. */
 export const GARDE_RECHERCHE =
   "Recherche sur l'intitulé et les mots-clés uniquement — l'API de CanLII n'expose\n" +
   "pas le texte des décisions.";
 
-/** Tête de `canlii_subsequent_history` — annexe A.3, verbatim. */
+/** Tête de `jurisprudence_subsequent_history` — annexe A.3, verbatim. */
 export const GARDE_SORTS_TETE = "Sorts ultérieurs — INDICE HEURISTIQUE, à vérifier à la source.";
 
-/** Pied de `canlii_subsequent_history` — annexe A.3, verbatim. */
+/** Pied de `jurisprudence_subsequent_history` — annexe A.3, verbatim. */
 export const GARDE_SORTS_PIED =
   "Ce résultat n'indique NI le sens du traitement (confirmée, infirmée, distinguée),\n" +
   "NI les pourvois pendants, NI les refus de permission d'appeler. Ce n'est pas un\n" +
@@ -76,7 +76,7 @@ export function noteEtranglement(etranglements: number): string {
   ].join("\n");
 }
 
-/** Rappel du délai de diffusion, employé par `canlii_browse_cases` (§7.6). */
+/** Rappel du délai de diffusion, employé par `jurisprudence_browse_cases` (§7.6). */
 export const GARDE_DIFFUSION =
   "La diffusion sur CanLII connaît un délai : prévoir un jeu de deux jours sur les\n" +
   "filtres de date de diffusion.";
@@ -85,7 +85,7 @@ export const GARDE_DIFFUSION =
  * Marqueur de la réconciliation exigée par §4.3.
  *
  * ⚠ Chaîne de COUPLAGE : `scripts/refresh-databases.mjs` la cherche dans la sortie de
- *   `canlii_list_databases` pour décider si le répertoire est livrable. La reformuler
+ *   `jurisprudence_list_databases` pour décider si le répertoire est livrable. La reformuler
  *   sans toucher au script produirait un FEU VERT MENSONGER sur la seule barrière que
  *   §4.3 qualifie de bloquante. Épinglée par test/tools.test.ts.
  */

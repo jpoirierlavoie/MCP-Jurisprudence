@@ -1,5 +1,5 @@
 /**
- * `canlii_parse_citation` (spécification §7.10).
+ * `jurisprudence_parse_citation` (spécification §7.10).
  *
  * AUCUN appel sortant, AUCUNE écriture. Outil de diagnostic : il sert à déboguer la
  * table `court_codes` et à expliquer un verdict NON CONSTRUCTIBLE.
@@ -43,7 +43,7 @@ export async function parseCitationTool(
     if (!res.databaseConnue && dir.knownDatabases.size > 0) {
       lignes.push(
         "⚠ Ce database_id ne figure PAS au répertoire local des bases de CanLII. " +
-          "Consulter canlii_list_databases.",
+          "Consulter jurisprudence_list_databases.",
       );
     }
   }
@@ -58,7 +58,7 @@ export async function parseCitationTool(
   lignes.push(
     "",
     "Outil de diagnostic : il n'établit RIEN sur l'existence de la décision. " +
-      "Pour l'éprouver réellement, utiliser canlii_verify_citations.",
+      "Pour l'éprouver réellement, utiliser jurisprudence_verify_citations.",
   );
 
   return ok(lignes.join("\n"));
