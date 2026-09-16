@@ -1,5 +1,5 @@
 /**
- * `canlii_verify_citations` — L'OUTIL PIVOT (spécification §7.1, annexe A.1).
+ * `jurisprudence_verify_citations` — L'OUTIL PIVOT (spécification §7.1, annexe A.1).
  *
  * Cinq verdicts : CONFIRMÉE · DISCORDANTE · INTROUVABLE · NON CONSTRUCTIBLE · ILLISIBLE.
  *
@@ -75,11 +75,11 @@ export async function verifyCitations(
           `${citation} — ILLISIBLE`,
           "Aucune forme de citation reconnue (ni citation neutre, ni citation attribuée",
           "par CanLII, ni recueil, ni identifiant d'éditeur).",
-          "→ Fournir la citation neutre, ou les noms des parties et l'année à canlii_find_case.",
+          "→ Fournir la citation neutre, ou les noms des parties et l'année à jurisprudence_find_case.",
         ].join("\n"),
       );
       journal.push({
-        tool: "canlii_verify_citations",
+        tool: "jurisprudence_verify_citations",
         query: citation,
         lang,
         result_count: 0,
@@ -114,20 +114,20 @@ export async function verifyCitations(
             );
           }
           lignes.push(
-            "→ Confirmer avec canlii_find_case (balayage vif) puis canlii_verify_citations.",
+            "→ Confirmer avec jurisprudence_find_case (balayage vif) puis jurisprudence_verify_citations.",
           );
         } else {
           lignes.push(
             "",
-            `→ Fournir les noms des parties et l'année à canlii_find_case (rien dans l'index local pour « ${d.expected_title} »).`,
+            `→ Fournir les noms des parties et l'année à jurisprudence_find_case (rien dans l'index local pour « ${d.expected_title} »).`,
           );
         }
       } else {
-        lignes.push("→ Fournir les noms des parties et l'année à canlii_find_case.");
+        lignes.push("→ Fournir les noms des parties et l'année à jurisprudence_find_case.");
       }
       blocs.push(lignes.join("\n"));
       journal.push({
-        tool: "canlii_verify_citations",
+        tool: "jurisprudence_verify_citations",
         query: citation,
         lang,
         result_count: 0,
@@ -152,7 +152,7 @@ export async function verifyCitations(
     } catch (e) {
       blocs.push(`${citation} — INDÉTERMINÉE\n${describeError(e)}`);
       journal.push({
-        tool: "canlii_verify_citations",
+        tool: "jurisprudence_verify_citations",
         query: citation,
         lang,
         result_count: 0,
@@ -168,7 +168,7 @@ export async function verifyCitations(
         `${citation} — INDÉTERMINÉE\nBudget d'appels épuisé : cette citation n'a pas pu être vérifiée.`,
       );
       journal.push({
-        tool: "canlii_verify_citations",
+        tool: "jurisprudence_verify_citations",
         query: citation,
         lang,
         result_count: 0,
@@ -185,7 +185,7 @@ export async function verifyCitations(
         `${citation} — INDÉTERMINÉE\nCanLII n'a pas pu être interrogé. Ce n'est PAS un constat d'absence : réessayer.`,
       );
       journal.push({
-        tool: "canlii_verify_citations",
+        tool: "jurisprudence_verify_citations",
         query: citation,
         lang,
         result_count: 0,
@@ -202,7 +202,7 @@ export async function verifyCitations(
           .join("\n"),
       );
       journal.push({
-        tool: "canlii_verify_citations",
+        tool: "jurisprudence_verify_citations",
         query: citation,
         lang,
         result_count: 0,
@@ -222,7 +222,7 @@ export async function verifyCitations(
         ].join("\n"),
       );
       journal.push({
-        tool: "canlii_verify_citations",
+        tool: "jurisprudence_verify_citations",
         query: citation,
         lang,
         result_count: 0,
@@ -239,7 +239,7 @@ export async function verifyCitations(
     const verdict: Verdict = ecarts.length === 0 ? "CONFIRMÉE" : "DISCORDANTE";
     blocs.push(rendreFiche(citation, verdict, row, ecarts, parsed.parallel.map(formLabel)));
     journal.push({
-      tool: "canlii_verify_citations",
+      tool: "jurisprudence_verify_citations",
       query: citation,
       lang,
       result_count: 1,

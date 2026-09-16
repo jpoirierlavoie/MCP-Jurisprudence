@@ -1,5 +1,5 @@
 /**
- * `canlii_browse_legislation` (spécification §7.8).
+ * `jurisprudence_browse_legislation` (spécification §7.8).
  *
  * L'API ne pagine pas cet endpoint : elle rend la base entière. La pagination est
  * donc appliquée CÔTÉ WORKER, et la troncature est annoncée en toutes lettres.
@@ -32,7 +32,7 @@ export async function browseLegislation(
     );
   } catch (e) {
     await logSearch(ctx.db, {
-      tool: "canlii_browse_legislation",
+      tool: "jurisprudence_browse_legislation",
       query: query ?? "(sans filtre)",
       database_id: databaseId,
       lang,
@@ -53,7 +53,7 @@ export async function browseLegislation(
   }
 
   await logSearch(ctx.db, {
-    tool: "canlii_browse_legislation",
+    tool: "jurisprudence_browse_legislation",
     query: query ?? "(sans filtre)",
     database_id: databaseId,
     lang,
@@ -63,7 +63,7 @@ export async function browseLegislation(
   if (items.length === 0) {
     return ok(
       `Aucun texte pour ${databaseId}${query ? ` correspondant à « ${query} »` : ""}.\n` +
-        "Vérifier le database_id avec canlii_list_databases (kind='legislation').",
+        "Vérifier le database_id avec jurisprudence_list_databases (kind='legislation').",
     );
   }
 

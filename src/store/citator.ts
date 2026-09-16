@@ -132,7 +132,7 @@ export async function replaceEdges(
  * ⚠ CONTRAINTE DE L'API CODÉE EN DUR (annexe B) : le chemin du citateur n'accepte QUE
  *   `en` comme segment de langue. On construit donc `caseCitator/en/…` quelle que soit
  *   la langue demandée, et l'on rend malgré tout la sortie en français. C'est aussi
- *   pourquoi `canlii_citator` n'expose aucun paramètre `lang` : il serait mensonger.
+ *   pourquoi `jurisprudence_citator` n'expose aucun paramètre `lang` : il serait mensonger.
  */
 export async function fetchEdges(
   client: CanliiClient,

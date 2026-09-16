@@ -1,5 +1,5 @@
 /**
- * `canlii_citator` (spécification §7.4).
+ * `jurisprudence_citator` (spécification §7.4).
  *
  * ⚠ CONTRAINTE DE L'API CODÉE EN DUR : le chemin du citateur n'accepte QUE `en` comme
  *   segment de langue (annexe B). On construit `caseCitator/en/…` quelle que soit la
@@ -56,7 +56,7 @@ export async function citator(
     }
   } catch (e) {
     await logSearch(ctx.db, {
-      tool: "canlii_citator",
+      tool: "jurisprudence_citator",
       query: `${databaseId}/${caseId} ${rel}`,
       database_id: databaseId,
       result_count: 0,
@@ -68,7 +68,7 @@ export async function citator(
   }
 
   await logSearch(ctx.db, {
-    tool: "canlii_citator",
+    tool: "jurisprudence_citator",
     query: `${databaseId}/${caseId} ${rel}`,
     database_id: databaseId,
     result_count: aretes.length,

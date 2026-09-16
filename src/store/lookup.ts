@@ -137,7 +137,7 @@ export interface LookupOptions {
  *
  * §6.4 point 3 : si le databaseId déduit N'EXISTE PAS au répertoire, on N'APPELLE PAS
  * l'API. Rendre INTROUVABLE sans dépenser un appel est plus honnête et moins coûteux —
- * et le message oriente vers `canlii_list_databases` plutôt que de laisser croire que
+ * et le message oriente vers `jurisprudence_list_databases` plutôt que de laisser croire que
  * la décision n'existe pas.
  */
 export async function lookupCase(
@@ -203,7 +203,7 @@ export async function lookupCase(
       fallback: "unknown_court",
       message:
         `Le tribunal déduit (« ${res.databaseId} ») ne figure pas au répertoire des bases de ` +
-        "CanLII. Aucun appel n'a été fait. Consulter canlii_list_databases pour l'identifiant exact.",
+        "CanLII. Aucun appel n'a été fait. Consulter jurisprudence_list_databases pour l'identifiant exact.",
     };
   }
 

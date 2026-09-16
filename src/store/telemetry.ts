@@ -16,7 +16,7 @@ export interface SearchLogEntry {
   database_id?: string | null;
   lang?: string | null;
   result_count: number;
-  /** Verdict de `canlii_verify_citations` : CONFIRMÉE, INTROUVABLE, … */
+  /** Verdict de `jurisprudence_verify_citations` : CONFIRMÉE, INTROUVABLE, … */
   verdict?: string | null;
   /** Chemin de repli emprunté : 'lang_swap', 'split_db', 'unknown_court', 'sweep'… */
   fallback?: string | null;

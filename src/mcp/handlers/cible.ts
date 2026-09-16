@@ -1,6 +1,6 @@
 /**
- * Résolution de la décision de départ pour `canlii_citator` et
- * `canlii_subsequent_history` : soit une citation, soit database_id + case_id.
+ * Résolution de la décision de départ pour `jurisprudence_citator` et
+ * `jurisprudence_subsequent_history` : soit une citation, soit database_id + case_id.
  *
  * Extrait ici parce que les deux outils en ont besoin à l'identique, et parce que
  * l'un des deux enchaîne sur l'autre.
@@ -57,7 +57,7 @@ export async function resoudreCible(
   if (parsed.primary.kind !== "neutral" && parsed.primary.kind !== "canlii") {
     return {
       ok: false,
-      message: `${res.raison}\n→ Identifier d'abord la décision avec canlii_find_case, puis rappeler cet outil avec database_id + case_id.`,
+      message: `${res.raison}\n→ Identifier d'abord la décision avec jurisprudence_find_case, puis rappeler cet outil avec database_id + case_id.`,
     };
   }
 
@@ -75,7 +75,7 @@ export async function resoudreCible(
       message:
         lookup.message ??
         `Aucune fiche pour « ${citation} » (${res.databaseId} / ${res.caseId}). ` +
-          "Une absence n'établit pas l'inexistence : vérifier la citation avec canlii_verify_citations.",
+          "Une absence n'établit pas l'inexistence : vérifier la citation avec jurisprudence_verify_citations.",
     };
   }
 

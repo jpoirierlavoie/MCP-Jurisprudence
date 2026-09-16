@@ -1,5 +1,5 @@
 /**
- * `canlii_subsequent_history` (spécification §7.5, annexe A.3).
+ * `jurisprudence_subsequent_history` (spécification §7.5, annexe A.3).
  *
  * ╔══════════════════════════════════════════════════════════════════════════════╗
  * ║ OUTIL HEURISTIQUE. La mise en garde figure EN TÊTE ET EN PIED de la sortie.   ║
@@ -69,7 +69,7 @@ export async function subsequentHistory(
     }
   } catch (e) {
     await logSearch(ctx.db, {
-      tool: "canlii_subsequent_history",
+      tool: "jurisprudence_subsequent_history",
       query: `${databaseId}/${caseId}`,
       database_id: databaseId,
       result_count: 0,
@@ -104,7 +104,7 @@ export async function subsequentHistory(
   const rendus = candidats.slice(0, limit);
 
   await logSearch(ctx.db, {
-    tool: "canlii_subsequent_history",
+    tool: "jurisprudence_subsequent_history",
     query: `${databaseId}/${caseId}`,
     database_id: databaseId,
     result_count: rendus.length,

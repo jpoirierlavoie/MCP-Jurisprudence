@@ -1,7 +1,7 @@
 /**
  * Consultation des tables du Québec — PUR : aucune E/S, aucun appel, aucune lecture D1.
  *
- * C'est ce qui distingue ces outils des dix outils `canlii_*` : ils ne peuvent pas
+ * C'est ce qui distingue ces outils des dix outils `jurisprudence_*` : ils ne peuvent pas
  * échouer, pas consommer de quota, pas dépendre du réseau. Le prix est que leur
  * fraîcheur est celle du dépôt, d'où la réserve de péremption imposée à toute sortie.
  *

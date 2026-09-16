@@ -34,7 +34,7 @@ export interface OutilEn {
  *   vide en anglais, et une traduction orpheline survivrait à un outil supprimé.
  */
 export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
-  canlii_verify_citations: {
+  jurisprudence_verify_citations: {
     titre: "Verify citations",
     texte:
       "The pivot tool, answering from CanLII's collection. Each citation gets one of five " +
@@ -42,56 +42,56 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
       "INTROUVABLE, NON CONSTRUCTIBLE, ILLISIBLE. A confirmed verdict establishes existence " +
       "and identity — never current authority, never the disposition.",
   },
-  canlii_find_case: {
+  jurisprudence_find_case: {
     titre: "Find a decision by party names",
     texte:
       "For citations that cannot be constructed — law reports, publisher identifiers. " +
       "Searches titles and keywords only: CanLII's API does not expose the text of decisions.",
   },
-  canlii_get_case: {
+  jurisprudence_get_case: {
     titre: "Decision record",
     texte:
       "The official record of one decision: style of cause, citation, date, court file number, " +
       "keywords and its canlii.ca link. It does not return the text — follow the link.",
   },
-  canlii_citator: {
+  jurisprudence_citator: {
     titre: "Citator — raw lists",
     texte:
       "What a decision cites, what cites it, and the provisions it cites, as recorded by " +
       "CanLII. Raw lists carrying NO treatment sense: nothing here says followed, " +
       "distinguished or overruled, and their reach is only as wide as CanLII's collection.",
   },
-  canlii_subsequent_history: {
+  jurisprudence_subsequent_history: {
     titre: "Subsequent history — heuristic indication",
     texte:
       "A heuristic hint at what became of a decision, built from CanLII-held citing decisions " +
       "of higher courts. It is not a professional citator and does not replace one.",
   },
-  canlii_browse_cases: {
+  jurisprudence_browse_cases: {
     titre: "Decisions of a court",
     texte:
       "Browses one court's decisions as held by CanLII, with eight date filters across three " +
       "distinct axes: " +
       "decision date, publication date, and modification date.",
   },
-  canlii_list_databases: {
+  jurisprudence_list_databases: {
     titre: "Directory of courts and corpora",
     texte:
       "The directory of CanLII databases — courts and legislative corpora — refreshed weekly " +
       "and reconciled against the live API.",
   },
-  canlii_browse_legislation: {
+  jurisprudence_browse_legislation: {
     titre: "Statutes and regulations of a corpus",
     texte: "Lists the statutes and regulations of one CanLII legislative database.",
   },
-  canlii_get_legislation: {
+  jurisprudence_get_legislation: {
     titre: "Statute or regulation record",
     texte:
       "CanLII's record for one instrument: dates, date regime and repeal indicator. For the " +
       "TEXT of Québec " +
       "statutes, use the « Législation du Québec » connector instead.",
   },
-  canlii_parse_citation: {
+  jurisprudence_parse_citation: {
     titre: "Parse a citation (offline)",
     texte:
       "Diagnostic only, with no call to CanLII: reports the form recognised and, where the " +
@@ -160,8 +160,11 @@ export const EN = {
   familleQcTexte: [
     "Three tools that read reference tables compiled into the Worker, surveyed from the " +
       "ministère de la Justice du Québec. They make no outbound request and write nothing.",
-    "The prefix states the SOURCE. Serving a courthouse address under canlii_ would credit " +
-      "CanLII with data it never published; the split is enforced by tests, not merely documented.",
+    "Each tool names its own source in its description, rather than leaving that to a prefix: " +
+      "a prefix cannot carry a caveat, it can only look as though it does. What the prefix still " +
+      "does is keep the two families apart — filing a courthouse address alongside CanLII's own " +
+      "answers would credit a third party with data it never published. Tests enforce the split " +
+      "in both languages; it is not merely documented.",
   ],
 
   // ── Schémas ────────────────────────────────────────────────────────────────

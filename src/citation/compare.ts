@@ -90,7 +90,7 @@ export function compareTitles(attendu: string, obtenu: string): CompareResult {
 }
 
 /**
- * Similarité d'intitulé sur [0, 1], employée par `canlii_subsequent_history` pour
+ * Similarité d'intitulé sur [0, 1], employée par `jurisprudence_subsequent_history` pour
  * filtrer les décisions citantes (seuil §7.5 : >= 0,5).
  */
 export function titleSimilarity(a: string, b: string): number {
