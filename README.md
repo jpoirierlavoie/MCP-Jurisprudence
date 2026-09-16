@@ -150,8 +150,11 @@ mais il n'est pas nul, et il mérite d'être connu plutôt que découvert.
 ## Page publique (§18)
 
 `GET /` sert une page **statique et bilingue** (français · anglais, thème auto / clair /
-sombre) qui décrit les treize outils, leurs schémas, la structure d'un numéro de dossier
-judiciaire et le répertoire des greffes.
+sombre) en cinq sections : les treize outils, leurs schémas, la structure d'un numéro de
+dossier judiciaire, le répertoire des greffes et l'accès. Depuis le 2026-09-16 elle porte
+aussi, comme la description de chaque outil et les instructions du serveur, l'**annonce
+de la source** que le préfixe `canlii_` portait seul jusque-là — dans les deux langues, et
+un test échoue si une traduction cesse de la porter.
 
 **Tout y dérive des données vives** : les outils viennent de `listToolDescriptors()` — la
 fonction même que sert `tools/list` —, les issues d'analyse du **vrai parseur exécuté au
@@ -174,7 +177,8 @@ s'affiche et tout reste lisible.
 
 ```
 claude.ai / Claude Code
-        │  POST /mcp/<secret>   (JSON-RPC 2.0, un message par requête)
+        │  POST /mcp/<secret>  OU  POST /mcp + Authorization: Bearer <secret>
+        │  (JSON-RPC 2.0, un message par requête ; deux porteurs SANS préséance, §9.1)
         ▼
   Worker `jurisprudence` (workerd, TypeScript, ZÉRO dépendance d'exécution)
     routeur → authentification → JSON-RPC → registre d'outils
@@ -213,12 +217,22 @@ npx wrangler secret put CANLII_API_KEY
 openssl rand -hex 32                              # puis :
 npx wrangler secret put MCP_SHARED_SECRET
 
-# FACULTATIF — second porteur, aux droits identiques : le clavardage de Pallas Athéna
-# (§19). Il n'ouvre rien de plus ; il existe pour que les deux clients se révoquent
-# SÉPARÉMENT. Omis, un seul porteur est admis.
+# FACULTATIF — second porteur du MÊME point d'entrée, aux droits identiques (§9.1).
+# Il n'ouvre rien de plus ; il existe pour que deux clients se révoquent SÉPARÉMENT.
+# ⚠ IL N'A PLUS DE PORTEUR depuis le 2026-09-02 : le clavardage de Pallas Athéna,
+#   qui l'employait depuis le 2026-08-27, a été retiré de son dépôt (commit ef854733)
+#   au passage du cabinet à un compte Claude for Work. Une installation neuve n'a donc
+#   aucune raison de le poser — sauter ces deux lignes. Ce bloc disait jusqu'au
+#   2026-09-16 : « il existe pour que les deux clients se révoquent SÉPARÉMENT » ; la
+#   raison reste juste pour le PROCHAIN client, elle n'en décrit aucun aujourd'hui.
+#   Le secret reste admis et n'est pas à retirer (§19), il ne coûte rien.
 openssl rand -hex 32
 npx wrangler secret put MCP_SHARED_SECRET_ATHENA
 
+# Déploiement — voir « Après le déploiement » plus bas : `deploy.yml` n'a JAMAIS abouti,
+# c'est la recette manuelle qui met en ligne, et les MIGRATIONS PASSENT D'ABORD.
+export CLOUDFLARE_API_TOKEN="$(tr -d '\r\n' < cf.token)"   # gitignoré, jamais affiché
+npx wrangler d1 migrations apply canlii --remote
 npx wrangler deploy
 ```
 
@@ -257,6 +271,32 @@ node scripts/mcp-client.mjs --remote tools/call jurisprudence_verify_citations \
 Attendu : *Dunsmuir* CONFIRMÉE · `2020 QCCA 999999` INTROUVABLE (avec les explications
 concurrentes) · `[1985] C.A. 105` NON CONSTRUCTIBLE (avec renvoi à `jurisprudence_find_case`).
 
+### Déploiement courant — à la main, et non par la CI *(constaté le 2026-09-16)*
+
+**Pousser sur `main` ne déploie pas.** `.github/workflows/deploy.yml` existe, se
+déclenche bien sur `push: [main]`, et **n'a jamais réussi** : 17 exécutions depuis le
+2026-07-23, 17 échecs, toujours à l'étape « Migrations D1 (AVANT le déploiement) » —
+après quoi l'étape de déploiement est simplement sautée. Une porte qui échoue toujours
+cesse d'être lue ; il faut donc l'écrire ici plutôt que de la laisser deviner.
+
+Cause probable, à vérifier avant tout correctif : le jeton d'API donne accès à **deux
+comptes Cloudflare**, et `wrangler` ne sait pas en choisir un en mode non interactif ;
+il manque vraisemblablement un `CLOUDFLARE_ACCOUNT_ID` dans le flux de travail (le
+dépôt n'en déclare pas non plus dans `wrangler.jsonc`).
+
+La voie réelle, et la seule éprouvée — **migrations d'abord, déploiement ensuite**
+(§12) : l'ordre inverse met en ligne du code qui lit des colonnes inexistantes.
+
+```powershell
+$env:CLOUDFLARE_API_TOKEN = (Get-Content cf.token -Raw).Trim()   # gitignoré
+npx wrangler d1 migrations apply canlii --remote
+npx wrangler deploy
+```
+
+La CI de contrôle (`ci.yml`), elle, tourne et doit rester verte : type-check, mise en
+forme, tests, et validation du paquet à blanc. C'est le **déploiement** qui est manuel,
+pas la vérification.
+
 ### Après le déploiement
 
 - Ajouter le connecteur dans `claude.ai` : URL
@@ -286,7 +326,10 @@ GROUP BY query ORDER BY n DESC LIMIT 50;
 ```bash
 cp .dev.vars.example .dev.vars    # y mettre la clef CanLII et un secret de DEV
 npx wrangler dev
+npx wrangler types                # engendre worker-configuration.d.ts, GITIGNORÉ :
+                                  # sans lui, tsc ignore `Env` sur un clone neuf
 npx tsc --noEmit && npx biome check . && npx vitest run
+npx wrangler deploy --dry-run     # valide paquet ET configuration, sans aucun jeton
 npx wrangler d1 migrations apply canlii --local
 ```
 
@@ -310,9 +353,19 @@ le quota.
   aussi l'écart de longueur.
 - **Deux secrets admis, aux droits identiques, révocables séparément** (§9.1, §19) :
   `MCP_SHARED_SECRET` pour le connecteur claude.ai, `MCP_SHARED_SECRET_ATHENA` —
-  facultatif — pour le clavardage de Pallas Athéna. Le second ne délimite aucun
-  périmètre ; il évite qu'une rotation ou une révocation éteigne les deux clients à la
-  fois. Aucun secret configuré ⇒ **tout est refusé** (fermé par défaut), et les deux
+  facultatif — pour un second porteur. Le second ne délimite aucun périmètre ; il
+  évite qu'une rotation éteigne deux clients à la fois. Aucun secret configuré ⇒
+  **tout est refusé** (fermé par défaut), et les deux échecs rendent le même `401`,
+  sans jamais dire lequel a servi.
+  ⚠ **Le second n'a plus de porteur depuis le 2026-09-02** : le clavardage de Pallas
+  Athéna, qui l'employait depuis le 2026-08-27, a été retiré de son dépôt (commit
+  `ef854733`). Le secret reste admis et n'est pas à retirer — il ne coûte rien et
+  n'ouvre aucun droit de plus —, mais **plus aucun client réel n'éprouve la forme par
+  en-tête** : ce trajet n'est plus couvert que par `test/rpc.test.ts` et par un `curl`
+  à la main, à refaire explicitement après toute retouche de la garde d'entrée. Cette
+  puce disait jusqu'au 2026-09-16 « il évite qu'une rotation ou une révocation éteigne
+  les deux clients à la fois » : vrai du 2026-08-27 au 2026-09-02, conservé parce qu'il
+  redeviendra vrai au prochain client. Aucun secret configuré ⇒ **tout est refusé** (fermé par défaut), et les deux
   échecs rendent le même `401`, sans jamais dire lequel a servi.
 - **Tout ce qui est présenté est essayé, et rien n'est rogné** (§9.1, corrigé le
   2026-09-16). L'en-tête `Authorization: Bearer` et le dernier segment du chemin sont deux
