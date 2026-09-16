@@ -333,13 +333,17 @@ comptait est passée de la prose au code, et elle s'exécute maintenant pour de 
 porté quelques heures « le jeton ouvre DEUX comptes Cloudflare et wrangler ne sait pas
 trancher ». **C'était faux, et l'erreur était de comptage** — la ligne d'en-tête du
 tableau de `wrangler whoami` prise pour une ligne de données ; le jeton n'en voit qu'UN.
-La vraie cause est mesurée : l'audit de sortie de `harden-runner`, **public** alors que
-les journaux exigent des droits d'administration, ne montre **aucun appel à
-`api.cloudflare.com`** — ni à la dernière exécution, ni à celle d'un mois plus tôt. Le
-jeton n'a donc jamais été présenté à Cloudflare : `wrangler` renonce à
-`requireAuth()`, AVANT tout réseau, ce que confirme la durée — une à deux secondes. Le
-secret `CLOUDFLARE_API_TOKEN` n'arrive pas jusqu'au job. Reste à dire lequel des trois
-cas : absent, nommé autrement, ou posé en « variable » plutôt qu'en « secret ».
+La cause est **confirmée à la source** : le journal du job dit `CLOUDFLARE_API_TOKEN:`
+suivi de rien, puis « In a non-interactive environment, it's necessary to set a
+CLOUDFLARE_API_TOKEN environment variable ». La variable était littéralement vide.
+
+⚠ *Corrigé le 2026-09-16 : ces journaux sont LISIBLES.* Cette note a d'abord affirmé
+qu'ils « exigent des droits d'administration » — vrai de l'API **anonyme**, qui rend
+403, mais faux pour le propriétaire du dépôt : `gh run view <id> --log` les rend
+intégralement. La cause avait donc été établie par un détour — l'audit de sortie de
+`harden-runner`, public, ne montrant aucun appel à `api.cloudflare.com` — là où la
+source directe était à portée de commande. **Avant de conclure qu'une trace est
+inaccessible, essayer `gh`.**
 Un correctif posé le même jour l'avait rendue lisible — quatre contrôles nommant la cause
 dans le titre de l'étape — et la toute première exécution l'a CONFIRMÉE : « CLOUDFLARE_API_TOKEN
 est VIDE dans ce job ». Le workflow a ensuite été retiré ; la cause est consignée ici parce
