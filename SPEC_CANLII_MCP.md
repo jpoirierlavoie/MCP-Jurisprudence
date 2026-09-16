@@ -1095,11 +1095,17 @@ Deux gardes de dérive : **aucune couleur en dur** hors des deux jeux de variabl
 
 ---
 
-## 19. Second porteur — le clavardage de Pallas Athéna
+## 19. Second porteur — le clavardage de Pallas Athéna *(client retiré le 2026-09-02)*
 
-Athéna, le gestionnaire de pratique du même praticien, a un clavardage interne dont le
-moteur de tour appelle Vertex AI directement (`:rawPredict` pour les modèles Anthropic,
-`:generateContent` pour Gemini) et **exécute lui-même les appels d'outil**. Il consomme
+*Section conservée, datée, plutôt qu'effacée. Le clavardage interne d'Athéna a consommé ce connecteur du 2026-08-27 au **2026-09-02**, date à laquelle il a été retiré de son dépôt (commit `ef854733` : « le clavardage interne est retiré — 87 fichiers, 22 592 lignes »), le cabinet étant passé à un compte Claude for Work couvert par une entente de traitement des données. **Il n'y a donc plus, aujourd'hui, qu'un seul client vivant : le connecteur claude.ai.** Ce que cette section démontre reste néanmoins vrai et vaudra pour le prochain client : un second consommateur n'a rien exigé du protocole. Deux corollaires pratiques, eux, ont changé et sont écrits ci-dessous.*
+
+**Ce qui n'est plus.** `athena/chat/worker_tools.py` et son générateur `athena/scripts/sync_worker_tools.py` **n'existent plus** : il n'y a rien à réengendrer après un renommage d'outil, et il ne faut pas les chercher. La consigne inverse a survécu trois semaines à son objet, dans `CLAUDE.md` et ici — c'est précisément le mode de panne que §2 proscrit, déplacé dans la documentation.
+
+**Ce qui reste.** `MCP_SHARED_SECRET_ATHENA` demeure admis (§9.1) et n'est pas à retirer : il ne coûte rien et n'ouvre aucun droit de plus. Mais **il n'a plus de porteur**, donc plus aucun client réel pour signaler qu'on a cassé la forme par en-tête. Depuis le 2026-09-02, ce trajet n'est couvert que par `test/rpc.test.ts` et par un `curl` à la main : le vérifier explicitement après toute retouche de la garde d'entrée.
+
+Athéna, le gestionnaire de pratique du même praticien, avait un clavardage interne dont le
+moteur de tour appelait Vertex AI directement (`:rawPredict` pour les modèles Anthropic,
+`:generateContent` pour Gemini) et **exécutait lui-même les appels d'outil**. Il consommait
 ce connecteur comme n'importe quel autre client MCP.
 
 **Rien n'a été ajouté au protocole pour lui**, et c'est le point important :

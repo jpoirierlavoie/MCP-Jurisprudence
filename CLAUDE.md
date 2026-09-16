@@ -39,18 +39,28 @@ exactement le mode de panne que §2 interdit, déplacé dans la documentation.
 **Le coût en jetons de cette vérification est ASSUMÉ et n'est pas un motif de l'abréger.**
 Relire quatre fichiers coûte moins qu'un praticien qui se fie à une description périmée.
 
-**Une SIXIÈME surface vit hors de ce dépôt, et aucune commande d'ici ne la voit dériver.**
-Le clavardage de Pallas Athéna offre les mêmes treize outils à son modèle depuis
-`athena/chat/worker_tools.py`, engendré depuis `tools/list` (§19). Un outil renommé ici
-laisse là-bas une fiche qui appelle un nom mort — et l'échec n'apparaît qu'au tour de
-clavardage suivant, sous la forme d'un outil qui « ne marche plus ». Après tout ajout,
-retrait ou renommage : relancer `athena/scripts/sync_worker_tools.py`.
+**Une SIXIÈME surface a existé, elle n'existe plus — mais le raisonnement, lui, reste.**
+Le clavardage interne de Pallas Athéna offrait les mêmes treize outils à son modèle depuis
+`athena/chat/worker_tools.py`, engendré depuis `tools/list` (§19). Il a été **retiré du
+dépôt d'Athéna le 2026-09-02** (commit `ef854733` : « le clavardage interne est retiré —
+87 fichiers, 22 592 lignes »), au passage du cabinet à un compte Claude for Work. Ni le
+fichier ni son générateur n'existent plus : il n'y a rien à relancer, et il ne faut pas
+les chercher. *(Cette consigne a survécu trois semaines à son objet — d'où sa date.)*
+
+**Ce qui ne disparaît pas, c'est la CATÉGORIE.** Un nom d'outil qui vit hors de ce dépôt
+n'est vu dériver par aucune commande d'ici : l'échec n'apparaît qu'au prochain appel, sous
+la forme d'un « Outil inconnu » que l'usager lit comme une panne du connecteur. Une telle
+surface est vivante aujourd'hui — une **Compétence claude.ai de recherche juridique**, qui
+code en dur les noms des treize outils. Son chemin n'est pas écrit ici : ce dépôt est
+public, et une arborescence personnelle n'y a pas sa place. Elle a dû être reprise à la
+main lors du renommage du 2026-09-16, et elle devra l'être à chaque suivant. **Le repérage
+est une recherche de chaîne dans les documents du praticien, pas une commande d'ici.**
 
 ### Table de propagation
 
 | Si vous touchez… | …vérifiez ET mettez à jour |
 |---|---|
-| **un outil** (ajout, retrait, renommage) | `src/mcp/registry.ts` · le gestionnaire dans `src/mcp/handlers/` · `OUTILS_EN` dans `src/site.i18n.ts` (parité testée **dans les deux sens**) · le tableau ET le compte de `README.md` §« Les treize outils » · §7 ou §17 de la spécification · les compteurs de `test/garde.test.ts` et `test/rpc.test.ts` · la **liste triée des noms** dans `test/rpc.test.ts` · le préfixe choisi (`canlii_` = réponse de CanLII ; `greffe_`/`palais_` = table locale — invariant 16) · **hors dépôt** : `athena/chat/worker_tools.py`, à réengendrer par `athena/scripts/sync_worker_tools.py` (§19) |
+| **un outil** (ajout, retrait, renommage) | `src/mcp/registry.ts` · le gestionnaire dans `src/mcp/handlers/` · `OUTILS_EN` dans `src/site.i18n.ts` (parité testée **dans les deux sens**) · le tableau ET le compte de `README.md` §« Les treize outils » · §7 ou §17 de la spécification · les compteurs de `test/garde.test.ts` et `test/rpc.test.ts` · la **liste triée des noms** dans `test/rpc.test.ts` · le préfixe choisi (`canlii_` = réponse de CanLII ; `greffe_`/`palais_` = table locale — invariant 16) · **hors dépôt, et aucune commande d'ici ne le voit** : la Compétence claude.ai de recherche juridique, qui code en dur les treize noms (voir plus haut) |
 | **une description ou un titre** | la page les rend **verbatim** : relancer `test/site.test.ts` (formulations interdites) et `test/garde.test.ts` (sous-chaînes épinglées) · `OUTILS_EN` doit rester une TRADUCTION, jamais une copie |
 | **un `inputSchema`** | `src/mcp/validate.ts` n'implémente qu'un SOUS-ENSEMBLE de JSON-Schema : ne pas déclarer ce qu'il ne sait pas imposer · la page génère ses tableaux de schéma depuis le même objet · `additionalProperties: false` reste obligatoire |
 | **une constante `GARDE_*`** | elle vit dans le corps des réponses **et** sur la page · `test/garde.test.ts` · `MARQUEUR_RECONCILIATION` est en plus une chaîne de COUPLAGE lue par `scripts/refresh-databases.mjs` |
@@ -276,14 +286,18 @@ inexistantes.
 outils — dix `canlii_*`, trois `greffe_*`/`palais_*` — et une page publique bilingue sur
 la même origine (§18).
 
-**DEUX clients, et non un** (§19) : le connecteur claude.ai, et le clavardage de Pallas
-Athéna, qui appelle `POST /mcp` en `Authorization: Bearer` avec son propre secret. Rien
-n'a été ajouté au protocole pour lui — la forme par en-tête et le mode JSON sans état de
-D3 suffisaient. Conséquence pratique : **une modification d'outil se répercute désormais
-sur un sixième public**, `athena/chat/worker_tools.py`, engendré depuis `tools/list` par
-`athena/scripts/sync_worker_tools.py`. Ce fichier n'est pas dans ce dépôt et la porte
-d'ici ne peut pas le voir dériver : après tout ajout, retrait ou renommage d'outil,
-relancer le générateur côté Athéna.
+**UN seul client aujourd'hui, et un porteur qui attend** (§19). Le connecteur claude.ai
+est le seul appelant vivant. Le clavardage de Pallas Athéna, second client de
+2026-08-27 à 2026-09-02, **a été retiré** du dépôt d'Athéna (commit `ef854733`) au
+passage à un compte Claude for Work : plus rien là-bas n'appelle ce connecteur.
+
+`MCP_SHARED_SECRET_ATHENA` **reste en place et n'est pas à retirer** — il ne coûte rien,
+n'ouvre aucun droit de plus, et l'authentification reste fermée par défaut. Ce qu'il faut
+savoir, en revanche : **il n'a plus de porteur**, donc plus personne pour signaler qu'on
+l'a cassé. Un correctif de la garde d'entrée ne peut plus être éprouvé de bout en bout par
+un second client réel ; seuls `test/rpc.test.ts` et un `curl` à la main le couvrent.
+§19 est conservée, datée, plutôt qu'effacée : ce qu'elle démontre — qu'un second client
+n'a rien exigé du protocole — reste vrai, et vaudra pour le prochain.
 
 La réconciliation du répertoire (§4.3) est **faite** contre l'API vivante : elle a
 démenti cinq hypothèses d'amorçage, consignées avec leur preuve d'observation dans
