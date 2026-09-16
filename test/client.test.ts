@@ -108,10 +108,7 @@ describe("§5.2 — étranglement, réessais, délais", () => {
       () => json({ ok: true }),
     ]);
     await c429.c.get("caseBrowse/fr/");
-    const c503 = client([
-      () => new Response("boom", { status: 503 }),
-      () => json({ ok: true }),
-    ]);
+    const c503 = client([() => new Response("boom", { status: 503 }), () => json({ ok: true })]);
     await c503.c.get("caseBrowse/fr/");
     expect(c429.dormis).toContain(2000);
     expect(c503.dormis).toContain(500);
@@ -146,8 +143,9 @@ describe("§5.2 — étranglement, réessais, délais", () => {
   });
 
   it("l'adaptation est PLAFONNÉE et meurt avec l'invocation", async () => {
-    const rafale = Array.from({ length: 6 }, () =>
-      () => new Response("throttled", { status: 429 }),
+    const rafale = Array.from(
+      { length: 6 },
+      () => () => new Response("throttled", { status: 429 }),
     );
     const { c } = client([...rafale, () => json({ ok: true })], {
       minIntervalMs: 600,
