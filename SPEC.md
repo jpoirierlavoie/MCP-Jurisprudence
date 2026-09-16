@@ -6,7 +6,7 @@
 **Auteur de la spéc. :** (préparé pour Jason Poirier Lavoie)
 **Cible :** nouveau dépôt autonome — Worker Cloudflare, D1, TypeScript
 **Modèle de référence :** le Worker `legislation` / base D1 `qclaw` (connecteur « Législation du Québec »)
-**Statut :** **livré et en production** sur `jurisprudence.poirierlavoie.ca` — treize outils, 468 tests, page publique bilingue. *Amendé le 2026-09-16 ; l'en-tête portait « prêt à implémenter », vrai jusqu'au premier déploiement du 2026-07-23 et faux depuis.* Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
+**Statut :** **livré et en production** sur `jurisprudence.poirierlavoie.ca` — treize outils, 469 tests, page publique bilingue. *Amendé le 2026-09-16 ; l'en-tête portait « prêt à implémenter », vrai jusqu'au premier déploiement du 2026-07-23 et faux depuis.* Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
 
 ---
 
@@ -160,8 +160,9 @@ arrivés après la rédaction initiale : ils figurent ici, à leur place.*
 ├── scripts/
 │   ├── mcp-client.mjs        # client de recette (§14) — ne divulgue jamais le secret
 │   ├── refresh-databases.mjs # réconciliation du répertoire (§4.3)
-│   └── extraire-lieux-mjq.mjs # transcription du relevé MJQ (§17.6 : générée, non recopiée)
-├── test/                     # 468 tests en 15 fichiers, sans réseau ni clef
+│   ├── extraire-lieux-mjq.mjs # transcription du relevé MJQ (§17.6 : générée, non recopiée)
+│   └── deployer.mjs          # §12 — migrations PUIS déploiement ; refuse un arbre sale
+├── test/                     # 469 tests en 15 fichiers, sans réseau ni clef
 │   ├── citation.parse.test.ts · citation.compare.test.ts · verify.test.ts
 │   ├── client.test.ts · rpc.test.ts · persist.test.ts · tools.test.ts
 │   ├── qc.tables.test.ts · qc.outils.test.ts · qc.dossier.test.ts
@@ -169,16 +170,10 @@ arrivés après la rédaction initiale : ils figurent ici, à leur place.*
 │   ├── site.test.ts · garde.test.ts · backfill.test.ts
 │   ├── doc.test.ts           # README contre REGISTRE (§13) — remplace la porte shell
 │   └── fixtures/             # réponses JSON figées + dossier-athena.json
-│   ├── citation.parse.test.ts · citation.compare.test.ts · verify.test.ts
-│   ├── client.test.ts · rpc.test.ts · persist.test.ts · tools.test.ts
-│   ├── qc.tables.test.ts · qc.outils.test.ts · qc.dossier.test.ts
-│   ├── qc.dossier.differentiel.test.ts   # 127 entrées rejouées contre Athéna
-│   ├── site.test.ts · garde.test.ts · backfill.test.ts
-│   └── fixtures/             # réponses JSON figées + dossier-athena.json
 ├── .github/workflows/        # §12
 ├── wrangler.jsonc · biome.json · tsconfig.json · vitest.config.ts
 ├── package.json · README.md · SECURITY.md · CLAUDE.md
-└── SPEC_CANLII_MCP.md
+└── SPEC.md
 ```
 
 ### 3.3 `wrangler.jsonc`
