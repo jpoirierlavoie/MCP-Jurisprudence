@@ -145,7 +145,7 @@ async function secretOk(given: string, expected: string): Promise<boolean> {
 }
 
 /**
- * Le secret présenté est-il l'un des secrets admis ?
+ * L'un des secrets PRÉSENTÉS est-il l'un des secrets ADMIS ?
  *
  * ╔══════════════════════════════════════════════════════════════════════════════╗
  * ║ DEUX SECRETS, DES DROITS IDENTIQUES, ET UNE SEULE RAISON : LA RÉVOCATION.     ║
@@ -157,32 +157,143 @@ async function secretOk(given: string, expected: string): Promise<boolean> {
  * ║ celui de claude.ai ne doit pas éteindre le cabinet, ni l'inverse.             ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  *
- * ⚠ FERMÉ PAR DÉFAUT. Le second secret étant facultatif, la tentation serait de
- *   traiter « aucun secret configuré » comme « rien à comparer » : ce serait le
- *   défaut ouvert par omission que §9.1 interdit. Liste vide ⇒ `some` rend faux ⇒
- *   tout est refusé, exactement comme avant.
+ * ⚠ FERMÉ PAR DÉFAUT, et désormais des DEUX CÔTÉS du produit. Le second secret étant
+ *   facultatif, la tentation serait de traiter « aucun secret configuré » comme « rien
+ *   à comparer » : ce serait le défaut ouvert par omission que §9.1 interdit. Liste
+ *   vide d'un côté OU de l'autre ⇒ produit vide ⇒ `some` rend faux ⇒ tout est refusé.
+ *   « Aucun porteur présenté » se traite donc par la MÊME ligne que « aucun secret
+ *   configuré » : le défaut fermé devient structurel, au lieu de reposer sur une garde
+ *   `if` que l'appelant portait — et qu'un remaniement pouvait laisser tomber.
  *
- * ⚠ On compare les DEUX, sans court-circuit, et on ne journalise ni ne renvoie jamais
- *   lequel a servi (§9.2) : les deux échecs sont le même 401.
+ * ⚠ On compare TOUTES les paires, sans court-circuit, et on ne journalise ni ne renvoie
+ *   jamais lequel a servi (§9.2) : tous les échecs sont le même 401. `Promise.all` résout
+ *   l'intégralité du produit AVANT que `some` ne lise des booléens déjà calculés ; sa
+ *   sortie anticipée porte donc sur un tableau figé et ne coûte aucun temps observable.
+ *   Ni le PORTEUR ni le SECRET qui a servi n'est déductible de la latence.
+ *
+ * ⚠ COÛT, puisque la liste des présentés s'est allongée : au pire 5 candidats × 2 secrets
+ *   = 10 paires, soit 20 empreintes SHA-256, en une seule vague. Quelques dizaines de
+ *   microsecondes sur une requête qui en passera 100 à 600 MILLIsecondes en D1 et chez
+ *   CanLII. Le dédoublonnage de `secretsPresentes` ramène le cas normal — secret
+ *   hexadécimal, sans barre finale, un seul secret configuré — à DEUX empreintes, soit
+ *   exactement ce que la garde coûtait avant. On ne mémorise délibérément PAS l'empreinte
+ *   des attendus : `secretOk` est la primitive publiée en §9.1, et relue comme telle.
  */
-async function secretAdmis(presente: string, env: Env): Promise<boolean> {
+async function secretAdmis(presentes: readonly string[], env: Env): Promise<boolean> {
   const attendus = [env.MCP_SHARED_SECRET, env.MCP_SHARED_SECRET_ATHENA].filter(
     (s): s is string => typeof s === "string" && s.length > 0,
   );
-  const verdicts = await Promise.all(attendus.map((attendu) => secretOk(presente, attendu)));
+  const verdicts = await Promise.all(
+    attendus.flatMap((attendu) => presentes.map((presente) => secretOk(presente, attendu))),
+  );
   return verdicts.some(Boolean);
 }
 
-/** Extrait le secret présenté : dernier segment du chemin, ou en-tête Authorization. */
-function presentedSecret(request: Request, pathname: string): string | null {
-  const entete = request.headers.get("Authorization");
-  if (entete?.startsWith("Bearer ")) {
-    const v = entete.slice(7).trim();
-    if (v.length > 0) return v;
+/**
+ * `decodeURIComponent` LÈVE une `URIError` sur un pourcentage malformé (`/mcp/x%FF`).
+ *
+ * ⚠ DÉFAUT RÉEL, mesuré en direct sur la production : l'exception remontait NON RATTRAPÉE
+ *   hors du gestionnaire, et le Worker sortait en 500. Un refus doit refuser — un 500
+ *   annonce au sondeur qu'il a trouvé un bord, sans avoir rien refusé pour autant.
+ *
+ * ⚠ L'exception est avalée SANS AUCUNE TRACE, et c'est §9.2 (invariant 5) : le segment
+ *   fautif EST le secret présenté. Ni `console.error`, ni le message de l'`URIError`, ni
+ *   `request.url`. Le `catch` est vide DÉLIBÉRÉMENT — ne pas y « ajouter un log pour
+ *   déboguer », ce serait publier le secret dans `wrangler tail`.
+ *
+ * Même parade et même nom que chez le connecteur jumeau (« Législation du Québec »,
+ * `src/auth.ts`), pour qu'on la reconnaisse en passant de l'un à l'autre.
+ */
+function decodeOrNull(segment: string): string | null {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return null;
   }
-  const m = /^\/mcp\/(.+)$/.exec(pathname);
-  if (m?.[1]) return decodeURIComponent(m[1]);
-  return null;
+}
+
+/**
+ * Les secrets PRÉSENTÉS par la requête — tous les porteurs, toutes leurs graphies
+ * plausibles, sans aucune préséance entre eux.
+ *
+ * ╔══════════════════════════════════════════════════════════════════════════════╗
+ * ║ POURQUOI UNE LISTE, ET NON « LE » SECRET PRÉSENTÉ.                           ║
+ * ║                                                                              ║
+ * ║ Cette fonction rendait UNE valeur, par RETOUR ANTICIPÉ : tout en-tête        ║
+ * ║ `Bearer` non vide masquait définitivement le secret du chemin. Un            ║
+ * ║ `Authorization` résiduel — périmé, collé d'un autre connecteur, posé par un  ║
+ * ║ mandataire — rendait donc inopérante une URL PARFAITEMENT CORRECTE, et son   ║
+ * ║ refus était indiscernable d'un mauvais secret. §9.1 énonce deux formes SANS  ║
+ * ║ préséance ; le code en avait inventé une, et la spécification décrivait      ║
+ * ║ depuis lors un comportement qui n'existait pas. On essaie désormais TOUT ce  ║
+ * ║ qui est présenté, et aucun porteur n'en masque un autre.                     ║
+ * ╚══════════════════════════════════════════════════════════════════════════════╝
+ *
+ * ⚠ LA BARRE FINALE EST LE DÉFAUT QUI A COÛTÉ UN CONNECTEUR. Les clients normalisent
+ *   l'URL saisie et y ajoutent « / ». Le refus qui s'ensuivait n'était pas lu comme
+ *   « mauvais secret » mais comme « ressource OAuth protégée » : claude.ai enchaîne sur
+ *   `.well-known/*` (404), puis sur `POST /register` (404), et l'inscription dynamique
+ *   échoue — « Impossible de s'inscrire auprès du service de connexion ». Le connecteur
+ *   reste coincé là. Constaté en production sur le jumeau le 2026-07-23, corrigé ici le
+ *   2026-09-16. `/mcp/<secret>/` DOIT valoir `/mcp/<secret>`, et `/mcp/` valoir `/mcp`.
+ *
+ * ⚠ TOLÉRANCE STRICTEMENT ÉLARGISSANTE : on AJOUTE des candidats, on n'en TRANSFORME
+ *   aucun. Le secret de production n'est pas connu d'ici et ne doit pas l'être (CLAUDE.md,
+ *   « Secrets ») : il peut se terminer lui-même par « / » — l'alphabet base64 STANDARD en
+ *   produit — ou porter un « % ». Rogner « ce qui est évidemment de trop » casserait alors
+ *   une authentification qui fonctionne, en production, sans qu'aucun test ne le dise. Le
+ *   pire cas d'un candidat surnuméraire est une empreinte SHA-256 calculée pour rien ; le
+ *   pire cas d'un rognage est un connecteur mort. ON NE RESSERRE PAS L'ANALYSE D'UN
+ *   PORTEUR CONTRE UNE VALEUR QU'ON S'INTERDIT DE LIRE.
+ *
+ * ⚠ ÉLARGIR N'EST PAS OUVRIR : seules des barres obliques FINALES sont ôtées, et seulement
+ *   pour produire un candidat de PLUS. Aucun PRÉFIXE du secret n'est admis — toute valeur
+ *   ainsi acceptée est une valeur dont la connaissance implique déjà celle du secret.
+ *   Épinglé par un test.
+ *
+ * ⚠ ON NE BORNE PAS À UN SEUL SEGMENT, contrairement au jumeau. Lui le DOIT : il retire le
+ *   segment-jeton et remonte la requête sur son chemin de montage, où une profondeur
+ *   imprévue casserait le routage de `McpAgent.serve("/mcp")`. Ici le chemin n'est qu'un
+ *   PORTEUR — rien n'est remonté, `/mcp*` est capté en entier, et tout ce qui ne s'apparie
+ *   pas rend le même 401. Borner serait un RÉTRÉCISSEMENT sans contrepartie : si le secret
+ *   de production contient « / », `/mcp/a/b` l'authentifie aujourd'hui.
+ *
+ * Limite connue et assumée : les barres finales sont ôtées TOUTES D'UN COUP, non une à
+ * une. Un secret finissant par « / » présenté avec une barre surnuméraire reste refusé. Ce
+ * cas n'a aucun client, et l'échelle complète des suffixes n'ajouterait que des candidats
+ * que personne n'émet.
+ */
+function secretsPresentes(request: Request, pathname: string): string[] {
+  const candidats: (string | null)[] = [];
+
+  // Porteur par en-tête (§19 — le clavardage de Pallas Athéna). `\s+` et le drapeau `/i` :
+  // le nom du schéma est insensible à la casse (RFC 7235 §2.1), et `startsWith("Bearer ")`
+  // refusait « bearer x » comme « Bearer  x ». Le `.trim()` sur le jeton est sans danger
+  // ICI — la couche `Headers` normalise déjà les espaces de bord d'une valeur d'en-tête —
+  // alors que le même geste sur le CHEMIN, lui, serait un rognage.
+  const entete = request.headers.get("Authorization");
+  const bearer = entete === null ? null : /^Bearer\s+(.+)$/i.exec(entete.trim());
+  if (bearer?.[1]) candidats.push(bearer[1].trim());
+
+  // Porteur par le chemin. `(.+)` : tout ce qui suit `/mcp/`, profondeur comprise.
+  // `/mcp` et `/mcp/` ne s'apparient pas — rien n'est alors présenté par le chemin, et
+  // l'en-tête décide seul. C'est le comportement voulu pour les deux.
+  const chemin = /^\/mcp\/(.+)$/.exec(pathname);
+  if (chemin?.[1]) {
+    const brut = chemin[1];
+    const rogne = brut.replace(/\/+$/, "");
+    // `rogne` EN PLUS de `brut`, jamais à sa place.
+    for (const forme of rogne === brut ? [brut] : [brut, rogne]) {
+      candidats.push(forme); // tel quel : ferme le cas « le secret contient un % »
+      candidats.push(decodeOrNull(forme)); // décodé : le cas normal
+    }
+  }
+
+  // Dédoublonnage. Sur un secret hexadécimal sans barre finale — le cas normal — les
+  // quatre graphies du chemin se réduisent à UNE, et la garde coûte exactement ce qu'elle
+  // coûtait avant le correctif. La comparaison n'oppose que des valeurs PRÉSENTÉES entre
+  // elles : elle ne touche aucun secret attendu, et ne peut donc rien en divulguer.
+  return [...new Set(candidats.filter((c): c is string => c !== null && c.length > 0))];
 }
 
 function unauthorized(origin: string | null = null): Response {
@@ -345,8 +456,10 @@ export default {
       // Aucun flux SSE, aucune session à supprimer : mode JSON sans état (D3).
       if (request.method !== "POST") return methodNotAllowed(origin);
 
-      const presente = presentedSecret(request, pathname);
-      if (!presente || !(await secretAdmis(presente, env))) {
+      // Aucune garde `if (!presente)` : une liste VIDE — aucun porteur présenté — produit
+      // un produit cartésien vide, donc `some` faux, donc 401. Le défaut fermé vit
+      // désormais tout entier dans `secretAdmis`, des deux côtés du produit.
+      if (!(await secretAdmis(secretsPresentes(request, pathname), env))) {
         return unauthorized(origin);
       }
       return await handleMcp(request, env, ctx, origin);
