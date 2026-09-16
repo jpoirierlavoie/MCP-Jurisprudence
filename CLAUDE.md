@@ -138,13 +138,15 @@ node scripts/mcp-client.mjs --local tools/list
 node scripts/refresh-databases.mjs --remote --sql   # réconciliation §4.3
 ```
 
-**Déploiement RÉEL — à la main, et c'est la seule voie qui ait jamais abouti.** Relevé le
-2026-09-16 : `deploy.yml` échoue depuis le 2026-07-23, **dix-sept fois sur dix-sept**, à
-l'étape des migrations — et l'étape de déploiement, qui la suit dans le même job, est donc
-toujours sautée. Aucune version en production n'est sortie de la CI. **Les migrations
-passent d'abord, sans exception.** Le jeton d'API Cloudflare vit dans `cf.token`
-(gitignoré) : il se LIT dans une variable d'environnement, il ne s'affiche pas — un `cat`
-ou une capture de terminal le publient aussi sûrement qu'un commit.
+**Déploiement — MANUEL, et c'est assumé** (§12 ; le déploiement automatique a été retiré le
+2026-09-16 après dix-neuf échecs et zéro mise en ligne). **Les migrations passent d'abord,
+sans exception** — et c'est désormais `npm run deploy` qui le garantit : il enchaîne
+`db:migrate:remote` puis `wrangler deploy`, et s'arrête au premier échec. Ne pas appeler
+`npx wrangler deploy` directement : c'est l'ordre inverse.
+
+Le jeton d'API Cloudflare vit dans `cf.token` (gitignoré) : il se LIT dans une variable
+d'environnement, il ne s'affiche pas — un `cat` ou une capture de terminal le publient
+aussi sûrement qu'un commit.
 
 ```powershell
 $env:CLOUDFLARE_API_TOKEN = (Get-Content cf.token -Raw).Trim()
@@ -301,18 +303,21 @@ Coder → **propager (règle ci-dessus)** → `wrangler types` → `tsc --noEmit
 
 La propagation vient **avant** la porte technique, et non après : c'est la seule étape
 qu'aucune commande ne peut réclamer à votre place. **Les migrations D1 passent AVANT le
-La propagation vient **avant** la porte technique, et non après : c'est la seule étape
-qu'aucune commande ne peut réclamer à votre place. **Les migrations D1 passent AVANT le
 déploiement** : l'ordre inverse met en ligne du code qui lit des colonnes inexistantes.
 
-⚠ *Amendé le 2026-09-16.* Cette phrase attribuait l'ordre au workflow — « **Les migrations
-D1 passent AVANT le déploiement** (`deploy.yml`) ». L'ordre est juste ; l'attribution est
-fausse, et elle l'a toujours été : `deploy.yml` n'a **jamais réussi** — dix-neuf exécutions
-depuis le 2026-07-23, dix-neuf échecs, tous à l'étape « Migrations D1 (AVANT le
-déploiement) », l'étape « Déploiement » étant alors SAUTÉE. Tant qu'il n'est pas réparé,
-**c'est l'opérateur qui tient l'ordre, à la main** (voir « Commandes »). Le fichier reste
-au dépôt parce qu'il décrit l'ordre voulu — mais il ne l'exécute pas, et lire ici une
-garantie automatique ferait croire qu'un `git push` livre quoi que ce soit.
+⚠ *Amendé le 2026-09-16 : le déploiement automatique a été RETIRÉ.* Cette phrase attribuait
+l'ordre à un workflow — « **Les migrations D1 passent AVANT le déploiement**
+(`deploy.yml`) ». L'ordre est juste ; l'attribution était fausse et l'avait toujours été.
+`.github/workflows/deploy.yml` n'a **jamais réussi** — dix-neuf exécutions depuis le
+2026-07-23, dix-neuf échecs, tous à l'étape des migrations, l'étape de déploiement étant
+alors systématiquement sautée. Aucune version en production n'en est jamais sortie. Il a
+été **supprimé** plutôt que réparé (décision du praticien, motivée en §12).
+
+**L'ordre n'est donc plus tenu par un fichier de CI : il l'est par `npm run deploy`**, qui
+vaut désormais `db:migrate:remote` PUIS `wrangler deploy` et s'arrête au premier échec. Le
+script valait auparavant `wrangler deploy` tout court — c'est-à-dire exactement l'ordre
+inverse, disponible sous un nom rassurant. Le déploiement reste manuel, mais la règle qui
+comptait est passée de la prose au code, et elle s'exécute maintenant pour de bon.
 
 ⚠ *Cause établie le 2026-09-16, et une fausse piste retirée le même jour.* Cette note a
 porté quelques heures « le jeton ouvre DEUX comptes Cloudflare et wrangler ne sait pas
@@ -325,8 +330,10 @@ jeton n'a donc jamais été présenté à Cloudflare : `wrangler` renonce à
 `requireAuth()`, AVANT tout réseau, ce que confirme la durée — une à deux secondes. Le
 secret `CLOUDFLARE_API_TOKEN` n'arrive pas jusqu'au job. Reste à dire lequel des trois
 cas : absent, nommé autrement, ou posé en « variable » plutôt qu'en « secret ».
-`deploy.yml` porte désormais quatre contrôles qui le nomment **dans le titre de l'étape**,
-parce que c'est la seule chose que l'API publique laisse lire.
+Un correctif posé le même jour l'avait rendue lisible — quatre contrôles nommant la cause
+dans le titre de l'étape — et la toute première exécution l'a CONFIRMÉE : « CLOUDFLARE_API_TOKEN
+est VIDE dans ce job ». Le workflow a ensuite été retiré ; la cause est consignée ici parce
+qu'elle vaudra encore le jour où l'on voudra rouvrir la question (§12).
 
 ## Secrets
 
@@ -360,8 +367,9 @@ parce que c'est la seule chose que l'API publique laisse lire.
 **Livré et en production** sur `jurisprudence.poirierlavoie.ca`, 468 tests verts en quinze
 fichiers. Treize outils — dix `jurisprudence_*`, trois `greffe_*`/`palais_*` — et une page
 publique bilingue sur la même origine (§18). La version en ligne (`f6bab151`, 2026-09-16)
-a été déployée **à la main**, comme toutes celles qui l'ont précédée : `deploy.yml` n'a
-jamais abouti (voir « Procédure sûre »). `migrations/0004_rename_tool_prefix.sql` est
+a été déployée **à la main**, comme toutes celles qui l'ont précédée. Le déploiement
+automatique a été retiré le 2026-09-16 : il n'avait jamais mis une seule version en ligne
+(§12). `migrations/0004_rename_tool_prefix.sql` est
 **appliquée en production** : `search_log.tool` et `court_codes.note` portent les noms
 d'aujourd'hui, et aucune ligne ne subsiste sous un ancien nom — l'historique de §10 n'est
 donc pas coupé en deux à la date du renommage.

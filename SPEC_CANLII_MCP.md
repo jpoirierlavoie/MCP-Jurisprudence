@@ -904,19 +904,20 @@ Dépôt GitHub distinct, calqué sur les protections d'Athéna : **actions épin
 | `.github/workflows/trivy.yml` | Trivy, mode système de fichiers |
 | `.github/workflows/scorecard.yml` | OpenSSF Scorecard |
 | `.github/dependabot.yml` | npm + github-actions, hebdomadaire |
-| `.github/workflows/deploy.yml` | Sur `push` vers `main` : `wrangler d1 migrations apply canlii --remote` **puis** `wrangler deploy` |
 
-**Ordre impératif dans `deploy.yml` : les migrations d'abord, le déploiement ensuite.** Le schéma inverse déploie du code qui lit des colonnes inexistantes. Secret de dépôt : `CLOUDFLARE_API_TOKEN` (portée : édition des Workers + D1 sur le seul compte visé).
+**LE DÉPLOIEMENT EST MANUEL, ET C'EST UNE DÉCISION — prise le 2026-09-16.** Il n'y a plus de workflow de déploiement : `.github/workflows/deploy.yml` a été **supprimé**.
 
-⚠ **`deploy.yml` n'a JAMAIS abouti, et le déploiement réel est MANUEL — constaté le 2026-09-16.** Dix-neuf exécutions depuis le 2026-07-23, dix-neuf échecs, toujours à l'étape « Migrations D1 (AVANT le déploiement) » ; l'étape « Déploiement » qui la suit dans le même job a donc toujours été SAUTÉE. Aucune version en production n'est sortie de la CI — celle du 2026-09-16 (`f6bab151`) pas plus que les autres. La marche à suivre réelle est celle de §14, étape 6.
+*Ce que disait cette section jusqu'au 2026-09-16 : « `.github/workflows/deploy.yml` — Sur `push` vers `main` : `wrangler d1 migrations apply canlii --remote` **puis** `wrangler deploy` », et « Ordre impératif dans `deploy.yml` : les migrations d'abord, le déploiement ensuite ». La règle d'ordre reste vraie ; c'est son support qui a changé.*
 
-**CAUSE ÉTABLIE le 2026-09-16, et par une preuve publique.** Les journaux de la CI exigent des droits d'administration — l'API rend `403 Must have admin rights to Repository` —, mais l'audit de sortie de `harden-runner`, lui, est **public**. Il liste les destinations jointes par le job : `github.com`, `registry.npmjs.org`, `sparrow.cloudflare.com`, `workers.cloudflare.com`. **`api.cloudflare.com` n'y figure pas**, ni à la dernière exécution ni à celle d'un mois plus tôt. Le jeton n'a donc jamais été présenté à Cloudflare : `wrangler` renonce à `requireAuth()` AVANT tout appel réseau, ce que confirme la durée — une à deux secondes, là où un jeton REFUSÉ produirait une dizaine de requêtes. Le secret `CLOUDFLARE_API_TOKEN` n'arrive pas jusqu'au job : absent, nommé autrement, ou posé en « variable » plutôt qu'en « secret ». Seule la liste des réglages, qui exige l'administration du dépôt, dira lequel des trois.
+**Pourquoi il est parti plutôt que réparé.** Dix-neuf exécutions du 2026-07-23 au 2026-09-16, dix-neuf échecs, **zéro version mise en ligne** — toutes l'ont été à la main. Il tombait toujours au même endroit, et pour une raison établie puis confirmée : le secret `CLOUDFLARE_API_TOKEN` n'atteignait pas le job. L'audit de sortie de `harden-runner`, **public** alors que les journaux exigent des droits d'administration, ne montrait **aucun appel à `api.cloudflare.com`** — `wrangler` renonçait avant tout réseau. Un correctif de diagnostic, posé le même jour, l'a fait dire mot pour mot dès la première exécution : « CLOUDFLARE_API_TOKEN est VIDE dans ce job ».
 
-*Une note antérieure du même jour avançait que « le jeton ouvre DEUX comptes Cloudflare ». C'était faux — erreur de comptage, la ligne d'en-tête du tableau de `wrangler whoami` prise pour une ligne de données ; le jeton n'en voit qu'UN. La formulation est citée ici plutôt qu'effacée, parce qu'elle a été écrite dans trois fichiers et qu'un lecteur pourrait la retrouver ailleurs.*
+Le réparer n'aurait tenu qu'à déposer le jeton dans les réglages du dépôt. Ce n'est pas un geste anodin : **c'est confier à un tiers un pouvoir d'écriture sur l'infrastructure** — appliquer des migrations, remplacer le Worker en production. Le praticien a préféré n'avoir aucun tel pouvoir stocké ailleurs que sur son poste, et une voie de déploiement unique plutôt que deux. Le connecteur jumeau, lui aussi un Worker en production, n'a jamais eu de workflow de déploiement : les deux dépôts sont désormais alignés.
 
-**Le correctif, appliqué le 2026-09-16, ne répare pas la panne : il la rend LISIBLE.** `deploy.yml` porte désormais quatre contrôles en lecture seule, exécutés avant toute écriture, qui nomment la cause **dans le titre de l'étape** — la seule chose que l'API publique laisse lire quand les journaux sont fermés. Ils vérifient, dans l'ordre : que le secret parvient au job ; que Cloudflare reconnaît le jeton ; qu'il ne désigne qu'un compte ; et que la base `canlii` qu'il voit est bien celle de `wrangler.jsonc` — ce dernier contrôle séparant « le jeton n'a pas les droits » de « le jeton vise un autre compte », deux causes qui sans lui rendent le même rouge. Aucun ne divulgue de valeur. L'invariant d'ordre est renforcé et non assoupli : l'étape de déploiement porte désormais son `if: success()` en toutes lettres.
+**CE QUE LE RETRAIT NE CHANGE PAS : L'ORDRE.** Les migrations passent AVANT le déploiement ; le schéma inverse met en ligne du code qui lit des colonnes inexistantes. Cet ordre n'est plus écrit dans un fichier qui ne s'exécutait pas — il est tenu par **`npm run deploy`**, qui vaut `db:migrate:remote` PUIS `wrangler deploy` et s'arrête au premier échec.
 
-Le mode de panne à nommer est celui de l'illusion, non celui de la panne : un workflow rouge se voit, mais une spécification qui le désigne comme la voie de déploiement fait croire qu'un `git push` met en ligne. Il ne met rien en ligne. **Deux issues, et une seule à choisir : réparer `deploy.yml` (nommer le compte, revérifier la portée du jeton), ou le retirer.** Un workflow de déploiement conservé « pour mémoire » mais jamais vert est un feu rouge permanent auquel on cesse de croire — y compris le jour où il échouera pour une autre raison.
+⚠ Le script `deploy` de `package.json` valait jusqu'au 2026-09-16 `wrangler deploy` tout court : **le déploiement seul, sans les migrations, c'est-à-dire l'ordre interdit sous un nom rassurant.** C'était le seul endroit du dépôt où l'invariant pouvait être enfreint par la commande la plus naturelle. Le retrait du workflow a donc eu un effet net POSITIF sur l'invariant : il l'a déplacé d'un fichier inerte vers un script qui s'exécute.
+
+**Si la question était rouverte**, ce qu'il faudrait peser n'est pas la commodité mais le dépôt du jeton, et le fait qu'un déploiement automatique sur `push` retire au praticien le dernier temps d'arrêt avant la mise en ligne d'un outil juridique.
 
 ---
 
@@ -968,12 +969,11 @@ Le mode de panne à nommer est celui de l'illusion, non celui de la panne : un w
 4. `wrangler secret put CANLII_API_KEY` ; `openssl rand -hex 32` puis `wrangler secret put MCP_SHARED_SECRET`. **Un second porteur, facultatif** (§19) : refaire l'opération pour `MCP_SHARED_SECRET_ATHENA`. ⚠ Le secret doit être transmis **octet pour octet** aux deux systèmes qui le portent : un saut de ligne final suffit à faire diverger les valeurs — donc un `401` permanent que rien n'explique. Sous Windows, `openssl` termine en CRLF et `tr -d '
 '` n'enlève que la moitié du problème.
 5. Créer l'enregistrement DNS `jurisprudence` sur la zone `poirierlavoie.ca` (domaine personnalisé du Worker — Cloudflare le gère).
-6. **Déployer — À LA MAIN, et non par la CI.** `deploy.yml` n'a jamais abouti (§12) : le jeton d'API est donc présenté localement, par l'environnement, et jamais écrit dans un fichier versionné.
+6. **Déployer — À LA MAIN.** Il n'existe aucun déploiement automatique : le workflow qui s'en chargeait a été retiré le 2026-09-16 après dix-neuf échecs et zéro mise en ligne (§12). Le jeton d'API est présenté localement, par l'environnement, et jamais écrit dans un fichier versionné.
 
    ```powershell
    $env:CLOUDFLARE_API_TOKEN = (Get-Content cf.token -Raw).Trim()
-   npx wrangler d1 migrations apply canlii --remote   # les migrations D'ABORD (§12)
-   npx wrangler deploy
+   npm run deploy   # = migrations --remote PUIS wrangler deploy, arrêt au premier échec
    ```
 
    `cf.token` est **gitignoré**, au même titre que `.dev.vars` et `mcp.url`, et `.Trim()` n'est pas décoratif : un saut de ligne final dans un jeton produit un refus d'authentification que rien n'explique — le même piège qu'à l'étape 4. **L'ordre migrations → déploiement vaut ici autant qu'en CI** : passer à la main ne dispense pas de la règle, cela en retire seulement le garde-fou.
@@ -1028,7 +1028,7 @@ question effacée se repose.*
 5. ~~**Bases à indexer** si §11 est activé.~~ **Sans objet** : voir 1.
 6. **Langue de la spécification.** Rédigée en français, comme `claude_spec-elabore-theorie-de-la-cause.md`. Le code, les identifiants et les noms d'outils restent en anglais.
 
-**Ce qui reste réellement à faire, tout § confondus** *(relevé du 2026-09-16)* : les **coordonnées** des palais (§17.7) ; le réglage de `CANLII_MIN_INTERVAL_MS` ci-dessus ; **`deploy.yml`, à réparer ou à retirer** — dix-sept exécutions, dix-sept échecs, tout déploiement réel étant manuel (§12) ; et **`SERVER_INFO.version`**, littéral recopié de `package.json` que rien n'épingle (§8). Les deux derniers figurent ici pour un même motif : ils ne cassent rien, ils font seulement croire — l'un qu'un `git push` met en ligne, l'autre qu'un client connaît la version qu'il interroge.
+**Ce qui reste réellement à faire, tout § confondus** *(relevé du 2026-09-16)* : les **coordonnées** des palais (§17.7) ; le réglage de `CANLII_MIN_INTERVAL_MS` ci-dessus ; et **`SERVER_INFO.version`**, littéral recopié de `package.json` que rien n'épingle (§8) — il ne casse rien, il fait seulement croire qu'un client connaît la version qu'il interroge. *(La question du déploiement automatique, longtemps portée ici, est CLOSE depuis le 2026-09-16 : le workflow a été retiré et l'ordre migrations-puis-déploiement est passé dans `npm run deploy`. Voir §12.)*
 
 ---
 

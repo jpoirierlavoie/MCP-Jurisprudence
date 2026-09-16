@@ -229,11 +229,10 @@ npx wrangler secret put MCP_SHARED_SECRET
 openssl rand -hex 32
 npx wrangler secret put MCP_SHARED_SECRET_ATHENA
 
-# Déploiement — voir « Après le déploiement » plus bas : `deploy.yml` n'a JAMAIS abouti,
-# c'est la recette manuelle qui met en ligne, et les MIGRATIONS PASSENT D'ABORD.
+# Déploiement — MANUEL et assumé (§12) : l'automatique a été retiré le 2026-09-16.
+# `npm run deploy` tient l'ordre : migrations --remote PUIS wrangler deploy.
 export CLOUDFLARE_API_TOKEN="$(tr -d '\r\n' < cf.token)"   # gitignoré, jamais affiché
-npx wrangler d1 migrations apply canlii --remote
-npx wrangler deploy
+npm run deploy
 ```
 
 ### Répertoire des tribunaux (§4.3) — réconcilié, et à re-vérifier périodiquement
@@ -271,34 +270,29 @@ node scripts/mcp-client.mjs --remote tools/call jurisprudence_verify_citations \
 Attendu : *Dunsmuir* CONFIRMÉE · `2020 QCCA 999999` INTROUVABLE (avec les explications
 concurrentes) · `[1985] C.A. 105` NON CONSTRUCTIBLE (avec renvoi à `jurisprudence_find_case`).
 
-### Déploiement courant — à la main, et non par la CI *(constaté le 2026-09-16)*
+### Déploiement — MANUEL, et c'est un choix *(2026-09-16)*
 
-**Pousser sur `main` ne déploie pas.** `.github/workflows/deploy.yml` existe, se
-déclenche bien sur `push: [main]`, et **n'a jamais réussi** : 17 exécutions depuis le
-2026-07-23, 17 échecs, toujours à l'étape « Migrations D1 (AVANT le déploiement) » —
-après quoi l'étape de déploiement est simplement sautée. Une porte qui échoue toujours
-cesse d'être lue ; il faut donc l'écrire ici plutôt que de la laisser deviner.
+**Pousser sur `main` ne déploie pas, et rien ne le fera.** Le dépôt a porté un workflow de
+déploiement automatique du 2026-07-23 au 2026-09-16 : dix-neuf exécutions, dix-neuf échecs,
+**zéro version mise en ligne**. Il tombait toujours à l'étape des migrations, faute du
+secret `CLOUDFLARE_API_TOKEN` — établi par l'audit de sortie de `harden-runner`, qui ne
+montrait aucun appel à `api.cloudflare.com`, puis confirmé mot pour mot par le workflow
+lui-même avant son retrait. Il a été **supprimé** plutôt que réparé : le motif du choix est
+en §12.
 
-**Cause établie le 2026-09-16 :** le secret `CLOUDFLARE_API_TOKEN` n'arrive jamais
-jusqu'au job. L'audit de sortie de `harden-runner` — **public**, alors que les journaux
-de la CI exigent des droits d'administration — ne montre **aucun appel à
-`api.cloudflare.com`**, sur deux exécutions séparées d'un mois. `wrangler` renonce donc
-avant tout réseau, ce que confirme la durée : une à deux secondes. Reste à dire lequel des
-trois cas — secret absent, nommé autrement, ou posé en « variable » plutôt qu'en
-« secret ». `deploy.yml` porte désormais quatre contrôles qui le nomment dans le TITRE de
-l'étape, seule chose que l'API publique laisse lire.
+**Ce que le retrait ne change pas : l'ordre.** Les migrations passent AVANT le déploiement —
+l'inverse met en ligne du code qui lit des colonnes inexistantes. Cet ordre n'est plus écrit
+dans un fichier de CI qui ne s'exécutait pas ; il est tenu par `npm run deploy`, qui enchaîne
+les migrations puis le déploiement et s'arrête au premier échec.
 
-*(Une note antérieure du même jour avançait que le jeton ouvrait deux comptes Cloudflare.
-C'était une erreur de comptage de ma part, et elle est retirée : le jeton n'en voit
-qu'un.)*
+⚠ **Ne pas appeler `npx wrangler deploy` directement.** Jusqu'au 2026-09-16, `npm run deploy`
+valait précisément cela — le déploiement seul, sans les migrations, c'est-à-dire l'ordre
+interdit sous un nom rassurant.
 
-La voie réelle, et la seule éprouvée — **migrations d'abord, déploiement ensuite**
-(§12) : l'ordre inverse met en ligne du code qui lit des colonnes inexistantes.
 
 ```powershell
-$env:CLOUDFLARE_API_TOKEN = (Get-Content cf.token -Raw).Trim()   # gitignoré
-npx wrangler d1 migrations apply canlii --remote
-npx wrangler deploy
+$env:CLOUDFLARE_API_TOKEN = (Get-Content cf.token -Raw).Trim()   # gitignoré, jamais affiché
+npm run deploy    # = migrations --remote PUIS wrangler deploy, arrêt au premier échec
 ```
 
 La CI de contrôle (`ci.yml`), elle, tourne et doit rester verte : type-check, mise en
