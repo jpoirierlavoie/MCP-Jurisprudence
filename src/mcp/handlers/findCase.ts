@@ -161,7 +161,7 @@ export async function findCase(
         //   l'inexistence d'une décision alors que des appels ont été refusés. Le
         //   paragraphe qui suit énumère déjà les explications concurrentes ; celle-ci
         //   en est une, et elle est la seule que le connecteur puisse CONSTATER.
-        noteEtranglement(ctx.client.usage().throttled) || null,
+        noteEtranglement(ctx.client.usage().throttled, !balayageEchoue && !budgetEpuise) || null,
         "",
         "Une absence de candidat n'établit pas l'inexistence de la décision : la couverture",
         "de CanLII a des bornes historiques, et la diffusion connaît un délai.",
@@ -173,19 +173,47 @@ export async function findCase(
     );
   }
 
-  const entete =
-    `${pluriel(rendus.length, "candidat", "candidats")} pour « ${titre} »` +
-    `${databaseId ? ` (${databaseId}` : " ("}${fenetreLabel(yearFrom, yearTo, true)}) :`;
+  // `fenetreLabel(…, true)` rend toujours quelque chose — « toutes années » à défaut —
+  // donc la parenthèse n'est jamais vide. La forme précédente concaténait le tribunal
+  // et la fenêtre SANS séparateur : « (qcca2024→2024) ». Aucun test ne regardait cet
+  // en-tête.
+  const contexte = `${databaseId ? `${databaseId}, ` : ""}${fenetreLabel(yearFrom, yearTo, true)}`;
 
-  const tronque = troncature(rendus.length, tous.length);
+  // ⚠ INVARIANT 9(c) : L'INTERRUPTION S'ANNONCE DANS L'EN-TÊTE.
+  //
+  //   Elle vivait en pied, sous « N candidats » — c'est-à-dire sous une affirmation
+  //   DÉJÀ FAITE, la forme exacte que l'invariant nomme et interdit. La branche VIDE
+  //   la respecte depuis le 2026-09-16 ; celle-ci a été oubliée par ce correctif-là,
+  //   qui ne visait que `rendus.length === 0`.
+  //
+  //   Le cas concret : l'index local rend deux fiches, le balayage vif meurt à la
+  //   première page. La sortie annonçait « 2 candidats pour … », qu'un modèle lit
+  //   comme « la recherche a tourné et a trouvé 2 ». Elle n'a pas tourné, et
+  //   l'étendue réelle des candidats est inconnue.
+  //
+  //   On n'accole PAS `EXPLICATION_INDETERMINEE` ici : sa phrase dit qu'AUCUN constat
+  //   n'a été fait, ce qui est faux quand des candidats partent. L'en-tête porte la
+  //   réserve juste, et elle seule.
+  const entete = balayageEchoue
+    ? `Recherche INTERROMPUE pour « ${titre} » (${contexte}) — liste INCOMPLÈTE : ` +
+      `${pluriel(rendus.length, "candidat obtenu", "candidats obtenus")} avant l'interruption, ` +
+      "l'étendue réelle n'est pas connue."
+    : `${pluriel(rendus.length, "candidat", "candidats")} pour « ${titre} » (${contexte}) :`;
+
+  // `troncature` rend « N premiers sur M ». Sur un balayage interrompu, M est un total
+  // PARTIEL : l'afficher affirmerait un dénombrement qu'on n'a pas fait. L'en-tête dit
+  // déjà « liste INCOMPLÈTE », qui est le seul énoncé vrai disponible.
+  const tronque = balayageEchoue ? null : troncature(rendus.length, tous.length);
   const pied = [
     prov,
-    tronque ? `Troncature : ${tronque}.` : null,
+    // La CAUSE d'abord. Rien de ce qui suit ne doit pouvoir se lire comme si elle
+    // n'existait pas — c'est tout l'objet de l'invariant 9(c).
     noteBalayage,
+    tronque ? `Troncature : ${tronque}.` : null,
     budgetEpuise ? "Budget d'appels épuisé — résultat partiel." : null,
     // Le balayage est l'outil qui appelle le plus : c'est ici qu'un étranglement
     // se lit le plus facilement comme « rien trouvé ». On le nomme.
-    noteEtranglement(ctx.client.usage().throttled) || null,
+    noteEtranglement(ctx.client.usage().throttled, !balayageEchoue && !budgetEpuise) || null,
     "",
     GARDE_RECHERCHE,
   ]

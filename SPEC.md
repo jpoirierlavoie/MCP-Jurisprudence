@@ -492,6 +492,7 @@ Le quota de CanLII n'est pas publié (§16.2). Le comportement par défaut est d
 - **Intervalle ADAPTATIF.** À chaque `429`, l'intervalle de l'invocation en cours **double**, plafonné à 4 s. Le quota n'étant pas publié, le refus est la seule mesure dont on dispose : un petit lot qui ne touche jamais la limite reste rapide, un gros lot qui la touche cesse de s'y cogner. L'adaptation **meurt avec l'invocation** — le client ne vit que le temps d'un appel d'outil, et un état partagé entre invocations exigerait un objet durable que la valeur ne justifie pas.
 - **Réessais** sur `429`, `500`, `502`, `503`, `504` : trois tentatives, temporisation exponentielle plus gigue de 0–200 ms ; si un en-tête `Retry-After` est présent, il **prime**. La BASE dépend de la cause — **2 s pour un `429`**, 500 ms pour un `5xx` : un `5xx` est un incident, un `429` est une consigne, et 500 ms n'est pas ralentir. Incrémenter `api_usage.throttled` à chaque `429`.
 - **L'étranglement est DIT au modèle** quand il a eu lieu (§16.2) : `jurisprudence_verify_citations` et `jurisprudence_find_case` ajoutent une note nommant les `429` subis, en précisant que les résultats n'en sont **ni tronqués ni affaiblis**. Ce n'est PAS une mise en garde de §2 — elle ne borne pas ce que le résultat établit, elle explique un rythme — mais elle sert le même contrat : sans elle, un « aucun candidat » obtenu sous étranglement se lit comme une inexistence. Muette quand rien n'a été étranglé.
+  ⚠ **La phrase de réassurance est CONDITIONNELLE** (*2026-09-17*). Elle n'est vraie que si les appels étranglés ont tous été rejoués AVEC SUCCÈS. Sous un balayage **interrompu** ou un budget **épuisé**, le résultat EST tronqué, et la note doit le dire — elle paraissait jusqu'ici deux lignes sous « Balayage interrompu », affirmant le contraire de la ligne précédente. La **première ligne** de la note reste identique dans les deux modes : la cause demeure nommée (invariant 9(a)).
 - **Pas de réessai** sur `400`, `401`, `403`, `404`.
 - **Délai** : `AbortSignal.timeout(CANLII_TIMEOUT_MS)`.
 - **Plafond dur** : au-delà de `CANLII_MAX_CALLS_PER_INVOCATION`, lever `CanliiBudgetError` ; le gestionnaire d'outil renvoie alors les résultats **partiels** obtenus, assortis d'une mention explicite (« budget d'appels épuisé — résultat partiel »), plutôt qu'une erreur sèche.
@@ -700,6 +701,8 @@ Gabarit de sortie : **Annexe A.1**.
 2. **Balayage vif** si `live` (défaut : vrai lorsque l'index rend moins de trois candidats) : pour chaque année de la fenêtre, `GET caseBrowse/{lang}/{db}/?offset=0&resultCount=5000&decisionDateAfter=YYYY-01-01&decisionDateBefore=YYYY-12-31`, pagination par `offset` jusqu'à épuisement ou plafond de budget. `resultCount = 5000` et non le maximum de 10 000 : marge sous le plafond de 10 Mo.
 3. Filtrer côté Worker sur `title_norm` (§6.5). **Persister toutes les fiches moissonnées** si `PERSIST_SWEEPS` — c'est ainsi que l'index se construit (D6). Écriture par lots `db.batch()` de 100 énoncés.
 4. `database_id` absent : exiger une fenêtre de dates d'au plus 3 ans et balayer les bases québécoises usuelles (`qcca`, `qccs`, `qccq`) ; au-delà, refuser en demandant de préciser le tribunal.
+
+5. **Un balayage INTERROMPU s'annonce DANS L'EN-TÊTE**, que la liste rendue soit vide ou non. Il ne suffit pas d'une note en pied : une réserve placée sous « N candidats » corrige une affirmation déjà faite, ce que l'invariant 9(c) interdit. La ligne de troncature disparaît alors, et la note d'étranglement cesse d'affirmer que le résultat n'est « ni tronqué ni affaibli ». *La branche non vide ne le faisait pas avant le 2026-09-17.*
 
 Gabarit : **Annexe A.2**.
 
@@ -1432,7 +1435,7 @@ l'étiquette perdrait la réserve avec la prose.
 ### A.2 `jurisprudence_find_case`
 
 ```
-3 candidat(s) pour « Hydro-Québec » (qcca, 2004→2006) :
+3 candidats pour « Hydro-Québec » (qcca, 2004→2006) :
 
 1. Association provinciale des retraités d'Hydro-Québec c. Hydro-Québec
    2005 QCCA 304 (CanLII) · 2005-03-31 · qcca/2005qcca304
@@ -1445,6 +1448,23 @@ parcourues, persistées).
 Recherche sur l'intitulé et les mots-clés uniquement — l'API de CanLII n'expose
 pas le texte des décisions.
 ```
+
+**Variante — balayage INTERROMPU, index local non vide.** L'en-tête change ; il ne se contente pas d'une note en pied (invariant 9(c)).
+
+```
+Recherche INTERROMPUE pour « Hydro-Québec » (qcca, 2004→2006) — liste INCOMPLÈTE :
+2 candidats obtenus avant l'interruption, l'étendue réelle n'est pas connue.
+
+1. …
+
+Provenance : index local (2 fiches) + balayage vif (1 appel, 0 fiche parcourue).
+Balayage interrompu — CanLII a étranglé les appels (429). Réessayer plus tard.
+CanLII a étranglé 3 appels pendant cet appel (HTTP 429).
+Ils ont été rejoués, mais le résultat ci-dessus n'est PAS complet pour autant :
+son étendue réelle n'est pas connue. Reprendre plus tard, ou sur un lot plus petit.
+```
+
+⚠ *Ajoutée le 2026-09-17.* Trois choses s'y lisent, et les trois sont des corrections. L'interruption est **dans l'en-tête**, et non sous « 2 candidats » — une réserve placée sous une affirmation déjà faite n'est pas une réserve. La ligne `Troncature : N premiers sur M` **disparaît** : sur un balayage interrompu, `M` est un total partiel, et l'afficher affirmerait un dénombrement qu'on n'a pas fait. Et la note d'étranglement cesse de dire « ni tronqués ni affaiblis » — elle le disait deux lignes sous celle qui annonçait l'interruption. La séparation `(qcca, 2004→2006)` est celle que ce gabarit montrait déjà ; le code, lui, rendait `(qcca2004→2006)`, sans séparateur et sans qu'aucun test ne regarde cet en-tête.
 
 ### A.3 `jurisprudence_subsequent_history`
 

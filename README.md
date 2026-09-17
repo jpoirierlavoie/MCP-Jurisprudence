@@ -430,8 +430,11 @@ le quota.
   4 s, pour le reste de l'invocation. 40 appels par invocation, aucune concurrence
   sortante. Quand un étranglement a lieu, les outils le **disent** dans leur réponse,
   en précisant que le résultat n'en est ni tronqué ni affaibli : sans cela, un « aucun
-  candidat » obtenu sous étranglement se lirait comme une inexistence. À réajuster si
-  CanLII finit par publier ses chiffres.
+  candidat » obtenu sous étranglement se lirait comme une inexistence. **Sauf quand le
+  balayage a été interrompu ou le budget épuisé** — la note dit alors l'inverse plutôt
+  que de rassurer à tort. Elle a longtemps rassuré inconditionnellement, deux lignes
+  sous celle qui annonçait l'interruption ; c'est ce voisinage qui faisait prendre
+  l'étranglement pour la cause. À réajuster si CanLII finit par publier ses chiffres.
 
 ## Référence
 

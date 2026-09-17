@@ -321,7 +321,9 @@ export async function verifyCitations(
   // l'une parle de ce que le résultat établit, l'autre du temps qu'il a pris.
   const pied = [
     budgetEpuise ? "Budget d'appels épuisé — résultat partiel." : "",
-    noteEtranglement(ctx.client.usage().throttled),
+    // Le même schéma vivait ici : « résultat partiel » suivi, une ligne plus bas, de
+    // « ni tronqués ni affaiblis ». Deux affirmations adjacentes qui se contredisent.
+    noteEtranglement(ctx.client.usage().throttled, !budgetEpuise),
     GARDE_VERIFICATION,
   ]
     .filter((p) => p.length > 0)

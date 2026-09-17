@@ -64,16 +64,40 @@ export const GARDE_CITATEUR =
  *
  *   Muette quand rien n'a été étranglé : une note affichée à chaque appel cesse
  *   d'être lue, et celle-ci doit l'être le jour où elle paraît.
+ *
+ * ⚠ `resultatComplet` — ajouté le 2026-09-17, après un défaut réel. La phrase de
+ *   réassurance (« ni tronqués ni affaiblis ») n'est vraie QUE si les appels étranglés
+ *   ont tous été rejoués AVEC SUCCÈS. Servie sous un balayage interrompu ou un budget
+ *   épuisé, elle affirme d'un résultat incomplet qu'il ne l'est pas — et elle le fait
+ *   à la ligne suivant celle qui vient de dire l'inverse :
+ *
+ *       Balayage interrompu — CanLII a renvoyé une erreur 200.
+ *       CanLII a étranglé 3 appels pendant cet appel (HTTP 429).
+ *       Ils ont été rejoués [...] ne sont ni tronqués ni affaiblis par ce fait.
+ *
+ *   La réserve « par ce fait » portait toute la charge, et aucun lecteur ne la pondère
+ *   ainsi : c'est ce voisinage qui a fait lire le 429 comme la cause OPÉRANTE de
+ *   l'interruption. Une sortie qui se contredit fait douter de tout le reste.
+ *
+ *   La PREMIÈRE LIGNE est identique dans les deux modes, délibérément : la cause reste
+ *   nommée quoi qu'il arrive (invariant 9(a)).
  */
-export function noteEtranglement(etranglements: number): string {
+export function noteEtranglement(etranglements: number, resultatComplet = true): string {
   if (etranglements <= 0) return "";
   const pluriel = etranglements > 1 ? "appels" : "appel";
-  return [
-    `CanLII a étranglé ${nombreFr(etranglements)} ${pluriel} pendant cet appel (HTTP 429).`,
-    "Ils ont été rejoués et le rythme a été réduit d'office : les résultats ci-dessus",
-    "ne sont ni tronqués ni affaiblis par ce fait. Un lot plus petit, ou repris plus",
-    "tard, s'exécutera plus vite.",
-  ].join("\n");
+  const tete = `CanLII a étranglé ${nombreFr(etranglements)} ${pluriel} pendant cet appel (HTTP 429).`;
+  return resultatComplet
+    ? [
+        tete,
+        "Ils ont été rejoués et le rythme a été réduit d'office : les résultats ci-dessus",
+        "ne sont ni tronqués ni affaiblis par ce fait. Un lot plus petit, ou repris plus",
+        "tard, s'exécutera plus vite.",
+      ].join("\n")
+    : [
+        tete,
+        "Ils ont été rejoués, mais le résultat ci-dessus n'est PAS complet pour autant :",
+        "son étendue réelle n'est pas connue. Reprendre plus tard, ou sur un lot plus petit.",
+      ].join("\n");
 }
 
 /** Rappel du délai de diffusion, employé par `jurisprudence_browse_cases` (§7.6). */

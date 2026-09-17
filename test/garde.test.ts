@@ -695,6 +695,52 @@ describe("§2 / invariant 9 — aucun chemin ne présente une panne comme une ab
     expect(t).toContain("PAS un constat d'absence");
   });
 
+  it("find_case — l'interruption est dans l'EN-TÊTE même quand l'index local a des fiches", async () => {
+    // LA BRANCHE NON VIDE N'AVAIT AUCUN TEST. Le correctif du 2026-09-16 n'a touché que
+    // `rendus.length === 0` : ici, « 2 candidats » s'affirmait en tête et « Balayage
+    // interrompu » vivait en pied, SOUS l'affirmation — la forme exacte que
+    // l'invariant 9(c) nomme et interdit.
+    //
+    // Et deux lignes plus bas, `noteEtranglement` rassurait : « les résultats ci-dessus
+    // ne sont ni tronqués ni affaiblis ». Ils l'étaient. C'est ce voisinage qui a fait
+    // lire le 429 comme la cause opérante, là où le balayage avait échoué autrement.
+    const stmt = env.DB.prepare(
+      "INSERT INTO cases (database_id, case_id, title, title_norm, citation, decision_date, source, fetched_at) VALUES (?,?,?,?,?,?,?,?)",
+    );
+    await env.DB.batch(
+      [1, 2].map((i) =>
+        stmt.bind(
+          "qcca",
+          `2005qcca${i}`,
+          `Association ${i} d'Hydro-Québec c. Hydro-Québec`,
+          `association ${i} hydro quebec hydro quebec`,
+          `2005 QCCA ${i} (CanLII)`,
+          "2005-03-31",
+          "lookup",
+          "2026-07-23T00:00:00.000Z",
+        ),
+      ),
+    );
+    const client = fakeClient({}, { erreur: () => etranglement() });
+    const t = texte(
+      await callTool(
+        "jurisprudence_find_case",
+        { title: "Hydro-Québec", database_id: "qcca", live: true },
+        toolCtx(client),
+      ),
+    );
+    const entete = t.split("\n")[0]!;
+    expect(entete).toContain("INTERROMPUE");
+    expect(entete).not.toMatch(/^\d+\s+candidats? pour/);
+    expect(t).toContain("liste INCOMPLÈTE");
+    // Les deux lignes du pied ne peuvent plus se contredire…
+    expect(t).not.toContain("ni tronqués ni affaiblis");
+    // …et la cause reste NOMMÉE : on ne répare pas une contradiction en se taisant.
+    expect(t).toMatch(/étranglé|429/);
+    // Aucun dénombrement affirmé sur un total qu'on n'a pas fini de compter.
+    expect(t).not.toContain("Troncature");
+  });
+
   it("browse_cases — des entrées ILLISIBLES ne se rendent pas en « aucune décision »", async () => {
     // Le `.filter` qui écarte les entrées non lisibles le faisait en silence. CanLII
     // rendait des décisions, aucune n'était lisible, et la sortie annonçait une
