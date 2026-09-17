@@ -32,11 +32,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      # BLOQUANT : un constat fait échouer le contrôle au lieu d'être avalé en
-      # silence (le SARIF est tout de même téléversé, via `if: always()`).
-      # Les exceptions sont dans `osv-scanner.toml`, chacune motivée et datée —
-      # ce n'est PAS un « continue-on-error ».
+      # ⚠ `continue-on-error` ICI N'EST PAS UN RELÂCHEMENT — la décision est déplacée,
+      #   pas supprimée. Elle est reprise à l'étape « Verdict » ci-dessous, qui est
+      #   BLOQUANTE et qui échoue FERMÉ.
+      #
+      #   Le motif, constaté le 2026-09-16 : `osv-scanner` sort en **1 dès qu'une
+      #   vulnérabilité est trouvée, même lorsqu'elle est ensuite FILTRÉE** par
+      #   `osv-scanner.toml`. Son journal dit « Filtered 1 vulnerability from output »
+      #   puis « Exit code: 1 ». Ce comportement n'est documenté nulle part — la table
+      #   des codes de sortie amont ne dit rien du cas des exemptions — et aucune note
+      #   de version jusqu'à la v2.6.0 ne l'aborde.
+      #
+      #   Conséquence vécue : le contrôle a échoué à CHAQUE exécution du 2026-08-30 au
+      #   2026-09-16, trente-cinq fois, sans jamais signaler de faille non triée. Un
+      #   contrôle de sécurité rouge en permanence cesse d'être lu — exactement ce que
+      #   l'écrire bloquant cherchait à empêcher.
+      #
+      #   On ne se fie donc plus au code de sortie, mais à la SORTIE FILTRÉE, qui est
+      #   ce que les exemptions sont censées gouverner. Avantage collatéral : le verdict
+      #   ne dépend plus d'un comportement amont non documenté, qui pourrait changer
+      #   d'une version à l'autre sans que personne ne s'en aperçoive.
       - name: Run OSV-Scanner
+        id: scan
+        continue-on-error: true
         uses: google/osv-scanner-action/osv-scanner-action@eb5b619bb565d10623076caba5263750fde3c790 # v2.3.5
         with:
           scan-args: |-
@@ -51,3 +69,31 @@ jobs:
         with:
           sarif_file: results.sarif
           category: osv-scanner
+
+      # LE VERDICT, et il échoue FERMÉ : toute incertitude vaut un échec.
+      # Une vulnérabilité non exemptée fait échouer le contrôle, comme avant. Un
+      # rapport absent, vide ou illisible aussi — car « je n'ai pas pu mesurer » ne
+      # doit JAMAIS se lire « rien à signaler ». C'est la règle d'INDÉTERMINÉE de §2,
+      # appliquée à la chaîne de construction.
+      - name: Verdict — une vulnérabilité NON exemptée fait échouer le contrôle
+        if: always()
+        run: |
+          set -euo pipefail
+
+          if [ ! -s results.sarif ]; then
+            echo "::error title=Aucun rapport SARIF exploitable::Le scanner n'a produit aucun rapport (sortie ${{ steps.scan.outcome }}). On ne conclut PAS à l'absence de vulnérabilité : c'est une absence de MESURE, et elle bloque."
+            exit 1
+          fi
+
+          if ! n=$(jq '[.runs[]?.results[]?] | length' results.sarif 2>/dev/null); then
+            echo "::error title=Rapport SARIF illisible::Le fichier existe mais ne s'analyse pas. Même conclusion : on bloque plutôt que de supposer."
+            exit 1
+          fi
+
+          if [ "$n" -gt 0 ]; then
+            echo "::error title=${n} vulnérabilité(s) NON exemptée(s)::Chacune est soit à corriger, soit à trier explicitement dans osv-scanner.toml avec son motif et sa date. Ne jamais exempter sans écrire pourquoi."
+            jq -r '.runs[]?.results[]? | "  - \(.ruleId // "sans id") : \(.message.text // "sans message")"' results.sarif || true
+            exit 1
+          fi
+
+          echo "::notice title=Aucune vulnérabilité non exemptée::Le scanner a pu être sorti en erreur par une vulnérabilité FILTRÉE ; c'est attendu et sans portée (sortie brute : ${{ steps.scan.outcome }}). Les exemptions en vigueur sont dans osv-scanner.toml, chacune motivée et datée."

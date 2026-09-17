@@ -2,10 +2,16 @@
 #
 # Liste d'exceptions CIBLÉE : vulnérabilités triées comme NON APPLICABLES à ce
 # déploiement, pour qu'un non-problème connu ne fasse pas échouer le contrôle OSV
-# BLOQUANT (.github/workflows/osv-scanner.yml, qui sort non-zéro au moindre constat).
-# Ce n'est PAS un « continue-on-error » : toute vulnérabilité absente d'ici fait
-# encore échouer le contrôle. Chaque entrée reflète une alerte code-scanning
-# écartée — garder les deux en phase.
+# BLOQUANT. Toute vulnérabilité absente d'ici fait encore échouer la CI. Chaque
+# entrée reflète une alerte code-scanning écartée — garder les deux en phase.
+#
+# ⚠ CE QUI FILTRE N'EST PAS CE QUI DÉCIDE, et il faut le savoir pour ne pas se
+#   tromper de fichier en cas d'échec. `osv-scanner` sort en 1 dès qu'une
+#   vulnérabilité est trouvée, MÊME filtrée par ce fichier — son journal dit
+#   « Filtered 1 vulnerability » puis « Exit code: 1 ». Le verdict bloquant est donc
+#   rendu par l'étape « Verdict » de `.github/workflows/osv-scanner.yml`, qui compte
+#   les constats RESTANTS dans le rapport SARIF, c'est-à-dire après application de ce
+#   fichier. Les deux se lisent ensemble : ici le TRI, là-bas la DÉCISION.
 #
 # ── sharp / libvips : GHSA-f88m-g3jw-g9cj ────────────────────────────────────
 # `sharp` est une dépendance OPTIONNELLE et TRANSITIVE de miniflare/wrangler,
