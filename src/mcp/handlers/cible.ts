@@ -8,6 +8,7 @@
 
 import type { Lang } from "../../canlii/types";
 import { parseCitation, resolve } from "../../citation/parse";
+import { EXPLICATION_INDETERMINEE } from "../../format/render";
 import { getCachedCase } from "../../store/cases";
 import { loadDirectory } from "../../store/databases";
 import { lookupCase } from "../../store/lookup";
@@ -70,6 +71,19 @@ export async function resoudreCible(
   });
 
   if (!lookup.row) {
+    // Un ÉCHEC n'est pas une ABSENCE, et les deux sortaient d'ici sous la même phrase.
+    // `lookup.message` valait `null` sur le statut « erreur » (voir src/store/lookup.ts),
+    // donc le `??` servait TOUJOURS le texte d'absence : un 429 ou une expiration
+    // ressortait en « Aucune fiche pour … » par jurisprudence_citator ET par
+    // jurisprudence_subsequent_history. Deux outils affirmaient une inexistence que
+    // personne n'avait constatée. Invariant 9 ; corrigé le 2026-09-16.
+    if (lookup.status === "erreur" || lookup.status === "budget") {
+      return {
+        ok: false,
+        message: `${lookup.message ?? "CanLII n'a pas pu être interrogé."}
+${EXPLICATION_INDETERMINEE}`,
+      };
+    }
     return {
       ok: false,
       message:

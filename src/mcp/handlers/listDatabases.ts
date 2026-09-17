@@ -34,11 +34,13 @@ export async function listDatabasesTool(
   const query = args.query as string | undefined;
 
   let noteRafraichissement: string | null = null;
+  let rafraichissementEchoue = false;
   if (refresh || (await directoryStale(ctx.db, ctx.now))) {
     try {
       const r = await refreshDatabases(ctx.db, ctx.client, lang, ctx.now);
       noteRafraichissement = `Répertoire rafraîchi depuis CanLII : ${nombreFr(r.cases)} base(s) de jurisprudence, ${nombreFr(r.legislation)} base(s) législative(s).`;
     } catch (e) {
+      rafraichissementEchoue = true;
       noteRafraichissement = `Rafraîchissement impossible — ${describeError(e)} Le répertoire local est servi tel quel.`;
     } finally {
       await flushUsage(ctx.db, ctx.client.usage(), ctx.now);
@@ -51,6 +53,12 @@ export async function listDatabasesTool(
     query: [kind, jurisdiction, query].filter(Boolean).join(" ") || "(sans filtre)",
     lang,
     result_count: bases.length,
+    // Un rafraîchissement échoué était DIT dans le corps de la réponse et consigné
+    // nulle part : §10 ne pouvait pas compter à quelle fréquence le répertoire est
+    // servi périmé, ni distinguer une base absente d'une base pas encore apprise.
+    // La réponse reste JUSTE — le répertoire local est réellement servi — mais elle
+    // était invisible au dépouillement. 2026-09-16.
+    fallback: rafraichissementEchoue ? "stale_directory" : null,
   });
 
   if (bases.length === 0) {

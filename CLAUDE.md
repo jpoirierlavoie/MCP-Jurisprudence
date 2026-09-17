@@ -155,7 +155,7 @@ table en mémoire (aucune E/S). Ne pas fusionner.
 ```bash
 npx wrangler types && npx tsc --noEmit     # toujours avant commit
 npx biome check .                          # --write pour corriger
-npx vitest run                             # 474 tests, sans réseau ni clef
+npx vitest run                             # 483 tests, sans réseau ni clef
 npx wrangler dev                           # exige .dev.vars
 npx wrangler deploy --dry-run              # valide paquet + config, sans jeton
 npx wrangler d1 migrations apply canlii --local
@@ -241,6 +241,29 @@ refuse de conclure.
 9. **Une panne réseau n'est PAS une absence.** Un 401, un 429 ou une expiration rendent
    `INDÉTERMINÉE`, jamais `INTROUVABLE` : affirmer une absence qu'on n'a pas constatée est
    exactement ce que §2 interdit. Seul un **404** justifie un rattrapage puis un INTROUVABLE.
+   *Étendu le 2026-09-16, après l'avoir trouvé enfreint sur SIX chemins.* Il était énoncé
+   pour `verify_citations` et respecté là ; il ne l'était nulle part ailleurs. La racine
+   tenait en un champ : `src/store/lookup.ts` rendait `message: null` sur le statut
+   « erreur », et chaque appelant retombait donc sur SON texte d'absence par défaut. Un 429
+   ressortait en « Aucune fiche pour … » par `jurisprudence_citator` et
+   `jurisprudence_subsequent_history`, flanqué des explications d'ABSENCE par
+   `jurisprudence_get_case` (forme par identifiants), en « Aucun candidat » par
+   `jurisprudence_find_case`, et en « Aucune décision » par `jurisprudence_browse_cases`
+   quand les entrées rendues n'étaient pas lisibles. **Quatre symptômes, un défaut.**
+   **Trois règles en découlent, et elles se tiennent :**
+   *(a)* la CAUSE se nomme dans la sortie — « CanLII a étranglé les appels (429) », et non
+   « injoignable » : sans cela le lecteur ne sait pas s'il doit réessayer ou corriger sa
+   clef, et rien n'empêche le message de redevenir `null` sans qu'un test ne bouge ;
+   *(b)* une explication d'ABSENCE (`EXPLICATIONS_INTROUVABLE`) ne s'accole QU'À un 404 ;
+   son pendant `EXPLICATION_INDETERMINEE` couvre tout le reste, et les deux vivent en **un
+   seul exemplaire** dans `src/format/render.ts`, pour le motif de l'invariant 6 ;
+   *(c)* « ne pas avoir pu chercher » n'est pas « n'avoir rien trouvé » — un balayage
+   interrompu s'annonce INTERROMPU dès l'en-tête, et non par une note placée SOUS une
+   affirmation déjà faite.
+   ⚠ Le garde-fou est un **balayage structurel** dans `test/garde.test.ts`, et il porte son
+   PENDANT POSITIF : sur un 404, les explications d'absence doivent être LÀ. Sans cette
+   seconde moitié, on satisferait la première en retirant la garantie de §2 partout —
+   c'est-à-dire en détruisant ce qu'elle protège.
 10. **Un appariement d'intitulé PARTIEL vaut DISCORDANTE, jamais CONFIRMÉE** (§6.5). Mieux
     vaut un faux signalement qu'une fausse assurance.
 11. **Les intitulés anonymisés se comparent par leur NUMÉRO** (« Droit de la famille —
@@ -412,7 +435,7 @@ qu'elle vaudra encore le jour où l'on voudra rouvrir la question (§12).
 
 ## État
 
-**Livré et en production** sur `jurisprudence.poirierlavoie.ca`, 474 tests verts en quinze
+**Livré et en production** sur `jurisprudence.poirierlavoie.ca`, 483 tests verts en quinze
 fichiers. Treize outils — dix `jurisprudence_*`, trois `greffe_*`/`palais_*` — et une page
 publique bilingue sur la même origine (§18). La version en ligne a été déployée **à la main**, comme toutes celles qui l'ont
 précédée ; `/health` annonce le commit dont elle est issue (§8, §12.1). Le déploiement

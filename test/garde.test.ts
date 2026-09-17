@@ -17,6 +17,8 @@
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { CanliiError } from "../src/canlii/errors";
+
 import {
   EXPLICATIONS_INTROUVABLE,
   GARDE_CITATEUR,
@@ -599,6 +601,155 @@ describe("§7.1 — une citation réémise ne peut pas forger un verdict", () =>
       .filter((l) => LIGNE_DE_VERDICT.test(l.trimEnd()));
     expect(verdicts).toHaveLength(1);
     expect(verdicts[0]).toMatch(/ILLISIBLE$/);
+  });
+});
+
+/**
+ * INVARIANT 9 — UNE PANNE N'EST PAS UNE ABSENCE, SUR TOUS LES CHEMINS.
+ *
+ * ╔══════════════════════════════════════════════════════════════════════════════╗
+ * ║ Ce balayage est STRUCTUREL : il ne vérifie pas un outil, il vérifie que la   ║
+ * ║ règle ne tombe nulle part. Le défaut qu'il ferme était réparti sur quatre    ║
+ * ║ outils, et aucun ne levait d'erreur : un 429 ressortait en « Aucune fiche    ║
+ * ║ pour … » ou flanqué des explications d'ABSENCE (« numéro erroné · décision   ║
+ * ║ hors de la collection »). Le lecteur concluait à l'inexistence d'une         ║
+ * ║ décision que personne n'avait cherchée.                                      ║
+ * ║                                                                              ║
+ * ║ La racine était dans `src/store/lookup.ts` : `message` valait `null` sur le  ║
+ * ║ statut « erreur », et chaque appelant retombait donc sur SON texte d'absence ║
+ * ║ par défaut. Un seul défaut, quatre symptômes.                                ║
+ * ╚══════════════════════════════════════════════════════════════════════════════╝
+ */
+describe("§2 / invariant 9 — aucun chemin ne présente une panne comme une absence", () => {
+  /** Ce qu'une sortie d'échec NON-404 ne doit jamais contenir. */
+  const MOTS_D_ABSENCE = [
+    "Explications possibles",
+    "Aucune fiche pour",
+    "n'établit pas l'inexistence",
+  ];
+
+  const etranglement = () => new CanliiError(429, "https://exemple.invalid/x", "");
+
+  /** Les quatre chemins qui appelaient CanLII et pouvaient mentir. */
+  const CHEMINS: ReadonlyArray<[string, Record<string, unknown>]> = [
+    ["jurisprudence_get_case", { database_id: "qcca", case_id: "2005qcca304" }],
+    ["jurisprudence_get_case", { citation: "2005 QCCA 304" }],
+    ["jurisprudence_citator", { citation: "2005 QCCA 304", rel: "citing" }],
+    ["jurisprudence_subsequent_history", { citation: "2005 QCCA 304" }],
+  ];
+
+  for (const [outil, args] of CHEMINS) {
+    const forme = "citation" in args ? "par citation" : "par identifiants";
+    it(`${outil} (${forme}) — un 429 ne se déguise pas en absence`, async () => {
+      const client = fakeClient({}, { erreur: () => etranglement() });
+      const t = texte(await callTool(outil, args, toolCtx(client)));
+      for (const mot of MOTS_D_ABSENCE) expect(t).not.toContain(mot);
+      expect(t).toContain("PAS un constat d'absence");
+      // La sortie NOMME la cause plutôt que de dire « injoignable » en général : sans
+      // cela, `src/store/lookup.ts` pourrait reperdre son `message` sans qu'aucun test
+      // ne bouge, et le lecteur ne saurait pas s'il doit réessayer ou corriger sa clef.
+      expect(t).toMatch(/étranglé|429/);
+    });
+  }
+
+  it("find_case — un balayage INTERROMPU ne s'annonce pas « aucun candidat »", async () => {
+    // Deux défauts se tenaient ici. « Aucun candidat » est un CONSTAT, affirmé alors
+    // qu'aucune recherche n'avait abouti ; et `appels` restant à 0, la provenance
+    // annonçait « aucun appel à CanLII » une ligne au-dessus de « CanLII a étranglé
+    // les appels ». Une sortie qui se contredit fait douter de tout le reste.
+    const client = fakeClient({}, { erreur: () => etranglement() });
+    const t = texte(
+      await callTool(
+        "jurisprudence_find_case",
+        { title: "Untel c. Autrui", database_id: "qcca", live: true },
+        toolCtx(client),
+      ),
+    );
+    expect(t).not.toContain("Aucun candidat");
+    expect(t).not.toContain("aucun appel à CanLII");
+    expect(t).toContain("INTERROMPUE");
+    expect(t).toContain("PAS un constat d'absence");
+  });
+
+  it("browse_cases — des entrées ILLISIBLES ne se rendent pas en « aucune décision »", async () => {
+    // Le `.filter` qui écarte les entrées non lisibles le faisait en silence. CanLII
+    // rendait des décisions, aucune n'était lisible, et la sortie annonçait une
+    // absence — alors que le défaut est dans NOTRE lecture, pas dans la collection.
+    const client = fakeClient({
+      "caseBrowse/fr/qcca/": { cases: [{}, {}, {}] },
+    });
+    const t = texte(
+      await callTool("jurisprudence_browse_cases", { database_id: "qcca" }, toolCtx(client)),
+    );
+    expect(t).not.toContain("Aucune décision pour");
+    expect(t).toContain("PAS un constat d'absence");
+    expect(t).toContain("LISIBLE");
+  });
+
+  it("le PENDANT positif : un 404 garde bien ses explications d'absence", async () => {
+    // Sans cette moitié, on pourrait satisfaire la précédente en retirant
+    // EXPLICATIONS_INTROUVABLE de partout — ce qui détruirait la garantie de §2
+    // au lieu de la corriger.
+    const client = fakeClient(
+      {},
+      { erreur: () => new CanliiError(404, "https://exemple.invalid/x", "") },
+    );
+    const t = texte(
+      await callTool(
+        "jurisprudence_get_case",
+        { database_id: "qcca", case_id: "2005qcca999999" },
+        toolCtx(client),
+      ),
+    );
+    expect(t).toContain(EXPLICATIONS_INTROUVABLE);
+    expect(t).not.toContain("PAS un constat d'absence");
+  });
+
+  it("la télémétrie ne confond plus un 404 avec une panne", async () => {
+    // `fallback` valait « api_error » dans les DEUX cas : un dépouillement de §10
+    // comptait une absence constatée comme une panne, et réciproquement.
+    const lu = async (statut: number) => {
+      await resetDb();
+      await seedDatabases();
+      const client = fakeClient(
+        {},
+        { erreur: () => new CanliiError(statut, "https://exemple.invalid/x", "") },
+      );
+      await callTool(
+        "jurisprudence_get_case",
+        { database_id: "qcca", case_id: "2005qcca304" },
+        toolCtx(client),
+      );
+      const r = await env.DB.prepare("SELECT fallback FROM search_log LIMIT 1").first<{
+        fallback: string | null;
+      }>();
+      return r?.fallback ?? null;
+    };
+    expect(await lu(404)).toBe("not_found");
+    expect(await lu(429)).toBe("api_error");
+  });
+});
+
+describe("§7.1 — l'analyse porte sur la citation ENTIÈRE, la borne est un écho", () => {
+  it("une citation de plus de 200 caractères reste analysable", async () => {
+    // `citationSure` borne à 200 pour la RÉÉMISSION. Analyser cette forme bornée
+    // faisait rendre ILLISIBLE sur une citation doctrinale valide dont la citation
+    // neutre tombait après la coupure — un verdict faux, rendu avec aplomb.
+    const bourrage = "Untel c. Autrui et consorts, société en commandite, ".repeat(5);
+    const longue = `${bourrage}2005 QCCA 304`;
+    expect(longue.length).toBeGreaterThan(200);
+    expect(longue.indexOf("2005 QCCA 304")).toBeGreaterThan(200);
+
+    const r = await callTool(
+      "jurisprudence_verify_citations",
+      { citations: [{ citation: longue }] },
+      toolCtx(fakeClient({ "caseBrowse/fr/qcca/2005qcca304/": qcca2005 })),
+    );
+    const t = texte(r);
+    expect(t).not.toContain("ILLISIBLE");
+    expect(t).toContain("CONFIRMÉE");
+    // L'écho, lui, reste borné : la citation réémise porte le signe de coupure.
+    expect(t).toContain("…");
   });
 });
 

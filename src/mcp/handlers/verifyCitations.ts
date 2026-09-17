@@ -1,7 +1,10 @@
 /**
  * `jurisprudence_verify_citations` — L'OUTIL PIVOT (spécification §7.1, annexe A.1).
  *
- * Cinq verdicts : CONFIRMÉE · DISCORDANTE · INTROUVABLE · NON CONSTRUCTIBLE · ILLISIBLE.
+ * SIX verdicts. CINQ portent un constat : CONFIRMÉE · DISCORDANTE · INTROUVABLE ·
+ * NON CONSTRUCTIBLE · ILLISIBLE. Le sixième, INDÉTERMINÉE, dit qu'AUCUN constat n'a pu
+ * être fait — et ne vaut JAMAIS absence (invariant 9). Ce cartouche en annonçait CINQ
+ * alors que le fichier en poussait six depuis longtemps ; corrigé le 2026-09-16.
  *
  * Les quatre conséquences du contrat de vérité (§2) sont ici, et chacune est
  * verrouillée par `test/garde.test.ts` :
@@ -21,6 +24,7 @@ import { compareTitles } from "../../citation/compare";
 import { formLabel, parseCitation, resolve } from "../../citation/parse";
 import { dateFr, pluriel } from "../../format/fr";
 import {
+  EXPLICATION_INDETERMINEE,
   EXPLICATIONS_INTROUVABLE,
   ficheDecision,
   GARDE_VERIFICATION,
@@ -68,15 +72,27 @@ type Verdict =
  * ║ nom d'outil inconnu.                                                         ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
-export function citationSure(brut: string): string {
+export function citationAssainie(brut: string): string {
   // Tout blanc — saut de ligne, tabulation, séparateurs Unicode — devient une
   // espace simple. `\s` en JavaScript couvre déjà \n, \r, \t, \v, \f et U+2028/29.
   const uneLigne = brut.replace(/\s+/g, " ").trim();
   // Les autres caractères de contrôle ne sont pas des blancs et survivraient au
   // remplacement ci-dessus ; ils n'ont rien à faire dans une citation.
   // biome-ignore lint/suspicious/noControlCharactersInRegex: c'est précisément ce qu'on retire.
-  const sansControle = uneLigne.replace(/[\u0000-\u001f\u007f]/g, "");
-  return sansControle.length > 200 ? `${sansControle.slice(0, 200)}…` : sansControle;
+  return uneLigne.replace(/[\u0000-\u001f\u007f]/g, "");
+}
+
+/**
+ * La forme d'ÉCHO : assainie ET bornée à 200 caractères.
+ *
+ * ⚠ La borne appartient à l'AFFICHAGE, jamais à l'analyse. Ne pas réunir les deux
+ *   fonctions « pour simplifier » : c'est précisément la confusion qui a fait analyser
+ *   une citation tronquée, et rendre ILLISIBLE une citation doctrinale valide dont la
+ *   citation neutre tombait au-delà du 200ᵉ caractère.
+ */
+export function citationSure(brut: string): string {
+  const assainie = citationAssainie(brut);
+  return assainie.length > 200 ? `${assainie.slice(0, 200)}…` : assainie;
 }
 
 interface Demande {
@@ -101,8 +117,18 @@ export async function verifyCitations(
   let budgetEpuise = false;
 
   for (const d of demandes) {
-    const citation = citationSure(String(d.citation ?? ""));
-    const parsed = parseCitation(citation, connus);
+    // DEUX formes de la même entrée, et la distinction est load-bearing.
+    //
+    // `citationSure` BORNE à 200 caractères parce que la citation est RÉÉMISE en tête
+    // du bloc : c'est une précaution d'ÉCHO. Analyser cette forme bornée était un
+    // défaut — une citation doctrinale complète (« Machin c. Truc, [2008] 1 R.C.S. 190,
+    // 2008 CSC 9, par. 47 »ss, avec noms de parties et historique) dépasse aisément 200
+    // caractères, et sa citation neutre se trouve alors APRÈS la coupure. L'analyseur
+    // ne la voyait jamais : verdict ILLISIBLE sur une citation parfaitement valide,
+    // rendu avec aplomb. Introduit le 2026-09-16 avec le repli, corrigé le même jour.
+    const brut = String(d.citation ?? "");
+    const citation = citationSure(brut);
+    const parsed = parseCitation(citationAssainie(brut), connus);
     const res = resolve(parsed.primary, dir);
 
     // ── ILLISIBLE ──────────────────────────────────────────────────────────
@@ -219,7 +245,7 @@ export async function verifyCitations(
       // Une panne réseau n'est PAS une absence : la présenter en INTROUVABLE
       // affirmerait un fait qu'on n'a pas constaté.
       blocs.push(
-        `${citation} — INDÉTERMINÉE\nCanLII n'a pas pu être interrogé. Ce n'est PAS un constat d'absence : réessayer.`,
+        `${citation} — INDÉTERMINÉE\nCanLII n'a pas pu être interrogé. ${EXPLICATION_INDETERMINEE}`,
       );
       journal.push({
         tool: "jurisprudence_verify_citations",

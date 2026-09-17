@@ -6,7 +6,7 @@
 **Auteur de la spéc. :** (préparé pour Jason Poirier Lavoie)
 **Cible :** nouveau dépôt autonome — Worker Cloudflare, D1, TypeScript
 **Modèle de référence :** le Worker `legislation` / base D1 `qclaw` (connecteur « Législation du Québec »)
-**Statut :** **livré et en production** sur `jurisprudence.poirierlavoie.ca` — treize outils, 474 tests, page publique bilingue. *Amendé le 2026-09-16 ; l'en-tête portait « prêt à implémenter », vrai jusqu'au premier déploiement du 2026-07-23 et faux depuis.* Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
+**Statut :** **livré et en production** sur `jurisprudence.poirierlavoie.ca` — treize outils, 483 tests, page publique bilingue. *Amendé le 2026-09-16 ; l'en-tête portait « prêt à implémenter », vrai jusqu'au premier déploiement du 2026-07-23 et faux depuis.* Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
 
 ---
 
@@ -164,7 +164,7 @@ arrivés après la rédaction initiale : ils figurent ici, à leur place.*
 │   └── deployer.mjs          # §12 — migrations PUIS déploiement ; refuse un arbre sale
 ├── sources-officielles/      # la PREUVE, pas un résidu — voir ci-dessous
 │   └── mjq-numeros-greffes-2026-07-22.html
-├── test/                     # 474 tests en 15 fichiers, sans réseau ni clef
+├── test/                     # 483 tests en 15 fichiers, sans réseau ni clef
 │   ├── citation.parse.test.ts · citation.compare.test.ts · verify.test.ts
 │   ├── client.test.ts · rpc.test.ts · persist.test.ts · tools.test.ts
 │   ├── qc.tables.test.ts · qc.outils.test.ts · qc.dossier.test.ts
@@ -384,6 +384,29 @@ CREATE TABLE search_log (
   fallback     TEXT
 );
 CREATE INDEX idx_search_log_misses ON search_log(tool, ts) WHERE result_count = 0;
+```
+
+**Le vocabulaire de `fallback`, et pourquoi il compte.** *Unifié le 2026-09-16.* Cette colonne
+distingue un ÉCHEC d'une ABSENCE, et les confondre rend §10 muet sur la seule question qui
+l'intéresse : le connecteur a-t-il conclu, ou n'a-t-il pas pu ?
+
+| Valeur | Ce qu'elle dit |
+|---|---|
+| `null` | l'outil a conclu normalement |
+| `not_found`, `not_found_<voie>` | une ABSENCE réellement constatée — un 404 de CanLII |
+| `api_error` | aucun constat : 401, 429, 5xx, expiration, ou balayage interrompu |
+| `budget` | aucun constat : le budget d'appels du tour était épuisé |
+| `unknown_court` | tribunal absent du répertoire ⇒ INTROUVABLE sans appel (invariant 8) |
+| `unreadable_items` | CanLII a répondu, mais des entrées n'ont pas pu être LUES |
+| `stale_directory` | le rafraîchissement du répertoire a échoué ; le local a été servi |
+| `lang_swap`, `split_db` | l'auto-correction de §6.4 a dû rattraper |
+| `sweep` | balayage vif mené à son terme |
+
+⚠ `jurisprudence_get_case` écrivait `api_error` **y compris sur un 404**. Un dépouillement
+comptait donc une absence constatée comme une panne, et réciproquement — les deux séries étaient
+fausses, et leur somme juste. Défaut d'ANALYSE, pas d'exécution : rien ne plantait.
+
+```sql
 
 -- Consommation quotidienne : le quota de CanLII n'est pas publié (§16.2).
 CREATE TABLE api_usage (
@@ -995,6 +1018,17 @@ Deux pièces, posées le 2026-09-16, le rendent MESURABLE sans rouvrir ce qui a 
 **Client :** réessai sur `429` respectant `Retry-After` ; pas de réessai sur `400` ; expiration de délai ; `TOO_LONG` ⇒ `resultCount` halvé puis réessai unique ; **assertion que la clef n'apparaît dans aucune sortie de journal** (test de non-régression sur `redactUrl`).
 
 **Transport (`rpc.test.ts`) :** `initialize` négocie la version ; `tools/list` rend **13** outils tous pourvus d'une description non vide, et la scission des préfixes de §17.1 est vérifiée dans les deux sens ; `tools/call` sur outil inconnu ⇒ `isError`; `GET /mcp/<secret>` ⇒ `405` ; secret erroné ⇒ `401` ; **`/mcp/<secret>/` et `/mcp/<secret>//` ⇒ `200`** (barre oblique finale tolérée) ; **`/mcp/` nu ⇒ `401` seul, `200` avec un en-tête valide** ; **`/mcp/x%FF` ⇒ `401`, jamais `500` ni une exception qui remonte** ; **un en-tête `Bearer` erroné ne masque pas un chemin correct, ni l'inverse, et les deux porteurs se croisent** ; **deux porteurs faux ⇒ `401`** (élargir n'est pas ouvrir) ; **un secret contenant ou terminé par `/` s'authentifie encore** ; `MCP_ENABLED = "false"` ⇒ `404` partout.
+
+**Invariant 9, balayage STRUCTUREL (`garde.test.ts`) — ajouté le 2026-09-16.** Six chemins qui
+appelaient CanLII pouvaient présenter une panne comme une absence, et aucun ne levait d'erreur :
+`get_case` (les DEUX formes), `citator`, `subsequent_history`, `find_case` et `browse_cases`. Sur
+un 429, chacun rendait « Aucune fiche pour … » ou les explications d'ABSENCE (« numéro erroné ·
+décision hors de la collection »). La racine était unique — `src/store/lookup.ts` rendait
+`message: null` sur le statut « erreur », et chaque appelant retombait alors sur SON texte
+d'absence par défaut. Le test éprouve les six chemins, exige que la sortie NOMME la cause (sans
+quoi le message pourrait redevenir `null` sans qu'aucun test ne bouge), et porte son **pendant
+positif** : sur un 404, les explications d'absence doivent être LÀ. Sans cette seconde moitié, on
+satisferait la première en retirant la garantie de §2 partout.
 
 **Persistance :** un balayage remplit `cases` **et** `cases_fts` (déclencheurs) ; un second appel identique ne fait aucun appel sortant ; `refresh: true` en refait un.
 

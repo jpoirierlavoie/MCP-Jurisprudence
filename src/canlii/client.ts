@@ -332,29 +332,100 @@ export function createClient(
   return new Client({ ...configFromEnv(env), ...overrides }, seams);
 }
 
-/** Traduit une erreur du client en phrase française destinée à l'usager. */
-export function describeError(err: unknown): string {
+/**
+ * CAUSE d'un échec sortant, nommée pour que le CODE puisse en tenir compte.
+ *
+ * ⚠ Ce vocabulaire ne sort JAMAIS du processus. Il n'est ni rendu à l'usager, ni
+ *   journalisé, ni annoncé dans une description d'outil. Il sert à une seule chose :
+ *   permettre à un gestionnaire de choisir la BONNE PROSE, là où il n'avait jusqu'ici
+ *   qu'une phrase indifférenciée.
+ *
+ *   Ce point est load-bearing. La tentation, en lisant ceci, est d'exposer la cause au
+ *   client — un jeton « Issue : ETRANGLEMENT » qu'une expression régulière saurait lire.
+ *   C'est refusé, pour deux motifs qui se cumulent. D'abord l'invariant 4 : ses quatre
+ *   conditions exigent un consommateur par programme IDENTIFIÉ, et il n'en existe aucun
+ *   (§19 — le seul client est claude.ai, qui rend du texte à un modèle). Ensuite, et
+ *   c'est décisif, un tel jeton serait FORGEABLE : plusieurs gestionnaires réémettent
+ *   l'argument reçu (`Analyse de « … »`, `Aucun candidat pour « … »`), et le validateur
+ *   ne connaît pas `pattern`. Un appelant fournissant une citation qui contient un saut
+ *   de ligne et une fausse ligne d'issue fabriquerait le jeton lui-même — exactement le
+ *   défaut que `citationSure()` a été écrite pour fermer, rouvert un cran plus loin.
+ */
+export type CauseCanlii =
+  | "AUTHENTIFICATION_REFUSEE"
+  | "ETRANGLEMENT"
+  | "EXPIRATION"
+  | "PANNE_AMONT"
+  | "REPONSE_TROP_VOLUMINEUSE"
+  | "BUDGET_EPUISE"
+  | "INTROUVABLE_404";
+
+export interface ErreurDecrite {
+  /** Pour le CODE. Ne jamais rendre cette valeur à l'usager. */
+  readonly cause: CauseCanlii;
+  /** Pour l'USAGER. C'est elle, et elle seule, qui paraît dans une sortie d'outil. */
+  readonly phrase: string;
+}
+
+/**
+ * Traduit une erreur du client en cause + phrase française.
+ *
+ * ⚠ `INTROUVABLE_404` est la seule cause qui constate une ABSENCE. Toutes les autres
+ *   disent qu'aucun constat n'a pu être fait (invariant 9). Un gestionnaire qui colle
+ *   des explications d'absence sur l'une des six autres affirme une inexistence qu'il
+ *   n'a pas observée — ce que §2 interdit, et ce qui a été corrigé le 2026-09-16 dans
+ *   `getCase`, `cible` et `findCase`.
+ */
+export function analyserErreur(err: unknown): ErreurDecrite {
   if (err instanceof CanliiBudgetError) {
-    return `Budget d'appels épuisé (${err.callsMade}/${err.budget}) — résultat partiel.`;
+    return {
+      cause: "BUDGET_EPUISE",
+      phrase: `Budget d'appels épuisé (${err.callsMade}/${err.budget}) — résultat partiel.`,
+    };
   }
   if (err instanceof CanliiTimeoutError) {
-    return "Délai d'expiration dépassé en interrogeant CanLII. Réessayer plus tard.";
+    return {
+      cause: "EXPIRATION",
+      phrase: "Délai d'expiration dépassé en interrogeant CanLII. Réessayer plus tard.",
+    };
   }
   if (err instanceof CanliiError) {
     if (err.code === "TOO_LONG") {
-      return "Réponse de CanLII trop volumineuse (plafond de 10 Mo) même après réduction de la pagination. Restreindre la fenêtre de dates.";
+      return {
+        cause: "REPONSE_TROP_VOLUMINEUSE",
+        phrase:
+          "Réponse de CanLII trop volumineuse (plafond de 10 Mo) même après réduction de la pagination. Restreindre la fenêtre de dates.",
+      };
     }
     switch (err.status) {
       case 401:
       case 403:
-        return "CanLII a refusé la clef d'API (401/403). Vérifier le secret CANLII_API_KEY.";
+        return {
+          cause: "AUTHENTIFICATION_REFUSEE",
+          phrase: "CanLII a refusé la clef d'API (401/403). Vérifier le secret CANLII_API_KEY.",
+        };
       case 404:
-        return "Aucune fiche à cette adresse dans la collection de CanLII (404).";
+        return {
+          cause: "INTROUVABLE_404",
+          phrase: "Aucune fiche à cette adresse dans la collection de CanLII (404).",
+        };
       case 429:
-        return "CanLII a étranglé les appels (429). Réessayer plus tard.";
+        return {
+          cause: "ETRANGLEMENT",
+          phrase: "CanLII a étranglé les appels (429). Réessayer plus tard.",
+        };
       default:
-        return `CanLII a renvoyé une erreur ${err.status}.`;
+        return { cause: "PANNE_AMONT", phrase: `CanLII a renvoyé une erreur ${err.status}.` };
     }
   }
-  return "Erreur inattendue en interrogeant CanLII.";
+  return { cause: "PANNE_AMONT", phrase: "Erreur inattendue en interrogeant CanLII." };
+}
+
+/**
+ * Phrase française seule, pour les gestionnaires qui n'ont pas à distinguer la cause.
+ *
+ * Projection de `analyserErreur` : les deux ne peuvent pas diverger.
+ */
+export function describeError(err: unknown): string {
+  return analyserErreur(err).phrase;
 }

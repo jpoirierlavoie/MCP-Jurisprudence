@@ -14,6 +14,7 @@
  */
 
 import type { CanliiClient } from "../canlii/client";
+import { analyserErreur } from "../canlii/client";
 import { CanliiBudgetError, CanliiError } from "../canlii/errors";
 import type { CaseMetadata, Lang } from "../canlii/types";
 import type { Directory, NeutralForm, Resolution, ResolvableForm } from "../citation/parse";
@@ -258,12 +259,16 @@ export async function lookupCase(
       // Une erreur qui n'est PAS un 404 (401, 429, 5xx, expiration) ne doit surtout pas
       // se présenter comme un INTROUVABLE : ce serait affirmer une absence qu'on n'a
       // pas constatée.
+      // La PHRASE de la cause voyage avec le statut. Elle valait `null`, et les
+      // appelants retombaient alors sur leur message d'ABSENCE par défaut : un 429
+      // ressortait en « Aucune fiche pour … » sur trois outils. C'était l'invariant 9
+      // enfreint à la racine, et non chez l'appelant. Corrigé le 2026-09-16.
       return {
         status: "erreur",
         row: null,
         provenance: null,
         fallback: "api_error",
-        message: null,
+        message: analyserErreur(e).phrase,
       };
     }
   }

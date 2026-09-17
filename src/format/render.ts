@@ -96,6 +96,23 @@ export const EXPLICATIONS_INTROUVABLE =
   "Explications possibles : numéro erroné · décision hors de la collection ·\n" +
   "diffusion récente (prévoir un jeu de 2 jours).";
 
+/**
+ * Le PENDANT d'`EXPLICATIONS_INTROUVABLE`, pour un échec qui n'est PAS une absence.
+ *
+ * ⚠ Ces deux constantes ne sont pas interchangeables, et les confondre est le défaut
+ *   que l'invariant 9 nomme. `EXPLICATIONS_INTROUVABLE` énumère des causes d'ABSENCE —
+ *   numéro erroné, décision hors collection, diffusion récente. Servie sur un 401, un
+ *   429 ou une expiration, elle fait conclure à l'inexistence d'une décision que
+ *   personne n'a cherchée : CanLII n'a simplement pas répondu. Celle-ci dit l'inverse,
+ *   et le dit en toutes lettres plutôt que de laisser le lecteur l'inférer.
+ *
+ *   Elle vit en UN SEUL exemplaire pour la même raison que la boucle d'auto-correction
+ *   (invariant 6) : deux formulations de la même réserve divergeraient, et l'une
+ *   finirait par être affaiblie sans que l'autre le soit.
+ */
+export const EXPLICATION_INDETERMINEE =
+  "AUCUN constat n'a été fait : ce n'est PAS un constat d'absence. Réessayer plus tard.";
+
 // ── Mises en garde des tables du Québec (§17) ─────────────────────────────────
 //
 // Les trois constantes ci-dessous obéissent à la MÊME règle que celles de CanLII

@@ -18,6 +18,7 @@ import { persisterBalayages } from "../../config";
 import { pluriel, troncature } from "../../format/fr";
 import {
   document,
+  EXPLICATION_INDETERMINEE,
   GARDE_RECHERCHE,
   ligneCandidat,
   noteEtranglement,
@@ -74,6 +75,7 @@ export async function findCase(
   let vives: CaseRow[] = [];
   let noteBalayage: string | null = null;
   let budgetEpuise = false;
+  let balayageEchoue = false;
 
   if (live) {
     // Sans tribunal précisé : fenêtre d'au plus 3 ans et bases québécoises usuelles.
@@ -90,6 +92,7 @@ export async function findCase(
       );
     }
 
+    const avantBalayage = ctx.client.callsMade();
     try {
       const r = await balayer(ctx, bases, debut, fin, lang, titre, now);
       vives = r.retenues;
@@ -97,6 +100,13 @@ export async function findCase(
       appels = r.appels;
       budgetEpuise = r.budgetEpuise;
     } catch (e) {
+      balayageEchoue = true;
+      // Les appels DÉJÀ FAITS ne s'effacent pas parce que le balayage a levé.
+      // Sans cette ligne, `appels` reste à 0, et `provenance()` rend « aucun appel à
+      // CanLII » — juste au-dessus de « Balayage interrompu — CanLII a étranglé les
+      // appels (429) ». Une sortie qui se contredit se lit plus mal qu'un silence, et
+      // fait douter du reste. Trouvé en éprouvant le correctif, le 2026-09-16.
+      appels = ctx.client.callsMade() - avantBalayage;
       noteBalayage = `Balayage interrompu — ${describeError(e)}`;
     } finally {
       await flushUsage(ctx.db, ctx.client.usage(), now);
@@ -119,7 +129,8 @@ export async function findCase(
     database_id: databaseId,
     lang,
     result_count: rendus.length,
-    fallback: live ? "sweep" : null,
+    // Un balayage interrompu n'est pas un balayage vide : §10 les comptait ensemble.
+    fallback: live ? (balayageEchoue ? "api_error" : "sweep") : null,
   });
 
   const prov = provenance({
@@ -132,11 +143,17 @@ export async function findCase(
   if (rendus.length === 0) {
     return ok(
       [
-        `Aucun candidat pour « ${titre} »${databaseId ? ` (${databaseId})` : ""}${fenetreLabel(yearFrom, yearTo)}.`,
+        // « Aucun candidat » est un CONSTAT. Quand le balayage a échoué, il n'y a pas
+        // eu de constat : l'en-tête le dit, au lieu de laisser la note d'échec plus bas
+        // corriger une affirmation déjà faite. Invariant 9 ; 2026-09-16.
+        balayageEchoue
+          ? `Recherche INTERROMPUE pour « ${titre} »${databaseId ? ` (${databaseId})` : ""}${fenetreLabel(yearFrom, yearTo)} — aucun constat.`
+          : `Aucun candidat pour « ${titre} »${databaseId ? ` (${databaseId})` : ""}${fenetreLabel(yearFrom, yearTo)}.`,
         "",
         prov,
         noteBalayage,
         budgetEpuise ? "Budget d'appels épuisé — résultat partiel." : null,
+        balayageEchoue ? EXPLICATION_INDETERMINEE : null,
         // ⚠ C'EST ICI QUE LA NOTE COMPTE LE PLUS. « Aucun candidat » PLUS un
         //   étranglement, c'est exactement la configuration où un modèle conclut à
         //   l'inexistence d'une décision alors que des appels ont été refusés. Le

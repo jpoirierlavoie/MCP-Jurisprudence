@@ -79,6 +79,12 @@ export async function browseCases(
   const lignes = items
     .map((it) => rowFromListItem(it, databaseId, lang, "sweep", now))
     .filter((r): r is CaseRow => r !== null);
+  // Ce `.filter` écarte les entrées que `rowFromListItem` ne sait pas lire, et il le
+  // faisait EN SILENCE. Si CanLII rend vingt décisions dont aucune n'est lisible, la
+  // sortie annonçait « Aucune décision pour qcca » — une absence affirmée alors que la
+  // collection en contient et que le défaut est dans NOTRE lecture. C'est l'invariant 9
+  // sous un autre habit : l'écart se compte, et il se dit. 2026-09-16.
+  const ecartees = items.length - lignes.length;
 
   // D6 : ce qui a été moissonné pour répondre est persisté.
   if (persisterBalayages(ctx.env)) await upsertCases(ctx.db, lignes);
@@ -89,15 +95,19 @@ export async function browseCases(
     database_id: databaseId,
     lang,
     result_count: lignes.length,
+    fallback: ecartees > 0 ? "unreadable_items" : null,
   });
 
   if (lignes.length === 0) {
     return ok(
       [
-        `Aucune décision pour ${databaseId}${appliques.length ? ` (${appliques.join(", ")})` : ""}.`,
+        ecartees > 0
+          ? `Aucune décision LISIBLE pour ${databaseId}${appliques.length ? ` (${appliques.join(", ")})` : ""} — CanLII en a pourtant rendu ${nombreFr(ecartees)}.`
+          : `Aucune décision pour ${databaseId}${appliques.length ? ` (${appliques.join(", ")})` : ""}.`,
         "",
-        "Une liste vide n'établit pas l'absence de décisions : vérifier le database_id",
-        "(jurisprudence_list_databases) et les bornes de dates, qui sont INCLUSIVES.",
+        ecartees > 0
+          ? "Ce n'est PAS un constat d'absence : la cause est dans la LECTURE de la réponse,\npas dans la collection de CanLII."
+          : "Une liste vide n'établit pas l'absence de décisions : vérifier le database_id\n(jurisprudence_list_databases) et les bornes de dates, qui sont INCLUSIVES.",
         filtreDiffusion ? `\n${GARDE_DIFFUSION}` : null,
       ]
         .filter((s): s is string => s !== null)
@@ -112,6 +122,9 @@ export async function browseCases(
   const pied = [
     lignes.length === limit
       ? `Page pleine : il y a probablement d'autres résultats. Rappeler avec offset=${nombreFr(offset + limit)}.`
+      : null,
+    ecartees > 0
+      ? `${nombreFr(ecartees)} entrée(s) rendue(s) par CanLII n'ont pas pu être lues et ne figurent pas ci-dessus.`
       : null,
     "Les listes de CanLII ne portent ni date de décision, ni numéro de dossier, ni",
     "hyperlien : pour la fiche complète d'une décision, employer jurisprudence_get_case.",

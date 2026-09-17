@@ -6,10 +6,15 @@
  * contrôlé ici.
  */
 
-import { describeError } from "../../canlii/client";
+import { analyserErreur } from "../../canlii/client";
 import type { CaseMetadata, Lang } from "../../canlii/types";
 import { parseCitation, resolve } from "../../citation/parse";
-import { EXPLICATIONS_INTROUVABLE, ficheDecision, GARDE_VERIFICATION } from "../../format/render";
+import {
+  EXPLICATION_INDETERMINEE,
+  EXPLICATIONS_INTROUVABLE,
+  ficheDecision,
+  GARDE_VERIFICATION,
+} from "../../format/render";
 import { getCachedCase, rowFromMetadata, upsertCase } from "../../store/cases";
 import { loadDirectory } from "../../store/databases";
 import { lookupCase } from "../../store/lookup";
@@ -78,15 +83,30 @@ export async function getCase(
       });
       return ok(rendre(row, "CanLII"));
     } catch (e) {
+      // SEUL un 404 constate une absence. Ce `catch` attrapait aussi les 401, 429,
+      // 5xx, expirations et budgets épuisés, et leur collait EXPLICATIONS_INTROUVABLE
+      // — « numéro erroné · décision hors de la collection · diffusion récente ».
+      // Sur un étranglement, le lecteur en concluait que la décision n'existe
+      // probablement pas, alors que CanLII n'avait pas répondu. Invariant 9 ;
+      // corrigé le 2026-09-16. La branche par citation, elle, faisait déjà le partage.
+      const d = analyserErreur(e);
+      const absence = d.cause === "INTROUVABLE_404";
       await logSearch(ctx.db, {
         tool: "jurisprudence_get_case",
         query: `${databaseId}/${caseId}`,
         database_id: databaseId,
         lang,
         result_count: 0,
-        fallback: "api_error",
+        // `api_error` était écrit AUSSI sur un 404 : un dépouillement de §10 comptait
+        // une absence réellement constatée comme une panne, et réciproquement. Le
+        // vocabulaire s'aligne ici sur celui de src/store/lookup.ts.
+        fallback: absence ? "not_found" : d.cause === "BUDGET_EPUISE" ? "budget" : "api_error",
       });
-      return err(`${describeError(e)}\n\n${EXPLICATIONS_INTROUVABLE}`);
+      return err(
+        absence
+          ? `${d.phrase}\n\n${EXPLICATIONS_INTROUVABLE}`
+          : `${d.phrase}\n${EXPLICATION_INDETERMINEE}`,
+      );
     } finally {
       await flushUsage(ctx.db, ctx.client.usage(), now);
     }
@@ -129,9 +149,12 @@ export async function getCase(
     });
     if (lookup.row)
       return ok(rendre(lookup.row, lookup.provenance === "cache" ? "index local" : "CanLII"));
-    if (lookup.status === "erreur") {
+    // « budget » rejoint « erreur » : un budget d'appels épuisé avant d'avoir pu
+    // interroger CanLII ne constate rien non plus, et tombait jusqu'ici dans la
+    // branche INTROUVABLE ci-dessous, avec ses explications d'absence.
+    if (lookup.status === "erreur" || lookup.status === "budget") {
       return err(
-        "CanLII n'a pas pu être interrogé. Ce n'est PAS un constat d'absence : réessayer.",
+        `${lookup.message ?? "CanLII n'a pas pu être interrogé."}\n${EXPLICATION_INDETERMINEE}`,
       );
     }
     return err(
