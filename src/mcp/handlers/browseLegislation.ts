@@ -11,6 +11,7 @@ import { fold } from "../../citation/normalize";
 import { nombreFr, pluriel, troncature } from "../../format/fr";
 import { document } from "../../format/render";
 import { flushUsage, logSearch } from "../../store/telemetry";
+import { LIMITES } from "../defauts";
 import type { ToolContext } from "../registry";
 import { err, ok, type ToolResult } from "../rpc";
 
@@ -21,7 +22,8 @@ export async function browseLegislation(
   const databaseId = String(args.database_id ?? "").trim();
   const lang = (args.lang as Lang) ?? "fr";
   const query = (args.query as string | undefined)?.trim();
-  const limit = Math.min(Math.max((args.limit as number) ?? 50, 1), 100);
+  const bornes = LIMITES.browse_legislation;
+  const limit = Math.min(Math.max((args.limit as number) ?? bornes.defaut, 1), bornes.max);
   const offset = Math.max((args.offset as number) ?? 0, 0);
   const now = ctx.now ?? new Date();
 

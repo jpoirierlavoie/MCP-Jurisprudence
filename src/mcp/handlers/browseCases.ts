@@ -15,6 +15,7 @@ import { nombreFr, pluriel } from "../../format/fr";
 import { document, GARDE_DIFFUSION, ligneCandidat } from "../../format/render";
 import { type CaseRow, rowFromListItem, upsertCases } from "../../store/cases";
 import { flushUsage, logSearch } from "../../store/telemetry";
+import { LIMITES } from "../defauts";
 import type { ToolContext } from "../registry";
 import { err, ok, type ToolResult } from "../rpc";
 
@@ -38,7 +39,8 @@ export async function browseCases(
 ): Promise<ToolResult> {
   const databaseId = String(args.database_id ?? "").trim();
   const lang = (args.lang as Lang) ?? "fr";
-  const limit = Math.min(Math.max((args.limit as number) ?? 25, 1), 100);
+  const bornes = LIMITES.browse_cases;
+  const limit = Math.min(Math.max((args.limit as number) ?? bornes.defaut, 1), bornes.max);
   const offset = Math.max((args.offset as number) ?? 0, 0);
   const now = ctx.now ?? new Date();
 

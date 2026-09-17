@@ -26,6 +26,7 @@ import {
 } from "../../format/render";
 import { type CaseRow, rowFromListItem, searchLocal, upsertCases } from "../../store/cases";
 import { flushUsage, logSearch } from "../../store/telemetry";
+import { LIMITES } from "../defauts";
 import type { ToolContext } from "../registry";
 import { err, ok, type ToolResult } from "../rpc";
 
@@ -48,7 +49,8 @@ export async function findCase(
   const titre = String(args.title ?? "").trim();
   const databaseId = (args.database_id as string | undefined)?.trim() || null;
   const lang = (args.lang as Lang) ?? "fr";
-  const limit = Math.min(Math.max((args.limit as number) ?? 10, 1), 25);
+  const bornes = LIMITES.find_case;
+  const limit = Math.min(Math.max((args.limit as number) ?? bornes.defaut, 1), bornes.max);
   const now = ctx.now ?? new Date();
 
   const anneeCourante = now.getUTCFullYear();

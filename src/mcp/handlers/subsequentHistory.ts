@@ -25,6 +25,7 @@ import {
   replaceEdges,
 } from "../../store/citator";
 import { flushUsage, logSearch } from "../../store/telemetry";
+import { LIMITES } from "../defauts";
 import type { ToolContext } from "../registry";
 import { err, ok, type ToolResult } from "../rpc";
 import { resoudreCible } from "./cible";
@@ -50,7 +51,8 @@ export async function subsequentHistory(
   args: Record<string, unknown>,
   ctx: ToolContext,
 ): Promise<ToolResult> {
-  const limit = Math.min(Math.max((args.limit as number) ?? 20, 1), 50);
+  const bornes = LIMITES.subsequent_history;
+  const limit = Math.min(Math.max((args.limit as number) ?? bornes.defaut, 1), bornes.max);
   const refresh = args.refresh === true;
   const now = ctx.now ?? new Date();
 

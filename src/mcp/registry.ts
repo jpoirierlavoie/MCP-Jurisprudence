@@ -47,6 +47,7 @@
  */
 
 import type { CanliiClient } from "../canlii/client";
+import { LIMITES, OFFSET_DEFAUT, OFFSET_MAX } from "./defauts";
 import { browseCases } from "./handlers/browseCases";
 import { browseLegislation } from "./handlers/browseLegislation";
 import { citator } from "./handlers/citator";
@@ -132,8 +133,12 @@ const REFRESH: JsonSchema = {
 
 const DATE: JsonSchema = {
   type: "string",
+  minLength: 10,
   maxLength: 10,
-  description: "Date au format AAAA-MM-JJ. Borne INCLUSIVE.",
+  description:
+    "Date au format AAAA-MM-JJ, p. ex. « 2020-03-31 ». Borne INCLUSIVE. ⚠ Le format est " +
+    "imposé par l'outil et non par le schéma — le validateur ne connaît pas « pattern » — " +
+    "donc « 2020-3-1 » ou « 31/03/2020 » passent le schéma et sont refusés ensuite.",
 };
 
 /**
@@ -172,7 +177,8 @@ const CASE_ID: JsonSchema = {
   description:
     "Identifiant CanLII de la décision DANS cette base, p. ex. « 2008csc9 ». Rendu par " +
     "jurisprudence_verify_citations, jurisprudence_find_case et jurisprudence_browse_cases. " +
-    "S'emploie AVEC database_id ; si l'on n'a que la citation neutre, renseigner « citation » à la place.",
+    "S'emploie AVEC database_id ; si l'on n'a que la citation neutre, renseigner « citation » à la place." +
+    " ⚠ Fournir EXACTEMENT l'une des deux formes : soit « citation », soit le couple « database_id » + « case_id ». Les deux ensemble, ou aucune, sont REFUSÉS par l'outil — le schéma ne sait pas l'exprimer, lui seul le peut.",
 };
 
 const CITATION_REF: JsonSchema = {
@@ -183,14 +189,18 @@ const CITATION_REF: JsonSchema = {
     "Citation neutre, p. ex. « 2008 CSC 9 » ou « 2020 QCCA 495 ». Voie la plus simple : elle " +
     "dispense de connaître database_id et case_id. Les recueils (R.C.S., R.J.Q., C.A.) et les " +
     "identifiants d'éditeur (J.E., REJB, EYB, AZ) ne sont PAS résolubles ici — passer par " +
-    "jurisprudence_find_case.",
+    "jurisprudence_find_case." +
+    " ⚠ Fournir EXACTEMENT l'une des deux formes : soit « citation », soit le couple « database_id » + « case_id ». Les deux ensemble, ou aucune, sont REFUSÉS par l'outil — le schéma ne sait pas l'exprimer, lui seul le peut.",
 };
 
-const OFFSET: JsonSchema = {
-  type: "integer",
-  minimum: 0,
-  description: "Rang du premier résultat rendu, pour parcourir au-delà de « limit ». 0 par défaut.",
-};
+function offsetDe(quoi: string): JsonSchema {
+  return {
+    type: "integer",
+    minimum: OFFSET_DEFAUT,
+    maximum: OFFSET_MAX,
+    description: `Rang ${quoi}, pour parcourir au-delà de « limit ». ${OFFSET_DEFAUT} par défaut.`,
+  };
+}
 
 export const SERVER_INFO = {
   // `name` est un IDENTIFIANT, `title` un libellé : les deux ont changé le 2026-09-16,
@@ -329,20 +339,26 @@ export const TOOLS: Record<string, ToolDescriptor> = {
           maximum: 2100,
           description:
             "Borne INFÉRIEURE, incluse, sur l'année de la décision. CanLII filtre sur la date de " +
-            "DÉCISION, non de publication : une décision de 2019 diffusée en 2020 répond à 2019.",
+            "DÉCISION, non de publication : une décision de 2019 diffusée en 2020 répond à 2019. " +
+            "⚠ DEUX règles que le schéma ne sait pas imposer, et que l'outil impose : year_from " +
+            "doit être ≤ year_to ; et SANS « database_id », la fenêtre ne peut pas dépasser TROIS " +
+            "ans — un balayage vif sur toutes les bases québécoises coûterait trop d'appels. " +
+            "Préciser le tribunal pour ouvrir la fenêtre.",
         },
         year_to: {
           type: "integer",
           minimum: 1800,
           maximum: 2100,
-          description: "Borne SUPÉRIEURE, incluse, sur l'année de la décision.",
+          description:
+            "Borne SUPÉRIEURE, incluse, sur l'année de la décision. Doit être ≥ year_from — " +
+            "contrainte ENTRE champs, donc imposée par l'outil et non par le schéma.",
         },
         lang: LANG,
         limit: {
           type: "integer",
           minimum: 1,
           maximum: 25,
-          description: "Nombre de candidats rendus (défaut 10, maximum 25).",
+          description: `Nombre de candidats rendus (défaut ${LIMITES.find_case.defaut}, maximum ${LIMITES.find_case.max}).`,
         },
         live: {
           type: "boolean",
@@ -411,15 +427,9 @@ export const TOOLS: Record<string, ToolDescriptor> = {
           type: "integer",
           minimum: 1,
           maximum: 100,
-          description: "Nombre de lignes rendues (défaut 25, maximum 100).",
+          description: `Nombre de lignes rendues (défaut ${LIMITES.citator.defaut}, maximum ${LIMITES.citator.max}).`,
         },
-        offset: {
-          type: "integer",
-          minimum: 0,
-          maximum: 100000,
-          description:
-            "Rang de la première ligne rendue, pour parcourir au-delà de « limit ». 0 par défaut.",
-        },
+        offset: offsetDe("de la première ligne rendue"),
         refresh: REFRESH,
       },
       required: ["rel"],
@@ -450,7 +460,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
           minimum: 1,
           maximum: 50,
           description:
-            "Nombre de décisions citantes EXAMINÉES (défaut 25, maximum 50). Ce n'est PAS le nombre " +
+            `Nombre de décisions citantes EXAMINÉES (défaut ${LIMITES.subsequent_history.defaut}, maximum ${LIMITES.subsequent_history.max}). Ce n'est PAS le nombre ` +
             "de sorts rendus : seules sont retenues celles d'une juridiction supérieure dont " +
             "l'intitulé ressemble au sien.",
         },
@@ -474,19 +484,13 @@ export const TOOLS: Record<string, ToolDescriptor> = {
       properties: {
         database_id: BASE_ID,
         lang: LANG,
-        offset: {
-          type: "integer",
-          minimum: 0,
-          maximum: 100000,
-          description:
-            "Rang du premier texte rendu, pour parcourir au-delà de « limit ». 0 par défaut.",
-        },
+        offset: offsetDe("du premier texte rendu"),
         limit: {
           type: "integer",
           minimum: 1,
           maximum: 100,
           description:
-            "Nombre de fiches rendues (défaut 25, maximum 100). Bien en deçà du maximum de " +
+            `Nombre de fiches rendues (défaut ${LIMITES.browse_cases.defaut}, maximum ${LIMITES.browse_cases.max}). Bien en deçà du maximum de ` +
             "10 000 de l'API : au-delà, la sortie est inexploitable par un modèle.",
         },
         decision_date_after: DATE,
@@ -551,15 +555,9 @@ export const TOOLS: Record<string, ToolDescriptor> = {
           type: "integer",
           minimum: 1,
           maximum: 100,
-          description: "Nombre de décisions rendues (défaut 25, maximum 100).",
+          description: `Nombre de LOIS et RÈGLEMENTS rendus (défaut ${LIMITES.browse_legislation.defaut}, maximum ${LIMITES.browse_legislation.max}). Cet outil ne rend aucune décision.`,
         },
-        offset: {
-          type: "integer",
-          minimum: 0,
-          maximum: 100000,
-          description:
-            "Rang de la première décision rendue, pour parcourir au-delà de « limit ». 0 par défaut.",
-        },
+        offset: offsetDe("de la première décision rendue"),
       },
       required: ["database_id"],
       additionalProperties: false,
@@ -706,13 +704,21 @@ export const TOOLS: Record<string, ToolDescriptor> = {
       properties: {
         greffe_number: {
           type: "string",
+          minLength: 1,
           maxLength: 3,
-          description: "Numéro de greffe à 3 chiffres, p. ex. « 500 ».",
+          description:
+            "Numéro de greffe à 3 chiffres, p. ex. « 500 ». ⚠ Fournir EXACTEMENT l'un des deux : " +
+            "soit « greffe_number », soit « palais ». Les deux ensemble, ou aucun, sont REFUSÉS.",
         },
         palais: {
           type: "string",
+          minLength: 1,
           maxLength: 60,
-          description: "Nom ou clef du palais, p. ex. « Montréal » ou « saint-jerome ».",
+          description:
+            "Nom ou clef du palais, p. ex. « Montréal » ou « saint-jerome ». ⚠ Fournir " +
+            "EXACTEMENT l'un des deux : soit « palais », soit « greffe_number ». Les deux " +
+            "ensemble, ou aucun, sont REFUSÉS. Un nom ambigu fait rendre la LISTE des candidats " +
+            "plutôt qu'un choix arbitraire.",
         },
       },
       additionalProperties: false,

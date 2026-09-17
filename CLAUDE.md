@@ -62,7 +62,7 @@ est une recherche de chaîne dans les documents du praticien, pas une commande d
 |---|---|
 | **un outil** (ajout, retrait, renommage) | `src/mcp/registry.ts` · le gestionnaire dans `src/mcp/handlers/` · `OUTILS_EN` dans `src/site.i18n.ts` (parité testée **dans les deux sens**) · le tableau ET le compte de `README.md` §« Les treize outils » · §7 ou §17 de la spécification · les compteurs de `test/garde.test.ts`, `test/rpc.test.ts` et `test/doc.test.ts` (ce dernier affirme `NOMS.length === 13` AVANT toute confrontation — c'est l'assertion qui l'empêche de réussir sur le vide — et porte en plus `EN_LETTRES`, par quoi il éprouve le compte écrit en toutes lettres du README) · la **liste triée des noms** dans `test/rpc.test.ts` · la FAMILLE choisie (`jurisprudence_` = réponse de CanLII ; `greffe_`/`palais_` = table locale — invariant 16) · la DESCRIPTION doit nommer sa source, en français ET en anglais (c'est elle qui porte l'annonce depuis le 2026-09-16, et non plus le préfixe) · **hors dépôt, et aucune commande d'ici ne le voit** : la Compétence claude.ai de recherche juridique, qui code en dur les treize noms (voir plus haut) |
 | **une description ou un titre** | la page les rend **verbatim** : relancer `test/site.test.ts` (formulations interdites) et `test/garde.test.ts` (sous-chaînes épinglées) · `OUTILS_EN` doit rester une TRADUCTION, jamais une copie |
-| **un `inputSchema`** | `src/mcp/validate.ts` n'implémente qu'un SOUS-ENSEMBLE de JSON-Schema : ne pas déclarer ce qu'il ne sait pas imposer · la page génère ses tableaux de schéma depuis le même objet · `additionalProperties: false` reste obligatoire · **tout paramètre porte une `description`** — `test/garde.test.ts` échoue sinon, et les schémas partagés du haut de `registry.ts` (`BASE_ID`, `CASE_ID`, `CITATION_REF`, `OFFSET`, `LANG`, `REFRESH`) existent pour qu'une même notion ne soit pas décrite deux fois en divergeant |
+| **un `inputSchema`** | `src/mcp/validate.ts` n'implémente qu'un SOUS-ENSEMBLE de JSON-Schema : ne pas déclarer ce qu'il ne sait pas imposer · **une contrainte que le GESTIONNAIRE impose et que le schéma ne sait pas dire (XOR, format, bornes croisées) s'écrit dans la `description`, et se RÉPÈTE sur chaque membre plutôt que de renvoyer à l'autre** (§8) · **toute valeur par défaut ou maximum vient de `src/mcp/defauts.ts`, jamais d'un nombre écrit à la main** · la page génère ses tableaux de schéma depuis le même objet · `additionalProperties: false` reste obligatoire · **tout paramètre porte une `description`** — `test/garde.test.ts` échoue sinon, et les schémas partagés du haut de `registry.ts` (`BASE_ID`, `CASE_ID`, `CITATION_REF`, `OFFSET`, `LANG`, `REFRESH`) existent pour qu'une même notion ne soit pas décrite deux fois en divergeant |
 | **une constante `GARDE_*`** | elle vit dans le corps des réponses **et** sur la page · `test/garde.test.ts` · ⚠ *corrigé le 2026-09-16* : cette case disait « `MARQUEUR_RECONCILIATION` est en plus une chaîne de COUPLAGE lue par `scripts/refresh-databases.mjs` ». C+est l+inverse — le script refuse de découper la sortie sur un marqueur et repère les écarts par leur FORME (`/^·s+.+s+->s+S+/`), parce qu+un marqueur recopié vivrait des deux côtés d+une frontière TypeScript/JavaScript qu+aucun compilateur ne vérifie, et rendrait un feu vert mensonger le jour où la formulation change. La chaîne de couplage RÉELLE est l+en-tête « base(s) au répertoire de CanLII » (`src/mcp/handlers/listDatabases.ts`), sur laquelle le script pose son garde-fou : la modifier sans le prévenir le fait sortir en code 2 — refus de statuer — plutôt que conclure de travers. C+est elle qu+il faut propager. |
 | **une table de `src/qc/`** | les comptes de `test/qc.tables.test.ts` (51 palais · 57 greffes · 27 juridictions · 20 forums · 36 districts) · le nombre de lignes de la table de la page (`test/site.test.ts`) · « 43 palais et 8 points de service » dans `README.md` · les dates `RELEVE_LE` et `MJQ_MAJ` affichées |
 | **la page** | `test/site.test.ts` · §18 de la spécification · la section « Page publique » de `README.md` · le style reste **identique** à celui du connecteur jumeau (invariant 21) |
@@ -106,6 +106,9 @@ src/config.ts     lecture des `vars` : `flag()`, `entier()`. `wrangler types` le
                   LITTÉRAUX — `env.MCP_ENABLED === "true"` écrit en direct ne compile pas,
                   ou se réduit à une constante aux yeux du lecteur. Passer par ici.
 src/mcp/          rpc.ts (JSON-RPC) · validate.ts (JSON-Schema en sous-ensemble)
+                  defauts.ts — LIMITES et OFFSET_*, en un seul exemplaire : la description
+                  que le modèle lit et le `??` du gestionnaire viennent d'ici, sinon ils
+                  divergent (ils l'ont fait, sur trois outils sur cinq)
                   registry.ts (les 13 descripteurs, `SERVER_INFO`, `INSTRUCTIONS`) ·
                   handlers/ (un par outil, plus `cible.ts` — la résolution de la décision
                   de départ, partagée par le citateur et les sorts ultérieurs)
@@ -155,7 +158,7 @@ table en mémoire (aucune E/S). Ne pas fusionner.
 ```bash
 npx wrangler types && npx tsc --noEmit     # toujours avant commit
 npx biome check .                          # --write pour corriger
-npx vitest run                             # 487 tests, sans réseau ni clef
+npx vitest run                             # 495 tests, sans réseau ni clef
 npx wrangler dev                           # exige .dev.vars
 npx wrangler deploy --dry-run              # valide paquet + config, sans jeton
 npx wrangler d1 migrations apply canlii --local
@@ -435,7 +438,7 @@ qu'elle vaudra encore le jour où l'on voudra rouvrir la question (§12).
 
 ## État
 
-**Livré et en production** sur `jurisprudence.poirierlavoie.ca`, 487 tests verts en quinze
+**Livré et en production** sur `jurisprudence.poirierlavoie.ca`, 495 tests verts en quinze
 fichiers. Treize outils — dix `jurisprudence_*`, trois `greffe_*`/`palais_*` — et une page
 publique bilingue sur la même origine (§18). La version en ligne a été déployée **à la main**, comme toutes celles qui l'ont
 précédée ; `/health` annonce le commit dont elle est issue (§8, §12.1). Le déploiement

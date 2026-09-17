@@ -19,6 +19,7 @@ import {
   replaceEdges,
 } from "../../store/citator";
 import { flushUsage, logSearch } from "../../store/telemetry";
+import { LIMITES } from "../defauts";
 import type { ToolContext } from "../registry";
 import { err, ok, type ToolResult } from "../rpc";
 import { resoudreCible } from "./cible";
@@ -34,7 +35,8 @@ export async function citator(
   ctx: ToolContext,
 ): Promise<ToolResult> {
   const rel = args.rel as CitatorRel;
-  const limit = Math.min(Math.max((args.limit as number) ?? 50, 1), 100);
+  const bornes = LIMITES.citator;
+  const limit = Math.min(Math.max((args.limit as number) ?? bornes.defaut, 1), bornes.max);
   const offset = Math.max((args.offset as number) ?? 0, 0);
   const refresh = args.refresh === true;
   const now = ctx.now ?? new Date();

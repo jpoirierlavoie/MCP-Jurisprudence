@@ -18,7 +18,6 @@ import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { CanliiError } from "../src/canlii/errors";
-
 import {
   EXPLICATIONS_INTROUVABLE,
   GARDE_CITATEUR,
@@ -30,6 +29,7 @@ import {
   GARDE_SORTS_TETE,
   GARDE_VERIFICATION,
 } from "../src/format/render";
+import { LIMITES, OFFSET_DEFAUT, OFFSET_MAX } from "../src/mcp/defauts";
 import { citationSure } from "../src/mcp/handlers/verifyCitations";
 import { callTool, listToolDescriptors, TOOLS } from "../src/mcp/registry";
 import dunsmuir from "./fixtures/dunsmuir.json";
@@ -810,5 +810,150 @@ describe("§7 — conventions communes", () => {
     );
     expect(r).not.toHaveProperty("structuredContent");
     expect(() => JSON.parse(texte(r))).toThrow();
+  });
+});
+
+/**
+ * §7 — CE QU'UNE DESCRIPTION ANNONCE, LE GESTIONNAIRE LE FAIT.
+ *
+ * ╔══════════════════════════════════════════════════════════════════════════════╗
+ * ║ Trois descriptions sur cinq annonçaient « défaut 25 » quand le gestionnaire  ║
+ * ║ appliquait 50, 20 et 50. Le défaut n'a jamais rien cassé : il a seulement    ║
+ * ║ fait annoncer au modèle une valeur qu'il n'obtient pas. Un outil qui dit     ║
+ * ║ rendre 25 lignes et en rend 50 fait budgéter de travers ; l'inverse fait     ║
+ * ║ croire à une troncature qui n'a pas eu lieu.                                 ║
+ * ║                                                                              ║
+ * ║ Il a été INTRODUIT en ajoutant les descriptions manquantes : « défaut 25 »   ║
+ * ║ écrit partout, par analogie, sans lire le gestionnaire. Deux surfaces qui    ║
+ * ║ ne se rencontraient nulle part ne pouvaient pas se contredire à voix haute.  ║
+ * ╚══════════════════════════════════════════════════════════════════════════════╝
+ */
+describe("§7 — les valeurs par défaut annoncées sont celles qui s'appliquent", () => {
+  it("chaque « défaut N » écrit dans une description vient de src/mcp/defauts.ts", () => {
+    // Le test ne relit pas les constantes : il exige que le nombre RENDU au modèle
+    // soit l'un de ceux que le module déclare. Une valeur écrite à la main, même
+    // juste aujourd'hui, échoue ici — c'est le but, puisque c'est ainsi qu'elle a
+    // divergé la première fois.
+    const declares = new Set<number>([
+      ...Object.values(LIMITES).flatMap((b) => [b.defaut, b.max]),
+      OFFSET_DEFAUT,
+      OFFSET_MAX,
+    ]);
+    const vus: Array<[string, string, number]> = [];
+    for (const [nom, t] of Object.entries(TOOLS)) {
+      for (const [param, p] of Object.entries(t.inputSchema.properties ?? {})) {
+        for (const m of (p.description ?? "").matchAll(/défaut (\d+)|maximum (\d+)/g)) {
+          vus.push([nom, param, Number(m[1] ?? m[2])]);
+        }
+      }
+    }
+    expect(vus.length).toBeGreaterThanOrEqual(8);
+    expect(vus.filter(([, , n]) => !declares.has(n))).toEqual([]);
+  });
+
+  it("les bornes du SCHÉMA sont celles du module, sur les treize", () => {
+    // Le schéma annonçait `maximum: 100` sur un `limit` que le gestionnaire plafonne
+    // à 50 : un appel conforme au schéma était silencieusement ramené, sans que rien
+    // ne le dise. La borne déclarée et la borne appliquée sont désormais la même.
+    const paires: Array<[string, keyof typeof LIMITES]> = [
+      ["jurisprudence_find_case", "find_case"],
+      ["jurisprudence_citator", "citator"],
+      ["jurisprudence_subsequent_history", "subsequent_history"],
+      ["jurisprudence_browse_cases", "browse_cases"],
+      ["jurisprudence_browse_legislation", "browse_legislation"],
+    ];
+    for (const [outil, clef] of paires) {
+      const limit = TOOLS[outil]!.inputSchema.properties?.limit;
+      expect(limit, outil).toBeDefined();
+      expect(limit!.maximum, outil).toBe(LIMITES[clef].max);
+      expect(limit!.description, outil).toContain(`défaut ${LIMITES[clef].defaut}`);
+    }
+  });
+
+  it("sans « limit », le nombre RENDU est celui qui est annoncé", async () => {
+    // La seule moitié qui éprouve le GESTIONNAIRE et non le texte. Sans elle, les
+    // deux assertions ci-dessus seraient satisfaites par un module qu'aucun
+    // gestionnaire ne lit — la divergence rouverte sous une source unique factice.
+    const cites = Array.from({ length: 80 }, (_, i) => ({
+      databaseId: "qcca",
+      caseId: `2020qcca${100 + i}`,
+      title: `Décision numéro ${i}`,
+      citation: `2020 QCCA ${100 + i}`,
+    }));
+    const client = fakeClient({
+      "caseBrowse/fr/qcca/2005qcca304/": qcca2005,
+      "caseCitator/en/qcca/2005qcca304/citingCases/": { citingCases: cites },
+    });
+    const t = texte(
+      await callTool(
+        "jurisprudence_citator",
+        { citation: "2005 QCCA 304", rel: "citing" },
+        toolCtx(client),
+      ),
+    );
+    // `citator` annonce 50 par défaut : on doit voir la 50ᵉ et pas la 51ᵉ.
+    expect(t).toContain("Décision numéro 49");
+    expect(t).not.toContain("Décision numéro 50");
+  });
+});
+
+/**
+ * §8 — CE QUE LE SCHÉMA NE SAIT PAS IMPOSER, LA DESCRIPTION LE DIT.
+ *
+ * `src/mcp/validate.ts` n'implémente qu'un SOUS-ENSEMBLE de JSON-Schema : ni `pattern`,
+ * ni `oneOf`, ni aucune contrainte ENTRE champs — `validateValue(schema, value, nom)` ne
+ * voit jamais le parent. Cinq outils imposent donc, dans leur GESTIONNAIRE, une règle
+ * qu'un appel conforme au schéma peut enfreindre. Le modèle compose alors un appel
+ * valide et reçoit un refus, sans avoir eu le moyen de le prévoir.
+ *
+ * ⚠ On ne « répare » pas cela en ajoutant `oneOf` au validateur. Le mot-clef standard
+ *   n'exprime même pas la règle voulue : `oneOf: [{required:["citation"]},
+ *   {required:["database_id","case_id"]}]` ACCEPTE `{citation, database_id}`, qu'aucun
+ *   de ces trois outils n'accepte. On déplacerait l'écart en écrivant du code de
+ *   validation neuf sur le chemin que TOUT appel traverse.
+ */
+describe("§8 — les refus du gestionnaire sont ANNONCÉS dans la description", () => {
+  const CAS: ReadonlyArray<[string, string[], RegExp, Record<string, unknown>]> = [
+    ["jurisprudence_get_case", ["citation", "case_id"], /EXACTEMENT l'une des deux formes/, {}],
+    [
+      "jurisprudence_citator",
+      ["citation", "case_id"],
+      /EXACTEMENT l'une des deux formes/,
+      { rel: "citing" },
+    ],
+    [
+      "jurisprudence_subsequent_history",
+      ["citation", "case_id"],
+      /EXACTEMENT l'une des deux formes/,
+      {},
+    ],
+    ["palais_get", ["greffe_number", "palais"], /EXACTEMENT l'un des deux/, {}],
+  ];
+
+  for (const [outil, params, attendu, args] of CAS) {
+    it(`${outil} — la règle est écrite là où le modèle la lit`, async () => {
+      const props = TOOLS[outil]!.inputSchema.properties ?? {};
+      for (const nom of params) {
+        expect(props[nom], `${outil}.${nom}`).toBeDefined();
+        expect(props[nom]!.description ?? "", `${outil}.${nom}`).toMatch(attendu);
+      }
+      // Et le REFUS existe bien : sans cette moitié, on pourrait décrire une règle
+      // que l'outil n'applique plus, ce qui est le défaut inverse et tout aussi muet.
+      const r = await callTool(outil, args, toolCtx(fakeClient({})));
+      expect(r.isError).toBe(true);
+      expect(texte(r)).toContain("EXACTEMENT");
+    });
+  }
+
+  it("le format de date et les bornes d'année sont annoncés, eux aussi", () => {
+    const b = TOOLS.jurisprudence_browse_cases!.inputSchema.properties ?? {};
+    const dates = Object.entries(b).filter(([n]) => /date|_after|_before/.test(n));
+    expect(dates.length).toBeGreaterThan(0);
+    for (const [n, p] of dates) expect(p.description ?? "", n).toContain("AAAA-MM-JJ");
+
+    const f = TOOLS.jurisprudence_find_case!.inputSchema.properties ?? {};
+    expect(f.year_from!.description ?? "").toContain("year_to");
+    expect(f.year_from!.description ?? "").toContain("TROIS");
+    expect(f.year_to!.description ?? "").toContain("year_from");
   });
 });

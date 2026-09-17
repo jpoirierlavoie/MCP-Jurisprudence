@@ -6,7 +6,7 @@
 **Auteur de la spéc. :** (préparé pour Jason Poirier Lavoie)
 **Cible :** nouveau dépôt autonome — Worker Cloudflare, D1, TypeScript
 **Modèle de référence :** le Worker `legislation` / base D1 `qclaw` (connecteur « Législation du Québec »)
-**Statut :** **livré et en production** sur `jurisprudence.poirierlavoie.ca` — treize outils, 487 tests, page publique bilingue. *Amendé le 2026-09-16 ; l'en-tête portait « prêt à implémenter », vrai jusqu'au premier déploiement du 2026-07-23 et faux depuis.* Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
+**Statut :** **livré et en production** sur `jurisprudence.poirierlavoie.ca` — treize outils, 495 tests, page publique bilingue. *Amendé le 2026-09-16 ; l'en-tête portait « prêt à implémenter », vrai jusqu'au premier déploiement du 2026-07-23 et faux depuis.* Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
 
 ---
 
@@ -164,7 +164,7 @@ arrivés après la rédaction initiale : ils figurent ici, à leur place.*
 │   └── deployer.mjs          # §12 — migrations PUIS déploiement ; refuse un arbre sale
 ├── sources-officielles/      # la PREUVE, pas un résidu — voir ci-dessous
 │   └── mjq-numeros-greffes-2026-07-22.html
-├── test/                     # 487 tests en 15 fichiers, sans réseau ni clef
+├── test/                     # 495 tests en 15 fichiers, sans réseau ni clef
 │   ├── citation.parse.test.ts · citation.compare.test.ts · verify.test.ts
 │   ├── client.test.ts · rpc.test.ts · persist.test.ts · tools.test.ts
 │   ├── qc.tables.test.ts · qc.outils.test.ts · qc.dossier.test.ts
@@ -717,7 +717,7 @@ Paramètres : `citation` **ou** (`database_id` + `case_id`) ; `lang` ; `refresh`
 
 > **Description :** « Citateur, sur la collection de CanLII : décisions citées PAR une décision (`cited`), décisions qui LA citent (`citing`), ou dispositions législatives qu'elle cite (`legislation`). Les listes sont brutes : elles n'indiquent aucun sens de traitement (suivi, distingué, infirmé), et leur exhaustivité est celle de la collection de CanLII. Pour les dispositions québécoises, enchaîner avec le connecteur « Législation du Québec » afin d'en lire le texte officiel. »
 
-Paramètres : `database_id`, `case_id` (ou `citation`), `rel` (`enum ["cited","citing","legislation"]`), `limit` (défaut 50, max 100), `offset`, `refresh`.
+Paramètres : `database_id`, `case_id` (ou `citation`), `rel` (`enum ["cited","citing","legislation"]`), `limit` (défaut et maximum : `LIMITES.citator`, §8), `offset`, `refresh`.
 
 > **Contrainte de l'API à coder en dur :** le chemin du citateur **n'accepte que `en`** comme segment de langue. Construire `caseCitator/en/{db}/{caseId}/{metadataType}` quel que soit le `lang` demandé, et rendre malgré tout la sortie en français. Ne pas exposer de paramètre `lang` sur cet outil.
 
@@ -742,7 +742,7 @@ La sortie porte **en tête et en pied** la mise en garde. Aucune formulation aff
 
 > **Description :** « Liste les décisions d'un tribunal, les plus récemment diffusées en tête, avec filtres de date : date de la décision (`decision_date_*`), date de diffusion sur CanLII (`published_*`) ou date de dernière modification (`modified_*`, `changed_*`). Utile pour la veille et pour cerner la couverture de CanLII pour un tribunal donné. »
 
-Paramètres : `database_id` (obligatoire), `lang`, `offset` (défaut 0), `limit` (défaut 25, **max 100** — bien en deçà du maximum de 10 000 de l'API : au-delà, la sortie est inexploitable par un modèle), plus les huit filtres de dates, tous au format `AAAA-MM-JJ` et **inclusifs**.
+Paramètres : `database_id` (obligatoire), `lang`, `offset` (défaut 0), `limit` (défaut et maximum : `LIMITES.browse_cases`, §8 — **max 100** — bien en deçà du maximum de 10 000 de l'API : au-delà, la sortie est inexploitable par un modèle), plus les huit filtres de dates, tous au format `AAAA-MM-JJ` et **inclusifs**.
 
 Rappeler dans la sortie, lorsqu'un filtre `published_*` est employé, le délai de diffusion et le jeu de deux jours recommandé.
 
@@ -805,6 +805,36 @@ Aucun appel sortant, aucune écriture. Utile au débogage de la table `court_cod
 Ne **pas** émettre `structuredContent` : `qclaw` ne le fait pas, la sortie est du texte destiné à être lu, et la symétrie prime.
 
 **Validation des arguments** : porter `validate_args` de `athena/mcp/tools.py` en TypeScript — même sous-ensemble (`type`, `properties`, `required`, `enum`, `minimum`, `maximum`, `minLength`, `maxLength`, `minItems`, `maxItems`, `items` sur un niveau, `additionalProperties: false`), mêmes messages, en français. Échec ⇒ `isError: true`, jamais une erreur JSON-RPC.
+
+**Ce que le sous-ensemble NE SAIT PAS imposer, et ce qu'on en fait.** *Arbitré le 2026-09-16.*
+Le validateur ne connaît ni `pattern`, ni `oneOf`, ni aucune contrainte ENTRE champs :
+`validateValue(schema, value, nom)` ne voit jamais le parent. Cinq outils imposent donc dans
+leur GESTIONNAIRE une règle qu'un appel conforme au schéma peut enfreindre — le XOR
+`citation` / (`database_id` + `case_id`) pour `get_case`, `citator` et `subsequent_history`,
+le XOR `greffe_number` / `palais` pour `palais_get`, le format `AAAA-MM-JJ` des huit filtres
+de dates, et les bornes d'année de `find_case`. Le modèle composait un appel valide et
+recevait un refus, sans avoir eu le moyen de le prévoir.
+
+**On N'ÉTEND PAS le validateur, et le motif n'est pas la paresse.** `oneOf` n'exprime même
+pas la règle voulue : `oneOf: [{required:["citation"]}, {required:["database_id","case_id"]}]`
+**accepte** `{citation, database_id}` — une seule branche satisfaite — alors qu'aucun des
+trois outils ne l'accepte. On déplacerait l'écart au lieu de le fermer, en ayant écrit du code
+de validation neuf sur le chemin que TOUT appel traverse. La règle va donc là où le modèle la
+lit : dans la `description` du paramètre, et elle y est **répétée** sur chacun des deux
+membres plutôt que renvoyée de l'un à l'autre — rien ne garantit qu'un modèle lise les
+paramètres dans l'ordre, ni qu'il en lise deux.
+
+⚠ Un garde-fou éprouve les DEUX moitiés : la règle est écrite dans la description, **et** le
+gestionnaire refuse réellement. Sans la seconde, on décrirait une contrainte qui n'existe plus
+— le défaut inverse, tout aussi muet.
+
+**Les valeurs par défaut vivent dans `src/mcp/defauts.ts`, en un seul exemplaire.** Elles
+vivaient à deux endroits — le `?? 50` du gestionnaire et le « défaut 25 » de la description —
+et avaient divergé sur **trois outils sur cinq**. La divergence a été introduite le
+2026-09-16 même, en ajoutant les descriptions manquantes : « défaut 25 » écrit partout par
+analogie, sans lire le gestionnaire. Rien ne cassait ; le modèle budgétait simplement de
+travers. Les descriptions sont désormais ENGENDRÉES depuis ces constantes et les
+gestionnaires les LISENT.
 
 ---
 
