@@ -396,6 +396,21 @@ function extractErrorCode(body: string): string | null {
   return errorCodeOf(safeJson(body));
 }
 
+/**
+ * Le code applicatif de CanLII, assaini pour pouvoir être RÉÉMIS dans une phrase.
+ *
+ * ⚠ C'est CanLII qui écrit cette chaîne, pas l'appelant : l'argument de forgeabilité du
+ *   commentaire de `CauseCanlii` — une citation réémise porteuse d'un faux verdict — ne
+ *   s'applique pas ici. Mais elle vient tout de même d'un service distant et atterrit
+ *   dans une sortie que le modèle lit : on la borne, et on la restreint à la forme que
+ *   CanLII emploie réellement (`TOO_LONG`). Hors de cette forme, on ne la réémet PAS du
+ *   tout — mieux vaut une phrase générique qu'un écho non maîtrisé.
+ */
+function jetonApplicatif(code: string | null): string | null {
+  if (!code) return null;
+  return /^[A-Z][A-Z0-9_]{0,39}$/.test(code) ? code : null;
+}
+
 /** Instancie un client pour UNE invocation d'outil. */
 export function createClient(
   env: Env,
@@ -430,6 +445,20 @@ export type CauseCanlii =
   | "EXPIRATION"
   | "PANNE_AMONT"
   | "REPONSE_TROP_VOLUMINEUSE"
+  /**
+   * CanLII a répondu 2xx, et sa réponse n'a pas la FORME attendue.
+   *
+   * Distincte de ses deux voisines, et la distinction porte :
+   *   · `REPONSE_TROP_VOLUMINEUSE` est une affaire de TAILLE — l'appelant peut
+   *     resserrer sa demande ;
+   *   · `PANNE_AMONT` dit que rien n'a répondu, ou avec un statut hors modèle ;
+   *   · celle-ci dit que quelque chose a répondu, et qu'on n'a pas pu s'en servir.
+   *     L'appelant n'y peut rien : réessayer, puis signaler.
+   *
+   * Les trois restent des NON-CONSTATS. `INTROUVABLE_404` demeure la seule qui
+   * constate une absence.
+   */
+  | "REPONSE_INEXPLOITABLE"
   | "BUDGET_EPUISE"
   | "INTROUVABLE_404";
 
@@ -445,10 +474,67 @@ export interface ErreurDecrite {
  *
  * ⚠ `INTROUVABLE_404` est la seule cause qui constate une ABSENCE. Toutes les autres
  *   disent qu'aucun constat n'a pu être fait (invariant 9). Un gestionnaire qui colle
- *   des explications d'absence sur l'une des six autres affirme une inexistence qu'il
+ *   des explications d'absence sur l'une des sept autres affirme une inexistence qu'il
  *   n'a pas observée — ce que §2 interdit, et ce qui a été corrigé le 2026-09-16 dans
  *   `getCase`, `cible` et `findCase`.
  */
+/**
+ * PHRASES RENDUES À L'USAGER. Le libellé porte, et voici ce qu'il porte.
+ *
+ * ⚠ « rien n'en a donc été constaté » et NON « rien n'a été trouvé ». La seconde est un
+ *   constat d'absence ; la première dit qu'aucun constat n'a eu lieu. C'est toute la
+ *   distinction de l'invariant 9, en trois mots.
+ * ⚠ « n'a pas pu être LUE » : le mot porteur est *lue*. C'est NOTRE lecture qui a
+ *   échoué, pas la collection qui est vide.
+ * ⚠ Aucune ne redit `EXPLICATION_INDETERMINEE`, qui vit en un seul exemplaire dans
+ *   `src/format/render.ts` — c'est au gestionnaire de l'accoler (invariants 6 et 9(b)).
+ * ⚠ Aucune n'emploie « injoignable » ni « erreur N » : la CAUSE se nomme (invariant 9(a)).
+ */
+
+/** 200 + corps non-JSON. La lecture a échoué ; la collection n'est pas en cause. */
+const PHRASE_ILLISIBLE =
+  "CanLII a répondu (HTTP 200) mais son corps n'est pas du JSON : la réponse n'a pas pu " +
+  "être LUE, et rien n'en a donc été constaté. Réessayer plus tard.";
+
+/** Flux rompu en cours de lecture — distinct d'un corps vide, qui est une réponse. */
+const PHRASE_INTERROMPU =
+  "La lecture de la réponse de CanLII a été INTERROMPUE avant la fin : la réponse reçue " +
+  "est incomplète et n'a pas pu être analysée. Rien n'en a été constaté. Réessayer plus tard.";
+
+/** Notre plafond défensif. La phrase énonce la POLITIQUE en même temps que le fait. */
+const PHRASE_HORS_PLAFOND =
+  "Réponse de CanLII au-delà du plafond de sécurité du connecteur (12 Mo ; l'API en " +
+  "annonce 10) : elle a été REFUSÉE en entier plutôt que tronquée, une réponse coupée " +
+  "n'étant plus analysable. Resserrer la demande si l'outil offre une pagination.";
+
+/**
+ * `TOO_LONG` — RÉÉCRITE le 2026-09-17.
+ *
+ * L'ancienne disait « même après réduction de la pagination. Restreindre la fenêtre de
+ * dates. » : faux sur `jurisprudence_browse_legislation`, qui n'envoie aucun
+ * `resultCount` — le rattrapage n'y tire jamais — et qui n'a aucune fenêtre de dates.
+ */
+const PHRASE_TOO_LONG =
+  "CanLII a refusé de servir cette réponse : elle dépasse son plafond de charge utile de " +
+  "10 Mo (« TOO_LONG »). Resserrer la demande — fenêtre de dates plus étroite, ou " +
+  "pagination plus petite lorsque l'outil en offre une.";
+
+/** 200 + `{"error": "<code>"}` que ce connecteur ne modélise pas, mais sait nommer. */
+const phraseCodeConnu = (jeton: string) =>
+  `CanLII a répondu (HTTP 200) en signalant l'erreur applicative « ${jeton} » : aucune ` +
+  "donnée n'accompagne ce signalement, et rien n'a donc été constaté. Réessayer plus tard.";
+
+/** Idem, mais le code n'a pas la forme d'un jeton : on ne le réémet pas du tout. */
+const PHRASE_CODE_INCONNU =
+  "CanLII a répondu (HTTP 200) en signalant une erreur applicative que ce connecteur ne " +
+  "sait pas nommer. Aucune donnée n'a été rendue, et rien n'a donc été constaté. " +
+  "Réessayer plus tard.";
+
+/** Statut 0 : la boucle a épuisé ses tentatives sans JAMAIS obtenir de réponse. */
+const PHRASE_SANS_REPONSE =
+  "Aucune réponse de CanLII après trois tentatives : le service n'a rien renvoyé. " +
+  "Réessayer plus tard.";
+
 export function analyserErreur(err: unknown): ErreurDecrite {
   if (err instanceof CanliiBudgetError) {
     return {
@@ -463,13 +549,23 @@ export function analyserErreur(err: unknown): ErreurDecrite {
     };
   }
   if (err instanceof CanliiError) {
-    if (err.code === "TOO_LONG") {
-      return {
-        cause: "REPONSE_TROP_VOLUMINEUSE",
-        phrase:
-          "Réponse de CanLII trop volumineuse (plafond de 10 Mo) même après réduction de la pagination. Restreindre la fenêtre de dates.",
-      };
+    // ── LE CODE D'ABORD, LE STATUT ENSUITE. ────────────────────────────────────
+    //
+    // ⚠ L'ordre est load-bearing. CanLII rend ses refus applicatifs avec un statut
+    //   200 : aiguiller sur le statut, c'est faire décrire l'échec par la seule
+    //   valeur qui n'en dit rien. C'est ce qui rendait « CanLII a renvoyé une
+    //   erreur 200 » — une phrase que personne ne peut lire, sur quatre outils.
+    switch (err.code) {
+      case "TOO_LONG":
+        return { cause: "REPONSE_TROP_VOLUMINEUSE", phrase: PHRASE_TOO_LONG };
+      case "CORPS_HORS_PLAFOND":
+        return { cause: "REPONSE_TROP_VOLUMINEUSE", phrase: PHRASE_HORS_PLAFOND };
+      case "REPONSE_ILLISIBLE":
+        return { cause: "REPONSE_INEXPLOITABLE", phrase: PHRASE_ILLISIBLE };
+      case "CORPS_INTERROMPU":
+        return { cause: "REPONSE_INEXPLOITABLE", phrase: PHRASE_INTERROMPU };
     }
+
     switch (err.status) {
       case 401:
       case 403:
@@ -488,6 +584,20 @@ export function analyserErreur(err: unknown): ErreurDecrite {
           phrase: "CanLII a étranglé les appels (429). Réessayer plus tard.",
         };
       default:
+        // Un 2xx ne peut PAS décrire un échec. S'il arrive ici, c'est que CanLII a
+        // signalé dans le CORPS une erreur applicative que ce connecteur ne modélise
+        // pas. On la NOMME — au lieu de rendre « erreur 200 ».
+        if (err.status >= 200 && err.status < 300) {
+          const jeton = jetonApplicatif(err.code);
+          return {
+            cause: "REPONSE_INEXPLOITABLE",
+            phrase: jeton ? phraseCodeConnu(jeton) : PHRASE_CODE_INCONNU,
+          };
+        }
+        // Statut 0 : aucune réponse n'a jamais été obtenue (voir `#request`).
+        if (err.status === 0) {
+          return { cause: "PANNE_AMONT", phrase: PHRASE_SANS_REPONSE };
+        }
         return { cause: "PANNE_AMONT", phrase: `CanLII a renvoyé une erreur ${err.status}.` };
     }
   }

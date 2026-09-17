@@ -109,7 +109,7 @@ n'est pas de l'ajuster pour qu'il passe : c'est de remettre la mise en garde.
 
 | Outil | Rôle |
 |---|---|
-| `jurisprudence_verify_citations` | **Pivot.** Verdict par citation : CONFIRMÉE · DISCORDANTE · INTROUVABLE · NON CONSTRUCTIBLE · ILLISIBLE — et **INDÉTERMINÉE**, qui dit qu’aucun constat n’a pu être fait (CanLII injoignable ou étranglé) et ne vaut JAMAIS absence |
+| `jurisprudence_verify_citations` | **Pivot.** Verdict par citation : CONFIRMÉE · DISCORDANTE · INTROUVABLE · NON CONSTRUCTIBLE · ILLISIBLE — et **INDÉTERMINÉE**, qui dit qu’aucun constat n’a pu être fait (CanLII injoignable, étranglé, réponse inexploitable, ou budget épuisé) et ne vaut JAMAIS absence |
 | `jurisprudence_find_case` | Recherche par noms des parties ; index local puis balayage vif |
 | `jurisprudence_get_case` | Fiche officielle d'une décision |
 | `jurisprudence_citator` | Ce qu'une décision cite, ce qui la cite, les dispositions qu'elle cite |

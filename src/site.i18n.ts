@@ -39,8 +39,9 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
     texte:
       "The pivot tool, answering from CanLII's collection. SIX verdicts, five of which state a " +
       "FINDING: CONFIRMÉE, DISCORDANTE, INTROUVABLE, NON CONSTRUCTIBLE, ILLISIBLE. The sixth, " +
-      "INDÉTERMINÉE, says that NO finding could be made — CanLII unreachable, throttled, or the " +
-      "call budget spent — and never means absence: do not read it as INTROUVABLE. A confirmed " +
+      "INDÉTERMINÉE, says that NO finding could be made — CanLII unreachable, throttled, " +
+      "answering with an unusable body, or the call budget spent — and never means absence: " +
+      "do not read it as INTROUVABLE. A confirmed " +
       "verdict establishes existence and identity — never current authority, never the disposition. " +
       "For the RECORD alone of a decision already taken to be correctly cited, " +
       "jurisprudence_get_case is enough and costs less.",

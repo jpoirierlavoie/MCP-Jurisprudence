@@ -261,7 +261,8 @@ export const TOOLS: Record<string, ToolDescriptor> = {
       "Vérifie une ou plusieurs citations de jurisprudence contre la collection de CanLII. " +
       "SIX verdicts, dont CINQ portent un constat : CONFIRMÉE, DISCORDANTE, INTROUVABLE, " +
       "NON CONSTRUCTIBLE, ILLISIBLE. Le sixième, INDÉTERMINÉE, dit qu'AUCUN constat n'a pu " +
-      "être fait — CanLII injoignable, étranglé, ou budget d'appels épuisé — et ne vaut " +
+      "être fait — CanLII injoignable, étranglé, réponse inexploitable, ou budget d'appels " +
+      "épuisé — et ne vaut " +
       "JAMAIS absence : ne pas le confondre avec INTROUVABLE. Un client qui n'attend que " +
       "cinq valeurs prendra une panne pour une inexistence. " +
       "Rend aussi la fiche officielle (intitulé, citation, date, n° de dossier, hyperlien) " +

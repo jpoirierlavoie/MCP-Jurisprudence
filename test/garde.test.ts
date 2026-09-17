@@ -655,6 +655,27 @@ describe("§2 / invariant 9 — aucun chemin ne présente une panne comme une ab
     });
   }
 
+  it("une réponse 2xx INEXPLOITABLE ne se rend ni en « erreur 2xx » ni en absence", async () => {
+    // `fakeClient` ne PRODUIT pas ce défaut — il ne lit aucun corps — mais il sait
+    // PORTER l'erreur qui en résulte, ce qui suffit à éprouver le RENDU.
+    //
+    // Le défaut réel : le corps d'une réponse RÉUSSIE était tronqué avant `JSON.parse`,
+    // ce qui faisait lever `CanliiError(200, …)`, et `analyserErreur` interpolait le
+    // statut. « CanLII a renvoyé une erreur 200 » remontait ainsi jusqu'à ces quatre
+    // chemins — une phrase qu'aucun lecteur ne peut interpréter, sur une réponse que
+    // CanLII avait pourtant servie correctement.
+    const illisible = () =>
+      new CanliiError(200, "https://exemple.invalid/x", "", "REPONSE_ILLISIBLE");
+    for (const [outil, args] of CHEMINS) {
+      const t = texte(await callTool(outil, args, toolCtx(fakeClient({}, { erreur: illisible }))));
+      expect(t, outil).not.toMatch(/erreur 2dd/);
+      for (const mot of MOTS_D_ABSENCE) expect(t, outil).not.toContain(mot);
+      expect(t, outil).toContain("PAS un constat d'absence");
+      // La CAUSE est nommée, et elle dit que c'est NOTRE lecture qui a échoué.
+      expect(t, outil).toContain("n'a pas pu être LUE");
+    }
+  });
+
   it("find_case — un balayage INTERROMPU ne s'annonce pas « aucun candidat »", async () => {
     // Deux défauts se tenaient ici. « Aucun candidat » est un CONSTAT, affirmé alors
     // qu'aucune recherche n'avait abouti ; et `appels` restant à 0, la provenance

@@ -9,7 +9,7 @@
 import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 
-import { createClient, describeError, parseRetryAfter } from "../src/canlii/client";
+import { analyserErreur, createClient, describeError, parseRetryAfter } from "../src/canlii/client";
 import {
   CanliiBudgetError,
   CanliiError,
@@ -263,8 +263,77 @@ describe("§5.2 — charge utile TOO_LONG", () => {
   });
 
   it("détecte un corps d'erreur applicatif rendu avec un statut 200", async () => {
+    // ⚠ Ce test n'assertionnait QUE `toBeInstanceOf(CanliiError)` — vrai avec ET sans
+    //   le défaut, donc il n'éprouvait rien. C'est le test qui aurait dû attraper
+    //   « erreur 200 » et qui ne le pouvait pas. Une assertion qui passe dans les deux
+    //   mondes n'est pas une assertion faible : c'en est zéro.
     const { c } = client([() => json({ error: "TOO_LONG" })]);
-    await expect(c.get("caseBrowse/fr/")).rejects.toBeInstanceOf(CanliiError);
+    const e = (await c.get("caseBrowse/fr/").catch((x) => x)) as CanliiError;
+    expect(e).toBeInstanceOf(CanliiError);
+    expect(e.code).toBe("TOO_LONG");
+    expect(describeError(e)).not.toMatch(/erreur 2dd/);
+    expect(describeError(e)).toContain("TOO_LONG");
+  });
+
+  it("un 200 au corps non-JSON ne se rend JAMAIS en « erreur 200 »", async () => {
+    // Forme réaliste : une page d'erreur HTML servie en 200 par un intermédiaire.
+    const { c } = client([
+      () =>
+        new Response("<html><body>502 Bad Gateway</body></html>", {
+          status: 200,
+          headers: { "Content-Type": "text/html" },
+        }),
+    ]);
+    const e = (await c.get("legislationBrowse/fr/qcs/").catch((x) => x)) as CanliiError;
+    expect(e.code).toBe("REPONSE_ILLISIBLE");
+    const d = analyserErreur(e);
+    expect(d.cause).toBe("REPONSE_INEXPLOITABLE");
+    expect(d.phrase).not.toMatch(/erreur 2dd/);
+    expect(d.phrase).toContain("n'a pas pu être LUE");
+    // Et jamais une absence : l'invariant 9, au niveau du client.
+    expect(d.cause).not.toBe("INTROUVABLE_404");
+  });
+
+  it("AUCUNE combinaison statut 2xx × code ne se rend en « erreur 2xx »", () => {
+    // Structurel, comme le balayage de l'invariant 9 dans `garde.test.ts` : on ne
+    // vérifie pas un cas, on vérifie que la règle ne tombe NULLE PART. Le défaut
+    // d'origine était le `default:` atteint avec un statut 200 — un statut de succès
+    // employé pour décrire un échec.
+    const codes = [
+      null,
+      "",
+      "TOO_LONG",
+      "REPONSE_ILLISIBLE",
+      "CORPS_INTERROMPU",
+      "CORPS_HORS_PLAFOND",
+      "MACHIN_INCONNU",
+      "pas un jeton !",
+    ];
+    for (let statut = 200; statut < 300; statut++) {
+      for (const code of codes) {
+        const d = analyserErreur(new CanliiError(statut, "https://exemple.invalid/x", "", code));
+        const ou = `${statut}/${code}`;
+        expect(d.phrase, ou).not.toMatch(/erreur 2dd/);
+        expect(d.cause, ou).not.toBe("PANNE_AMONT");
+        expect(d.cause, ou).not.toBe("INTROUVABLE_404");
+        expect(d.phrase.length, ou).toBeGreaterThan(30);
+      }
+    }
+  });
+
+  it("un code applicatif qui n'a pas la forme d'un jeton n'est pas RÉÉMIS", () => {
+    // Il vient d'un service distant et atterrit dans une sortie que le modèle lit.
+    const d = analyserErreur(
+      new CanliiError(200, "https://exemple.invalid/x", "", "<script>alert(1)</script>"),
+    );
+    expect(d.phrase).not.toContain("script");
+    expect(d.phrase).toContain("ne sait pas nommer");
+  });
+
+  it("un statut 0 dit qu'AUCUNE réponse n'a été obtenue", () => {
+    const d = analyserErreur(new CanliiError(0, "https://exemple.invalid/x", "échec inconnu"));
+    expect(d.phrase).not.toContain("erreur 0");
+    expect(d.phrase).toContain("Aucune réponse de CanLII");
   });
 });
 
@@ -440,6 +509,33 @@ describe("§5.3 — LA CLEF NE QUITTE JAMAIS LE PROCESSUS", () => {
       describeError(new CanliiError(429, "https://api.canlii.org/v1/x", "non")),
       describeError(new CanliiTimeoutError(`https://api.canlii.org/v1/x?api_key=${CLEF}`, 15000)),
       describeError(new Error("autre")),
+      // Les causes ajoutées le 2026-09-17 passent par le MÊME contrôle de non-fuite :
+      // c'est ici que se vérifie que le jeton applicatif réémis n'emporte rien.
+      describeError(
+        new CanliiError(
+          200,
+          `https://api.canlii.org/v1/x?api_key=${CLEF}`,
+          "",
+          "REPONSE_ILLISIBLE",
+        ),
+      ),
+      describeError(
+        new CanliiError(
+          200,
+          `https://api.canlii.org/v1/x?api_key=${CLEF}`,
+          "",
+          "CORPS_HORS_PLAFOND",
+        ),
+      ),
+      describeError(
+        new CanliiError(200, `https://api.canlii.org/v1/x?api_key=${CLEF}`, "", "CORPS_INTERROMPU"),
+      ),
+      describeError(
+        new CanliiError(200, `https://api.canlii.org/v1/x?api_key=${CLEF}`, "", "MACHIN_INCONNU"),
+      ),
+      describeError(
+        new CanliiError(0, `https://api.canlii.org/v1/x?api_key=${CLEF}`, "échec inconnu"),
+      ),
     ];
     for (const m of messages) {
       expect(m).not.toContain(CLEF);
