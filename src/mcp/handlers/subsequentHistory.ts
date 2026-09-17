@@ -97,7 +97,13 @@ export async function subsequentHistory(
       a.to_database_id && a.to_case_id
         ? await getCachedCase(ctx.db, a.to_database_id, a.to_case_id)
         : null;
-    const dateCandidat = fiche?.decision_date ?? null;
+    // ⚠ Invariant 3(a) : seule une ligne RÉSOLUE peut dater un candidat. Une ligne de
+    //   balayage n'a pas de date, et une date fabriquée ferait passer un arrêt d'appel
+    //   de la même année pour ANTÉRIEUR au jugement porté en appel — il serait alors
+    //   écarté EN SILENCE de la sortie même qui existe pour le faire voir. Le sens de
+    //   l'erreur compte : sans date, le candidat est RETENU (sur-inclusion), ce qui est
+    //   la bonne direction pour un outil dont toute la sortie dit « indice, à vérifier ».
+    const dateCandidat = fiche?.source === "lookup" ? (fiche.decision_date ?? null) : null;
     if (date && dateCandidat && dateCandidat <= date) continue;
     candidats.push({ arete: a, similarite: sim, date: dateCandidat });
   }

@@ -46,8 +46,17 @@ export async function resoudreCible(
       ok: true,
       databaseId: databaseId!,
       caseId: caseId!,
+      // L'INTITULÉ d'une ligne de balayage est celui que CanLII rend dans SA liste :
+      // vrai, et utile au seuil de similarité. On le garde, quelle que soit la
+      // provenance — le refuser dégraderait le classement sans rien gagner en vérité.
       titre: cache?.title ?? null,
-      date: cache?.decision_date ?? null,
+      // La DATE, non : invariant 3(a). Elle sert de borne de POSTÉRIORITÉ à
+      // `subsequent_history`, et une ligne de balayage n'en a pas. `getCachedCase` ne
+      // filtre pas sur `source`, là où `lookupCase` et `getCase` le font tous deux : la
+      // garde est ici EXPLICITE plutôt que tacite. Elle ne change rien aujourd'hui — un
+      // balayage porte NULL depuis le 2026-09-17 — et c'est précisément pour que ça ne
+      // change pas demain qu'elle est écrite.
+      date: cache?.source === "lookup" ? (cache.decision_date ?? null) : null,
     };
   }
 

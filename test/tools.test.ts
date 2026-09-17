@@ -351,6 +351,49 @@ describe("§7.5 — jurisprudence_subsequent_history", () => {
     expect(out).not.toMatch(/a été (infirmée|confirmée|cassée|renversée)/i);
   });
 
+  it("une ligne de BALAYAGE ne date pas un candidat, et ne peut donc pas l'écarter", async () => {
+    // INVARIANT 3(a). `getCachedCase` ne filtre pas sur `source`, là où `lookupCase` et
+    // `getCase` le font tous deux. Une ligne de balayage portant une date — ce que le
+    // balayage fabriquait jusqu'au 2026-09-17 — ferait passer cet arrêt d'appel de 2019
+    // pour ANTÉRIEUR au jugement de 2018, et il disparaîtrait EN SILENCE de la sortie
+    // même qui existe pour le faire voir.
+    //
+    // Le scénario EXACT : un appel de la MÊME ANNÉE que le jugement de départ
+    // (2018-03-15). Sa ligne de balayage porte le 1er janvier 2018 — ce que le
+    // gestionnaire fabriquait — donc « 2018-01-01 <= 2018-03-15 » est VRAI, et sans la
+    // garde le candidat est écarté. On écrit la ligne fautive à la main : le
+    // gestionnaire n'en produit plus, et c'est contre son RETOUR qu'on se garde.
+    await env.DB.prepare(
+      "INSERT INTO cases (database_id, case_id, title, title_norm, decision_date, source, fetched_at) " +
+        "VALUES ('qcca','2018qcca77','Unetelle c. Untel','unetelle untel','2018-01-01','sweep','2026-07-23T00:00:00Z')",
+    ).run();
+    const out = texte(
+      await callTool(
+        "jurisprudence_subsequent_history",
+        { database_id: "qccs", case_id: "2018qccs1234" },
+        toolCtx(
+          fakeClient({
+            "caseCitator/en/qccs/2018qccs1234/citingCases": {
+              citingCases: [
+                {
+                  databaseId: "qcca",
+                  caseId: { en: "2018qcca77" },
+                  title: "Unetelle c. Untel",
+                  citation: "2018 QCCA 77 (CanLII)",
+                },
+              ],
+            },
+          }),
+        ),
+      ),
+    );
+    // RETENU : la date de balayage est ignorée, donc la comparaison n'a pas lieu.
+    expect(out).toContain("2018 QCCA 77");
+    expect(out).not.toContain("Aucun indice");
+    // Et elle n'est pas AFFICHÉE non plus : une date de balayage n'est pas une date.
+    expect(out).not.toContain("2018-01-01");
+  });
+
   it("une liste vide ne conclut PAS à l'absence d'appel", async () => {
     const r = await callTool(
       "jurisprudence_subsequent_history",
