@@ -418,6 +418,10 @@ CREATE TABLE api_usage (
 );
 ```
 
+⚠ *Relevé le 2026-09-17.* Le commentaire de `databases.type` n'énumère que `STATUTE | REGULATION | ANNUAL_STATUTE`. L'API en rend au moins **cinq** : `REVISED_STATUTE` et `CONSTITUTION` s'y ajoutent, observés en production sur le répertoire québécois et fédéral. **L'ensemble n'est pas clos**, et il n'est documenté nulle part par CanLII. La colonne reste donc un `TEXT` libre, et les trois gestionnaires qui rendent cette valeur la rendent **BRUTE** : la traduire supposerait une énumération qu'on n'a pas, et `ANNUAL_STATUTE` contre `REVISED_STATUTE` est une qualification **juridique** — « loi annuelle » contre « loi refondue » — qu'on ne devine pas. C'est la règle d'`abroge()` et de `regimeDeDates()` (§7.9), appliquée par abstention.
+
+⚠ **La migration n'est PAS retouchée.** `migrations/0001_initial.sql` est appliquée en production, et son commentaire est daté de son écriture : le rééditer ne changerait rien à la base vivante et ferait diverger en silence une base neuve. C'est le raisonnement que `migrations/0004` a consigné pour les anciens noms d'outils, et il vaut ici mot pour mot. Le bloc reproduit ci-dessus suit la migration ; la correction vit dans cette note, datée.
+
 ### 4.2 Politique de fraîcheur
 
 | Donnée | TTL | Motif |

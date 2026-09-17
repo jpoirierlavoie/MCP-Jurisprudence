@@ -128,6 +128,10 @@ export async function getLegislation(
 
   const lignes = [
     ou(meta.title, "(titre absent)"),
+    // `type` est rendu BRUT, délibérément : l'enum de CanLII n'est documenté nulle part,
+    // cinq valeurs sont observées et l'ensemble n'est pas clos (§4.1). Traduire
+    // « ANNUAL_STATUTE » contre « REVISED_STATUTE » serait une qualification juridique
+    // au jugé — précisément ce qu'`abroge()` et `regimeDeDates()` refusent de faire.
     [ou(meta.citation), ou(meta.type), `${databaseId} / ${ou(meta.legislationId, legislationId)}`]
       .filter(Boolean)
       .join(" · "),

@@ -101,6 +101,8 @@ export async function listDatabasesTool(
     const titre = k === "case" ? "Cours et tribunaux" : "Corpus législatifs";
     const lignes = liste.map((b) => {
       const nom = b.name_fr ?? b.name_en ?? "—";
+      // `type` BRUT entre crochets, pour le motif écrit en §4.1 : l'enum de CanLII
+      // n'est documenté nulle part et l'ensemble n'est pas clos.
       const type = b.type ? ` [${b.type}]` : "";
       return `  · ${b.id} — ${nom} (${b.jurisdiction})${type}`;
     });

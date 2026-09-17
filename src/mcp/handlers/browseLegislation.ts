@@ -72,6 +72,9 @@ export async function browseLegislation(
   const page = items.slice(offset, offset + limit);
   const blocs = page.map((i) => {
     const lignes = [i.title ?? "(titre absent)"];
+    // `type` BRUT, pour le motif écrit en §4.1 et dans `getLegislation.ts` : cinq
+    // valeurs observées, ensemble non clos, et la traduction serait une qualification
+    // juridique au jugé.
     lignes.push(
       [i.citation, i.type, `${i.databaseId ?? databaseId} / ${i.legislationId ?? "—"}`]
         .filter(Boolean)
