@@ -29,6 +29,7 @@ import {
   GARDE_SORTS_PIED,
   GARDE_SORTS_TETE,
   GARDE_VERIFICATION,
+  GARDE_VERSION_LEGISLATIVE,
 } from "../src/format/render";
 import { LIMITES, OFFSET_DEFAUT, OFFSET_MAX } from "../src/mcp/defauts";
 import { citationSure } from "../src/mcp/handlers/verifyCitations";
@@ -130,6 +131,12 @@ describe("§2 — les treize outils existent et se décrivent", () => {
     );
     // §7.9 : renvoi au connecteur « Législation du Québec » pour le texte.
     expect(TOOLS.jurisprudence_get_legislation!.description).toContain("Législation du Québec");
+    // Et la réserve qui manquait : la description GLOSAIT le régime de dates par
+    // « (entrée en vigueur) », c'est-à-dire qu'elle INSTRUISAIT le modèle de lire la
+    // date de la version comme celle de l'instrument. Elle disait aussi « utile pour
+    // dater une disposition » — l'usage exact qu'il ne faut pas en faire.
+    expect(TOOLS.jurisprudence_get_legislation!.description).toContain("JAMAIS l'instrument");
+    expect(TOOLS.jurisprudence_get_legislation!.description).toContain("DOWNLOAD_DATE");
   });
 
   /**
@@ -364,6 +371,29 @@ describe("§2 conséquence n° 2 — un INTROUVABLE n'est jamais une négation d
     const client = fakeClient({
       "caseBrowse/fr/csc-scc/2008scc9/": dunsmuir,
       "caseBrowse/fr/qcca/2005qcca304/": qcca2005,
+      // §7.9 — la fiche législative est désormais BALAYÉE elle aussi. Elle en était
+      // absente, et c'est pourtant la sortie la plus exposée à une affirmation « en
+      // vigueur » : `/\btoujours en vigueur\b/i` attendait dans la liste sans que rien
+      // ne l'y confronte. Les trois régimes, dont un inconnu.
+      "legislationBrowse/fr/qcs/cqlr-c-ccq-1991/": {
+        title: "Code civil du Québec",
+        citation: "CQLR c CCQ-1991",
+        type: "STATUTE",
+        dateScheme: "ENTRY_INTO_FORCE",
+        startDate: "2026-02-24",
+        repealed: "false",
+      },
+      "legislationBrowse/fr/qcs/r-telecharge/": {
+        title: "Règlement téléchargé",
+        dateScheme: "DOWNLOAD_DATE",
+        startDate: "2024-12-05",
+        repealed: false,
+      },
+      "legislationBrowse/fr/qcs/r-inconnu/": {
+        title: "Loi au régime inconnu",
+        dateScheme: "SOMETHING_NEW",
+        repealed: "PARTIALLY",
+      },
     });
     const sorties = [
       texte(
@@ -388,6 +418,27 @@ describe("§2 conséquence n° 2 — un INTROUVABLE n'est jamais une négation d
         ),
       ),
       texte(await callTool("jurisprudence_get_case", { citation: "2008 CSC 9" }, toolCtx(client))),
+      texte(
+        await callTool(
+          "jurisprudence_get_legislation",
+          { database_id: "qcs", legislation_id: "cqlr-c-ccq-1991" },
+          toolCtx(client),
+        ),
+      ),
+      texte(
+        await callTool(
+          "jurisprudence_get_legislation",
+          { database_id: "qcs", legislation_id: "r-telecharge" },
+          toolCtx(client),
+        ),
+      ),
+      texte(
+        await callTool(
+          "jurisprudence_get_legislation",
+          { database_id: "qcs", legislation_id: "r-inconnu" },
+          toolCtx(client),
+        ),
+      ),
       // §17 — les sorties du Québec obéissent à la MÊME interdiction, y compris sur
       // leurs chemins d'absence, qui sont précisément ceux où la tentation existe.
       texte(await callTool("palais_get", { greffe_number: "999" }, toolCtx(client))),
@@ -406,6 +457,34 @@ describe("§2 conséquence n° 2 — un INTROUVABLE n'est jamais une négation d
       for (const interdite of FORMULATIONS_INTERDITES) {
         expect(s, `formulation interdite ${interdite}`).not.toMatch(interdite);
       }
+    }
+  });
+
+  it("LE PENDANT : toute fiche législative dit que ses dates bornent la VERSION", async () => {
+    // Sans cette moitié, on satisferait le balayage ci-dessus en retirant toute mention
+    // de vigueur — c'est-à-dire en détruisant ce qu'il protège. Même raisonnement que
+    // le 404 de l'invariant 9.
+    //
+    // ⚠ On n'ajoute PAS `/entrée en vigueur/i` aux FORMULATIONS_INTERDITES : ce motif
+    //   interdirait la seule glose HONNÊTE de `ENTRY_INTO_FORCE`. Un test qui interdit
+    //   la phrase juste est pire qu'aucun test.
+    const regimes = ["ENTRY_INTO_FORCE", "DOWNLOAD_DATE", "SOMETHING_NEW", undefined];
+    for (const regime of regimes) {
+      const client = fakeClient({
+        "legislationBrowse/fr/qcs/x/": {
+          title: "Un texte",
+          dateScheme: regime,
+          startDate: "2026-02-24",
+        },
+      });
+      const s = texte(
+        await callTool(
+          "jurisprudence_get_legislation",
+          { database_id: "qcs", legislation_id: "x" },
+          toolCtx(client),
+        ),
+      );
+      expect(contient(s, GARDE_VERSION_LEGISLATIVE), `régime ${regime}`).toBe(true);
     }
   });
 });

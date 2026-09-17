@@ -100,6 +100,26 @@ export function noteEtranglement(etranglements: number, resultatComplet = true):
       ].join("\n");
 }
 
+/**
+ * Les dates d'une fiche LÉGISLATIVE bornent la VERSION que CanLII sert, et non
+ * l'instrument.
+ *
+ * ⚠ Observé en production le 2026-09-17 : `qcs / cqlr-c-ccq-1991` — le Code civil du
+ *   Québec — est servi avec `startDate = 2026-02-24`, sous un régime dit
+ *   « ENTRY_INTO_FORCE ». Le Code est en vigueur depuis 1994. Les deux lignes étaient
+ *   individuellement vraies et se lisaient ensemble comme le contraire de la vérité.
+ *
+ *   La PREUVE que la fenêtre borne une version est dans `qch / lrq-c-c-24`, abrogé :
+ *   1986-12-18 → 1987-12-01. Aucun instrument ne vit onze mois et demi.
+ *
+ * ⚠ Cette réserve est rendue sous les dates, jamais en pied : une réserve placée sous
+ *   une affirmation déjà faite ne corrige pas cette affirmation (invariant 9(c)).
+ */
+export const GARDE_VERSION_LEGISLATIVE =
+  "⚠ Ces dates bornent la VERSION que CanLII sert, et non l'instrument : elles ne\n" +
+  "datent ni son entrée en vigueur, ni son abrogation. Un texte en vigueur depuis des\n" +
+  "décennies peut porter une date de début toute récente.";
+
 /** Rappel du délai de diffusion, employé par `jurisprudence_browse_cases` (§7.6). */
 export const GARDE_DIFFUSION =
   "La diffusion sur CanLII connaît un délai : prévoir un jeu de deux jours sur les\n" +

@@ -54,7 +54,7 @@ Un vérificateur de citations qui promet plus qu'il ne tient est **pire qu'aucun
 - l'**existence** d'une décision dans la collection de CanLII ;
 - son **identité** : intitulé, citation, date, numéro de dossier de cour, mots-clés, hyperlien `canlii.ca` ;
 - ses **rapports de citation** : ce qu'elle cite, ce qui la cite, les dispositions qu'elle cite ;
-- pour un texte législatif : type, régime de dates, dates de début et de fin, indicateur d'abrogation.
+- pour un texte législatif : type, indicateur d'abrogation, et les dates de la **VERSION CONSOLIDÉE** que CanLII sert — bornes de cette version, **jamais de l'instrument** : elles ne datent ni son entrée en vigueur, ni son abrogation. *Rédaction amendée le 2026-09-17 : la précédente disait « régime de dates, dates de début et de fin », ce qui est l'assertion RACINE dont §7.9 tirait son rendu — et par laquelle « le Code civil est entré en vigueur en 2026 » devenait lisible.*
 
 **Ce que l'API n'établit pas, et qu'aucun outil ne doit laisser croire :**
 
@@ -767,9 +767,11 @@ Paramètres : `kind`, `jurisdiction`, `query` (recherche sur `name_norm`), `refr
 
 ### 7.9 `jurisprudence_get_legislation`
 
-> **Description :** « Fiche CanLII d'une loi ou d'un règlement : citation, type, régime de dates (entrée en vigueur), dates de début et de fin, indicateur d'abrogation et découpage en parties. Utile pour dater une disposition ou vérifier une abrogation. Pour le TEXTE d'une loi ou d'un règlement du Québec, utiliser le connecteur « Législation du Québec », qui rend le texte officiel verbatim. »
+> **Description :** « Fiche CanLII d'une loi ou d'un règlement : citation, type, indicateur d'abrogation, découpage en parties, et les dates de la VERSION CONSOLIDÉE que CanLII sert. Ces dates bornent cette version, JAMAIS l'instrument : elles ne datent ni son entrée en vigueur ni son abrogation, et un texte en vigueur depuis des décennies peut porter une date de début toute récente. Le régime de dates de CanLII est rendu BRUT puis glosé, parce que ses valeurs ne disent pas la même chose : « ENTRY_INTO_FORCE » vise l'entrée en vigueur de la VERSION, « DOWNLOAD_DATE » le seul jour où CanLII a téléchargé le texte. Utile pour vérifier une abrogation, PAS pour dater une disposition. Pour le TEXTE d'une loi ou d'un règlement du Québec, utiliser le connecteur « Législation du Québec », qui rend le texte officiel verbatim. »
 
-Rendre `repealed` en français explicite (« Abrogé : oui / non ») et afficher `dateScheme`, `startDate`, `endDate`.
+Rendre `repealed` en français explicite (« Abrogé : oui / non »). **Ne JAMAIS rendre `dateScheme` brut et seul** : c'est un enum de CanLII documenté NULLE PART, dont deux valeurs sont observées — `ENTRY_INTO_FORCE` et `DOWNLOAD_DATE` — et elles ne disent pas la même chose. Le rendre BRUT entre guillemets **et** glosé d'une phrase par valeur connue ; pour toute autre valeur, « régime inconnu de ce connecteur ; n'en rien inférer » — c'est la règle d'`abroge()`, étendue. `startDate` et `endDate` se rendent en **UNE** fenêtre dont le SUJET est la version (« Version servie par CanLII : du … au … »), immédiatement suivie de `GARDE_VERSION_LEGISLATIVE`.
+
+⚠ *Amendé le 2026-09-17. La rédaction antérieure — « et afficher `dateScheme`, `startDate`, `endDate` » — était la SOURCE du défaut : elle mandatait l'affichage brut d'un enum, et la description le glosait par « (entrée en vigueur) ». Observé en production le même jour : `qcs / cqlr-c-ccq-1991` rendait « Régime de dates : ENTRY_INTO_FORCE » sous « Date de début : 2026-02-24 », ce qui se lit « le Code civil est entré en vigueur en 2026 » — il l'est depuis 1994, et la date borne la version consolidée servie. `qcr / cqlr-c-c-25.01-r-0.2.1` rendait `DOWNLOAD_DATE` dans la MÊME forme, où la date n'est que le jour du téléchargement et n'a aucune portée juridique. La PREUVE que la fenêtre borne une version est dans `qch / lrq-c-c-24`, abrogé : 1986-12-18 → 1987-12-01 — aucun instrument ne vit onze mois et demi. La phrase « Utile pour dater une disposition » a été retirée de la description : elle instruisait le modèle de faire avec ces dates exactement ce qu'il ne faut pas.*
 
 ### 7.10 `jurisprudence_parse_citation`
 
@@ -1501,6 +1503,6 @@ citateur professionnel.
 | `jurisprudence_get_case`, `jurisprudence_verify_citations` | `caseBrowse/{lang}/{db}/{caseId}/` | Le chemin de résolution déterministe |
 | `jurisprudence_citator`, `jurisprudence_subsequent_history` | `caseCitator/en/{db}/{caseId}/{metadataType}` | **`en` obligatoire** dans le chemin |
 | `jurisprudence_browse_legislation` | `legislationBrowse/{lang}/{db}/` | |
-| `jurisprudence_get_legislation` | `legislationBrowse/{lang}/{db}/{legislationId}/` | |
+| `jurisprudence_get_legislation` | `legislationBrowse/{lang}/{db}/{legislationId}/` | `startDate`/`endDate` bornent la VERSION servie ; `dateScheme` en donne le régime — enum **non documenté**, `ENTRY_INTO_FORCE` et `DOWNLOAD_DATE` observés le 2026-09-17 |
 
 Contraintes transversales : **HTTPS uniquement** ; charge utile plafonnée à **10 Mo** (erreur `TOO_LONG`) ; dates au format **AAAA-MM-JJ**, bornes **inclusives** ; `caseId` renvoyé dans les listes sous forme d'objet clé par langue (`{"en": "..."}` ou `{"fr": "..."}`) — **aplatir à la lecture**.

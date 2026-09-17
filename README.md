@@ -68,8 +68,9 @@ décision D8 interdit depuis l'origine. La partition, elle, reste vérifiée.
   hyperlien `canlii.ca` ;
 - ses **rapports de citation** : ce qu'elle cite, ce qui la cite, les dispositions qu'elle
   cite ;
-- pour un texte législatif : type, régime de dates, dates de début et de fin, indicateur
-  d'abrogation.
+- pour un texte législatif : type, indicateur d'abrogation, et les dates de la **version
+  consolidée** que CanLII sert — bornes de cette version, **jamais de l'instrument** :
+  elles ne datent ni son entrée en vigueur, ni son abrogation.
 
 ### Ce que l'API n'établit pas, et qu'aucun outil ne doit laisser croire
 
@@ -117,7 +118,7 @@ n'est pas de l'ajuster pour qu'il passe : c'est de remettre la mise en garde.
 | `jurisprudence_browse_cases` | Décisions d'un tribunal, avec les huit filtres de dates |
 | `jurisprudence_list_databases` | Répertoire des cours et corpus législatifs |
 | `jurisprudence_browse_legislation` | Lois et règlements d'une base législative |
-| `jurisprudence_get_legislation` | Fiche d'une loi : dates, abrogation, découpage |
+| `jurisprudence_get_legislation` | Fiche d'une loi : abrogation, découpage, et les dates de la VERSION servie — jamais celles de l'instrument |
 | `jurisprudence_parse_citation` | Analyse hors ligne d'une citation — **aucun appel** |
 
 ### Tables locales du Québec — **aucun appel, jamais**

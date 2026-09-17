@@ -303,6 +303,32 @@ describe("§18 — le registre est la source, pas une copie", () => {
     }
   });
 
+  /**
+   * LA PARITÉ DES CLEFS NE VOIT PAS LE CONTENU.
+   *
+   * Le test des DEUX SENS confronte des ENSEMBLES DE CLEFS ; celui de la copie refuse
+   * une traduction identique au français. Ni l'un ni l'autre ne remarque qu'une réserve
+   * AJOUTÉE au français n'a pas de pendant anglais : le visiteur anglophone n'en lit
+   * qu'une moitié, et une réserve portée d'un seul côté n'est pas portée.
+   *
+   * ⚠ Cette table est tenue À LA MAIN, délibérément, et n'énumère que les réserves
+   *   SUBSTANTIELLES — celles dont l'absence change ce que la page promet. Une
+   *   confrontation automatique mot à mot serait impossible entre deux langues, et une
+   *   liste exhaustive se périmerait à la première reformulation.
+   */
+  const RESERVES_BILINGUES: Record<string, [RegExp, RegExp]> = {
+    // Ajoutée le 2026-09-17 : les dates d'une fiche législative bornent la VERSION
+    // servie par CanLII, jamais l'instrument.
+    jurisprudence_get_legislation: [/JAMAIS l'instrument/, /never the instrument/i],
+  };
+
+  it("une réserve SUBSTANTIELLE portée en français l'est aussi en anglais", () => {
+    for (const [nom, [fr, en]] of Object.entries(RESERVES_BILINGUES)) {
+      expect(TOOLS[nom]!.description, `${nom} (fr)`).toMatch(fr);
+      expect(OUTILS_EN[nom]!.texte, `${nom} (en)`).toMatch(en);
+    }
+  });
+
   it("la table des greffes porte EXACTEMENT les greffes de la table", async () => {
     const html = await (await demander("/")).text();
     const corps = html.slice(html.indexOf('<table id="tgreffes"'));

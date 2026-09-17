@@ -600,29 +600,84 @@ describe("§7.8 et §7.9 — législation", () => {
     expect(out).toContain("Législation du Québec");
   });
 
-  it("get_legislation rend l'abrogation en français explicite", async () => {
-    const client = fakeClient({
-      "legislationBrowse/fr/qcs/rsq-c-c-25/": {
-        legislationId: "rsq-c-c-25",
-        title: "Code de procédure civile",
-        citation: "RLRQ c C-25.01",
-        type: "STATUTE",
-        dateScheme: "IN_FORCE",
-        startDate: "2016-01-01",
-        repealed: "false",
-        content: [{}, {}],
-      },
-    });
-    const r = await callTool(
-      "jurisprudence_get_legislation",
-      { database_id: "qcs", legislation_id: "rsq-c-c-25" },
-      toolCtx(client),
+  /** Abrège les quatre appels de fiche législative qui suivent. */
+  async function fiche(id: string, meta: Record<string, unknown>): Promise<string> {
+    return texte(
+      await callTool(
+        "jurisprudence_get_legislation",
+        { database_id: "qcs", legislation_id: id },
+        toolCtx(fakeClient({ [`legislationBrowse/fr/qcs/${id}/`]: meta })),
+      ),
     );
-    const out = texte(r);
+  }
+
+  it("get_legislation borne la VERSION servie, et ne date pas l'instrument", async () => {
+    // ⚠ VALEURS RELEVÉES EN PRODUCTION le 2026-09-17, sur `qcs / cqlr-c-ccq-1991`.
+    //   La fixture précédente portait `dateScheme: "IN_FORCE"` — une valeur que l'API
+    //   ne paraît pas émettre, inventée pour le test. Elle restait verte contre une
+    //   réalité qu'elle ne décrivait pas, ce qui est le pire état d'un test.
+    //
+    //   Le défaut : « Régime de dates : ENTRY_INTO_FORCE » sous « Date de début :
+    //   2026-02-24 » se lit « le Code civil est entré en vigueur en 2026 ». Il l'est
+    //   depuis 1994 ; la date borne la version consolidée que CanLII sert.
+    const out = await fiche("cqlr-c-ccq-1991", {
+      legislationId: "cqlr-c-ccq-1991",
+      title: "Code civil du Québec",
+      citation: "CQLR c CCQ-1991",
+      type: "STATUTE",
+      dateScheme: "ENTRY_INTO_FORCE",
+      startDate: "2026-02-24",
+      repealed: "false",
+      content: [{}],
+    });
     expect(out).toContain("Abrogé : non");
-    expect(out).toContain("Régime de dates : IN_FORCE");
-    expect(out).toContain("Date de début : 2016-01-01");
+    expect(out).toContain("Version servie par CanLII : depuis le 2026-02-24, sans date de fin.");
+    expect(out).toContain("« ENTRY_INTO_FORCE » — entrée en vigueur de CETTE VERSION.");
+    expect(out).toContain("bornent la VERSION que CanLII sert, et non l'instrument");
+    // La ligne qui rendait la lecture fausse possible ne doit PAS revenir.
+    expect(out).not.toContain("Date de début :");
     expect(out).toContain("Législation du Québec");
+  });
+
+  it("DOWNLOAD_DATE ne se lit PAS comme ENTRY_INTO_FORCE", async () => {
+    // `qcr / cqlr-c-c-25.01-r-0.2.1`, relevé le 2026-09-17. Cette date n'est que le
+    // jour du téléchargement : elle n'a aucune portée juridique, et elle paraissait
+    // dans exactement la même forme que la précédente.
+    const out = await fiche("cqlr-c-c-25.01-r-0.2.1", {
+      title: "Règlement de la Cour supérieure du Québec en matière civile",
+      type: "REGULATION",
+      dateScheme: "DOWNLOAD_DATE",
+      startDate: "2024-12-05",
+      repealed: "false",
+    });
+    expect(out).toContain("« DOWNLOAD_DATE » — jour où CanLII a téléchargé le texte");
+    expect(out).toContain("aucune portée juridique");
+    expect(out).not.toContain("entrée en vigueur de CETTE VERSION");
+  });
+
+  it("une fenêtre FERMÉE se lit comme une fenêtre, sur un texte abrogé", async () => {
+    // `qch / lrq-c-c-24`, relevé le 2026-09-17 : 1986-12-18 → 1987-12-01. C'est la
+    // PREUVE que la fenêtre borne une VERSION — aucun instrument ne vit onze mois.
+    const out = await fiche("lrq-c-c-24", {
+      title: "Code de la route",
+      type: "REVISED_STATUTE",
+      dateScheme: "ENTRY_INTO_FORCE",
+      startDate: "1986-12-18",
+      endDate: "1987-12-01",
+      repealed: true,
+    });
+    expect(out).toContain("Version servie par CanLII : du 1986-12-18 au 1987-12-01.");
+    expect(out).toContain("Abrogé : oui");
+  });
+
+  it("un régime INCONNU ou ABSENT est rendu brut, jamais traduit au jugé", async () => {
+    const inconnu = await fiche("z", { title: "Loi", dateScheme: "SOMETHING_NEW" });
+    expect(inconnu).toContain("« SOMETHING_NEW » — régime inconnu de ce connecteur");
+    expect(inconnu).toContain("n'en rien inférer");
+
+    const absent = await fiche("w", { title: "Loi sans régime" });
+    expect(absent).toContain("Version servie par CanLII : dates non précisées.");
+    expect(absent).toContain("Régime de dates : non précisé par CanLII");
   });
 
   it("get_legislation rend « oui » sur un booléen vrai et signale une valeur inconnue", async () => {

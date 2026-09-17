@@ -578,11 +578,16 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   jurisprudence_get_legislation: {
     title: "Fiche d'une loi ou d'un règlement",
     description:
-      "Fiche CanLII d'une loi ou d'un règlement : citation, type, régime de dates (entrée en " +
-      "vigueur), dates de début et de fin, indicateur d'abrogation et découpage en parties. " +
-      "Utile pour dater une disposition ou vérifier une abrogation. Pour le TEXTE d'une loi " +
-      "ou d'un règlement du Québec, utiliser le connecteur « Législation du Québec », qui " +
-      "rend le texte officiel verbatim.",
+      "Fiche CanLII d'une loi ou d'un règlement : citation, type, indicateur d'abrogation, " +
+      "découpage en parties, et les dates de la VERSION CONSOLIDÉE que CanLII sert. Ces " +
+      "dates bornent cette version, JAMAIS l'instrument : elles ne datent ni son entrée en " +
+      "vigueur ni son abrogation, et un texte en vigueur depuis des décennies peut porter " +
+      "une date de début toute récente. Le régime de dates de CanLII est rendu BRUT puis " +
+      "glosé, parce que ses valeurs ne disent pas la même chose : « ENTRY_INTO_FORCE » vise " +
+      "l'entrée en vigueur de la VERSION, « DOWNLOAD_DATE » le seul jour où CanLII a " +
+      "téléchargé le texte. Utile pour vérifier une abrogation, PAS pour dater une " +
+      "disposition. Pour le TEXTE d'une loi ou d'un règlement du Québec, utiliser le " +
+      "connecteur « Législation du Québec », qui rend le texte officiel verbatim.",
     inputSchema: {
       type: "object",
       properties: {

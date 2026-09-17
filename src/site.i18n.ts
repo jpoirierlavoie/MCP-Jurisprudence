@@ -95,8 +95,11 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
   jurisprudence_get_legislation: {
     titre: "Statute or regulation record",
     texte:
-      "CanLII's record for one instrument: dates, date regime and repeal indicator. For the " +
-      "TEXT of Québec " +
+      "CanLII's record for one instrument: citation, type, repeal indicator, and the dates of " +
+      "the CONSOLIDATED VERSION CanLII serves. Those dates bound that version, never the " +
+      "instrument — they date neither its coming into force nor its repeal, and a statute in " +
+      "force for decades can carry a very recent start date. CanLII's date regime is shown RAW " +
+      "and glossed, because its values do not mean the same thing. For the TEXT of Québec " +
       "statutes, use the « Législation du Québec » connector instead.",
   },
   jurisprudence_parse_citation: {
