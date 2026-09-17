@@ -1163,6 +1163,24 @@ question effacée se repose.*
 5. ~~**Bases à indexer** si §11 est activé.~~ **Sans objet** : voir 1.
 6. **Langue de la spécification.** Rédigée en français, comme `claude_spec-elabore-theorie-de-la-cause.md`. Le code, les identifiants et les noms d'outils restent en anglais.
 
+### 16.3 Relevé du 2026-09-17 — la coupe du corps à 100 000 caractères
+
+*Consigné pour que personne n'ait à refaire la reproduction.* `jurisprudence_browse_legislation` échouait sur la plupart des bases avec « CanLII a renvoyé une erreur 200 ». Cause : `#safeText` tronquait **tout** corps de réponse, y compris celui des réponses RÉUSSIES, avant `JSON.parse` (§5.2).
+
+| base | textes | avant le correctif | après |
+|---|---:|---|---|
+| `cac` | 2 | passe | passe |
+| `nus` | 278 | **erreur 200** | passe |
+| `qch` | 298 | passe | passe |
+| `qcs` | 636 | **erreur 200** | passe |
+| `peh` | 721 | **erreur 200** | passe |
+| `car` | 5 154 | **erreur 200** | passe |
+| `qcr` | 6 778 | **erreur 200** | passe |
+
+⚠ **Le nombre de textes n'est PAS le discriminant, et il ne faut pas s'en servir comme tel.** `nus` (278) échouait là où `qch` (298) passait : ce qui compte est la taille du corps en CARACTÈRES, que le nombre d'entrées n'approxime qu'en gros — les intitulés et les identifiants varient d'une base à l'autre. Le tableau est un RELEVÉ, pas une règle ; la seule règle est qu'on ne tronque pas un corps qu'on va analyser.
+
+Le balayage vif de `jurisprudence_find_case` tombait sous la même cause (`resultCount = 5 000` par page). Vérifié en production le même jour sur la reproduction du rapport de test — `{title: "Godbout Longueuil", database_id: "csc-scc", year_from: 1995, year_to: 1998}` : 4 appels, 433 fiches parcourues, un candidat rendu **sans date** et disant pourquoi.
+
 **Ce qui reste réellement à faire, tout § confondus** *(relevé du 2026-09-16)* : les **coordonnées** des palais (§17.7) ; le réglage de `CANLII_MIN_INTERVAL_MS` ci-dessus ; et **`SERVER_INFO.version`**, littéral recopié de `package.json` que rien n'épingle (§8) — il ne casse rien, il fait seulement croire qu'un client connaît la version qu'il interroge. *(La question du déploiement automatique, longtemps portée ici, est CLOSE depuis le 2026-09-16 : le workflow a été retiré et l'ordre migrations-puis-déploiement est passé dans `npm run deploy`. Voir §12.)*
 
 ---
