@@ -158,7 +158,7 @@ table en mémoire (aucune E/S). Ne pas fusionner.
 ```bash
 npx wrangler types && npx tsc --noEmit     # toujours avant commit
 npx biome check .                          # --write pour corriger
-npx vitest run                             # 497 tests, sans réseau ni clef
+npx vitest run                             # 532 tests, sans réseau ni clef
 npx wrangler dev                           # exige .dev.vars
 npx wrangler deploy --dry-run              # valide paquet + config, sans jeton
 npx wrangler d1 migrations apply canlii --local
@@ -453,7 +453,7 @@ qu'elle vaudra encore le jour où l'on voudra rouvrir la question (§12).
 
 ## État
 
-**Livré et en production** sur `jurisprudence.poirierlavoie.ca`, 497 tests verts en quinze
+**Livré et en production** sur `jurisprudence.poirierlavoie.ca`, 532 tests verts en quinze
 fichiers. Treize outils — dix `jurisprudence_*`, trois `greffe_*`/`palais_*` — et une page
 publique bilingue sur la même origine (§18). La version en ligne a été déployée **à la main**, comme toutes celles qui l'ont
 précédée ; `/health` annonce le commit dont elle est issue (§8, §12.1). Le déploiement
@@ -462,6 +462,19 @@ automatique a été retiré le 2026-09-16 : il n'avait jamais mis une seule vers
 **appliquée en production** : `search_log.tool` et `court_codes.note` portent les noms
 d'aujourd'hui, et aucune ligne ne subsiste sous un ancien nom — l'historique de §10 n'est
 donc pas coupé en deux à la date du renommage.
+
+⚠ **`migrations/0005_purge_dates_fabriquees.sql` est ÉCRITE et N'EST PAS ENCORE APPLIQUÉE
+en production** *(2026-09-17)*. Elle retire les 1 819 dates de décision fabriquées par le
+balayage vif — recensées contre la D1 vivante avant écriture : 2 630 lignes `sweep`, dont
+811 sans date et 1 819 au 1er janvier, et aucune à un autre jour. `npm run deploy` la
+passera **avant** le Worker : c'est le sens sûr pour une migration de SCHÉMA, et l'inverse
+pour une migration de DONNÉE. Pendant les quelques secondes qui séparent les deux étapes,
+la base nettoyée tourne sous le code qui fabrique encore — **ne pas appeler
+`jurisprudence_find_case` entre les deux**. Rien d'automatisé n'écrit dans `cases` : le
+cron ne rafraîchit que le répertoire, et `BACKFILL_ENABLED` vaut `"false"`. Contrôle après
+coup, attendu à zéro puis à l'égalité :
+`SELECT COUNT(*) FROM cases WHERE source <> 'lookup' AND decision_date IS NOT NULL;` et
+`SELECT (SELECT COUNT(*) FROM cases), (SELECT COUNT(*) FROM cases_fts);`
 
 **UN seul client aujourd'hui, et un porteur qui attend** (§19). Le connecteur claude.ai
 est le seul appelant vivant. Le clavardage de Pallas Athéna, second client de
