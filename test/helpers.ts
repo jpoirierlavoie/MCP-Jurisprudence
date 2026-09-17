@@ -4,6 +4,30 @@
  *
  * Aucun test n'appelle la vraie API : le connecteur doit être entièrement éprouvable
  * hors ligne, faute de quoi la suite dépendrait du quota d'une clef personnelle.
+ *
+ * ╔══════════════════════════════════════════════════════════════════════════════╗
+ * ║ ⚠ CE QUE `fakeClient` NE PEUT PAS ÉPROUVER — et il faut le savoir.           ║
+ * ║                                                                              ║
+ * ║ Ce n'est pas un `fetch` factice : c'est un REMPLACEMENT de la classe          ║
+ * ║ `CanliiClient`. Son `get()` est une consultation de dictionnaire qui rend un  ║
+ * ║ objet DÉJÀ ANALYSÉ. Il ne construit aucune `Response`, ne lit aucun corps,    ║
+ * ║ n'appelle jamais `JSON.parse`. Tout ce qui vit dans `#request` — lecture du   ║
+ * ║ corps, plafonds, détection d'un code applicatif, traduction d'un statut — lui ║
+ * ║ est donc STRUCTURELLEMENT INVISIBLE.                                         ║
+ * ║                                                                              ║
+ * ║ Un défaut y a vécu sans qu'aucun de ces tests ne bouge : le corps des         ║
+ * ║ réponses réussies était coupé à 100 000 caractères, ce qui rendait            ║
+ * ║ `browse_legislation` inutilisable en production. Le seuil aurait pu valoir 10 ║
+ * ║ et les 498 tests seraient restés verts.                                      ║
+ * ║                                                                              ║
+ * ║ CE N'EST PAS UN DÉFAUT À CORRIGER ICI. Envelopper le vrai client ferait       ║
+ * ║ dépendre quatre cents tests de gestionnaire du transport, et les ralentirait  ║
+ * ║ pour rien. Ces chemins-là s'éprouvent dans `test/client.test.ts`, via         ║
+ * ║ `fetchImpl`, et NULLE PART AILLEURS.                                          ║
+ * ║                                                                              ║
+ * ║ En revanche `fakeClient` sait PORTER l'erreur qui en résulte (option          ║
+ * ║ `erreur`) : le RENDU d'une cause reste parfaitement éprouvable ici.           ║
+ * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 
 import { env } from "cloudflare:test";

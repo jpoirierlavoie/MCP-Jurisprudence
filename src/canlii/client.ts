@@ -16,7 +16,7 @@
 // qui divergeraient un jour sur la borne ou sur le repli donneraient au même `vars` deux
 // significations selon l'appelant — le genre d'écart qu'aucun test ne réclame.
 import { entier } from "../config";
-import { CanliiBudgetError, CanliiError, CanliiTimeoutError, truncateBody } from "./errors";
+import { CanliiBudgetError, CanliiError, CanliiTimeoutError } from "./errors";
 import type { CanliiErrorBody } from "./types";
 
 /** HTTPS uniquement — le HTTP n'est plus pris en charge par l'API. */
@@ -56,6 +56,30 @@ const THROTTLE_BACKOFF_MS = 2000;
  */
 const MAX_INTERVAL_MS = 4000;
 
+/**
+ * Plafond DÉFENSIF de lecture d`un corps, en caractères — 12 Mo, soit AU-DESSUS des
+ * 10 Mo que l`API annonce (§5.2).
+ *
+ * ⚠ Il n`existe PAS pour économiser de la mémoire. Il existe pour qu`un dépassement
+ *   produise une PHRASE FRANÇAISE plutôt qu`un isolat tué à 128 Mo — que le client MCP
+ *   reçoit comme une panne de transport SANS AUCUNE CAUSE NOMMÉE, ce qui est le pire
+ *   résultat possible au regard de l`invariant 9.
+ * ⚠ Il REFUSE, il ne coupe pas. Un plafond qui coupe est celui qu`on vient de retirer :
+ *   un JSON tronqué n`est plus du JSON, et l`échec ressort alors sous le statut de la
+ *   réponse — « erreur 200 » sur une réponse parfaitement valide.
+ * ⚠ Il est plus HAUT que celui de CanLII, délibérément : un plafond interne plus bas
+ *   que celui du fournisseur rouvrirait le même défaut sous un autre nom.
+ * ⚠ Unité : caractères UTF-16, non octets. Un titre accentué pèse 1 caractère et
+ *   2 octets ; l`écart est sans conséquence à cette distance du plafond réel, et
+ *   compter les octets exigerait un lecteur par flux — vingt lignes sur le chemin que
+ *   TOUT appel traverse, pour une bande que les 10 Mo de CanLII rendent inatteignable.
+ *
+ * Il ne se lit PAS dans `vars` : un plafond qu`une variable d`environnement peut abaisser
+ * en silence recréerait le défaut d`aujourd`hui sous forme de configuration. Il
+ * s`injecte par `createClient(env, seams, overrides)`, couture de TEST uniquement.
+ */
+const PLAFOND_CORPS_CARACTERES = 12_000_000;
+
 export interface CanliiUsage {
   calls: number;
   errors: number;
@@ -76,6 +100,8 @@ export interface ClientConfig {
   minIntervalMs: number;
   maxCalls: number;
   timeoutMs: number;
+  /** Plafond de lecture d`un corps, en caractères. Voir PLAFOND_CORPS_CARACTERES. */
+  corpsMaxChars: number;
 }
 
 /** Coutures de test : injectables, jamais employées en production. */
@@ -94,6 +120,8 @@ export function configFromEnv(env: Env): ClientConfig {
     minIntervalMs: entier(env.CANLII_MIN_INTERVAL_MS, 600),
     maxCalls: entier(env.CANLII_MAX_CALLS_PER_INVOCATION, 40),
     timeoutMs: entier(env.CANLII_TIMEOUT_MS, 15000),
+    // Pas de lecture de `env` ici, et c`est le motif écrit sur la constante.
+    corpsMaxChars: PLAFOND_CORPS_CARACTERES,
   };
 }
 
@@ -188,14 +216,28 @@ class Client implements CanliiClient {
    * objet portant `"error": "TOO_LONG"`. On réduit `resultCount` de moitié et on
    * réessaie UNE FOIS. Au-delà, on laisse remonter : mieux vaut un échec explicite
    * qu'une pagination silencieusement rétrécie dont l'appelant ignore tout.
+   *
+   * Le plafond DÉFENSIF du connecteur (`CORPS_HORS_PLAFOND`) tire le même rattrapage,
+   * pour le motif écrit sur `PLAFOND_CORPS_CARACTERES` : les deux disent « trop gros ».
+   *
+   * ⚠ Les DEUX exigent un `resultCount` fini. Un point d'accès qui NE PAGINE PAS —
+   *   `legislationBrowse/{lang}/{db}/`, qui rend la base entière — n'a donc aucun
+   *   rattrapage ici, par construction. C'est pourquoi la LECTURE du corps ne doit
+   *   jamais, elle, rétrécir en silence : elle est la seule chose qui le tienne.
    */
   async #attemptWithHalving<T>(path: string, params: Record<string, string | number>): Promise<T> {
     try {
       return await this.#request<T>(path, params);
     } catch (err) {
-      const tooLong = err instanceof CanliiError && err.code === "TOO_LONG";
+      // Le plafond du CONNECTEUR se comporte comme celui de CanLII : sur un point
+      // d'accès paginé, une page hors plafond se réduit de moitié plutôt que
+      // d'interrompre le balayage. Les deux disent la même chose — « trop gros » — et
+      // les distinguer ici ferait dépendre le rattrapage de QUI a refusé.
+      const tropGros =
+        err instanceof CanliiError &&
+        (err.code === "TOO_LONG" || err.code === "CORPS_HORS_PLAFOND");
       const count = Number(params.resultCount);
-      if (!tooLong || !Number.isFinite(count) || count <= 1) throw err;
+      if (!tropGros || !Number.isFinite(count) || count <= 1) throw err;
       const halved = Math.max(1, Math.floor(count / 2));
       return await this.#request<T>(path, { ...params, resultCount: halved });
     }
@@ -239,7 +281,7 @@ class Client implements CanliiClient {
       }
 
       if (RETRIABLE.has(response.status)) {
-        const body = await this.#safeText(response);
+        const body = (await this.#corps(response)) ?? "";
         lastError = new CanliiError(response.status, url, body);
         if (attempt === MAX_ATTEMPTS - 1) throw lastError;
         // `Retry-After` PRIME sur la temporisation exponentielle (§5.2).
@@ -254,11 +296,20 @@ class Client implements CanliiClient {
       if (!response.ok) {
         // 400, 401, 403, 404 : aucun réessai. Réessayer un 401 brûlerait du quota
         // sur une clef invalide ; réessayer un 404 masquerait un verdict INTROUVABLE.
-        const body = await this.#safeText(response);
+        const body = (await this.#corps(response)) ?? "";
         throw new CanliiError(response.status, url, body, extractErrorCode(body));
       }
 
-      const text = await this.#safeText(response);
+      const text = await this.#corps(response);
+      if (text === null) {
+        // La LECTURE a échoué. Ce n'est ni une réponse vide, ni une absence.
+        throw new CanliiError(response.status, url, "", "CORPS_INTERROMPU");
+      }
+      if (text.length > this.#cfg.corpsMaxChars) {
+        // REFUS, jamais coupure : une réponse tronquée n'est plus analysable, et la
+        // servir quand même referait exactement ce que ce correctif répare.
+        throw new CanliiError(response.status, url, "", "CORPS_HORS_PLAFOND");
+      }
       const parsed = safeJson(text);
       if (parsed === undefined) {
         throw new CanliiError(response.status, url, text, "REPONSE_ILLISIBLE");
@@ -294,11 +345,33 @@ class Client implements CanliiClient {
     await this.#sleep(ms);
   }
 
-  async #safeText(response: Response): Promise<string> {
+  /**
+   * Lit le corps ENTIER. Aucune troncature ici, et c'est tout le point du correctif.
+   *
+   * ⚠ Cette fonction coupait à 100 000 caractères, sur ses TROIS appelants. Sur les deux
+   *   chemins d'erreur la coupe était REDONDANTE — `CanliiError` borne déjà le corps à 512
+   *   (`errors.ts`). Sur le chemin de SUCCÈS elle était DESTRUCTRICE : un JSON coupé n'est
+   *   plus du JSON, `safeJson` rendait `undefined`, et une réponse parfaitement valide de
+   *   CanLII ressortait en « CanLII a renvoyé une erreur 200 ».
+   *
+   *   Mesuré en production le 2026-09-17 : `jurisprudence_browse_legislation` passait sur
+   *   `cac` (2 textes), `ykh` (213) et `qch` (298), et échouait sur `peh`, `nus`, `qcs` et
+   *   `car`. Le point d'accès `legislationBrowse` ne pagine pas : le gestionnaire ne
+   *   pouvait donc pas réduire la demande, et `#attemptWithHalving` ne pouvait pas tirer.
+   *   `jurisprudence_find_case` échouait de même sur toute page de balayage fournie
+   *   (`PAGE = 5000`), ce qui faisait voisiner « erreur 200 » et une note de 429.
+   *
+   *   Et la coupe ne protégeait même pas la mémoire : `response.text()` matérialise le
+   *   corps entier AVANT que la troncature ne s'exécute.
+   *
+   * `null` ⇒ la LECTURE a échoué (flux rompu). Distinct d'un corps vide, qui est une
+   * réponse : l'invariant 9 interdit de confondre « rien reçu » et « reçu rien ».
+   */
+  async #corps(response: Response): Promise<string | null> {
     try {
-      return truncateBody(await response.text(), 100_000);
+      return await response.text();
     } catch {
-      return "";
+      return null;
     }
   }
 }

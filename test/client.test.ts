@@ -43,7 +43,12 @@ const json = (body: unknown, init: ResponseInit = {}) =>
 /** Client de test : aucune attente réelle, gigue nulle, plafond explicite. */
 function client(
   reponses: Array<Response | (() => Response | Promise<Response>)>,
-  overrides: Partial<{ maxCalls: number; minIntervalMs: number; timeoutMs: number }> = {},
+  overrides: Partial<{
+    maxCalls: number;
+    minIntervalMs: number;
+    timeoutMs: number;
+    corpsMaxChars: number;
+  }> = {},
 ) {
   const f = fakeFetch(reponses);
   const dormis: number[] = [];
@@ -260,6 +265,120 @@ describe("§5.2 — charge utile TOO_LONG", () => {
   it("détecte un corps d'erreur applicatif rendu avec un statut 200", async () => {
     const { c } = client([() => json({ error: "TOO_LONG" })]);
     await expect(c.get("caseBrowse/fr/")).rejects.toBeInstanceOf(CanliiError);
+  });
+});
+
+describe("§5.2 — le corps d'une réponse valide est lu ENTIER", () => {
+  /**
+   * ╔══════════════════════════════════════════════════════════════════════════════╗
+   * ║ CES TESTS SONT LES SEULS QUI POUVAIENT VOIR LE DÉFAUT.                       ║
+   * ║                                                                              ║
+   * ║ `test/helpers.ts` remplace la CLASSE `CanliiClient` en entier et rend des     ║
+   * ║ objets DÉJÀ ANALYSÉS : aucun test de gestionnaire ne construit de `Response`, ║
+   * ║ ne lit de corps, n'appelle `JSON.parse`. Le seuil aurait pu valoir 10 et les  ║
+   * ║ 498 tests seraient restés verts.                                             ║
+   * ╚══════════════════════════════════════════════════════════════════════════════╝
+   */
+  it("un corps bien au-delà de 100 000 caractères s'analyse, queue comprise", async () => {
+    // Le seuil qui coupait. Une base législative de CanLII le dépasse dès quelques
+    // centaines d'entrées : `qch` (298 textes) passait, `qcs` non — relevé en
+    // production le 2026-09-17. Et `legislationBrowse` ne pagine pas : le gestionnaire
+    // n'avait aucun moyen de demander moins.
+    const grosse = {
+      legislations: Array.from({ length: 4000 }, (_, i) => ({
+        databaseId: "qcs",
+        legislationId: `rlrq-c-x-${i}`,
+        title: `Loi numéro ${i} sur quelque chose d'assez long pour peser son poids`,
+        citation: `RLRQ c X-${i}`,
+        type: "STATUTE",
+      })),
+    };
+    expect(JSON.stringify(grosse).length).toBeGreaterThan(100_000);
+    const { c } = client([() => json(grosse)]);
+    const r = await c.get<typeof grosse>("legislationBrowse/fr/qcs/");
+    expect(r.legislations).toHaveLength(4000);
+    // L'assertion DÉCISIVE : c'est la QUEUE que la coupe détruisait.
+    expect(r.legislations.at(-1)!.legislationId).toBe("rlrq-c-x-3999");
+  });
+
+  it("une page de balayage de 5 000 fiches passe entière (findCase, PAGE)", async () => {
+    // `find_case` demande `resultCount: 5000` par page : le balayage vif mourait donc
+    // sur tout tribunal un peu fourni, et l'échec se lisait « erreur 200 » à côté
+    // d'une note d'étranglement, ce qui faisait accuser le 429.
+    const cases = Array.from({ length: 5000 }, (_, i) => ({
+      databaseId: "qccs",
+      caseId: { fr: `2024qccs${i}` },
+      title: `Untel c. Autrui ${i}`,
+      citation: `2024 QCCS ${i}`,
+    }));
+    const { c } = client([() => json({ cases })]);
+    const r = await c.get<{ cases: unknown[] }>("caseBrowse/fr/qccs/", {
+      offset: 0,
+      resultCount: 5000,
+    });
+    expect(r.cases).toHaveLength(5000);
+  });
+
+  it("au-delà du plafond du connecteur, le corps est REFUSÉ en entier, jamais tronqué", async () => {
+    // Le plafond réel vaut 12 Mo ; on l'abaisse par la couture pour ne pas allouer
+    // autant. Ce qui est éprouvé, c'est la POLITIQUE : refuser, et non couper — un
+    // plafond qui coupe est exactement celui qu'on vient de retirer.
+    const { c } = client([() => json({ cases: [{ title: "assez long pour dépasser" }] })], {
+      corpsMaxChars: 20,
+    });
+    const e = (await c.get("caseBrowse/fr/qcca/").catch((x) => x)) as CanliiError;
+    expect(e).toBeInstanceOf(CanliiError);
+    expect(e.code).toBe("CORPS_HORS_PLAFOND");
+  });
+
+  it("le plafond du connecteur déclenche le MÊME rattrapage que TOO_LONG", async () => {
+    let vu = 0;
+    const { c, f } = client(
+      [
+        () => {
+          vu++;
+          return json({ cases: Array.from({ length: 50 }, (_, i) => ({ title: `d ${i}` })) });
+        },
+        () => json({ cases: [{ title: "ok" }] }),
+      ],
+      { corpsMaxChars: 200 },
+    );
+    const r = await c.get<{ cases: unknown[] }>("caseBrowse/fr/qccq/", {
+      offset: 0,
+      resultCount: 5000,
+    });
+    expect(vu).toBe(1);
+    expect(new URL(f.vues[1]!).searchParams.get("resultCount")).toBe("2500");
+    expect(r.cases).toHaveLength(1);
+  });
+
+  it("une lecture INTERROMPUE se nomme, au lieu de passer pour un corps vide", async () => {
+    // « rien reçu » n'est pas « reçu rien » : l'ancienne lecture rendait "" dans les
+    // deux cas, et un corps vide se serait analysé en échec de JSON indistinct.
+    const { c } = client([
+      () =>
+        new Response(
+          new ReadableStream({
+            start(ctl) {
+              ctl.error(new Error("flux rompu"));
+            },
+          }),
+          { status: 200 },
+        ),
+    ]);
+    const e = (await c.get("caseBrowse/fr/qcca/").catch((x) => x)) as CanliiError;
+    expect(e).toBeInstanceOf(CanliiError);
+    expect(e.code).toBe("CORPS_INTERROMPU");
+  });
+
+  it("LE PENDANT : le corps d'une ERREUR reste borné pour le diagnostic (§5.3)", async () => {
+    // Sans cette moitié, on satisferait tout ce qui précède en retirant TOUTE borne.
+    // Ce qui est retiré, c'est la coupe sur le chemin de SUCCÈS ; `CanliiError` borne
+    // toujours, et c'est elle qui l'a toujours fait — d'où la redondance supprimée.
+    const { c } = client([() => new Response("E".repeat(5000), { status: 403 })]);
+    const e = (await c.get("caseBrowse/fr/x/").catch((x) => x)) as CanliiError;
+    expect(e.body).toContain("(tronqué)");
+    expect(e.body.length).toBeLessThan(600);
   });
 });
 
