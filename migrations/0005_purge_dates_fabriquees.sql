@@ -23,10 +23,19 @@
 -- ligne de balayage dans son état honnête ; elle garde sa valeur d'INDEX (intitulé,
 -- citation), qui est toute sa raison d'être (D6). Le second SUPPRIME, et ne met pas à
 -- NULL : une fiche « lookup » est servie au cache par `lookupCase`, et le contrôle
--- d'ANNÉE de `verifyCitations` ne s'exécute QUE si `decision_date` existe. Mise à NULL,
--- la ligne ferait donc SAUTER ce contrôle EN SILENCE — une citation d'année fausse
+-- d'ANNÉE de `verifyCitations` ne s'exécutait QUE si `decision_date` existe. Mise à NULL,
+-- la ligne aurait donc fait SAUTER ce contrôle EN SILENCE — une citation d'année fausse
 -- ressortirait CONFIRMÉE sans avoir été comparée. Supprimée, elle est simplement
 -- rachetée au prochain appel : c'est un cache.
+--
+-- ⚠ CE MOTIF A ÉTÉ AMENDÉ LE MÊME JOUR, et le DELETE en sort RENFORCÉ, non affaibli.
+--   Le contrôle d'année ne se saute plus en silence : une fiche sans date rend
+--   désormais un écart explicite, « l'année n'a PAS été vérifiée », et donc un verdict
+--   DISCORDANTE. Une ligne mise à NULL ferait par conséquent ressortir DISCORDANTE
+--   TOUTE vérification de cette décision, indéfiniment — le cache n'a pas de TTL — sur
+--   un fondement qui n'est qu'un trou dans nos données. Un faux signalement permanent
+--   vaut mieux qu'une fausse assurance (invariant 10), mais il ne vaut pas mieux qu'un
+--   appel qui rétablit la vraie date. On supprime donc, et on rachète.
 --
 -- ⚠ AUCUNE RECONSTRUCTION DE TABLE, JAMAIS. Le seul moyen d'ajouter un
 --   `CHECK (source = 'lookup' OR decision_date IS NULL)` serait le motif SQLite

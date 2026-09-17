@@ -363,15 +363,33 @@ function comparer(row: CaseRow, d: Demande): Ecart[] {
     }
   }
 
-  if (d.expected_year && row.decision_date) {
-    const annee = Number(row.decision_date.slice(0, 4));
-    if (Number.isFinite(annee) && annee !== d.expected_year) {
+  if (d.expected_year) {
+    if (!row.decision_date) {
+      // ⚠ UN CONTRÔLE SAUTÉ SE DIT. La condition portait `&& row.decision_date` : sans
+      //   date, la comparaison d'année DISPARAISSAIT — sans un mot — et la citation
+      //   pouvait ressortir CONFIRMÉE avec une année fausse, n'ayant jamais été
+      //   comparée. C'est exactement le mode de panne de §2 : une incertitude connue
+      //   transformée en assurance.
+      //
+      //   L'écart rend donc le verdict DISCORDANTE, et c'est délibéré (invariant 10) :
+      //   mieux vaut un faux signalement qu'une fausse assurance. Le praticien voit
+      //   qu'il reste quelque chose à vérifier, ce qui est la vérité.
       ecarts.push({
         champ: "Année",
         attendu: String(d.expected_year),
-        obtenu: String(annee),
-        note: `date complète chez CanLII : ${dateFr(row.decision_date)}`,
+        obtenu: "—",
+        note: "CanLII ne rend aucune date pour cette fiche : l'année n'a PAS été vérifiée",
       });
+    } else {
+      const annee = Number(row.decision_date.slice(0, 4));
+      if (Number.isFinite(annee) && annee !== d.expected_year) {
+        ecarts.push({
+          champ: "Année",
+          attendu: String(d.expected_year),
+          obtenu: String(annee),
+          note: `date complète chez CanLII : ${dateFr(row.decision_date)}`,
+        });
+      }
     }
   }
 

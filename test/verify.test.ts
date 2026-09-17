@@ -240,6 +240,43 @@ describe("une fiche de balayage ne peut pas servir de vérification", () => {
   });
 });
 
+describe("§2 — un contrôle qui ne s'exécute pas se DIT", () => {
+  it("une fiche SANS date ne rend pas CONFIRMÉE une année jamais comparée", async () => {
+    // La condition portait `d.expected_year && row.decision_date` : sans date, la
+    // comparaison d'année disparaissait SANS UN MOT, et la citation ressortait
+    // CONFIRMÉE — c'est-à-dire qu'une incertitude connue devenait une assurance, le
+    // mode de panne exact que §2 interdit.
+    //
+    // Le chemin n'est pas théorique : rien n'oblige CanLII à rendre `decisionDate`, et
+    // le connecteur ne peut pas le savoir à l'avance.
+    const sansDate = { ...(dunsmuir as Record<string, unknown>) };
+    delete sansDate.decisionDate;
+
+    const { texte: t } = await verifier([{ citation: "2008 CSC 9", expected_year: 1999 }], {
+      [CHEMIN_DUNSMUIR]: sansDate,
+    });
+    expect(t).not.toContain("CONFIRMÉE");
+    expect(t).toContain("DISCORDANTE");
+    expect(t).toContain("l'année n'a PAS été vérifiée");
+  });
+
+  it("LE PENDANT : une fiche DATÉE compare toujours l'année pour de bon", async () => {
+    // Sans cette moitié, on satisferait la précédente en signalant un écart d'année
+    // partout — ce qui détruirait le verdict CONFIRMÉE au lieu de le rendre honnête.
+    const { texte: juste } = await verifier([{ citation: "2008 CSC 9", expected_year: 2008 }], {
+      [CHEMIN_DUNSMUIR]: dunsmuir,
+    });
+    expect(juste).toContain("CONFIRMÉE");
+    expect(juste).not.toContain("n'a PAS été vérifiée");
+
+    const { texte: faux } = await verifier([{ citation: "2008 CSC 9", expected_year: 1999 }], {
+      [CHEMIN_DUNSMUIR]: dunsmuir,
+    });
+    expect(faux).toContain("DISCORDANTE");
+    expect(faux).toContain("date complète chez CanLII");
+  });
+});
+
 describe("cache et persistance (§13)", () => {
   it("un second appel identique ne fait AUCUN appel sortant", async () => {
     await verifier([{ citation: "2008 CSC 9" }], { [CHEMIN_DUNSMUIR]: dunsmuir });
