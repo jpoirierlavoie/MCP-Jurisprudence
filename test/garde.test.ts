@@ -957,3 +957,48 @@ describe("§8 — les refus du gestionnaire sont ANNONCÉS dans la description",
     expect(f.year_to!.description ?? "").toContain("year_from");
   });
 });
+
+/**
+ * §7 — LA FRONTIÈRE DE `isError`, ET POURQUOI ELLE COMPTE.
+ *
+ * C'est le seul signal LISIBLE PAR MACHINE que ce connecteur émette : un client
+ * l'interroge pour décider s'il RÉESSAIE, s'il abandonne, ou s'il lit la réponse.
+ * Il doit donc vouloir dire la même chose partout.
+ *
+ * La règle : `true` quand l'outil n'a RIEN à livrer ; `false` dès qu'un résultat part,
+ * même vide, même partiel, même dégradé — la réserve voyage alors dans le corps.
+ *
+ * Elle était enfreinte : `palais_list` rendait `isError: true` sur une liste vide, là
+ * où `browse_cases` rendait `false` dans exactement la même situation. Pour la même
+ * question posée à deux outils, un client voyait une panne d'un côté et une réponse de
+ * l'autre.
+ */
+describe("§7 — `isError` veut dire la même chose dans les treize outils", () => {
+  it("une liste VIDE est un résultat, jamais une panne", async () => {
+    const vide = [
+      await callTool("palais_list", { district: "District inexistant" }, toolCtx(fakeClient({}))),
+      await callTool(
+        "jurisprudence_browse_cases",
+        { database_id: "qcca" },
+        toolCtx(fakeClient({ "caseBrowse/fr/qcca/": { cases: [] } })),
+      ),
+    ];
+    for (const r of vide) {
+      expect(r.isError).toBe(false);
+      // …et la réserve de §2 est DANS le corps, puisqu'elle ne peut plus être portée
+      // par le drapeau.
+      expect(texte(r).toLowerCase()).toContain("absence");
+    }
+  });
+
+  it("un APPEL MAL FORMÉ, lui, est bien une erreur", async () => {
+    // Le pendant : sans lui, on satisferait le test précédent en rendant `false`
+    // partout, ce qui priverait le client du seul signal qu'il possède.
+    const fautifs = [
+      await callTool("jurisprudence_get_case", {}, toolCtx(fakeClient({}))),
+      await callTool("palais_get", {}, toolCtx(fakeClient({}))),
+      await callTool("jurisprudence_inexistant", {}, toolCtx(fakeClient({}))),
+    ];
+    for (const r of fautifs) expect(r.isError).toBe(true);
+  });
+});

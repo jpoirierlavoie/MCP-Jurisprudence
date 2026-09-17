@@ -6,7 +6,7 @@
 **Auteur de la spéc. :** (préparé pour Jason Poirier Lavoie)
 **Cible :** nouveau dépôt autonome — Worker Cloudflare, D1, TypeScript
 **Modèle de référence :** le Worker `legislation` / base D1 `qclaw` (connecteur « Législation du Québec »)
-**Statut :** **livré et en production** sur `jurisprudence.poirierlavoie.ca` — treize outils, 495 tests, page publique bilingue. *Amendé le 2026-09-16 ; l'en-tête portait « prêt à implémenter », vrai jusqu'au premier déploiement du 2026-07-23 et faux depuis.* Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
+**Statut :** **livré et en production** sur `jurisprudence.poirierlavoie.ca` — treize outils, 497 tests, page publique bilingue. *Amendé le 2026-09-16 ; l'en-tête portait « prêt à implémenter », vrai jusqu'au premier déploiement du 2026-07-23 et faux depuis.* Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
 
 ---
 
@@ -164,7 +164,7 @@ arrivés après la rédaction initiale : ils figurent ici, à leur place.*
 │   └── deployer.mjs          # §12 — migrations PUIS déploiement ; refuse un arbre sale
 ├── sources-officielles/      # la PREUVE, pas un résidu — voir ci-dessous
 │   └── mjq-numeros-greffes-2026-07-22.html
-├── test/                     # 495 tests en 15 fichiers, sans réseau ni clef
+├── test/                     # 497 tests en 15 fichiers, sans réseau ni clef
 │   ├── citation.parse.test.ts · citation.compare.test.ts · verify.test.ts
 │   ├── client.test.ts · rpc.test.ts · persist.test.ts · tools.test.ts
 │   ├── qc.tables.test.ts · qc.outils.test.ts · qc.dossier.test.ts
@@ -610,6 +610,7 @@ leur nom le faisait pour elles.*
 - Toute liste : `limit` avec défaut et maximum documentés ; troncature signalée en toutes lettres (« 50 premiers sur 214 »).
 - Toute sortie d'outil heuristique se termine par sa mise en garde (§2).
 - Erreur d'exécution ⇒ `{ content: [...], isError: true }` en français, **jamais** une erreur JSON-RPC (réservée aux fautes de protocole).
+- **La FRONTIÈRE de `isError`.** *Écrite le 2026-09-16 ; elle ne l'était nulle part, et elle était enfreinte.* `isError: true` quand l'outil n'a **rien** à livrer — argument refusé, forme d'appel invalide, appel sortant échoué sans repli. `isError: false` dès qu'un résultat part, **même vide, même partiel, même dégradé** : une liste vide est une réponse, pas une panne, et la réserve de §2 voyage alors dans le corps. ⚠ C'est le SEUL signal lisible par machine que ce connecteur émette, et un client l'interroge pour décider s'il RÉESSAIE : il doit donc vouloir dire la même chose partout. `palais_list` rendait `true` sur une liste vide là où `browse_cases` rendait `false` dans exactement la même situation — pour la même question posée à deux outils, une panne d'un côté, une réponse de l'autre. Un garde-fou éprouve les DEUX bords : la liste vide n'est pas une erreur, **et** un appel mal formé en est une ; sans le second, on satisferait le premier en rendant `false` partout, ce qui priverait le client du seul signal qu'il possède.
 
 ### 7.1 `jurisprudence_verify_citations` — l'outil pivot
 

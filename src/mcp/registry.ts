@@ -44,6 +44,14 @@
  *   - `additionalProperties: false` sur tous les schémas ;
  *   - tout `lang` : enum ["fr","en"], défaut "fr" ;
  *   - erreur d'exécution => `isError: true` en français, JAMAIS une erreur JSON-RPC.
+ *   - ⚠ ET LA FRONTIÈRE DE `isError`, qui n'était écrite nulle part : il vaut `true`
+ *     quand l'outil n'a RIEN à livrer — argument refusé, forme d'appel invalide, appel
+ *     sortant échoué sans repli. Il vaut `false` dès qu'un résultat part, **même vide,
+ *     même partiel, même dégradé** : une liste vide est une réponse, pas une panne, et
+ *     la réserve voyage alors dans le corps. La distinction est celle qu'un client lit
+ *     pour décider s'il RÉESSAIE. Elle était incohérente jusqu'au 2026-09-16 —
+ *     `palais_list` rendait `isError: true` sur une liste vide là où
+ *     `browse_cases` rendait `false` dans la même situation.
  */
 
 import type { CanliiClient } from "../canlii/client";

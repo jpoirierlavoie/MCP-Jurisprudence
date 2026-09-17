@@ -52,7 +52,14 @@ export async function palaisListTool(
   if (resultats.length === 0) {
     // Une liste vide n'est pas un constat d'absence : c'est le pendant de la règle
     // INTROUVABLE. On rend les districts connus pour que la reprise soit possible.
-    return err(
+    //
+    // ⚠ Et ce n'est pas davantage un ÉCHEC : `ok`, donc `isError: false`. Cette
+    //   branche rendait `err` jusqu'au 2026-09-16, là où `jurisprudence_browse_cases`
+    //   rend `ok` dans exactement la même situation. Un client qui lit `isError`
+    //   pour décider s'il réessaie voyait donc « aucun palais dans ce district »
+    //   comme une panne du serveur, et « aucune décision dans cette base » comme une
+    //   réponse — pour la même question posée à deux outils. La règle est en §7.
+    return ok(
       [
         `Aucun lieu ne répond${filtres.length ? ` à ${filtres.join(", ")}` : ""}.`,
         "",
