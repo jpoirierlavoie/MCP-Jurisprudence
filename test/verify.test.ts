@@ -290,7 +290,11 @@ describe("validation des arguments (§8)", () => {
   });
 
   it("refuse une liste vide", async () => {
-    const r = await callTool("jurisprudence_verify_citations", { citations: [] }, toolCtx(fakeClient({})));
+    const r = await callTool(
+      "jurisprudence_verify_citations",
+      { citations: [] },
+      toolCtx(fakeClient({})),
+    );
     expect(r.isError).toBe(true);
   });
 });

@@ -103,10 +103,14 @@ describe("§2 — les treize outils existent et se décrivent", () => {
 
   it("les descriptions des outils PORTENT elles-mêmes leurs limites", () => {
     // §7.1 : l'outil pivot doit dire ce qu'il n'établit pas.
-    expect(TOOLS.jurisprudence_verify_citations!.description).toContain("n'établit NI son autorité");
+    expect(TOOLS.jurisprudence_verify_citations!.description).toContain(
+      "n'établit NI son autorité",
+    );
     expect(TOOLS.jurisprudence_verify_citations!.description).toContain("dispositif");
     // §7.2 : pas de recherche par mots du texte.
-    expect(TOOLS.jurisprudence_find_case!.description).toContain("n'expose pas le texte des décisions");
+    expect(TOOLS.jurisprudence_find_case!.description).toContain(
+      "n'expose pas le texte des décisions",
+    );
     // §7.3 : la fiche ne rend pas le texte.
     expect(TOOLS.jurisprudence_get_case!.description).toContain("Ne renvoie PAS le texte");
     // §7.4 : listes brutes, aucun sens de traitement.
@@ -242,7 +246,11 @@ describe("§2 conséquence n° 1 — la mise en garde est dans le CORPS de la r�
       "caseCitator/en/qcca/2005qcca304/citingCases": { citingCases: [] },
     });
     const t = texte(
-      await callTool("jurisprudence_subsequent_history", { citation: "2005 QCCA 304" }, toolCtx(client)),
+      await callTool(
+        "jurisprudence_subsequent_history",
+        { citation: "2005 QCCA 304" },
+        toolCtx(client),
+      ),
     );
     expect(contient(t, GARDE_SORTS_TETE)).toBe(true);
     expect(contient(t, GARDE_SORTS_PIED)).toBe(true);
@@ -303,7 +311,11 @@ describe("§2 conséquence n° 2 — un INTROUVABLE n'est jamais une négation d
         ),
       ),
       texte(
-        await callTool("jurisprudence_parse_citation", { citation: "2020 QCCA 495" }, toolCtx(client)),
+        await callTool(
+          "jurisprudence_parse_citation",
+          { citation: "2020 QCCA 495" },
+          toolCtx(client),
+        ),
       ),
       texte(await callTool("jurisprudence_get_case", { citation: "2008 CSC 9" }, toolCtx(client))),
       // §17 — les sorties du Québec obéissent à la MÊME interdiction, y compris sur
@@ -493,7 +505,9 @@ describe("§5.3 — la clef d'API ne quitte jamais le processus", () => {
           toolCtx(client),
         ),
       ),
-      texte(await callTool("jurisprudence_get_case", { citation: "2020 QCCA 999999" }, toolCtx(client))),
+      texte(
+        await callTool("jurisprudence_get_case", { citation: "2020 QCCA 999999" }, toolCtx(client)),
+      ),
       texte(
         await callTool(
           "jurisprudence_find_case",

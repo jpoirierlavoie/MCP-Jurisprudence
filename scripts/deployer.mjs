@@ -58,7 +58,10 @@ if (sale) {
     "Le Worker annonce son commit sur /health. Déployer un arbre modifié ferait",
     "annoncer un commit qui ne décrit pas le code en ligne.",
     "",
-    ...sale.split("\n").slice(0, 10).map((l) => `    ${l}`),
+    ...sale
+      .split("\n")
+      .slice(0, 10)
+      .map((l) => `    ${l}`),
   );
 }
 
@@ -91,7 +94,16 @@ function lancer(etape, cmd, args) {
 // connecteur juridique qui échoue en silence sur une colonne manquante est exactement
 // le défaut que ce dépôt cherche à rendre impossible. Un échec ici ARRÊTE tout : le
 // déploiement n'est pas tenté.
-if (lancer("Migrations D1 (production)", "npx", ["wrangler", "d1", "migrations", "apply", "canlii", "--remote"]) !== 0) {
+if (
+  lancer("Migrations D1 (production)", "npx", [
+    "wrangler",
+    "d1",
+    "migrations",
+    "apply",
+    "canlii",
+    "--remote",
+  ]) !== 0
+) {
   echouer(
     "Les migrations ont échoué — le Worker n'a PAS été déployé.",
     "C'est le comportement voulu (§12) : on ne met pas en ligne du code dont le",
@@ -100,7 +112,14 @@ if (lancer("Migrations D1 (production)", "npx", ["wrangler", "d1", "migrations",
 }
 
 // ── 3. Le Worker, avec son commit ─────────────────────────────────────────────
-if (lancer(`Déploiement du Worker (commit ${commit})`, "npx", ["wrangler", "deploy", "--var", `COMMIT:${commit}`]) !== 0) {
+if (
+  lancer(`Déploiement du Worker (commit ${commit})`, "npx", [
+    "wrangler",
+    "deploy",
+    "--var",
+    `COMMIT:${commit}`,
+  ]) !== 0
+) {
   echouer(
     "Le déploiement a échoué APRÈS des migrations réussies.",
     "État à connaître : le schéma est en avance sur le code en ligne. C'est le sens",

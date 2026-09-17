@@ -659,7 +659,9 @@ describe("§8 — méthodes JSON-RPC", () => {
   });
 
   it("un outil inconnu rend isError, PAS une erreur JSON-RPC", async () => {
-    const res = await appeler(rpc("tools/call", { name: "jurisprudence_inexistant", arguments: {} }));
+    const res = await appeler(
+      rpc("tools/call", { name: "jurisprudence_inexistant", arguments: {} }),
+    );
     const body = (await res.json()) as {
       result: { isError: boolean; content: [{ text: string }] };
     };

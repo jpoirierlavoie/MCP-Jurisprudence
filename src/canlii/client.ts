@@ -16,12 +16,7 @@
 // qui divergeraient un jour sur la borne ou sur le repli donneraient au même `vars` deux
 // significations selon l'appelant — le genre d'écart qu'aucun test ne réclame.
 import { entier } from "../config";
-import {
-  CanliiBudgetError,
-  CanliiError,
-  CanliiTimeoutError,
-  truncateBody,
-} from "./errors";
+import { CanliiBudgetError, CanliiError, CanliiTimeoutError, truncateBody } from "./errors";
 import type { CanliiErrorBody } from "./types";
 
 /** HTTPS uniquement — le HTTP n'est plus pris en charge par l'API. */

@@ -95,7 +95,9 @@ describe("§7.7 — jurisprudence_list_databases", () => {
       "caseBrowse/fr/": caseDatabases,
       "legislationBrowse/fr/": legislationDatabases,
     });
-    const out = texte(await callTool("jurisprudence_list_databases", { refresh: true }, toolCtx(client)));
+    const out = texte(
+      await callTool("jurisprudence_list_databases", { refresh: true }, toolCtx(client)),
+    );
 
     expect(out).toContain("RÉCONCILIATION REQUISE");
     expect(out).toContain("ZZTEST -> zz-inexistante");
