@@ -523,7 +523,10 @@ export const TOOLS: Record<string, ToolDescriptor> = {
     description:
       "Répertoire des bases de CanLII : cours et tribunaux (`kind='case'`) ou corpus " +
       "législatifs (`kind='legislation'`), avec leur databaseId et leur ressort. Point de " +
-      "départ de toute commande exigeant un database_id.",
+      "départ de toute commande exigeant un database_id. DEUX COMPTES paraissent dans la " +
+      "sortie et ne mesurent PAS le même ensemble : la note de rafraîchissement annonce le " +
+      "répertoire ENTIER de CanLII, tandis que l'en-tête de la liste ne compte que les " +
+      "bases retenues par les filtres, qu'il nomme.",
     inputSchema: {
       type: "object",
       properties: {

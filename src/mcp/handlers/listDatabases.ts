@@ -33,12 +33,33 @@ export async function listDatabasesTool(
   const jurisdiction = args.jurisdiction as string | undefined;
   const query = args.query as string | undefined;
 
+  // Les filtres, nommés UNE SEULE FOIS. Cette construction ne servait qu'à la branche
+  // vide (« Aucune base pour kind=… ») ; la branche non vide la laissait tomber, et
+  // l'en-tête ne disait donc pas sur quel ensemble il comptait. En écrire une seconde
+  // ferait nommer le filtre différemment selon le chemin.
+  const filtres = [
+    kind ? `kind=${kind}` : null,
+    jurisdiction ? `jurisdiction=${jurisdiction}` : null,
+    query ? `query=${query}` : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
   let noteRafraichissement: string | null = null;
   let rafraichissementEchoue = false;
   if (refresh || (await directoryStale(ctx.db, ctx.now))) {
     try {
       const r = await refreshDatabases(ctx.db, ctx.client, lang, ctx.now);
-      noteRafraichissement = `Répertoire rafraîchi depuis CanLII : ${nombreFr(r.cases)} base(s) de jurisprudence, ${nombreFr(r.legislation)} base(s) législative(s).`;
+      // ⚠ CES NOMBRES PORTENT SUR LE RÉPERTOIRE ENTIER, et la phrase doit le dire.
+      //   Ce sont les longueurs des deux charges utiles que CanLII vient de rendre
+      //   (`refreshDatabases`), tandis que l'en-tête plus bas compte les lignes LOCALES
+      //   retenues par les filtres. Les deux étaient vrais et illisibles ensemble :
+      //   « 409 base(s) de jurisprudence, 50 base(s) législative(s) » suivi de « 4
+      //   base(s) au répertoire de CanLII », sans qu'aucune ne dise qu'un filtre jouait.
+      noteRafraichissement =
+        "Répertoire rafraîchi depuis CanLII — ces nombres portent sur le répertoire " +
+        `ENTIER, filtres exclus : ${nombreFr(r.cases)} base(s) de jurisprudence, ` +
+        `${nombreFr(r.legislation)} base(s) législative(s).`;
     } catch (e) {
       rafraichissementEchoue = true;
       noteRafraichissement = `Rafraîchissement impossible — ${describeError(e)} Le répertoire local est servi tel quel.`;
@@ -62,13 +83,6 @@ export async function listDatabasesTool(
   });
 
   if (bases.length === 0) {
-    const filtres = [
-      kind ? `kind=${kind}` : null,
-      jurisdiction ? `jurisdiction=${jurisdiction}` : null,
-      query ? `query=${query}` : null,
-    ]
-      .filter(Boolean)
-      .join(", ");
     const tete = filtres
       ? `Aucune base pour ${filtres}.`
       : "Le répertoire local est vide. Rappeler cet outil avec refresh: true.";
@@ -122,7 +136,18 @@ export async function listDatabasesTool(
       details.join("\n");
   }
 
-  const entete = `${nombreFr(bases.length)} base(s) au répertoire de CanLII :`;
+  // ⚠ « base(s) au répertoire de CanLII » est une CHAÎNE DE COUPLAGE.
+  //   `scripts/refresh-databases.mjs` la cherche TELLE QUELLE (`includes`) dans la
+  //   sortie entière, et sort en CODE 2 — refus de statuer — si elle disparaît. Ce qui
+  //   la précède et ce qui la suit est libre ; ces trente et un caractères ne le sont
+  //   pas. Épinglée par test depuis le 2026-09-17, en lisant le littéral DANS le script
+  //   plutôt qu'en le recopiant.
+  //
+  //   Le `filtres` employé ici est celui de la branche vide : une seule construction,
+  //   sinon les deux phrases nommeraient le filtre différemment.
+  const entete = filtres
+    ? `${nombreFr(bases.length)} base(s) au répertoire de CanLII pour ${filtres} :`
+    : `${nombreFr(bases.length)} base(s) au répertoire de CanLII, sans filtre :`;
   return ok(
     [noteRafraichissement, entete, blocs.join("\n\n"), alerte]
       .filter((s): s is string => typeof s === "string" && s.length > 0)

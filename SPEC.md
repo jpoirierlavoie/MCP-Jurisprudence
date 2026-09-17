@@ -757,9 +757,13 @@ Rappeler dans la sortie, lorsqu'un filtre `published_*` est employé, le délai 
 
 ### 7.7 `jurisprudence_list_databases`
 
-> **Description :** « Répertoire des bases de CanLII : cours et tribunaux (`kind='case'`) ou corpus législatifs (`kind='legislation'`), avec leur databaseId et leur ressort. Point de départ de toute commande exigeant un database_id. »
+> **Description :** « Répertoire des bases de CanLII : cours et tribunaux (`kind='case'`) ou corpus législatifs (`kind='legislation'`), avec leur databaseId et leur ressort. Point de départ de toute commande exigeant un database_id. DEUX COMPTES paraissent dans la sortie et ne mesurent PAS le même ensemble : la note de rafraîchissement annonce le répertoire ENTIER de CanLII, tandis que l'en-tête de la liste ne compte que les bases retenues par les filtres, qu'il nomme. »
 
 Paramètres : `kind`, `jurisdiction`, `query` (recherche sur `name_norm`), `refresh`. Sert le répertoire local si `refreshed_at` a moins de 7 jours ; sinon `GET caseBrowse/{lang}/` et `GET legislationBrowse/{lang}/`, puis mise à jour (deux appels — le rafraîchissement est aussi ce que fait le cron).
+
+**Deux comptes paraissent dans la sortie, et ils ne mesurent pas le même ensemble.** La note de rafraîchissement porte sur le répertoire **ENTIER** rendu par CanLII — ce sont les longueurs des deux charges utiles — tandis que l'en-tête de la liste porte sur les seules lignes **LOCALES** retenues par `kind`, `jurisdiction` et `query`. **Chaque phrase nomme son ensemble, et l'en-tête nomme le filtre.** Les deux ont longtemps été vraies et illisibles ensemble : « 409 base(s) de jurisprudence, 50 base(s) législative(s) » suivi de « 4 base(s) au répertoire de CanLII », sans qu'aucune ne dise qu'un filtre était en jeu. La construction des filtres ne servait qu'à la branche VIDE (« Aucune base pour kind=… ») ; elle est désormais hissée et partagée, faute de quoi les deux chemins nommeraient le filtre différemment. *Constaté et corrigé le 2026-09-17.*
+
+⚠ **`base(s) au répertoire de CanLII` est une CHAÎNE DE COUPLAGE.** `scripts/refresh-databases.mjs` la cherche telle quelle (`includes`) dans la sortie entière et sort en **code 2** — refus de statuer — si elle disparaît. Ce qui la précède et ce qui la suit est libre ; ces trente et un caractères ne le sont pas. Même statut pour la puce `· ` et la flèche ` -> ` des lignes d'écart, que le script repère par la FORME `/^·\s+.+\s+->\s+\S+/`. Les deux sont désormais épinglés par un test qui lit les littéraux **dans** le script — jamais une copie, qui vivrait des deux côtés d'une frontière TypeScript/JavaScript qu'aucun compilateur ne vérifie.
 
 ### 7.8 `jurisprudence_browse_legislation`
 
@@ -1498,7 +1502,7 @@ citateur professionnel.
 
 | Outil | Endpoint | Notes |
 |---|---|---|
-| `jurisprudence_list_databases` | `caseBrowse/{lang}/` · `legislationBrowse/{lang}/` | Deux appels ; rafraîchi hebdomadairement |
+| `jurisprudence_list_databases` | `caseBrowse/{lang}/` · `legislationBrowse/{lang}/` | Deux appels ; rafraîchi hebdomadairement. Les LONGUEURS de ces deux charges utiles SONT les nombres de la note de rafraîchissement — répertoire entier, filtres exclus |
 | `jurisprudence_browse_cases`, `jurisprudence_find_case` | `caseBrowse/{lang}/{db}/?offset=&resultCount=` + filtres de dates | `resultCount` ≤ 5 000 par page (marge sous 10 Mo) |
 | `jurisprudence_get_case`, `jurisprudence_verify_citations` | `caseBrowse/{lang}/{db}/{caseId}/` | Le chemin de résolution déterministe |
 | `jurisprudence_citator`, `jurisprudence_subsequent_history` | `caseCitator/en/{db}/{caseId}/{metadataType}` | **`en` obligatoire** dans le chemin |

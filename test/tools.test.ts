@@ -85,7 +85,10 @@ describe("§7.7 — jurisprudence_list_databases", () => {
     // la sortie et sort en code 2 si elle disparaît. Épinglée ici pour qu'elle soit
     // visible là où on lit cet outil, et dans `test/garde.test.ts` contre le littéral
     // du script lui-même — les deux moitiés se valent, aucune ne remplace l'autre.
-    expect(out).toContain("base(s) au répertoire de CanLII");
+    expect(out).toContain("base(s) au répertoire de CanLII, sans filtre :");
+    // Les deux nombres du rafraîchissement portent sur le répertoire ENTIER : la phrase
+    // doit le dire, sans quoi ils se lisent contre le compte filtré de l'en-tête.
+    expect(out).toContain("répertoire ENTIER, filtres exclus");
   });
 
   it("SIGNALE toute correspondance démentie par le répertoire réel (§4.3)", async () => {
@@ -123,6 +126,10 @@ describe("§7.7 — jurisprudence_list_databases", () => {
     const out = texte(r);
     expect(out).toContain("qccq");
     expect(out).not.toContain("Cour suprême");
+    // Les deux phrases nommaient deux ensembles sans nommer le filtre. L'en-tête le nomme.
+    expect(out).toContain(
+      "base(s) au répertoire de CanLII pour kind=case, jurisdiction=qc, query=quebec :",
+    );
   });
 });
 

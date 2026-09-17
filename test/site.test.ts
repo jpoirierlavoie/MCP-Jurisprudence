@@ -320,6 +320,9 @@ describe("§18 — le registre est la source, pas une copie", () => {
     // Ajoutée le 2026-09-17 : les dates d'une fiche législative bornent la VERSION
     // servie par CanLII, jamais l'instrument.
     jurisprudence_get_legislation: [/JAMAIS l'instrument/, /never the instrument/i],
+    // Ajoutée le 2026-09-17 : les deux comptes de la sortie ne mesurent pas le même
+    // ensemble, et chaque phrase doit nommer le sien.
+    jurisprudence_list_databases: [/ENTIER/, /WHOLE directory/],
   };
 
   it("une réserve SUBSTANTIELLE portée en français l'est aussi en anglais", () => {
@@ -327,6 +330,17 @@ describe("§18 — le registre est la source, pas une copie", () => {
       expect(TOOLS[nom]!.description, `${nom} (fr)`).toMatch(fr);
       expect(OUTILS_EN[nom]!.texte, `${nom} (en)`).toMatch(en);
     }
+  });
+
+  it("la page ne dit pas que l'OUTIL réconcilie le répertoire : il DÉTECTE", () => {
+    // L'anglais annonçait « reconciled against the live API ». Le gestionnaire SIGNALE
+    // les correspondances démenties et ne corrige jamais de lui-même (§4.3) ; la
+    // réconciliation est un geste MANUEL, et `scripts/refresh-databases.mjs` sort en 1
+    // — « état non livrable » — tant qu'elle n'est pas faite. Le français ne disait rien
+    // de tel : l'anglais n'était donc pas une traduction mais une invention, ce qui est
+    // précisément ce que `src/site.i18n.ts` interdit en tête de fichier.
+    expect(OUTILS_EN.jurisprudence_list_databases!.texte).not.toMatch(/\breconcil/i);
+    expect(OUTILS_EN.jurisprudence_list_databases!.texte).toMatch(/flagged/i);
   });
 
   it("la table des greffes porte EXACTEMENT les greffes de la table", async () => {

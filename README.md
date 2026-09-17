@@ -116,7 +116,7 @@ n'est pas de l'ajuster pour qu'il passe : c'est de remettre la mise en garde.
 | `jurisprudence_citator` | Ce qu'une décision cite, ce qui la cite, les dispositions qu'elle cite |
 | `jurisprudence_subsequent_history` | **Indice heuristique** de sorts ultérieurs — ne remplace pas un citateur |
 | `jurisprudence_browse_cases` | Décisions d'un tribunal, avec les huit filtres de dates |
-| `jurisprudence_list_databases` | Répertoire des cours et corpus législatifs |
+| `jurisprudence_list_databases` | Répertoire des cours et corpus législatifs — l'en-tête nomme le filtre et dit sur quel ensemble il compte |
 | `jurisprudence_browse_legislation` | Lois et règlements d'une base législative |
 | `jurisprudence_get_legislation` | Fiche d'une loi : abrogation, découpage, et les dates de la VERSION servie — jamais celles de l'instrument |
 | `jurisprudence_parse_citation` | Analyse hors ligne d'une citation — **aucun appel** |

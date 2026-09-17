@@ -86,7 +86,10 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
     titre: "Directory of courts and corpora",
     texte:
       "The directory of CanLII databases — courts and legislative corpora — refreshed weekly " +
-      "and reconciled against the live API.",
+      "from the live API. Any bootstrap mapping the live directory CONTRADICTS is FLAGGED in " +
+      "the output; nothing is corrected automatically, and the correction itself is a manual " +
+      "step. The two counts measure different sets and say so: a refresh reports the WHOLE " +
+      "directory, while the list below it counts only the rows the filters kept.",
   },
   jurisprudence_browse_legislation: {
     titre: "Statutes and regulations of a corpus",
