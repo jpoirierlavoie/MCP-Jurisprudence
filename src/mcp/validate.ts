@@ -6,8 +6,24 @@
  *
  * Mots-clefs pris en charge : `type` (object, string, integer, number, boolean,
  * array), `properties`, `required`, `enum`, `minimum`, `maximum`, `minLength`,
- * `maxLength`, `minItems`, `maxItems`, `items` (un niveau),
- * `additionalProperties: false`.
+ * `maxLength`, `minItems`, `maxItems`, `items`, `additionalProperties: false`.
+ *
+ * ⚠ `items` était annoncé « un niveau » ; il est en réalité RÉCURSIF sans borne —
+ *   `validateValue` se rappelle sur chaque élément, et un élément objet fait à son tour
+ *   valider ses propriétés. C'est ce qui permet aux vingt-cinq entrées de
+ *   `jurisprudence_verify_citations` d'être validées champ par champ. La mention « un
+ *   niveau » sous-estimait donc le validateur, et aurait pu faire renoncer à un schéma
+ *   imbriqué parfaitement supporté. Corrigé le 2026-09-16.
+ *
+ * ⚠ CE QU'IL NE SAIT PAS IMPOSER, et qu'il ne faut donc pas déclarer : `pattern`,
+ *   `oneOf`/`anyOf`, `format`, et toute contrainte ENTRE champs — `validateValue` ne
+ *   voit jamais le parent. `JsonSchema` est une interface FERMÉE : déclarer un mot-clef
+ *   non implémenté ne compile pas, et c'est délibéré. Les règles hors de portée
+ *   s'écrivent dans la `description` du paramètre (§8).
+ *
+ * ⚠ ASYMÉTRIE ASSUMÉE : `minLength` compte les caractères NON BLANCS (un titre fait
+ *   d'espaces doit échouer au schéma, non plus bas dans un message qui a l'air d'une
+ *   panne), là où `maxLength` compte la chaîne BRUTE. Ce n'est pas un oubli.
  *
  * Un tableau vide = valide. Écrire un validateur plutôt que d'ajouter une
  * dépendance est cohérent avec D2 (zéro dépendance d'exécution) : le sous-ensemble

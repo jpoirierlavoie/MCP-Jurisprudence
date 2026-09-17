@@ -84,10 +84,24 @@ export const GARDE_DIFFUSION =
 /**
  * Marqueur de la réconciliation exigée par §4.3.
  *
- * ⚠ Chaîne de COUPLAGE : `scripts/refresh-databases.mjs` la cherche dans la sortie de
- *   `jurisprudence_list_databases` pour décider si le répertoire est livrable. La reformuler
- *   sans toucher au script produirait un FEU VERT MENSONGER sur la seule barrière que
- *   §4.3 qualifie de bloquante. Épinglée par test/tools.test.ts.
+ * ⚠ CE COMMENTAIRE AFFIRMAIT LE CONTRAIRE DE LA VÉRITÉ, jusqu'au 2026-09-16. Il disait
+ *   que `scripts/refresh-databases.mjs` cherche cette chaîne pour décider si le répertoire
+ *   est livrable, et qu'un test l'épingle. Ni l'un ni l'autre : le script ne la mentionne
+ *   NULLE PART (`grep` : zéro occurrence), et aucun test ne la nomme. Un lecteur pressé
+ *   aurait donc cru cette constante intouchable, et surtout aurait cru le script protégé
+ *   alors qu'il ne l'est pas par elle.
+ *
+ * ⚠ LA VRAIE chaîne de couplage est l'en-tête « base(s) au répertoire de CanLII », rendu
+ *   par `src/mcp/handlers/listDatabases.ts` : c'est SUR ELLE que le script pose son
+ *   garde-fou (`refresh-databases.mjs`, `includes(...)`), et la modifier sans le prévenir
+ *   le fait sortir en code 2 — refus de statuer — plutôt que conclure de travers. C'est
+ *   donc CELLE-LÀ qu'il faut propager, et non celle-ci.
+ *
+ *   Ce qui reste vrai de cette constante : elle porte la barrière que §4.3 qualifie de
+ *   bloquante, elle paraît dans le CORPS de la réponse, et le script repère les écarts
+ *   par leur FORME plutôt que par un marqueur recopié — délibérément, car un marqueur
+ *   vivrait des deux côtés d'une frontière TypeScript/JavaScript qu'aucun compilateur
+ *   ne vérifie.
  */
 export const MARQUEUR_RECONCILIATION = "⚠ RÉCONCILIATION REQUISE";
 

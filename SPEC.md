@@ -804,7 +804,7 @@ Aucun appel sortant, aucune écriture. Utile au débogage de la table `court_cod
 
 Ne **pas** émettre `structuredContent` : `qclaw` ne le fait pas, la sortie est du texte destiné à être lu, et la symétrie prime.
 
-**Validation des arguments** : porter `validate_args` de `athena/mcp/tools.py` en TypeScript — même sous-ensemble (`type`, `properties`, `required`, `enum`, `minimum`, `maximum`, `minLength`, `maxLength`, `minItems`, `maxItems`, `items` sur un niveau, `additionalProperties: false`), mêmes messages, en français. Échec ⇒ `isError: true`, jamais une erreur JSON-RPC.
+**Validation des arguments** : porter `validate_args` de `athena/mcp/tools.py` en TypeScript — même sous-ensemble (`type`, `properties`, `required`, `enum`, `minimum`, `maximum`, `minLength`, `maxLength`, `minItems`, `maxItems`, `items`, `additionalProperties: false`), mêmes messages, en français. *Amendé le 2026-09-16 : `items` était annoncé « sur un niveau » ici comme dans le cartouche du fichier. Il est RÉCURSIF sans borne — `validateValue` se rappelle sur chaque élément, et un élément objet fait valider ses propriétés. La mention SOUS-ESTIMAIT le validateur, et aurait pu faire renoncer à un schéma imbriqué parfaitement supporté ; c’est d’ailleurs lui qui valide champ par champ les vingt-cinq entrées de `jurisprudence_verify_citations`.* Échec ⇒ `isError: true`, jamais une erreur JSON-RPC.
 
 **Ce que le sous-ensemble NE SAIT PAS imposer, et ce qu'on en fait.** *Arbitré le 2026-09-16.*
 Le validateur ne connaît ni `pattern`, ni `oneOf`, ni aucune contrainte ENTRE champs :
