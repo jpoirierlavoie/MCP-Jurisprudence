@@ -1108,7 +1108,8 @@ Ces conséquences sont verrouillées par `test/garde.test.ts`, au même titre qu
 reste entier.*
 
 **FAIT — la réconciliation des numéros de greffe (2026-07-30).** Menée contre la page
-officielle du MJQ « Trouver un palais de justice » (mise à jour du 2026-07-22),
+officielle du MJQ « **Numéros des greffes des palais de justice et des points de service
+de justice** » (mise à jour du 2026-07-22), enregistrée dans `sources-officielles/` et
 transcrite par `scripts/extraire-lieux-mjq.mjs` en `src/qc/lieux.ts`. Deux corrections
 réelles, du même ordre que celles de §4.3 et consignées avec leur preuve d'observation :
 
@@ -1116,6 +1117,8 @@ réelles, du même ordre que celles de §4.3 et consignées avec leur preuve d'o
   inconnu » sur un greffe qui existe ;
 - **Kuujjuaq** relève du greffe **635** (§17.5, point 4), ce qu'aucune source
   antérieure ne permettait d'affirmer.
+
+*Corrigé le 2026-09-16 : cette section nommait la page « Trouver un palais de justice ». C'est une AUTRE page du même ministère. Celle qui a servi — et qui est versionnée dans `sources-officielles/` — s'intitule « Numéros des greffes des palais de justice et des points de service de justice » ; son propre `<title>` et l'en-tête de `src/qc/lieux.ts` le disent tous deux. Les deux pages traitent des mêmes palais sous des angles différents, et se confondre sur la source d'un relevé DATÉ, c'est perdre la capacité de le vérifier — ce que §17 pose précisément comme sa seule sortie de liste (invariant 17 : « on sort de cette liste par une SOURCE »).*
 
 La table passe de 56 à **57 greffes**. Le gain de conception est plus large que ces
 deux lignes : `lieux.ts` sait dire qu'un greffe dessert **plusieurs** lieux, ce que
