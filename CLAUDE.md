@@ -121,6 +121,31 @@ src/site.ts       §18 — page publique GET /. site.i18n.ts : l'ANGLAIS seuleme
 src/backfill.ts   §11 — écrit, testé, INERTE
 ```
 
+### Écrit mais PAS EN SERVICE — trois amorces, et il faut les reconnaître
+
+*Relevé le 2026-09-16. Un balayage du dépôt les a signalées comme du « code mort » ; elles
+ne le sont pas, mais rien ne le disait, et c'est ce silence qui les rendait supprimables au
+premier ménage. Une amorce qu'on ne distingue pas d'un résidu finit toujours par partir.*
+
+| Ce qui dort | Où | Ce qui l'attend |
+|---|---|---|
+| `src/backfill.ts` | tout le fichier | §11 — écrit, testé, **INERTE par décision** (invariant 15). Ne pas basculer `BACKFILL_ENABLED`. |
+| `listCases()` | `src/store/cases.ts` | Servir les balayages **depuis le cache** (§7.6). Aujourd'hui `jurisprudence_browse_cases` appelle CanLII à chaque fois et ne lit JAMAIS la table `cases` : il n'existe aucun chemin où un balayage soit servi du cache. Son **seul appelant est son test**. |
+| `idx_cases_docket` | `migrations/0001_initial.sql` | Une recherche par **numéro de dossier de cour**, qu'aucun outil n'offre. L'index est donc entretenu à chaque écriture de fiche sans que rien ne l'interroge. |
+
+**La règle qui les gouverne : une amorce se DOCUMENTE, elle ne se déduit pas.** Le
+commentaire de `listCases()` annonçait « §7.6, servi du cache » — c'était faux, et cette
+phrase aurait fait croire à un lecteur que le cache sert déjà les balayages. Corrigé le
+2026-09-16. Si l'une de ces trois est un jour mise en service, la ligne correspondante
+disparaît d'ici ; si l'on renonce, elle part **avec son code** — mais dans les deux cas
+délibérément, et non parce que quelqu'un a pris un `grep` sans appelant pour un verdict.
+
+⚠ **Le coût de les garder est connu, et il est petit** : quelques octets de bundle pour
+`backfill` et `listCases` (arbre mort, jamais exécuté), et pour l'index un surcoût à
+chaque écriture dans `cases` — insensible à l'échelle d'un cabinet. Ce n'est donc pas une
+question de performance mais de LISIBILITÉ : du code que rien n'appelle fait douter le
+lecteur suivant de ce qu'il a compris du reste.
+
 ⚠ Deux `lookup.ts` coexistent et ne se ressemblent pas : `src/store/lookup.ts` est la
 boucle d'auto-correction (§6.4, avec E/S) ; `src/qc/lookup.ts` est une consultation de
 table en mémoire (aucune E/S). Ne pas fusionner.
