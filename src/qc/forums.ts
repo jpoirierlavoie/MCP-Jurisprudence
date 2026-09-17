@@ -13,9 +13,6 @@
  *   concurrentes pour un même dossier.
  */
 
-export const ADMINISTRATIF = "administratif";
-export const FEDERAL = "federal";
-
 export type CategorieForum = "administratif" | "federal";
 
 export interface Forum {

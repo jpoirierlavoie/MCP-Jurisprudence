@@ -160,9 +160,12 @@ aussi sûrement qu'un commit.
 
 ```powershell
 $env:CLOUDFLARE_API_TOKEN = (Get-Content cf.token -Raw).Trim()
-npx wrangler d1 migrations apply canlii --remote
-npx wrangler deploy
+npm run deploy
 ```
+
+Et non `npx wrangler deploy` : `scripts/deployer.mjs` refuse un arbre sale et passe
+`--var COMMIT:<sha>`, sans quoi `/health` annonce « inconnu » et le contrôle de dérive
+refuse de conclure.
 
 ## Invariants critiques
 
@@ -355,8 +358,6 @@ qu'elle vaudra encore le jour où l'on voudra rouvrir la question (§12).
   Jason lui-même. **Ne jamais les afficher, les lire en contexte, ni les écrire dans un
   fichier versionné.**
 - `MCP_SHARED_SECRET_ATHENA` : **facultatif**, même règle. Second porteur du point
-  d'entrée, aux droits IDENTIQUES — il n'ouvre aucun outil de plus. Il existe pour que
-  - `MCP_SHARED_SECRET_ATHENA` : **facultatif**, même règle. Second porteur du point
   d'entrée, aux droits IDENTIQUES — il n'ouvre aucun outil de plus. Il a existé pour que
   le clavardage de Pallas Athéna et le connecteur claude.ai se révoquent SÉPARÉMENT
   (§9.1, §19). **Depuis le 2026-09-02, ce porteur n'existe plus** : le clavardage a été
@@ -365,8 +366,7 @@ qu'elle vaudra encore le jour où l'on voudra rouvrir la question (§12).
   pour signaler qu'on l'a cassé** : un correctif de la garde d'entrée ne s'éprouve plus
   que par `test/rpc.test.ts` et un `curl` à la main, jamais par un second client vivant.
   L'authentification reste **fermée par défaut** : aucun secret configuré ⇒ tout est
-  refusé. Ne jamais journaliser lequel des deux a servi. L'authentification reste **fermée par défaut** : aucun secret configuré
-  ⇒ tout est refusé. Ne jamais journaliser lequel des deux a servi.
+  refusé. Ne jamais journaliser lequel des deux a servi.
 - `.dev.vars` (dev), `mcp.url` (URL de prod avec secret), `*.token` : **gitignorés**.
   Parmi eux, **`cf.token` porte le jeton d'API Cloudflare, et c'est lui qui déploie
   réellement la production** (voir « Commandes ») : il se lit dans une variable
@@ -380,15 +380,13 @@ qu'elle vaudra encore le jour où l'on voudra rouvrir la question (§12).
 
 **Livré et en production** sur `jurisprudence.poirierlavoie.ca`, 469 tests verts en quinze
 fichiers. Treize outils — dix `jurisprudence_*`, trois `greffe_*`/`palais_*` — et une page
-publique bilingue sur la même origine (§18). La version en ligne (`f6bab151`, 2026-09-16)
-a été déployée **à la main**, comme toutes celles qui l'ont précédée. Le déploiement
+publique bilingue sur la même origine (§18). La version en ligne a été déployée **à la main**, comme toutes celles qui l'ont
+précédée ; `/health` annonce le commit dont elle est issue (§8, §12.1). Le déploiement
 automatique a été retiré le 2026-09-16 : il n'avait jamais mis une seule version en ligne
 (§12). `migrations/0004_rename_tool_prefix.sql` est
 **appliquée en production** : `search_log.tool` et `court_codes.note` portent les noms
 d'aujourd'hui, et aucune ligne ne subsiste sous un ancien nom — l'historique de §10 n'est
 donc pas coupé en deux à la date du renommage.
-outils — dix `jurisprudence_*`, trois `greffe_*`/`palais_*` — et une page publique bilingue sur
-la même origine (§18).
 
 **UN seul client aujourd'hui, et un porteur qui attend** (§19). Le connecteur claude.ai
 est le seul appelant vivant. Le clavardage de Pallas Athéna, second client de

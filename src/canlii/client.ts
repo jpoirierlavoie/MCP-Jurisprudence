@@ -11,11 +11,15 @@
  * un plafond global qu'une invocation longue épuiserait pour les suivantes.
  */
 
+// `entier` vient de `src/config.ts`, et non d'une copie locale : ce fichier portait
+// jusqu'au 2026-09-16 un `readInt` identique au caractère près. Deux lectures d'entier
+// qui divergeraient un jour sur la borne ou sur le repli donneraient au même `vars` deux
+// significations selon l'appelant — le genre d'écart qu'aucun test ne réclame.
+import { entier } from "../config";
 import {
   CanliiBudgetError,
   CanliiError,
   CanliiTimeoutError,
-  redactUrl,
   truncateBody,
 } from "./errors";
 import type { CanliiErrorBody } from "./types";
@@ -86,20 +90,15 @@ export interface ClientSeams {
   jitterImpl?: () => number;
 }
 
-function readInt(value: string | undefined, fallback: number): number {
-  const n = Number.parseInt(value ?? "", 10);
-  return Number.isFinite(n) && n >= 0 ? n : fallback;
-}
-
 /** Construit la configuration à partir des variables du Worker. */
 export function configFromEnv(env: Env): ClientConfig {
   return {
     apiKey: env.CANLII_API_KEY ?? "",
     // 600 ms (≈ 1,7 appel/s) et non plus 250 (4/s) : à 250, la production était
     // étranglée sur 12 à 18 % des appels des journées chargées. Voir §16.2.
-    minIntervalMs: readInt(env.CANLII_MIN_INTERVAL_MS, 600),
-    maxCalls: readInt(env.CANLII_MAX_CALLS_PER_INVOCATION, 40),
-    timeoutMs: readInt(env.CANLII_TIMEOUT_MS, 15000),
+    minIntervalMs: entier(env.CANLII_MIN_INTERVAL_MS, 600),
+    maxCalls: entier(env.CANLII_MAX_CALLS_PER_INVOCATION, 40),
+    timeoutMs: entier(env.CANLII_TIMEOUT_MS, 15000),
   };
 }
 
@@ -364,5 +363,3 @@ export function describeError(err: unknown): string {
   }
   return "Erreur inattendue en interrogeant CanLII.";
 }
-
-export { redactUrl };

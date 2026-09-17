@@ -298,7 +298,7 @@ toujours, elle sert une version antérieure.
 
 ```bash
 curl -s https://jurisprudence.poirierlavoie.ca/health
-# {"status":"ok","commit":"ca189ed"}
+# {"status":"ok","commit":"8b34810"}   ← ce sha change à chaque déploiement
 ```
 
 `scripts/deployer.mjs` **refuse un arbre de travail sale** : déployer un arbre modifié
@@ -382,8 +382,7 @@ le quota.
   à la main, à refaire explicitement après toute retouche de la garde d'entrée. Cette
   puce disait jusqu'au 2026-09-16 « il évite qu'une rotation ou une révocation éteigne
   les deux clients à la fois » : vrai du 2026-08-27 au 2026-09-02, conservé parce qu'il
-  redeviendra vrai au prochain client. Aucun secret configuré ⇒ **tout est refusé** (fermé par défaut), et les deux
-  échecs rendent le même `401`, sans jamais dire lequel a servi.
+  redeviendra vrai au prochain client.
 - **Tout ce qui est présenté est essayé, et rien n'est rogné** (§9.1, corrigé le
   2026-09-16). L'en-tête `Authorization: Bearer` et le dernier segment du chemin sont deux
   porteurs **sans préséance** : un en-tête résiduel ne masque plus une URL correcte, ni

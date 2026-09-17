@@ -4,7 +4,7 @@
  * ╔══════════════════════════════════════════════════════════════════════════════╗
  * ║ ⚠ INERTE PAR DÉFAUT — `BACKFILL_ENABLED = "false"`.                          ║
  * ║                                                                              ║
- * ║ La sédimentation du cache par l'usage (D6) est difficilement distinguable     ║
+ * ║ La sédimentation du cache par l'usage (D6) est difficilement distinguable    ║
  * ║ d'un cache ordinaire. LE MOISSONNAGE EST AUTRE CHOSE : c'est un              ║
  * ║ téléchargement en masse, et la documentation de l'API le SUGGÈRE sans        ║
  * ║ l'AUTORISER (les filtres changedAfter/modifiedAfter n'ont guère d'autre      ║
@@ -12,7 +12,7 @@
  * ║ permission). §16.1 réserve la question à CanLII.                             ║
  * ║                                                                              ║
  * ║ Le code existe, il est testé, il ne s'exécute pas. Ne pas basculer le        ║
- * ║ drapeau avant la réponse de CanLII — et noter qu'aucun cron QUOTIDIEN n'est   ║
+ * ║ drapeau avant la réponse de CanLII — et noter qu'aucun cron QUOTIDIEN n'est  ║
  * ║ déclaré dans wrangler.jsonc : l'activer exige DEUX gestes délibérés.         ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */

@@ -2,13 +2,13 @@
  * `jurisprudence_subsequent_history` (spécification §7.5, annexe A.3).
  *
  * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║ OUTIL HEURISTIQUE. La mise en garde figure EN TÊTE ET EN PIED de la sortie.   ║
+ * ║ OUTIL HEURISTIQUE. La mise en garde figure EN TÊTE ET EN PIED de la sortie.  ║
  * ║                                                                              ║
- * ║ AUCUNE formulation affirmative n'est permise ici : jamais « a été infirmée », ║
- * ║ jamais « confirmée en appel ». Uniquement « indice », « susceptible »,        ║
- * ║ « à vérifier ». Ce que l'outil produit, c'est une PISTE de recherche, pas un  ║
- * ║ constat — l'API ne porte aucun indicateur de traitement, et un praticien qui  ║
- * ║ prendrait cette liste pour un citateur professionnel s'exposerait.            ║
+ * ║ AUCUNE formulation affirmative n'est permise ici : jamais « a été infirmée »,║
+ * ║ jamais « confirmée en appel ». Uniquement « indice », « susceptible »,       ║
+ * ║ « à vérifier ». Ce que l'outil produit, c'est une PISTE de recherche, pas un ║
+ * ║ constat — l'API ne porte aucun indicateur de traitement, et un praticien qui ║
+ * ║ prendrait cette liste pour un citateur professionnel s'exposerait.           ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 

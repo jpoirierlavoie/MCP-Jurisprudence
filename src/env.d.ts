@@ -27,10 +27,14 @@ interface WorkerSecrets {
   /**
    * SECOND secret du même point d'entrée, aux droits IDENTIQUES, et FACULTATIF.
    *
-   * Il n'ouvre rien de plus : il existe pour que le clavardage de Pallas Athéna et le
+   * Il n'ouvre rien de plus : il existait pour que le clavardage de Pallas Athéna et le
    * connecteur claude.ai se révoquent SÉPARÉMENT. Un seul secret partagé par deux
    * clients ne se fait pas tourner sans les éteindre tous les deux — et un connecteur
    * compromis obligerait alors à interrompre le cabinet.
+   *
+   * ⚠ Ce clavardage a été RETIRÉ du dépôt d'Athéna le 2026-09-02 : ce secret n'a plus
+   *   aucun porteur. Il reste admis — la règle vaudra pour le prochain client — mais
+   *   plus personne ne signalerait qu'on a cassé la forme par en-tête.
    *
    * Absent, le Worker se comporte exactement comme avant : un seul porteur admis.
    */

@@ -2,11 +2,11 @@
  * Page publique du connecteur (§18) — `GET /`.
  *
  * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║ ⚠ CETTE PAGE EST PUBLIQUE. Le secret partagé ne doit JAMAIS y paraître.       ║
+ * ║ ⚠ CETTE PAGE EST PUBLIQUE. Le secret partagé ne doit JAMAIS y paraître.      ║
  * ║                                                                              ║
- * ║ Elle documente la FORME du point d'entrée — `/mcp/<secret>` — et jamais une   ║
- * ║ URL réelle. Elle ne lit pas `env.MCP_SHARED_SECRET`, ne lit pas `request.url` ║
- * ║ et n'appelle rien. Un test épingle l'absence de toute chaîne qui ressemble à  ║
+ * ║ Elle documente la FORME du point d'entrée — `/mcp/<secret>` — et jamais une  ║
+ * ║ URL réelle. Elle ne lit pas `env.MCP_SHARED_SECRET`, ne lit pas `request.url`║
+ * ║ et n'appelle rien. Un test épingle l'absence de toute chaîne qui ressemble à ║
  * ║ un jeton dans le corps rendu.                                                ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  *

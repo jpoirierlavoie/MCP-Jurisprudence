@@ -3,7 +3,11 @@
  * Régénère `src/qc/lieux.ts` depuis la page officielle du ministère de la Justice
  * enregistrée dans le dépôt.
  *
- *   node scripts/extraire-lieux-mjq.mjs "Numéros des greffes ….html"
+ *   node scripts/extraire-lieux-mjq.mjs sources-officielles/mjq-numeros-greffes-2026-07-22.html
+ *
+ * La page est VERSIONNÉE dans `sources-officielles/` : c'est la preuve dont ce script
+ * tire `src/qc/lieux.ts`, et elle doit y rester pour que la transcription reste
+ * vérifiable. Ne pas la prendre pour un résidu.
  *
  * POURQUOI CE SCRIPT EXISTE. La page se met à jour (elle porte sa propre date), et
  * elle compte 86 lignes. Les recopier à la main, c'est un numéro de greffe faux qui
