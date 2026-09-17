@@ -41,7 +41,9 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
       "FINDING: CONFIRMÉE, DISCORDANTE, INTROUVABLE, NON CONSTRUCTIBLE, ILLISIBLE. The sixth, " +
       "INDÉTERMINÉE, says that NO finding could be made — CanLII unreachable, throttled, or the " +
       "call budget spent — and never means absence: do not read it as INTROUVABLE. A confirmed " +
-      "verdict establishes existence and identity — never current authority, never the disposition.",
+      "verdict establishes existence and identity — never current authority, never the disposition. " +
+      "For the RECORD alone of a decision already taken to be correctly cited, " +
+      "jurisprudence_get_case is enough and costs less.",
   },
   jurisprudence_find_case: {
     titre: "Find a decision by party names",
@@ -53,7 +55,11 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
     titre: "Decision record",
     texte:
       "The official record of one decision: style of cause, citation, date, court file number, " +
-      "keywords and its canlii.ca link. It does not return the text — follow the link.",
+      "keywords and its canlii.ca link. It does not return the text — follow the link. It does " +
+      "NOT test the citation: no verdict, no comparison of the style of cause, no check on the " +
+      "year — the record returned is that of the decision FOUND, which may not be the one you " +
+      "believed you were citing. To find out whether a reference met elsewhere is sound, use " +
+      "jurisprudence_verify_citations instead.",
   },
   jurisprudence_citator: {
     titre: "Citator — raw lists",
@@ -104,8 +110,8 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
     texte:
       "Reads NNN-NN-NNNNNN-NNN into its registry — courthouse and judicial district — and its " +
       "jurisdiction: court, competence, registry type. A letter prefix (TAL, TAQ, C.F.…) names " +
-      "a tribunal that numbers its own files. Read from tables surveyed from the ministere de la " +
-      "Justice du Quebec on 2026-07-15 and compiled into the Worker: no call is made, no docket is " +
+      "a tribunal that numbers its own files. Read from tables surveyed from the ministère de la " +
+      "Justice du Québec on 2026-07-15 and compiled into the Worker: no call is made, no docket is " +
       "consulted, and nothing here proves that the file exists.",
   },
   palais_list: {
@@ -113,7 +119,7 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
     texte:
       "The courthouses and justice service points of Québec, with civic address, the registry " +
       "numbers sitting there and their judicial district. Filterable by district, type or free " +
-      "text. Surveyed from the ministere de la Justice du Quebec on 2026-07-15 — addresses age, " +
+      "text. Surveyed from the ministère de la Justice du Québec on 2026-07-15 — addresses age, " +
       "and no telephone number is carried: check with the Ministry before serving or filing.",
   },
   palais_get: {
@@ -121,7 +127,7 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
     texte:
       "One location in full, by registry number or by name: address, distinct mailing address " +
       "where one is published, registries sitting there, and — for a circuit court — the " +
-      "communities served. Surveyed from the ministere de la Justice du Quebec on 2026-07-15; a " +
+      "communities served. Surveyed from the ministère de la Justice du Québec on 2026-07-15; a " +
       "missing address means UNKNOWN, never non-existent.",
   },
 } as const;
@@ -180,10 +186,16 @@ export const EN = {
     "Every tool declares a closed schema: any property not listed is refused. These tables are " +
       "generated from the very same schema the validator applies at call time, so they cannot " +
       "drift from what the server accepts.",
+    "The Description column stays in FRENCH in both language views, and that is deliberate. " +
+      "Those sentences are the ones the model actually receives: they are the canonical text, " +
+      "not a rendering of it. A translation here would be a second copy of a single truth, and " +
+      "the two would drift — the failure this connector guards against everywhere else. The " +
+      "same rule already governs the warnings shown above.",
   ],
   colParam: "Parameter",
   colType: "Type",
   colContrainte: "Constraints",
+  colDescription: "Description",
   requis: "required",
 
   // ── Numéro de dossier ──────────────────────────────────────────────────────

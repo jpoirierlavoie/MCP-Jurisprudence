@@ -385,3 +385,96 @@ describe("§18 — le contrat de vérité tient sur la page", () => {
     expect(greffes).not.toMatch(/CanLII/i);
   });
 });
+
+/**
+ * §18 / INVARIANT 19 — CE QUE LA PAGE AFFIRME, ELLE LE DÉRIVE.
+ *
+ * ╔══════════════════════════════════════════════════════════════════════════════╗
+ * ║ Ces quatre gardes ferment des dérives qu'AUCUN test n'attrapait, et dont    ║
+ * ║ chacune s'était déjà produite :                                              ║
+ * ║                                                                              ║
+ * ║  · la page AFFIRMAIT « ses annotations MCP le déclarent » sans jamais lire   ║
+ * ║    `annotations` — l'interface `Descripteur` les jetait. Basculer un outil   ║
+ * ║    de DISTANT à LOCAL n'aurait pas changé un octet de la page ;              ║
+ * ║  · le renvoi croisé get_case ↔ verify_citations existait en français et pas  ║
+ * ║    en anglais : la réserve « n'éprouve pas la citation » n'était portée que  ║
+ * ║    d'un côté, et le test de parité ne l'a pas vu parce qu'il n'exigeait de   ║
+ * ║    l'anglais qu'un /canlii/i — satisfait par « canlii.ca » ;                 ║
+ * ║  · neuf usages de `class="small"` et six de `class="muted"` pour deux        ║
+ * ║    classes définies NULLE PART : toute la hiérarchie visuelle secondaire     ║
+ * ║    était inerte, et « aucune adresse publiée » se rendait comme une adresse. ║
+ * ╚══════════════════════════════════════════════════════════════════════════════╝
+ */
+describe("§18 / invariant 19 — la page dérive, et ses classes existent", () => {
+  it("aucune classe CSS employée n'est indéfinie", async () => {
+    // Garde STRUCTURELLE : une classe absente du CSS ne lève rien, elle ne fait
+    // simplement RIEN. Le défaut se voit à l'œil sur la page rendue, et pas du tout
+    // dans la suite — c'est exactement le mode de panne silencieux que §2 vise.
+    const html = await (await demander("/")).text();
+    const css = html.slice(html.indexOf("<style>"), html.indexOf("</style>"));
+    const employees = new Set(
+      [...html.matchAll(/class="([^"]+)"/g)].flatMap((m) => m[1]!.trim().split(/\s+/)),
+    );
+    // Une classe est DÉFINIE si le CSS porte « .<nom> » suivi d'un caractère qui clôt
+    // le sélecteur : espace (sélecteur descendant), virgule, accolade, deux-points
+    // (pseudo-classe) ou chevron. La liste est explicite plutôt qu'écrite en s :
+    // ce fichier a déjà perdu une barre oblique inverse en chemin.
+    const defini = (c: string) =>
+      css.includes(`.${c} `) || /[,{:>]/.test(css.charAt(css.indexOf(`.${c}`) + c.length + 1));
+    const orphelines = [...employees].filter((c) => !css.includes(`.${c}`) || !defini(c));
+    expect(orphelines).toEqual([]);
+  });
+
+  it("le marqueur openWorldHint est DÉRIVÉ : quatre faux, neuf vrais", async () => {
+    const html = await (await demander("/")).text();
+    const vrais = [...html.matchAll(/openWorldHint: true/g)].length;
+    const faux = [...html.matchAll(/openWorldHint: false/g)].length;
+    expect(faux).toBe(4);
+    expect(vrais).toBe(9);
+    expect(faux + vrais).toBe(Object.keys(TOOLS).length);
+  });
+
+  it("le renvoi croisé get_case ↔ verify_citations tient dans les DEUX langues", async () => {
+    // Le français vient du registre et ne peut pas dériver ; l'anglais est écrit à la
+    // main dans OUTILS_EN, et c'est lui qui avait pris du retard.
+    const fr = TOOLS.jurisprudence_get_case!.description;
+    const frV = TOOLS.jurisprudence_verify_citations!.description;
+    expect(fr).toContain("jurisprudence_verify_citations");
+    expect(frV).toContain("jurisprudence_get_case");
+    expect(OUTILS_EN.jurisprudence_get_case!.texte).toContain("jurisprudence_verify_citations");
+    expect(OUTILS_EN.jurisprudence_verify_citations!.texte).toContain("jurisprudence_get_case");
+  });
+
+  it("chaque description de paramètre PARAÎT sur la page", async () => {
+    // La page documentait le type et les bornes, jamais le sens. Les descriptions
+    // existent toutes depuis le 2026-09-16 ; sans ce test, la colonne pourrait être
+    // retirée « pour alléger le tableau » sans qu'aucune commande ne s'en aperçoive.
+    const html = await (await demander("/")).text();
+    const toutes: string[] = [];
+    for (const t of Object.values(TOOLS)) {
+      for (const p of Object.values(t.inputSchema.properties ?? {})) {
+        if (p.description) toutes.push(p.description);
+        for (const sp of Object.values(p.items?.properties ?? {})) {
+          if (sp.description) toutes.push(sp.description);
+        }
+      }
+    }
+    expect(toutes.length).toBeGreaterThan(50);
+    // L'échappement HTML transforme les apostrophes : on compare sur un fragment sûr.
+    // La page ÉCHAPPE le HTML : on déséchappe plutôt que d'amputer l'aiguille, sans
+    // quoi le test passerait sur des fragments tronqués avant la première apostrophe.
+    const clair = html
+      .split("&#39;")
+      .join("'")
+      .split("&quot;")
+      .join('"')
+      .split("&amp;")
+      .join("&")
+      .split("&lt;")
+      .join("<")
+      .split("&gt;")
+      .join(">");
+    const absentes = toutes.filter((d) => !clair.includes(d));
+    expect(absentes).toEqual([]);
+  });
+});

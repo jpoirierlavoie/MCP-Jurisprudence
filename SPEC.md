@@ -6,7 +6,7 @@
 **Auteur de la spéc. :** (préparé pour Jason Poirier Lavoie)
 **Cible :** nouveau dépôt autonome — Worker Cloudflare, D1, TypeScript
 **Modèle de référence :** le Worker `legislation` / base D1 `qclaw` (connecteur « Législation du Québec »)
-**Statut :** **livré et en production** sur `jurisprudence.poirierlavoie.ca` — treize outils, 483 tests, page publique bilingue. *Amendé le 2026-09-16 ; l'en-tête portait « prêt à implémenter », vrai jusqu'au premier déploiement du 2026-07-23 et faux depuis.* Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
+**Statut :** **livré et en production** sur `jurisprudence.poirierlavoie.ca` — treize outils, 487 tests, page publique bilingue. *Amendé le 2026-09-16 ; l'en-tête portait « prêt à implémenter », vrai jusqu'au premier déploiement du 2026-07-23 et faux depuis.* Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
 
 ---
 
@@ -164,7 +164,7 @@ arrivés après la rédaction initiale : ils figurent ici, à leur place.*
 │   └── deployer.mjs          # §12 — migrations PUIS déploiement ; refuse un arbre sale
 ├── sources-officielles/      # la PREUVE, pas un résidu — voir ci-dessous
 │   └── mjq-numeros-greffes-2026-07-22.html
-├── test/                     # 483 tests en 15 fichiers, sans réseau ni clef
+├── test/                     # 487 tests en 15 fichiers, sans réseau ni clef
 │   ├── citation.parse.test.ts · citation.compare.test.ts · verify.test.ts
 │   ├── client.test.ts · rpc.test.ts · persist.test.ts · tools.test.ts
 │   ├── qc.tables.test.ts · qc.outils.test.ts · qc.dossier.test.ts
@@ -1238,7 +1238,31 @@ C'est la règle qui gouverne toute la section. Une page qui recopierait un titre
 | Rendu | Source |
 |---|---|
 | Outils : nom, titre, description | `listToolDescriptors()` — la fonction même que sert `tools/list` |
-| Schémas : types, bornes, `enum`, `required` | le `inputSchema` même que le validateur applique (§8) |
+| Schémas : types, bornes, `enum`, `required`, **et la `description` de chaque paramètre** | le `inputSchema` même que le validateur applique (§8) |
+| **Le marqueur `openWorldHint` de chaque outil** | ses `annotations` MCP, lues par `listToolDescriptors()` |
+
+*Deux lignes amendées le 2026-09-16, et pour le même motif.* La page annonçait les types et les
+bornes d'un paramètre, jamais son SENS : le visiteur lisait « database_id · string · 1–20 car. »
+et devait deviner, alors que les descriptions existent toutes. Et elle **affirmait** « ses
+annotations MCP le déclarent » sans jamais lire `annotations` — l'interface `Descripteur` de
+`src/site.ts` ne les déclarait pas, et le `as unknown as` les jetait. Basculer un outil de
+DISTANT à LOCAL n'aurait pas changé un octet de la page : une prose recopiée là où l'invariant 19
+exige une valeur dérivée, et qui prétendait justement le contraire.
+
+⚠ **La colonne « Description » reste en FRANÇAIS dans la vue anglaise, délibérément.** Ces
+phrases sont celles que le MODÈLE reçoit : elles sont le texte canonique, non son rendu. Les
+traduire ferait deux copies d'une même vérité, qui divergeraient — et la version anglaise
+donnerait une fausse idée de ce que le connecteur annonce réellement. Le précédent est établi :
+`GARDE_DOSSIER`, `GARDE_PALAIS` et `GARDE_SANS_ADRESSE`, les trois réserves les plus lourdes de
+la page, sont déjà rendues en français aux deux publics. Ce qui manquait n'était pas la
+traduction, c'était de DIRE qu'il n'y en a pas, et pourquoi : la page le dit maintenant.
+
+⚠ **Formulation load-bearing du marqueur.** `openWorldHint: true` dit que la SOURCE DE VÉRITÉ est
+distante — **pas** qu'un appel part à chaque invocation. `jurisprudence_get_case` sert sa fiche
+depuis D1 sans aucun appel dès qu'une ligne fraîche existe, et `jurisprudence_list_databases` ne
+rafraîchit qu'au bout de sept jours. Écrire « Appel sortant à CanLII » serait donc faux dans le
+cas le plus courant, et faux avec l'aplomb d'une valeur dérivée. On annonce la SOURCE, pas le
+trafic.
 | Issues de l'analyse d'un numéro | `analyserNumeroDossier()` **exécutée au rendu** sur des exemples |
 | Greffes, palais, districts, localités | les tables de `src/qc/` (§17) |
 | Codes de juridiction | `JURIDICTIONS` |

@@ -34,8 +34,13 @@
  *
  * Conventions communes appliquées sans exception :
  *   - nom d'outil en anglais, description ET sortie en français ;
- *   - `annotations: { readOnlyHint: true, openWorldHint: true }` sur TOUS les outils
- *     (openWorld : la source de vérité est distante et évolue) ;
+ *   - `readOnlyHint: true` sur TOUS les outils : aucun n'écrit hors de son cache ;
+ *   - `openWorldHint` N'EST PAS uniforme — vrai pour les NEUF qui interrogent CanLII
+ *     (source de vérité distante), faux pour les QUATRE qui ne font aucun appel. Ce
+ *     cartouche a affirmé l'uniformité jusqu'au 2026-09-16, soixante lignes au-dessus
+ *     du code qui fait l'inverse : un contributeur lisant « les conventions » posait
+ *     `true` d'office. Voir `DISTANT`/`LOCAL` et `SANS_APPEL` plus bas ;
+ *   - tout paramètre déclaré porte une `description` ;
  *   - `additionalProperties: false` sur tous les schémas ;
  *   - tout `lang` : enum ["fr","en"], défaut "fr" ;
  *   - erreur d'exécution => `isError: true` en français, JAMAIS une erreur JSON-RPC.

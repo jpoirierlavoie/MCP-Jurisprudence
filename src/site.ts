@@ -442,10 +442,40 @@ interface Descripteur {
   title: string;
   description: string;
   inputSchema: JsonSchema;
+  /**
+   * ⚠ Ce champ était ABSENT de l'interface, et le `as unknown as` le jetait en
+   *   silence. La page affirmait pourtant « ses annotations MCP le déclarent » — une
+   *   prose RECOPIÉE, qui serait restée vraie d'apparence si l'on basculait un outil
+   *   de DISTANT à LOCAL sans qu'un octet de la page ne change. C'est exactement ce
+   *   que l'invariant 19 interdit : la page DÉRIVE, elle ne recopie pas. 2026-09-16.
+   */
+  annotations?: { readOnlyHint?: boolean; openWorldHint?: boolean };
 }
 
 function descripteurs(): Descripteur[] {
   return listToolDescriptors() as unknown as Descripteur[];
+}
+
+/**
+ * Le marqueur d'appel sortant, DÉRIVÉ de `openWorldHint`.
+ *
+ * ⚠ Formulation load-bearing. `openWorldHint: true` dit que la SOURCE DE VÉRITÉ est
+ *   distante — PAS qu'un appel part à chaque invocation. `jurisprudence_get_case` sert
+ *   sa fiche depuis D1 sans aucun appel dès qu'une ligne fraîche existe, et
+ *   `jurisprudence_list_databases` ne rafraîchit qu'au bout de sept jours. Écrire
+ *   « Appel sortant à CanLII » serait donc faux dans le cas le plus courant, et faux
+ *   avec l'aplomb d'une valeur dérivée. On annonce la SOURCE, pas le trafic.
+ */
+function marqueurAppel(d: Descripteur): string {
+  const ouvert = d.annotations?.openWorldHint === true;
+  return `<p class="m"><code>openWorldHint: ${ouvert}</code> — ${bi(
+    ouvert
+      ? "source distante : la réponse dépend de la collection de CanLII, et peut être servie du cache local."
+      : "aucun appel sortant : la réponse est une fonction pure de tables compilées dans le Worker.",
+    ouvert
+      ? "distant source: the answer depends on CanLII's collection, and may be served from the local cache."
+      : "no outbound call: the answer is a pure function of tables compiled into the Worker.",
+  )}</p>`;
 }
 
 function estLocal(nom: string): boolean {
@@ -459,6 +489,7 @@ function outils(): string {
 <h4><code>${esc(d.name)}</code></h4>
 <p class="titre">${bi(d.title, en?.titre ?? d.title)}</p>
 ${biP([d.description], [en?.texte ?? d.description])}
+${marqueurAppel(d)}
 </article>`;
   };
 
@@ -521,23 +552,40 @@ function schemas(): string {
     const noms = Object.keys(props);
     if (noms.length === 0) {
       return `<h4><code>${esc(d.name)}</code></h4>
-<p class="muted small">${bi("Aucun paramètre.", "No parameters.")}</p>`;
+<p class="m">${bi("Aucun paramètre.", "No parameters.")}</p>`;
     }
-    const lignes = noms
-      .map((n) => {
-        const p = props[n] as JsonSchema;
-        const type = p.type === "array" ? `array&lt;${p.items?.type ?? "?"}&gt;` : (p.type ?? "?");
-        return `<tr>
-<td><code>${esc(n)}</code>${requis.has(n) ? ` <span class="muted small">${bi("requis", EN.requis)}</span>` : ""}</td>
+    // Une ligne par paramètre — et, pour un tableau d'objets, une ligne par PROPRIÉTÉ
+    // de ses éléments. Sans ce dépliage, `citations` se rendait « array<object> » et
+    // les trois entrées de l'outil PIVOT (citation, expected_title, expected_year)
+    // n'apparaissaient nulle part : le plus important des treize était celui que la
+    // page documentait le moins. 2026-09-16.
+    const ligne = (n: string, p: JsonSchema, obligatoire: boolean, sous = false) => {
+      const type = p.type === "array" ? `array&lt;${p.items?.type ?? "?"}&gt;` : (p.type ?? "?");
+      return `<tr>
+<td>${sous ? '<span class="m">· </span>' : ""}<code>${esc(n)}</code>${obligatoire ? ` <span class="m">${bi("requis", EN.requis)}</span>` : ""}</td>
 <td><code>${type}</code></td>
-<td class="small">${esc(contraintes(p))}</td>
+<td class="m">${esc(contraintes(p))}</td>
+<td class="m">${esc(p.description ?? "")}</td>
 </tr>`;
+    };
+    const lignes = noms
+      .flatMap((n) => {
+        const p = props[n] as JsonSchema;
+        const sortie = [ligne(n, p, requis.has(n))];
+        const sousProps = p.items?.properties;
+        if (sousProps) {
+          const sousRequis = new Set(p.items?.required ?? []);
+          for (const [sn, sp] of Object.entries(sousProps)) {
+            sortie.push(ligne(`${n}[].${sn}`, sp as JsonSchema, sousRequis.has(sn), true));
+          }
+        }
+        return sortie;
       })
       .join("");
     return `<h4><code>${esc(d.name)}</code></h4>
 <div class="tw"><table><thead><tr>
 <th>${bi("Paramètre", EN.colParam)}</th><th>${bi("Type", EN.colType)}</th>
-<th>${bi("Contraintes", EN.colContrainte)}</th>
+<th>${bi("Contraintes", EN.colContrainte)}</th><th>${bi("Description", EN.colDescription)}</th>
 </tr></thead><tbody>${lignes}</tbody></table></div>`;
   };
 
@@ -548,6 +596,11 @@ ${biP(
     "Chaque outil déclare un schéma FERMÉ : toute propriété non listée est refusée. Ces tables " +
       "sont générées depuis le schéma même que le validateur applique à l'appel — elles ne " +
       "peuvent donc pas diverger de ce que le serveur accepte.",
+    "La colonne Description reste en FRANÇAIS dans les deux vues, et c'est délibéré : ces " +
+      "phrases sont celles que le modèle reçoit. Elles sont le texte canonique, non son " +
+      "rendu. Les traduire ici ferait deux copies d'une même vérité, qui divergeraient — le " +
+      "mode de panne contre lequel tout le reste de ce connecteur est bâti. Les mises en " +
+      "garde ci-dessus obéissent déjà à cette règle.",
   ],
   EN.schemaTexte,
 )}
@@ -588,14 +641,14 @@ function issue(entree: string): string {
 
 function dossier(): string {
   const lignes = EXEMPLES.map(
-    (e) => `<tr><td><code>${esc(e)}</code></td><td class="small">${esc(issue(e))}</td></tr>`,
+    (e) => `<tr><td><code>${esc(e)}</code></td><td class="m">${esc(issue(e))}</td></tr>`,
   ).join("");
 
   const jur = Object.entries(JURIDICTIONS)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(
       ([code, j]) => `<tr><td><code>${esc(code)}</code></td><td>${esc(j.tribunal)}</td>
-<td>${esc(j.competence)}</td><td class="small">${esc(LIBELLE_TYPE_GREFFE[j.greffe_type])}</td></tr>`,
+<td>${esc(j.competence)}</td><td class="m">${esc(LIBELLE_TYPE_GREFFE[j.greffe_type])}</td></tr>`,
     )
     .join("");
 
@@ -662,20 +715,18 @@ function greffes(): string {
         ? `${esc(adresse.street)}${adresse.unit ? `, ${esc(adresse.unit)}` : ""}<br>` +
           `${esc(adresse.city)} (Québec) ${esc(adresse.postal_code)}` +
           (siege
-            ? `<br><span class="muted small">${bi(
+            ? `<br><span class="m">${bi(
                 `Siège fixe : ${siege.palais.name}, rattaché par le relevé du Ministère`,
                 `Fixed seat: ${siege.palais.name}, attached by the Ministry's listing`,
               )}</span>`
             : "")
-        : `<span class="muted">${bi("aucune adresse publiée", EN.sansAdresse)}</span>`;
+        : `<span class="m">${bi("aucune adresse publiée", EN.sansAdresse)}</span>`;
 
       const types = [
         g.point_de_service
-          ? `<span class="muted small">${bi("cour itinérante", EN.typeItinerant)}</span>`
+          ? `<span class="m">${bi("cour itinérante", EN.typeItinerant)}</span>`
           : null,
-        localites.length > 0
-          ? `<span class="muted small">${esc(localites.join(", "))}</span>`
-          : null,
+        localites.length > 0 ? `<span class="m">${esc(localites.join(", "))}</span>` : null,
       ]
         .filter((t): t is string => t !== null)
         .join("<br>");
@@ -731,7 +782,7 @@ ${biP(
 
 <div class="avert">
 <p>${bi(GARDE_PALAIS, GARDE_PALAIS)}</p>
-<p class="small">${bi(
+<p class="m">${bi(
     `Adresses relevées le ${RELEVE_LE} · rattachements des greffes selon le relevé du Ministère mis à jour le ${MJQ_MAJ}.`,
     `Addresses surveyed ${RELEVE_LE} · registry attachments per the Ministry's listing updated ${MJQ_MAJ}.`,
   )}</p>
