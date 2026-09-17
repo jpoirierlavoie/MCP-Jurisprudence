@@ -24,7 +24,13 @@ import {
   noteEtranglement,
   provenance,
 } from "../../format/render";
-import { type CaseRow, rowFromListItem, searchLocal, upsertCases } from "../../store/cases";
+import {
+  anneeInferee,
+  type CaseRow,
+  rowFromListItem,
+  searchLocal,
+  upsertCases,
+} from "../../store/cases";
 import { flushUsage, logSearch } from "../../store/telemetry";
 import { LIMITES } from "../defauts";
 import type { ToolContext } from "../registry";
@@ -121,7 +127,16 @@ export async function findCase(
   const tous = [...parClef.values()].sort(
     (a, b) =>
       similarite(titre, b.title) - similarite(titre, a.title) ||
-      (b.decision_date ?? "").localeCompare(a.decision_date ?? ""),
+      // L'ANNÉE, et non une date : elle est vraie (préfixe du caseId), là où le jour et
+      // le mois ne le sont pas. C'est ce classement qu'une date fabriquée tenait en
+      // sous-main ; il se dit maintenant.
+      anneeInferee(b) - anneeInferee(a) ||
+      // Puis la date, qui départage une fiche RÉSOLUE d'une ligne de balayage de la
+      // même année — la première porte la sienne, la seconde non.
+      (b.decision_date ?? "").localeCompare(a.decision_date ?? "") ||
+      // Et enfin l'identifiant, pour que l'ordre soit DÉTERMINISTE et non simplement
+      // stable : sans lui, il dépend de l'ordre de parcours des bases.
+      a.case_id.localeCompare(b.case_id),
   );
   const rendus = tous.slice(0, limit);
 

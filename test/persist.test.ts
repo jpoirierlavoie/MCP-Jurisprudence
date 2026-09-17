@@ -10,6 +10,7 @@ import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
+  anneeInferee,
   type CaseRow,
   extractNeutral,
   ftsQuery,
@@ -153,6 +154,54 @@ describe("upsert et index FTS5", () => {
     ]);
     const l = await listCases(db, "qcca", 10, 0);
     expect(l.map((r) => r.case_id)).toEqual(["recent", "vieux"]);
+  });
+});
+
+describe("l'ANNÉE inférée — pour filtrer et classer, jamais pour afficher", () => {
+  it("lit l'année dans le préfixe du caseId quand la ligne n'a pas de date", () => {
+    expect(anneeInferee({ decision_date: null, case_id: "2005qcca304" })).toBe(2005);
+    expect(anneeInferee({ decision_date: null, case_id: "1997canlii335" })).toBe(1997);
+  });
+
+  it("la DATE l'emporte quand elle existe", () => {
+    expect(anneeInferee({ decision_date: "1997-10-31", case_id: "1997canlii335" })).toBe(1997);
+  });
+
+  it("rend 0 — et non une année devinée — sur un identifiant illisible", () => {
+    expect(anneeInferee({ decision_date: null, case_id: "scc-csc-abc" })).toBe(0);
+    expect(anneeInferee({ decision_date: null, case_id: "" })).toBe(0);
+  });
+
+  it("une ligne SANS DATE reste dans une fenêtre d'année, bornes comprises", async () => {
+    // Le repli portait sur `neutral_cite`, absente des arrêts d'avant 2000 : 1 634 des
+    // 1 819 lignes concernées en production n'en avaient aucune, et sortaient donc de
+    // TOUTE recherche locale bornée par année. Le trou ne se voyait pas parce qu'une
+    // date fabriquée tenait le filtre en sous-main.
+    await upsertCase(
+      db,
+      row({
+        case_id: "1997canlii335",
+        database_id: "csc-scc",
+        title: "Godbout c. Longueuil (Ville)",
+        title_norm: "godbout c longueuil ville",
+        neutral_cite: null,
+        decision_date: null,
+        source: "sweep",
+      }),
+    );
+    const dans = await searchLocal(db, "Godbout Longueuil", {
+      databaseId: "csc-scc",
+      yearFrom: 1997,
+      yearTo: 1997,
+    });
+    expect(dans.map((r) => r.case_id)).toContain("1997canlii335");
+    // Et la borne EXCLUT bien ce qui est hors fenêtre : sans quoi le filtre ne filtre plus.
+    const hors = await searchLocal(db, "Godbout Longueuil", {
+      databaseId: "csc-scc",
+      yearFrom: 1998,
+      yearTo: 1999,
+    });
+    expect(hors).toHaveLength(0);
   });
 });
 

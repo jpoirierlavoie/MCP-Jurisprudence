@@ -264,6 +264,31 @@ export function ftsQuery(texte: string): string | null {
   return jetons.map((t) => `"${t.replace(/"/g, '""')}"`).join(" ");
 }
 
+/**
+ * Année INFÉRÉE d'une ligne — pour le FILTRAGE et le CLASSEMENT, JAMAIS pour l'affichage.
+ *
+ * ⚠ Une année n'est PAS une date, et c'est tout l'objet de cette fonction.
+ *
+ *   Une ligne de balayage n'a pas de date (invariant 3). Sans repère d'année, elle sort
+ *   de toute fenêtre demandée et le classement d'un résultat multi-bases redevient
+ *   l'ordre de parcours. La tentation est alors d'écrire un 1er janvier : c'est
+ *   exactement le défaut corrigé le 2026-09-17, et il ressortait au rendu.
+ *
+ *   L'identifiant de CanLII porte l'année en préfixe — « 1997canlii335 », « 2005qcca304 »
+ *   — ce que l'analyseur suppose déjà ailleurs (`caseIdNeutre`, `extraireFragment`).
+ *   ÉPROUVÉ PAR DIFFÉRENTIEL contre la production le 2026-09-17 : sur les 934 fiches
+ *   « lookup » portant la date rendue par CanLII, 934 ont un préfixe de caseId qui donne
+ *   la même année — zéro divergence ; et 3 564 lignes sur 3 564 commencent par quatre
+ *   chiffres.
+ *
+ *   `0` quand rien n'est lisible : une valeur qui se range en dernier, et qui ne peut
+ *   pas se confondre avec une année.
+ */
+export function anneeInferee(row: Pick<CaseRow, "decision_date" | "case_id">): number {
+  const s = row.decision_date?.slice(0, 4) ?? row.case_id.slice(0, 4);
+  return /^\d{4}$/.test(s) ? Number(s) : 0;
+}
+
 export interface SearchOptions {
   databaseId?: string | null;
   yearFrom?: number | null;
@@ -291,15 +316,33 @@ export async function searchLocal(
     where.push("c.database_id = ?");
     binds.push(opts.databaseId);
   }
-  // La fenêtre de dates s'applique à `decision_date` quand elle existe, et sinon à
-  // l'année lue dans la citation neutre — les fiches moissonnées n'ont pas de date.
+  // La fenêtre s'applique à `decision_date` quand elle existe, et sinon à l'ANNÉE lue
+  // dans le préfixe du caseId — les lignes moissonnées n'ont pas de date (invariant 3).
+  //
+  // ⚠ Le repli portait auparavant sur `neutral_cite`, et c'était un trou : les arrêts
+  //   d'avant 2000 n'ont pas de citation neutre — elle n'existait pas. Relevé en
+  //   production le 2026-09-17 : 1 634 des 1 819 lignes concernées n'en avaient aucune,
+  //   et les deux membres de la disjonction étaient donc NULS. Elles sortaient de toute
+  //   recherche locale bornée par année. Le défaut ne se voyait pas parce qu'une date
+  //   fabriquée tenait le filtre en sous-main.
+  //
+  // ⚠ GLOB et non LIKE, pour le motif déjà consigné en 0004 : dans LIKE, « _ » est un
+  //   joker d'un caractère, et un caseId en contient.
+  const PREFIXE_ANNEE = "c.case_id GLOB '[0-9][0-9][0-9][0-9]*'";
   if (opts.yearFrom) {
-    where.push("(c.decision_date >= ? OR (c.decision_date IS NULL AND c.neutral_cite >= ?))");
-    binds.push(`${opts.yearFrom}-01-01`, `${opts.yearFrom}`);
+    where.push(
+      `(c.decision_date >= ? OR (c.decision_date IS NULL AND ${PREFIXE_ANNEE} AND substr(c.case_id,1,4) >= ?))`,
+    );
+    binds.push(`${opts.yearFrom}-01-01`, String(opts.yearFrom));
   }
   if (opts.yearTo) {
-    where.push("(c.decision_date <= ? OR (c.decision_date IS NULL AND c.neutral_cite <= ?))");
-    binds.push(`${opts.yearTo}-12-31`, `${opts.yearTo}z`);
+    // ⚠ La borne haute valait `${yearTo}z` : un contournement qui n'existait QUE pour
+    //   comparer « 2005 QCCA 304 » à « 2005 ». Sur quatre chiffres nus, il exclurait
+    //   2005 lui-même — la comparaison est désormais d'année à année.
+    where.push(
+      `(c.decision_date <= ? OR (c.decision_date IS NULL AND ${PREFIXE_ANNEE} AND substr(c.case_id,1,4) <= ?))`,
+    );
+    binds.push(`${opts.yearTo}-12-31`, String(opts.yearTo));
   }
   const limit = Math.min(Math.max(opts.limit ?? 25, 1), 100);
   try {
@@ -307,6 +350,9 @@ export async function searchLocal(
       .prepare(
         `SELECT c.* FROM cases_fts f JOIN cases c ON c.id = f.rowid
          WHERE ${where.join(" AND ")}
+         -- SQLite trie NULL SOUS toute valeur : en DESC, les lignes sans date tombent
+         -- donc naturellement en dernier, ce qui est l'ordre voulu. Pas de NULLS LAST —
+         -- il ne changerait rien et laisserait croire que le défaut est risqué.
          ORDER BY bm25(cases_fts), c.decision_date DESC
          LIMIT ?`,
       )
