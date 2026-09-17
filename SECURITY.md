@@ -126,8 +126,12 @@ Known and accepted properties of this model:
   updating the connector URL; no redeployment of code is required.
 - **Two secrets are accepted, with identical rights, so that either can be revoked on
   its own.** `MCP_SHARED_SECRET` is the claude.ai connector's; `MCP_SHARED_SECRET_ATHENA`
-  — optional — belongs to the Pallas Athéna chat, which calls the same endpoint with
-  `Authorization: Bearer` (spec §19). The second grants nothing extra: what D7 protects
+  — optional — *belonged* to the Pallas Athéna chat, which called the same endpoint with
+  `Authorization: Bearer` (spec §19). **That chat was removed from its own repository on
+  2026-09-02, so the second secret now has no bearer.** It is kept because it costs
+  nothing and grants nothing extra, and the rule will hold for the next client — but no
+  live client would any longer signal that the header-borne form has been broken. The
+  second grants nothing extra: what D7 protects
   is the CanLII API key and its quota, not a data perimeter. They are separate only so
   that rotating or revoking one bearer does not take the other down with it. If neither
   is configured, everything is refused — the check fails CLOSED — and both failures

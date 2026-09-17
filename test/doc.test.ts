@@ -2,27 +2,27 @@
  * Le README contre le REGISTRE (règle de propagation, CLAUDE.md).
  *
  * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║ CE FICHIER REMPLACE UNE PORTE QUI POUVAIT RÉUSSIR SUR LE VIDE.                ║
+ * ║ CE FICHIER REMPLACE UNE PORTE QUI POUVAIT RÉUSSIR SUR LE VIDE.               ║
  * ║                                                                              ║
- * ║ La vérification d'avant était une commande shell de CLAUDE.md : deux `grep`   ║
- * ║ confrontés par `diff`, tous deux FILTRÉS PAR UNE LISTE DE PRÉFIXES écrite à   ║
- * ║ la main — `(canlii|greffe|palais)_`. Le 2026-09-16, les préfixes ont changé.  ║
- * ║ Les deux côtés se sont alors réduits au même sous-ensemble de trois outils,   ║
- * ║ sont restés égaux, et `diff` aurait rendu 0 : la porte aurait affirmé         ║
- * ║ « aucune dérive » sans avoir regardé dix outils sur treize — et l'aurait      ║
- * ║ affirmé aussi longtemps que personne ne l'aurait relue. Une vérification qui  ║
- * ║ ne peut pas échouer est PIRE qu'aucune : elle achète une confiance qu'elle    ║
+ * ║ La vérification d'avant était une commande shell de CLAUDE.md : deux `grep`  ║
+ * ║ confrontés par `diff`, tous deux FILTRÉS PAR UNE LISTE DE PRÉFIXES écrite à  ║
+ * ║ la main — `(canlii|greffe|palais)_`. Le 2026-09-16, les préfixes ont changé. ║
+ * ║ Les deux côtés se sont alors réduits au même sous-ensemble de trois outils,  ║
+ * ║ sont restés égaux, et `diff` aurait rendu 0 : la porte aurait affirmé        ║
+ * ║ « aucune dérive » sans avoir regardé dix outils sur treize — et l'aurait     ║
+ * ║ affirmé aussi longtemps que personne ne l'aurait relue. Une vérification qui ║
+ * ║ ne peut pas échouer est PIRE qu'aucune : elle achète une confiance qu'elle   ║
  * ║ ne finance pas.                                                              ║
  * ║                                                                              ║
- * ║ On ne répare pas cela en corrigeant la liste — on la corrigerait cette fois,  ║
- * ║ et le prochain renommage rouvrirait le même trou au même endroit. Le défaut   ║
- * ║ est que les DEUX côtés étaient des heuristiques sur du texte, sans aucune     ║
- * ║ valeur non vide par construction pour ancrer la comparaison.                  ║
+ * ║ On ne répare pas cela en corrigeant la liste — on la corrigerait cette fois, ║
+ * ║ et le prochain renommage rouvrirait le même trou au même endroit. Le défaut  ║
+ * ║ est que les DEUX côtés étaient des heuristiques sur du texte, sans aucune    ║
+ * ║ valeur non vide par construction pour ancrer la comparaison.                 ║
  * ║                                                                              ║
- * ║ Ici, un côté est `TOOLS` LUI-MÊME — non vide par construction, et sa longueur ║
- * ║ est AFFIRMÉE avant tout le reste. L'autre est le texte du README, lu par      ║
- * ║ `?raw`. AUCUNE liste de préfixes n'intervient : le prochain renommage ne peut ║
- * ║ pas rouvrir le trou, parce qu'il n'y a plus rien à tenir à jour.              ║
+ * ║ Ici, un côté est `TOOLS` LUI-MÊME — non vide par construction, et sa longueur║
+ * ║ est AFFIRMÉE avant tout le reste. L'autre est le texte du README, lu par     ║
+ * ║ `?raw`. AUCUNE liste de préfixes n'intervient : le prochain renommage ne peut║
+ * ║ pas rouvrir le trou, parce qu'il n'y a plus rien à tenir à jour.             ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 import { describe, expect, it } from "vitest";

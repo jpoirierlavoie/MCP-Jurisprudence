@@ -3,17 +3,17 @@
  * vérité (§2).
  *
  * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║ Les constantes de mise en garde ci-dessous sont IMPOSÉES.                     ║
+ * ║ Les constantes de mise en garde ci-dessous sont IMPOSÉES.                    ║
  * ║                                                                              ║
- * ║ §2 exige qu'elles vivent dans le CORPS DE LA RÉPONSE, et pas seulement dans   ║
- * ║ la description de l'outil : une description n'est lue qu'une fois, une sortie ║
- * ║ est lue à chaque appel. Elles sont verrouillées par `test/garde.test.ts`, qui ║
- * ║ échoue si une refonte de gabarit les fait disparaître — le mode de panne      ║
- * ║ redouté n'étant pas l'erreur, mais le SILENCE.                                ║
+ * ║ §2 exige qu'elles vivent dans le CORPS DE LA RÉPONSE, et pas seulement dans  ║
+ * ║ la description de l'outil : une description n'est lue qu'une fois, une sortie║
+ * ║ est lue à chaque appel. Elles sont verrouillées par `test/garde.test.ts`, qui║
+ * ║ échoue si une refonte de gabarit les fait disparaître — le mode de panne     ║
+ * ║ redouté n'étant pas l'erreur, mais le SILENCE.                               ║
  * ║                                                                              ║
- * ║ Ne pas reformuler. Un vérificateur de citations qui promet plus qu'il ne      ║
- * ║ tient est pire qu'aucun outil : il transforme une incertitude connue en       ║
- * ║ fausse assurance, dans un contexte où la sanction est déontologique.          ║
+ * ║ Ne pas reformuler. Un vérificateur de citations qui promet plus qu'il ne     ║
+ * ║ tient est pire qu'aucun outil : il transforme une incertitude connue en      ║
+ * ║ fausse assurance, dans un contexte où la sanction est déontologique.         ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 

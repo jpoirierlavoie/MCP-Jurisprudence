@@ -305,7 +305,19 @@ export async function searchLocal(
   }
 }
 
-/** Liste les fiches d'un tribunal, les plus récentes en tête (§7.6, servi du cache). */
+/**
+ * Liste les fiches d'un tribunal, les plus récentes en tête.
+ *
+ * ⚠ AUCUN OUTIL NE S'EN SERT AUJOURD'HUI, et le commentaire d'origine disait le
+ *   contraire — « §7.6, servi du cache ». `jurisprudence_browse_cases` appelle CanLII
+ *   à chaque fois et ne lit jamais cette table : il n'existe aucun chemin où un
+ *   balayage soit servi depuis le cache. Corrigé le 2026-09-16.
+ *
+ * Conservée pour le jour où §7.6 serait servi du cache, et tenue vivante par
+ * `test/persist.test.ts` — qui est son SEUL appelant. Une fonction que seul son test
+ * exerce n'est pas morte, mais elle n'est pas non plus en service : la distinction
+ * doit se lire ici, pas se deviner.
+ */
 export async function listCases(
   db: D1Database,
   databaseId: string,

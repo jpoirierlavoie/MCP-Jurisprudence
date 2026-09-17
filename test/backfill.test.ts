@@ -2,12 +2,12 @@
  * Moissonnage planifié (§11) et gestionnaire `scheduled`.
  *
  * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║ Le premier test de ce fichier est le plus important : avec la configuration   ║
- * ║ VERSIONNÉE (BACKFILL_ENABLED = "false"), le cron ne moissonne RIEN.           ║
+ * ║ Le premier test de ce fichier est le plus important : avec la configuration  ║
+ * ║ VERSIONNÉE (BACKFILL_ENABLED = "false"), le cron ne moissonne RIEN.          ║
  * ║                                                                              ║
- * ║ §16.1 réserve à CanLII la question de savoir si un téléchargement en masse    ║
- * ║ est admissible. Tant qu'elle n'est pas tranchée, le code doit exister, être   ║
- * ║ éprouvé, et ne pas s'exécuter.                                                ║
+ * ║ §16.1 réserve à CanLII la question de savoir si un téléchargement en masse   ║
+ * ║ est admissible. Tant qu'elle n'est pas tranchée, le code doit exister, être  ║
+ * ║ éprouvé, et ne pas s'exécuter.                                               ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 import { env } from "cloudflare:test";

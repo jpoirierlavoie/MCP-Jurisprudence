@@ -4,10 +4,10 @@
  * ╔══════════════════════════════════════════════════════════════════════════════╗
  * ║ ⚠ LE SECRET PARTAGÉ NE DOIT JAMAIS ÊTRE AFFICHÉ.                             ║
  * ║                                                                              ║
- * ║ Il voyage dans le CHEMIN de l'URL (`/mcp/<secret>`). Ce script le lit         ║
- * ║ lui-même — depuis `.dev.vars` en local, depuis `mcp.url` en production, tous  ║
- * ║ deux gitignorés — et ne l'écrit nulle part. Toute URL journalisée passe par   ║
- * ║ `redacted()`. C'est le motif `cf.token` du dépôt `legislation`.                ║
+ * ║ Il voyage dans le CHEMIN de l'URL (`/mcp/<secret>`). Ce script le lit        ║
+ * ║ lui-même — depuis `.dev.vars` en local, depuis `mcp.url` en production, tous ║
+ * ║ deux gitignorés — et ne l'écrit nulle part. Toute URL journalisée passe par  ║
+ * ║ `redacted()`. C'est le motif `cf.token` du dépôt `legislation`.              ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  *
  * Usage :

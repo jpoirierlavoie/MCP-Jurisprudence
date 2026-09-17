@@ -162,6 +162,8 @@ arrivés après la rédaction initiale : ils figurent ici, à leur place.*
 │   ├── refresh-databases.mjs # réconciliation du répertoire (§4.3)
 │   ├── extraire-lieux-mjq.mjs # transcription du relevé MJQ (§17.6 : générée, non recopiée)
 │   └── deployer.mjs          # §12 — migrations PUIS déploiement ; refuse un arbre sale
+├── sources-officielles/      # la PREUVE, pas un résidu — voir ci-dessous
+│   └── mjq-numeros-greffes-2026-07-22.html
 ├── test/                     # 469 tests en 15 fichiers, sans réseau ni clef
 │   ├── citation.parse.test.ts · citation.compare.test.ts · verify.test.ts
 │   ├── client.test.ts · rpc.test.ts · persist.test.ts · tools.test.ts
@@ -205,6 +207,7 @@ arrivés après la rédaction initiale : ils figurent ici, à leur place.*
   "triggers": { "crons": ["17 6 * * 1"] },   // hebdomadaire : rafraîchit le répertoire
   "vars": {
     "MCP_ENABLED": "true",
+    "COMMIT": "inconnu",        // posé au déploiement par scripts/deployer.mjs (§12.1)
     "CANLII_MIN_INTERVAL_MS": "600",
     "CANLII_MAX_CALLS_PER_INVOCATION": "40",
     "CANLII_TIMEOUT_MS": "15000",
@@ -225,8 +228,9 @@ arrivés après la rédaction initiale : ils figurent ici, à leur place.*
 }
 ```
 
+⚠ **`sources-officielles/` n'est pas un résidu, et il ne doit pas être « nettoyé ».** Ce répertoire conserve la page du ministère de la Justice dont `scripts/extraire-lieux-mjq.mjs` tire `src/qc/lieux.ts` — la transcription est ENGENDRÉE, jamais recopiée (§17.6), et la source doit rester versionnée pour qu'elle demeure vérifiable. Elle est enregistrée à la main parce que `justice.gouv.qc.ca` répond **403** à une récupération automatique. Un fichier de 60 Ko dont personne n'explique la présence finit par disparaître au premier ménage : c'est pour cela que ce paragraphe existe. *(Ajouté le 2026-09-16 — le répertoire n'était nommé dans aucun document.)*
+
 *Bloc relevé sur le `wrangler.jsonc` versionné le 2026-09-16 ; en cas d'écart, **le fichier fait foi** — c'est lui que Cloudflare lit.*
-```
 
 > **Création de la base :** `wrangler d1 create canlii --location enam` — `enam` (est de l'Amérique du Nord) est le repère de localisation le plus proche de Montréal. Aucune contrainte de résidence des données ne s'applique ici : rien de confidentiel n'y transite (§9.5).
 
@@ -238,8 +242,9 @@ arrivés après la rédaction initiale : ils figurent ici, à leur place.*
 |---|---|---|
 | `CANLII_API_KEY` | secret (`wrangler secret put`) | Clef d'API CanLII. **Jamais journalisée, jamais renvoyée, jamais dans une trace.** |
 | `MCP_SHARED_SECRET` | secret | 32 octets aléatoires en hexadécimal (`openssl rand -hex 32`). |
-| `MCP_SHARED_SECRET_ATHENA` | secret, **facultatif** | Second porteur du même point d'entrée, aux droits identiques. Distinct pour être **révocable seul** (§9.1). Absent ⇒ un seul porteur admis. **Sans porteur depuis le 2026-09-02** : il servait le clavardage de Pallas Athéna, retiré de son dépôt ce jour-là (§19). Conservé — il ne coûte rien et n'ouvre aucun droit de plus — mais plus aucun client réel ne signalerait qu'on a cassé la forme par en-tête. | Distinct pour être **révocable seul** (§9.1). Absent ⇒ un seul porteur admis. |
+| `MCP_SHARED_SECRET_ATHENA` | secret, **facultatif** | Second porteur du même point d'entrée, aux droits identiques. Distinct pour être **révocable seul** (§9.1). Absent ⇒ un seul porteur admis. **Sans porteur depuis le 2026-09-02** : il servait le clavardage de Pallas Athéna, retiré de son dépôt ce jour-là (§19). Conservé — il ne coûte rien et n'ouvre aucun droit de plus — mais plus aucun client réel ne signalerait qu'on a cassé la forme par en-tête. |
 | `MCP_ENABLED` | var | Coupe-circuit : `"false"` ⇒ toute route MCP renvoie `404`. Calque `MCP_ENABLED` d'Athéna. |
+| `COMMIT` | var | Commit dont la version en ligne est issue, annoncé par `/health` (§8). Défaut « inconnu » — un aveu, pas un remplissage ; la valeur réelle est posée à la volée par `scripts/deployer.mjs` (`--var COMMIT:<sha>`). |
 | `CANLII_MIN_INTERVAL_MS` | var | Intervalle minimal entre deux appels sortants. |
 | `CANLII_MAX_CALLS_PER_INVOCATION` | var | Plafond d'appels sortants par invocation d'outil. |
 | `CANLII_TIMEOUT_MS` | var | Délai d'expiration par appel sortant. |
@@ -498,7 +503,7 @@ C'est le cœur du connecteur. Il est **pur** (aucune E/S), donc entièrement tes
 | Attribuée par CanLII | `2002 CanLII 32322 (QC CQ)` | oui | `{kind:'canlii', year, number, juris:'QC', court:'CQ'}` |
 | Neutre enchâssée | `Dunsmuir c. Nouveau-Brunswick, [2008] 1 RCS 190, 2008 CSC 9 (CanLII)` | oui | l'analyseur **balaie** la chaîne et retient la forme neutre |
 | Recueil | `[1996] 3 R.C.S. 211` · `[1985] C.A. 105` · `[1998] R.J.Q. 1234` | non | `{kind:'reporter', reporter:'R.C.S.', year, page}` |
-| Identifiant d'éditeur | `J.E. 94-1234` · `REJB 1998-09876` · `EYB 2005-12345` · `AZ-51234567` · `D.T.E. 2004T-123` | non | `{kind:'publisher', scheme:'SOQUIJ'|'Yvon Blais'}` |
+| Identifiant d'éditeur | `J.E. 94-1234` · `REJB 1998-09876` · `EYB 2005-12345` · `AZ-51234567` · `D.T.E. 2004T-123` | non | `{kind:'publisher', scheme:'SOQUIJ'\|'Yvon Blais'}` |
 | Non reconnue | `voir l'arrêt de la Cour d'appel` | non | `{kind:'unparsed'}` |
 
 **Le balayage prime sur l'appariement total.** Une citation doctrinale complète contient presque toujours la forme neutre au milieu d'autres éléments ; l'analyseur doit l'y trouver. Ordre de recherche : (1) forme attribuée par CanLII, (2) forme neutre, (3) recueils, (4) identifiants d'éditeurs. Si plusieurs formes coexistent, retenir la constructible et **mentionner les autres** dans le champ `parallel`.
@@ -735,9 +740,9 @@ Aucun appel sortant, aucune écriture. Utile au débogage de la table `court_cod
 
 **Méthodes JSON-RPC :** `initialize`, `notifications/initialized` (⇒ `202`, corps vide), `tools/list`, `tools/call`, `ping`. Toute autre méthode ⇒ `-32601`.
 
-`initialize` : négocier `protocolVersion` (accepter `2025-06-18` et `2025-03-26` ; renvoyer la plus élevée commune) ; `initialize` : négocier `protocolVersion` (accepter `2025-06-18` et `2025-03-26` ; renvoyer la plus élevée commune) ; `serverInfo: { name: "mcp-jurisprudence", title: "MCP Jurisprudence", version }` *(identifiant et libellé renommés le 2026-09-16 ; l'identifiant s'écrivait `jurisprudence-canlii`)* ; `capabilities: { tools: {} }`.
+`initialize` : négocier `protocolVersion` (accepter `2025-06-18` et `2025-03-26` ; renvoyer la plus élevée commune) ; `serverInfo: { name: "mcp-jurisprudence", title: "MCP Jurisprudence", version }` *(identifiant et libellé renommés le 2026-09-16 ; l'identifiant s'écrivait `jurisprudence-canlii`)* ; `capabilities: { tools: {} }`.
 
-⚠ **`version` est aujourd'hui un LITTÉRAL recopié de `package.json` dans `SERVER_INFO` (`src/mcp/registry.ts`) — constaté le 2026-09-16.** La rédaction antérieure prescrivait « `version: <package.json>` » : elle décrivait une intention que le code n'a jamais eue, le paquet du Worker n'important pas `package.json`. Les deux valeurs coïncident (`0.2.0`) et rien ne les tient ensemble ; le premier `npm version` les fera diverger **en silence**, et le client recevra une version qui n'est celle d'aucune livraison. Deux sorties acceptables, une seule à choisir : importer la valeur (`resolveJsonModule`), ou l'épingler par un test qui confronte `SERVER_INFO.version` au `package.json` lu en `?raw` — comme `test/doc.test.ts` confronte déjà le registre au README. Tant que ni l'une ni l'autre n'est faite, la présente ligne décrit un littéral, et surtout pas un emprunt. *(identifiant et libellé renommés le 2026-09-16 ; l'identifiant s'écrivait `jurisprudence-canlii`)* ; `capabilities: { tools: {} }`.
+⚠ **`version` est aujourd'hui un LITTÉRAL recopié de `package.json` dans `SERVER_INFO` (`src/mcp/registry.ts`) — constaté le 2026-09-16.** La rédaction antérieure prescrivait « `version: <package.json>` » : elle décrivait une intention que le code n'a jamais eue, le paquet du Worker n'important pas `package.json`. Les deux valeurs coïncident (`0.2.0`) et rien ne les tient ensemble ; le premier `npm version` les fera diverger **en silence**, et le client recevra une version qui n'est celle d'aucune livraison. Deux sorties acceptables, une seule à choisir : importer la valeur (`resolveJsonModule`), ou l'épingler par un test qui confronte `SERVER_INFO.version` au `package.json` lu en `?raw` — comme `test/doc.test.ts` confronte déjà le registre au README. Tant que ni l'une ni l'autre n'est faite, la présente ligne décrit un littéral, et surtout pas un emprunt.
 
 **Enveloppe de résultat**, calquée sur `mcp/tools.py` d'Athéna :
 
@@ -817,8 +822,6 @@ L'URL complète d'une requête entrante contient le secret. **Ne jamais journali
 
 ### 9.3 Étranglement au bord
 
-### 9.3 Étranglement au bord
-
 *Amendée le 2026-09-16, sur constat du code livré. La rédaction du 2026-07-15 disait : « Ajouter dans le tableau de bord Cloudflare une règle de limitation de débit sur `jurisprudence.poirierlavoie.ca` : 60 requêtes/minute par IP, action “bloquer”. » Elle est citée et non effacée : la MESURE est inchangée, seul son lieu a changé — et personne n'a jamais créé cette règle de zone.*
 
 La limitation vit **dans le Worker**, par le binding `ratelimits` de `wrangler.jsonc` (`RATE_LIMITER`, 60 requêtes / 60 s), et non par une règle WAF. Trois motifs, dans l'ordre croissant : la règle est versionnée, relue en revue et éprouvée par des tests ; le binding ne dépend pas du forfait de la ZONE ; et surtout une expression WAF viserait `/mcp` **par un motif de chemin**, or ce chemin porte le secret partagé (D7) et une expression WAF se lit au tableau de bord comme dans les journaux d'audit — la défense en profondeur aurait publié ce qu'elle protège.
@@ -852,7 +855,7 @@ Trois corollaires, tous testés. Le **pré-vol** `OPTIONS` est répondu **sans**
 - `observability: { enabled: true }` dans `wrangler.jsonc` ; consultation par `wrangler tail`.
 - **Une ligne `search_log` par invocation d'outil qui TOUCHE D1**, succès compris : un succès non consigné rend les échecs inexploitables faute de dénominateur. Les échecs (`result_count = 0`) sont indexés séparément.
 
-  **Quatre outils sur treize n'écrivent rien, par construction et non par omission** (constaté le 2026-09-16) : `greffe_parse_court_file_number`, `palais_list` et `palais_get` sont purs — aucune lecture D1, donc aucune écriture (§17.6) — et `jurisprudence_parse_citation` ne fait aucun appel sortant. Leur silence dans `search_log` ne se lit donc pas comme un défaut d'usage, et **on ne le corrige pas** : leur ouvrir D1 pour les compter échangerait une statistique contre la disponibilité qui est leur seule garantie. Les échecs (`result_count = 0`) sont indexés séparément.
+  **Quatre outils sur treize n'écrivent rien, par construction et non par omission** (constaté le 2026-09-16) : `greffe_parse_court_file_number`, `palais_list` et `palais_get` sont purs — aucune lecture D1, donc aucune écriture (§17.6) — et `jurisprudence_parse_citation` ne fait aucun appel sortant. Leur silence dans `search_log` ne se lit donc pas comme un défaut d'usage, et **on ne le corrige pas** : leur ouvrir D1 pour les compter échangerait une statistique contre la disponibilité qui est leur seule garantie.
 - **`api_usage`** incrémentée à chaque appel sortant (`calls`), erreur (`errors`) et `429` (`throttled`). Requête d'exploitation :
 
 ```sql
@@ -898,6 +901,7 @@ Dépôt GitHub distinct, calqué sur les protections d'Athéna : **actions épin
 | `.github/workflows/osv-scanner.yml` | OSV-Scanner sur `package-lock.json` |
 | `.github/workflows/trivy.yml` | Trivy, mode système de fichiers |
 | `.github/workflows/scorecard.yml` | OpenSSF Scorecard |
+| `.github/workflows/verifier-deploiement.yml` | Contrôle de dérive quotidien (§12.1) : compare le `commit` de `/health` au dernier commit de `main`. Aucun secret, aucun jeton, `contents: read` — il regarde, il ne déploie rien |
 | `.github/dependabot.yml` | npm + github-actions, hebdomadaire |
 
 **LE DÉPLOIEMENT EST MANUEL, ET C'EST UNE DÉCISION — prise le 2026-09-16.** Il n'y a plus de workflow de déploiement : `.github/workflows/deploy.yml` a été **supprimé**.
@@ -967,7 +971,7 @@ Deux pièces, posées le 2026-09-16, le rendent MESURABLE sans rouvrir ce qui a 
 
 **Contrat de vérité (test de garde) :** pour chaque outil heuristique, assertion que la sortie **contient** sa mise en garde. Ce test empêche qu'une refonte du gabarit la fasse disparaître silencieusement.
 
-**Documentation (`doc.test.ts`) — le README contre le REGISTRE.** Ajouté le 2026-09-16, en remplacement de la confrontation `diff` de deux `grep` qui vivait dans `CLAUDE.md`. Cette commande FILTRAIT ses deux côtés par une liste de préfixes écrite à la main (`(canlii|greffe|palais)_`) : le jour du renommage, les deux côtés se sont réduits au même sous-ensemble de trois outils, sont restés égaux, et `diff` aurait rendu 0 — « aucune dérive » affirmé sans avoir regardé dix outils sur treize, et aussi longtemps que personne ne l'aurait relue. On ne répare pas cela en corrigeant la liste : on la corrigerait cette fois, et le prochain renommage rouvrirait le même trou au même endroit. Le test prend `TOOLS` **lui-même** pour l'un de ses deux côtés — non vide par construction, sa longueur (13) affirmée AVANT tout le reste — et le texte du README pour l'autre, lu en `?raw`, sans aucune liste de préfixes. Il éprouve aussi le compte écrit **en toutes lettres**, qui vieillit autrement sans bruit. Ce test empêche qu'une refonte du gabarit la fasse disparaître silencieusement.
+**Documentation (`doc.test.ts`) — le README contre le REGISTRE.** Ajouté le 2026-09-16, en remplacement de la confrontation `diff` de deux `grep` qui vivait dans `CLAUDE.md`. Cette commande FILTRAIT ses deux côtés par une liste de préfixes écrite à la main (`(canlii|greffe|palais)_`) : le jour du renommage, les deux côtés se sont réduits au même sous-ensemble de trois outils, sont restés égaux, et `diff` aurait rendu 0 — « aucune dérive » affirmé sans avoir regardé dix outils sur treize, et aussi longtemps que personne ne l'aurait relue. On ne répare pas cela en corrigeant la liste : on la corrigerait cette fois, et le prochain renommage rouvrirait le même trou au même endroit. Le test prend `TOOLS` **lui-même** pour l'un de ses deux côtés — non vide par construction, sa longueur (13) affirmée AVANT tout le reste — et le texte du README pour l'autre, lu en `?raw`, sans aucune liste de préfixes. Il éprouve aussi le compte écrit **en toutes lettres**, qui vieillit autrement sans bruit.
 
 ---
 
@@ -1009,7 +1013,7 @@ Deux pièces, posées le 2026-09-16, le rendent MESURABLE sans rouvrir ce qui a 
 8. `src/site.ts` + `src/site.i18n.ts` — §18 : la page publique bilingue, DÉRIVÉE des données vives.
 9. `src/backfill.ts` — §11, écrit et testé, **inerte** (invariant : la question est tranchée, pas ouverte).
 10. `migrations/0001_initial.sql`, `0002_seed_court_codes.sql`, `0003_reconcile_court_codes.sql`, `0004_rename_tool_prefix.sql` — la troisième consigne la réconciliation de §4.3 **avec sa preuve d'observation** ; la quatrième (2026-09-16, appliquée en production) rattrape la DONNÉE déjà écrite sous `canlii_*` (`search_log.tool`, `court_codes.note`) sans toucher au schéma : sans elle, la télémétrie de §10 serait coupée en deux séries à la date du renommage, dont aucune ne serait fausse et dont la somme ne serait faite nulle part.
-11. `scripts/` — `mcp-client.mjs` (recette), `refresh-databases.mjs` (réconciliation §4.3), `extraire-lieux-mjq.mjs` (transcription du relevé MJQ ; §17.6 : générée, jamais recopiée).
+11. `scripts/` — `mcp-client.mjs` (recette), `refresh-databases.mjs` (réconciliation §4.3), `extraire-lieux-mjq.mjs` (transcription du relevé MJQ ; §17.6 : générée, jamais recopiée), `deployer.mjs` (§12 : `db:migrate:remote` PUIS `wrangler deploy`, refus d'un arbre de travail sale, `--var COMMIT:<sha>`).
 12. `test/` — matrice de l'analyseur, comparaison, vérification, client, transport, persistance, tables du Québec, différentiel du parseur de dossiers, page publique, garde du contrat de vérité.
 13. `.github/workflows/` — 6 workflows + `dependabot.yml`, actions épinglées par SHA.
 14. `README.md` — mise en service, réserve de §9.5, et **reproduction in extenso du contrat de vérité de §2**.
@@ -1149,7 +1153,7 @@ Elle n'est **pas** une console, n'accepte aucune saisie, n'appelle rien et n'éc
 
 Trois propriétés, toutes testées :
 
-1. **Hors du bloc `/mcp`.** Le contrôle d'origine (**§9.6** — section écrite le 2026-09-16 : le renvoi pointait jusque-là vers un numéro inexistant, la section 9 s'arrêtant à §9.5), la limitation de débit (§9.3) et l'authentification (§9.1) y vivent tous. Une page publique doit répondre à n'importe quel navigateur : elle ne passe donc par aucun d'eux. **Corollaire impératif** : ne jamais remonter ces contrôles en portée globale « par cohérence », ce qui refuserait la page à tout visiteur arrivant d'un lien externe. Une page publique doit répondre à n'importe quel navigateur : elle ne passe donc par aucun d'eux. **Corollaire impératif** : ne jamais remonter ces contrôles en portée globale « par cohérence », ce qui refuserait la page à tout visiteur arrivant d'un lien externe.
+1. **Hors du bloc `/mcp`.** Le contrôle d'origine (**§9.6** — section écrite le 2026-09-16 : le renvoi pointait jusque-là vers un numéro inexistant, la section 9 s'arrêtant à §9.5), la limitation de débit (§9.3) et l'authentification (§9.1) y vivent tous. Une page publique doit répondre à n'importe quel navigateur : elle ne passe donc par aucun d'eux. **Corollaire impératif** : ne jamais remonter ces contrôles en portée globale « par cohérence », ce qui refuserait la page à tout visiteur arrivant d'un lien externe.
 2. **Aucun en-tête CORS**, comme `/health`. Sans `Access-Control-Allow-Origin`, aucun script d'une autre origine ne peut LIRE la réponse : la page ne peut pas servir d'oracle.
 3. **Le secret n'y paraît jamais.** La page documente la FORME `/mcp/<secret>`. Un test refuse toute chaîne de 32 caractères hexadécimaux ou plus, tout `Bearer`, et toute mention de `api.canlii.org` ou `api_key`.
 

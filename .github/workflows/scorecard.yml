@@ -14,7 +14,11 @@ jobs:
     name: Scorecard analysis
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event.repository.default_branch == github.ref_name || github.event_name == 'pull_request'
+    # Ce workflow ne se déclenche jamais sur `pull_request` (voir `on:` ci-dessus) :
+    # l'alternative « || github.event_name == 'pull_request' » qui figurait ici ne
+    # pouvait donc jamais être vraie. Retirée le 2026-09-16 — une condition morte laisse
+    # croire à une couverture qui n'existe pas.
+    if: github.event.repository.default_branch == github.ref_name
     permissions:
       security-events: write
       id-token: write

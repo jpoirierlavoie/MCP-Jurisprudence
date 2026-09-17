@@ -2,10 +2,10 @@
  * Page publique (§18) — route, en-têtes, et surtout ABSENCE DE FUITE.
  *
  * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║ Cette page est la PREMIÈRE surface HTML du dépôt, sur une origine qui sert    ║
- * ║ par ailleurs `/mcp/<secret>`. Le risque n'est pas qu'elle soit laide : c'est  ║
- * ║ qu'elle divulgue, qu'elle serve d'oracle à une autre origine, ou qu'elle      ║
- * ║ ouvre par mégarde une brèche dans la garde du bloc `/mcp`.                    ║
+ * ║ Cette page est la PREMIÈRE surface HTML du dépôt, sur une origine qui sert   ║
+ * ║ par ailleurs `/mcp/<secret>`. Le risque n'est pas qu'elle soit laide : c'est ║
+ * ║ qu'elle divulgue, qu'elle serve d'oracle à une autre origine, ou qu'elle     ║
+ * ║ ouvre par mégarde une brèche dans la garde du bloc `/mcp`.                   ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 import { createExecutionContext, env, waitOnExecutionContext } from "cloudflare:test";

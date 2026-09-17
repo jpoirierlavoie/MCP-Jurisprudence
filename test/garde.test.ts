@@ -2,16 +2,16 @@
  * TEST DE GARDE DU CONTRAT DE VÉRITÉ (spécification §2, §13).
  *
  * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║ Ce fichier n'éprouve pas une fonctionnalité : il empêche une DISPARITION.     ║
+ * ║ Ce fichier n'éprouve pas une fonctionnalité : il empêche une DISPARITION.    ║
  * ║                                                                              ║
- * ║ Les mises en garde de §2 sont ce qui distingue un vérificateur de citations   ║
- * ║ honnête d'un outil qui transforme une incertitude connue en fausse assurance. ║
- * ║ Elles vivent dans des gabarits, et un gabarit se refond. Le mode de panne     ║
- * ║ redouté n'est donc pas l'erreur — c'est le SILENCE : une refonte qui rend     ║
- * ║ des sorties impeccables, dont la garantie a discrètement disparu.             ║
+ * ║ Les mises en garde de §2 sont ce qui distingue un vérificateur de citations  ║
+ * ║ honnête d'un outil qui transforme une incertitude connue en fausse assurance.║
+ * ║ Elles vivent dans des gabarits, et un gabarit se refond. Le mode de panne    ║
+ * ║ redouté n'est donc pas l'erreur — c'est le SILENCE : une refonte qui rend    ║
+ * ║ des sorties impeccables, dont la garantie a discrètement disparu.            ║
  * ║                                                                              ║
- * ║ Si un test d'ici échoue, la bonne réaction n'est PAS de l'ajuster pour qu'il  ║
- * ║ passe : c'est de remettre la mise en garde.                                   ║
+ * ║ Si un test d'ici échoue, la bonne réaction n'est PAS de l'ajuster pour qu'il ║
+ * ║ passe : c'est de remettre la mise en garde.                                  ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 import { env } from "cloudflare:test";

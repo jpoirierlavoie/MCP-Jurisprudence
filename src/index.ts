@@ -5,13 +5,13 @@
  * ╔══════════════════════════════════════════════════════════════════════════════╗
  * ║ ⚠ NE JAMAIS JOURNALISER `request.url` (§9.2).                                ║
  * ║                                                                              ║
- * ║ Le secret partagé voyage dans le CHEMIN de l'URL (`POST /mcp/<secret>`),      ║
- * ║ parce que c'est la seule forme que tous les clients MCP savent produire.      ║
- * ║ Toute trace, tout `console.log`, tout message d'erreur qui reproduirait       ║
- * ║ l'URL entière publierait le secret dans `wrangler tail` et dans les journaux  ║
- * ║ d'observabilité. On journalise la MÉTHODE, le NOM D'OUTIL et le STATUT —      ║
- * ║ jamais le chemin. C'est le prix de la simplicité du modèle D7, et il doit     ║
- * ║ figurer ici en toutes lettres pour que personne ne le paie par accident.      ║
+ * ║ Le secret partagé voyage dans le CHEMIN de l'URL (`POST /mcp/<secret>`),     ║
+ * ║ parce que c'est la seule forme que tous les clients MCP savent produire.     ║
+ * ║ Toute trace, tout `console.log`, tout message d'erreur qui reproduirait      ║
+ * ║ l'URL entière publierait le secret dans `wrangler tail` et dans les journaux ║
+ * ║ d'observabilité. On journalise la MÉTHODE, le NOM D'OUTIL et le STATUT —     ║
+ * ║ jamais le chemin. C'est le prix de la simplicité du modèle D7, et il doit    ║
+ * ║ figurer ici en toutes lettres pour que personne ne le paie par accident.     ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 
@@ -48,14 +48,14 @@ const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
  * ║ les deux :                                                                   ║
  * ║                                                                              ║
  * ║ 1. CORS. `claude.ai` est une application de NAVIGATEUR. Sans pré-vol accepté ║
- * ║    et sans `Access-Control-Allow-Origin`, le navigateur refuse la requête —   ║
- * ║    et le connecteur se solde par « Impossible de joindre le serveur », alors  ║
- * ║    que le même point d'entrée répond parfaitement à un client serveur.        ║
+ * ║    et sans `Access-Control-Allow-Origin`, le navigateur refuse la requête —  ║
+ * ║    et le connecteur se solde par « Impossible de joindre le serveur », alors ║
+ * ║    que le même point d'entrée répond parfaitement à un client serveur.       ║
  * ║                                                                              ║
- * ║ 2. Défense contre le RÉ-ATTACHEMENT DNS, exigée par la spécification MCP :    ║
- * ║    une origine de navigateur non reconnue est REFUSÉE. Une origine absente    ║
- * ║    (appel serveur à serveur, scripts/mcp-client.mjs) reste admise — c'est le  ║
- * ║    motif retenu par `athena/mcp/bearer.py`.                                   ║
+ * ║ 2. Défense contre le RÉ-ATTACHEMENT DNS, exigée par la spécification MCP :   ║
+ * ║    une origine de navigateur non reconnue est REFUSÉE. Une origine absente   ║
+ * ║    (appel serveur à serveur, scripts/mcp-client.mjs) reste admise — c'est le ║
+ * ║    motif retenu par `athena/mcp/bearer.py`.                                  ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 const ORIGINES_PAR_DEFAUT = ["https://claude.ai", "https://claude.com"];
@@ -148,13 +148,19 @@ async function secretOk(given: string, expected: string): Promise<boolean> {
  * L'un des secrets PRÉSENTÉS est-il l'un des secrets ADMIS ?
  *
  * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║ DEUX SECRETS, DES DROITS IDENTIQUES, ET UNE SEULE RAISON : LA RÉVOCATION.     ║
+ * ║ DEUX SECRETS, DES DROITS IDENTIQUES, ET UNE SEULE RAISON : LA RÉVOCATION.    ║
  * ║                                                                              ║
- * ║ `MCP_SHARED_SECRET` sert le connecteur claude.ai ; `MCP_SHARED_SECRET_ATHENA` ║
- * ║ sert le clavardage de Pallas Athéna. Le second n'ouvre AUCUN droit de plus —  ║
- * ║ ce que protège D7 reste la clef d'API et son quota, pas un périmètre de       ║
- * ║ données. Ils sont distincts pour qu'un porteur se retire SEUL : faire tourner ║
- * ║ celui de claude.ai ne doit pas éteindre le cabinet, ni l'inverse.             ║
+ * ║ `MCP_SHARED_SECRET` sert le connecteur claude.ai. `MCP_SHARED_SECRET_ATHENA` ║
+ * ║ SERVAIT le clavardage de Pallas Athéna, retiré de son dépôt le 2026-09-02 :  ║
+ * ║ il n'a plus aucun porteur. Le second n'ouvrait AUCUN droit de plus — ce que  ║
+ * ║ protège D7 reste la clef d'API et son quota, pas un périmètre de données.    ║
+ * ║ Ils sont distincts pour qu'un porteur se retire SEUL : faire tourner celui de║
+ * ║ claude.ai ne devait pas éteindre le cabinet, ni l'inverse.                   ║
+ * ║                                                                              ║
+ * ║ Le secret reste admis et n'est pas à retirer — il ne coûte rien, et la règle ║
+ * ║ vaudra pour le prochain client. Mais PLUS AUCUN CLIENT RÉEL ne signalerait   ║
+ * ║ qu'on a cassé la forme par en-tête : depuis cette date, ce trajet n'est      ║
+ * ║ couvert que par `test/rpc.test.ts` et par un `curl` à la main.               ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  *
  * ⚠ FERMÉ PAR DÉFAUT, et désormais des DEUX CÔTÉS du produit. Le second secret étant
@@ -404,25 +410,25 @@ export default {
     // ╔══════════════════════════════════════════════════════════════════════════════╗
     // ║ POURQUOI UN POINT D'ENTRÉE PUBLIC DIT QUELLE VERSION TOURNE.                 ║
     // ║                                                                              ║
-    // ║ Le déploiement est MANUEL depuis le 2026-09-16 (§12). Rien ne signale donc    ║
-    // ║ qu'un commit est poussé mais pas en ligne : l'écart se tient de mémoire, et   ║
-    // ║ un écart tenu de mémoire dure plus longtemps qu'on ne croit. Ce champ le      ║
-    // ║ rend MESURABLE par un tiers qui n'a aucun droit sur l'infrastructure — le     ║
-    // ║ contrôle de dérive compare cette valeur au dernier commit de `main`, sans     ║
-    // ║ jeton, en lecture seule. C'est l'inverse exact du compromis refusé en §12 :   ║
+    // ║ Le déploiement est MANUEL depuis le 2026-09-16 (§12). Rien ne signale donc   ║
+    // ║ qu'un commit est poussé mais pas en ligne : l'écart se tient de mémoire, et  ║
+    // ║ un écart tenu de mémoire dure plus longtemps qu'on ne croit. Ce champ le     ║
+    // ║ rend MESURABLE par un tiers qui n'a aucun droit sur l'infrastructure — le    ║
+    // ║ contrôle de dérive compare cette valeur au dernier commit de `main`, sans    ║
+    // ║ jeton, en lecture seule. C'est l'inverse exact du compromis refusé en §12 :  ║
     // ║ surveiller sans rien pouvoir écrire.                                         ║
     // ║                                                                              ║
-    // ║ CE QUE CELA DIVULGUE, énoncé plutôt que passé sous silence : la version       ║
-    // ║ exacte qui tourne, donc si un correctif publié est déjà en ligne. Le dépôt    ║
-    // ║ est PUBLIC — tout le code l'est déjà, et la seule chose ajoutée est un        ║
-    // ║ horodatage de fait. Le gain est de rendre visible une dérive silencieuse ;    ║
-    // ║ la perte est de dater publiquement un retard de déploiement. L'arbitrage      ║
-    // ║ penche parce que le retard, lui, existe qu'on le publie ou non.               ║
+    // ║ CE QUE CELA DIVULGUE, énoncé plutôt que passé sous silence : la version      ║
+    // ║ exacte qui tourne, donc si un correctif publié est déjà en ligne. Le dépôt   ║
+    // ║ est PUBLIC — tout le code l'est déjà, et la seule chose ajoutée est un       ║
+    // ║ horodatage de fait. Le gain est de rendre visible une dérive silencieuse ;   ║
+    // ║ la perte est de dater publiquement un retard de déploiement. L'arbitrage     ║
+    // ║ penche parce que le retard, lui, existe qu'on le publie ou non.              ║
     // ║                                                                              ║
-    // ║ « inconnu » est un AVEU et non un remplissage : il dit que la version en      ║
-    // ║ ligne n'est pas passée par `npm run deploy`, donc qu'on ne sait PAS de quel   ║
-    // ║ commit elle sort. Le contrôle refuse alors de conclure — il ne suppose pas    ║
-    // ║ qu'elle est à jour. C'est la règle d'INDÉTERMINÉE de §2, appliquée au         ║
+    // ║ « inconnu » est un AVEU et non un remplissage : il dit que la version en     ║
+    // ║ ligne n'est pas passée par `npm run deploy`, donc qu'on ne sait PAS de quel  ║
+    // ║ commit elle sort. Le contrôle refuse alors de conclure — il ne suppose pas   ║
+    // ║ qu'elle est à jour. C'est la règle d'INDÉTERMINÉE de §2, appliquée au        ║
     // ║ déploiement.                                                                 ║
     // ╚══════════════════════════════════════════════════════════════════════════════╝
     if (pathname === "/health") {

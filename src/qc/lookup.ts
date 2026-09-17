@@ -24,10 +24,6 @@ export function getJuridiction(numero: string): Juridiction | null {
   return JURIDICTIONS[numero] ?? null;
 }
 
-export function getPalais(clef: string): Palais | null {
-  return PALAIS[clef] ?? null;
-}
-
 export function getForum(clef: string): Forum | null {
   return FORUMS[clef] ?? null;
 }
@@ -90,11 +86,6 @@ export function adresseDuGreffe(numero: string): Palais | null {
   // qu'un greffe en dessert plusieurs. C'est ce qui donne enfin une adresse au
   // greffe 635, dont le siège fixe est Kuujjuaq.
   return siegeFixe(numero)?.palais ?? null;
-}
-
-/** Numéros de greffe, triés. */
-export function listerGreffes(): string[] {
-  return Object.keys(GREFFES).sort();
 }
 
 /** Les 36 districts judiciaires, dédoublonnés et triés selon l'usage français. */
