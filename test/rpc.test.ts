@@ -559,10 +559,16 @@ describe("§8 — méthodes JSON-RPC", () => {
     expect(body.result.capabilities).toEqual({ tools: { listChanged: false } });
   });
 
-  it("initialize rend la plus élevée servie quand la demande est inconnue", async () => {
+  it("initialize rend la plus élevée HÉRITÉE quand la demande est inconnue", async () => {
+    // La valeur attendue a changé le 2026-09-17 — la GARANTIE, non. `2025-11-25` a rejoint
+    // les versions servies, et c'est désormais la plus élevée des HÉRITÉES.
+    //
+    // Pourquoi héritée et non `VERSIONS[0]` : celle-ci est maintenant `2026-07-28`, qui a
+    // SUPPRIMÉ la poignée. Répondre son nom à un client qui vient d'appeler `initialize`
+    // lui annoncerait une ère où sa propre requête n'existe pas.
     const res = await appeler(rpc("initialize", { protocolVersion: "1999-01-01" }));
     const body = (await res.json()) as { result: { protocolVersion: string } };
-    expect(body.result.protocolVersion).toBe("2025-06-18");
+    expect(body.result.protocolVersion).toBe("2025-11-25");
   });
 
   it("les instructions d'initialisation portent le contrat de vérité", async () => {

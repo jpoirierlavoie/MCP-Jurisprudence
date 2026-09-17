@@ -15,7 +15,20 @@
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 
-import { apparie, type Porte, porteursPresentes } from "@poirierlavoie/socle-juridique";
+import {
+  apparie,
+  avecCache,
+  complet,
+  estModerne,
+  HEADER_MISMATCH,
+  negocier,
+  type Porte,
+  porteursPresentes,
+  resultatDecouverte,
+  VERSION_SANS_ENTETE,
+  validerEntetes,
+  versionAbsenteAdmise,
+} from "@poirierlavoie/socle-juridique";
 import { runScheduled } from "./backfill";
 import { createClient } from "./canlii/client";
 import { mcpActif } from "./config";
@@ -38,7 +51,41 @@ import {
 import { pagePubliqueHtml } from "./site";
 
 /** Versions du protocole servies. La plus élevée EN TÊTE (§8). */
-const VERSIONS = ["2025-06-18", "2025-03-26"] as const;
+const VERSIONS = ["2026-07-28", "2025-11-25", "2025-06-18", "2025-03-26"] as const;
+
+/** Une heure : le registre ne bouge qu'au déploiement. */
+const TTL_LISTE = 3_600_000;
+
+/**
+ * Ce dépôt sert-il les clients antérieurs à `2025-06-18` ?
+ *
+ * OUI, et c'est COUPLÉ au fait que `2025-03-26` reste servie. La spécification n'ouvre que
+ * deux branches pour une requête sans en-tête de version : la traiter comme `2025-03-26`
+ * — permis seulement si l'on sert ces clients-là — ou la refuser, ce que S3 prescrit PARCE
+ * QU'ELLE RETIRE `2025-03-26`.
+ *
+ * ⚠ NE PAS BASCULER CE DRAPEAU SANS RETIRER `2025-03-26` DE `VERSIONS`, ni l'inverse. Les
+ *   deux vont ensemble. Les avoir découplés a fait rendre 400 à la veille mensuelle, qui
+ *   n'envoie pas l'en-tête — deux fois dans la même journée, et la seconde fois pour ce
+ *   motif-ci. Le retrait de `2025-03-26` attend de toute façon la mesure de `clientInfo`
+ *   (phase 4) : c'est à ce moment-là que les deux basculeront, ensemble.
+ *
+ * Ce qu'on ne fait JAMAIS, dans les deux cas : promouvoir silencieusement l'absence
+ * d'en-tête en `2025-06-18`. Ce serait inventer une troisième branche que personne
+ * n'implémente en face.
+ */
+const SERT_AVANT_2025_06_18 = true;
+
+/**
+ * La plus haute révision HÉRITÉE — le repli de `initialize` quand la version demandée est
+ * inconnue.
+ *
+ * ⚠ ET NON `VERSIONS[0]`, qui est désormais `2026-07-28`. Cette révision a SUPPRIMÉ la
+ *   poignée : répondre son nom à un client qui vient d'appeler `initialize` lui annoncerait
+ *   une ère où sa propre requête n'existe pas. Un client qui emploie la poignée est hérité
+ *   par définition — le même raisonnement qui l'exempte déjà de la validation d'en-têtes.
+ */
+const PLUS_HAUTE_HERITEE = VERSIONS.find((v) => !estModerne(v)) ?? VERSIONS[VERSIONS.length - 1];
 
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
 
@@ -538,20 +585,6 @@ async function handleMcp(
   ctx: ExecutionContext,
   origin: string | null,
 ): Promise<Response> {
-  // Négociation d'en-tête : absent => la plus ancienne version servie.
-  const entete = request.headers.get("MCP-Protocol-Version");
-  if (entete !== null && !VERSIONS.includes(entete as (typeof VERSIONS)[number])) {
-    return jsonResponse(
-      errorResponse(
-        null,
-        INVALID_REQUEST,
-        `Version de protocole non prise en charge ; versions servies : ${VERSIONS.join(", ")}.`,
-      ),
-      400,
-      origin,
-    );
-  }
-
   let message: ReturnType<typeof parseMessage>;
   try {
     message = parseMessage(await request.text());
@@ -567,20 +600,96 @@ async function handleMcp(
   const id = (message.id ?? null) as RequestId;
   const params = message.params ?? {};
 
+  // ── Version ──────────────────────────────────────────────────────────────────────────
+  // Après l'analyse du corps, et non avant : l'exemption d'`initialize` a besoin de la
+  // méthode, et la comparaison en-tête ↔ corps a besoin du `_meta`.
+  const entete = request.headers.get("MCP-Protocol-Version");
+  let version: string;
+  if (entete === null) {
+    if (!versionAbsenteAdmise(message.method, SERT_AVANT_2025_06_18)) {
+      return jsonResponse(
+        errorResponse(id, HEADER_MISMATCH, "En-tête « MCP-Protocol-Version » manquant."),
+        400,
+        origin,
+      );
+    }
+    version = (params.protocolVersion as string) ?? VERSION_SANS_ENTETE;
+  } else {
+    const n = negocier(entete, VERSIONS);
+    if ("erreur" in n) {
+      return jsonResponse({ jsonrpc: "2.0", id, error: n.erreur }, 400, origin);
+    }
+    version = n.version;
+  }
+
+  const moderne = estModerne(version);
+
+  // `initialize` en est exclu : la révision moderne a SUPPRIMÉ la poignée, donc un client
+  // qui l'appelle relève de l'ère héritée quelle que soit la version qu'il annonce.
+  if (moderne && message.method !== "initialize") {
+    const meta = (params._meta ?? {}) as Record<string, unknown>;
+    const faute = validerEntetes(request.headers, {
+      method: message.method,
+      params,
+      versionMeta: meta["io.modelcontextprotocol/protocolVersion"] as string | undefined,
+    });
+    if (faute) return jsonResponse(errorResponse(id, HEADER_MISMATCH, faute), 400, origin);
+  }
+
+  /** N'habille de `resultType` et des indices de cache que sous une révision moderne. */
+  const habiller = (brut: Record<string, unknown>, ttlMs?: number): Record<string, unknown> => {
+    if (!moderne) return brut;
+    const t = complet(brut);
+    return ttlMs === undefined ? t : avecCache(t, ttlMs, "public");
+  };
+
   try {
     switch (message.method) {
+      case "server/discover":
+        // OBLIGATOIRE sous `2026-07-28`. Servi aussi aux révisions antérieures : elles ne
+        // le demandent pas, mais le refuser n'apporterait rien à personne.
+        return jsonResponse(
+          resultResponse(
+            id,
+            resultatDecouverte({
+              supportedVersions: VERSIONS,
+              capabilities: { tools: { listChanged: false } },
+              serverInfo: SERVER_INFO,
+              instructions: INSTRUCTIONS,
+              ttlMs: TTL_LISTE,
+            }),
+          ),
+          200,
+          origin,
+        );
       case "initialize":
+        // Imitation de poignée : on répond comme avant, et on ne retient RIEN.
         return jsonResponse(resultResponse(id, initialize(params)), 200, origin);
       case "ping":
-        return jsonResponse(resultResponse(id, {}), 200, origin);
+        return jsonResponse(resultResponse(id, habiller({})), 200, origin);
       case "tools/list":
-        return jsonResponse(resultResponse(id, { tools: listToolDescriptors() }), 200, origin);
+        return jsonResponse(
+          resultResponse(id, habiller({ tools: listToolDescriptors() }, TTL_LISTE)),
+          200,
+          origin,
+        );
       case "tools/call":
-        return jsonResponse(resultResponse(id, await toolsCall(params, env, ctx)), 200, origin);
+        return jsonResponse(
+          // `ToolResult` n'a pas de signature d'index : la conversion est de forme, non de
+          // fond — `habiller` n'ajoute que `resultType` sous une révision moderne.
+          resultResponse(
+            id,
+            habiller((await toolsCall(params, env, ctx)) as unknown as Record<string, unknown>),
+          ),
+          200,
+          origin,
+        );
       default:
+        // `404` AVEC un corps JSON-RPC : c'est le corps qui distingue ce cas du 404 d'un
+        // serveur d'ancienne génération, lequel n'en porte aucun.
         return jsonResponse(
           errorResponse(id, METHOD_NOT_FOUND, `Méthode inconnue : ${message.method}`),
-          200,
+          404,
           origin,
         );
     }
@@ -602,7 +711,7 @@ function initialize(params: Record<string, unknown>): Record<string, unknown> {
   const negociee =
     typeof demandee === "string" && VERSIONS.includes(demandee as (typeof VERSIONS)[number])
       ? demandee
-      : VERSIONS[0]; // la plus élevée que l'on serve
+      : PLUS_HAUTE_HERITEE;
   return {
     protocolVersion: negociee,
     capabilities: { tools: { listChanged: false } },
