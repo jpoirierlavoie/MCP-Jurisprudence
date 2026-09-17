@@ -23,3 +23,21 @@ declare module "*.mjs?raw" {
   const contenu: string;
   export default contenu;
 }
+
+/**
+ * `import.meta.glob` — inventaire de fichiers résolu par Vite À LA COMPILATION.
+ *
+ * Employé par `test/garde.test.ts` pour balayer TOUTES les sources de `src/` plutôt
+ * qu'une liste tenue à la main : une liste se périme au fichier suivant, et le balayage
+ * cesserait alors de regarder précisément le code qu'on vient d'écrire.
+ *
+ * ⚠ Déclaration MINIMALE, restreinte à la forme qu'on emploie. Tirer `vite/client` en
+ *   entier pour trois lignes ferait entrer dans le graphe de types du dépôt tout
+ *   l'ambient DOM de Vite, que rien ici n'utilise.
+ */
+interface ImportMeta {
+  glob(
+    motif: string,
+    options: { query: string; eager: true; import: string },
+  ): Record<string, unknown>;
+}

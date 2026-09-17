@@ -922,6 +922,58 @@ describe("§4.3 — les deux couplages du script de réconciliation", () => {
   });
 });
 
+/**
+ * INVARIANT 3 — AUCUN BALAYAGE NE SYNTHÉTISE DE DATE.
+ *
+ * Une réponse de LISTE de CanLII ne porte pas de date (annexe B). `rowFromListItem`
+ * écrivait donc correctement `decision_date: null` — et le gestionnaire de `find_case`
+ * reposait, juste avant l'UPSERT, `decision_date ?? '<année du balayage>-01-01'`.
+ *
+ * ⚠ Le test unitaire de la conversion PASSAIT pendant que l'invariant tombait une
+ *   couche plus haut. C'est la leçon transférable : un invariant vérifié une couche
+ *   trop bas ne protège pas la couche qui l'enfreint. D'où ce balayage, qui regarde
+ *   TOUTES les sources plutôt qu'une fonction.
+ */
+describe("invariant 3 — aucune source ne pose de date sur une ligne", () => {
+  const SOURCES = import.meta.glob("../src/**/*.ts", {
+    query: "?raw",
+    eager: true,
+    import: "default",
+  }) as Record<string, string>;
+
+  it("le balayage des sources n'est pas vide", () => {
+    // ⚠ Une vérification dont aucun côté n'est non vide par construction ne vérifie
+    //   pas (le motif de `test/doc.test.ts`). On l'affirme AVANT de confronter.
+    expect(Object.keys(SOURCES).length).toBeGreaterThan(20);
+    expect(Object.keys(SOURCES).some((f) => f.endsWith("findCase.ts"))).toBe(true);
+    expect(Object.keys(SOURCES).some((f) => f.endsWith("backfill.ts"))).toBe(true);
+  });
+
+  it("aucune source n'affecte un 1er janvier à `decision_date`", () => {
+    // Le motif vise l'AFFECTATION, non la chaîne : `${annee}-01-01` est parfaitement
+    // légitime en PARAMÈTRE de requête (`decisionDateAfter`) et en borne de fenêtre
+    // (`searchLocal`). Ce qui est interdit, c'est de l'écrire dans `decision_date`.
+    const INTERDIT = /decision_date\s*[:=][^\n]*-01-01/;
+    for (const [fichier, source] of Object.entries(SOURCES)) {
+      expect(source, `${fichier} synthétise une date de décision`).not.toMatch(INTERDIT);
+    }
+  });
+
+  it("LE PENDANT positif : une fiche RÉSOLUE rend toujours sa vraie date", async () => {
+    // Sans cette moitié, on satisferait la précédente en retirant la date de partout —
+    // c'est-à-dire en détruisant ce qu'elle protège. Même raisonnement qu'au 404 de
+    // l'invariant 9 ci-dessus.
+    const t = texte(
+      await callTool(
+        "jurisprudence_get_case",
+        { database_id: "csc-scc", case_id: "2008scc9" },
+        toolCtx(fakeClient({ "caseBrowse/fr/csc-scc/2008scc9/": dunsmuir })),
+      ),
+    );
+    expect(t).toContain("2008-03-07");
+  });
+});
+
 describe("§7 — conventions communes", () => {
   it("une erreur d'exécution est un RÉSULTAT isError, jamais une erreur JSON-RPC", async () => {
     const r = await callTool("jurisprudence_get_case", {}, toolCtx(fakeClient({})));

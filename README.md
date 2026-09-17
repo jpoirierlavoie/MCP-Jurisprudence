@@ -210,6 +210,10 @@ pas de SSE, pas de `Mcp-Session-Id`.
 
 **Le cache se remplit par l'usage** : tout balayage effectué pour répondre à une requête est
 persisté. Ce n'est pas un miroir téléchargé, c'est la sédimentation des appels déjà faits.
+Un balayage persiste les **quatre champs** que porte une liste de CanLII — ni date, ni
+numéro de dossier, ni hyperlien. C'est la phrase dont l'absence a rendu le défaut écrivable :
+le connecteur a longtemps complété la date manquante par le 1er janvier de l'année balayée,
+l'a rendue comme une date de décision, et l'a écrite en base par-dessus la vraie.
 
 ---
 

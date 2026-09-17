@@ -107,9 +107,16 @@ export function rowFromListItem(
     citation: item.citation ?? null,
     neutral_cite: neutral,
     docket_number: null,
-    // La date n'est pas dans la liste. On la DÉDUIT de l'année de la citation neutre
-    // uniquement pour le tri et le filtrage grossier — jamais affichée comme une date
-    // de décision, qui serait fausse au jour près.
+    // ⚠ PAS DE DATE, ET RIEN À EN DÉDUIRE ICI. La réponse de liste n'en porte pas
+    //   (annexe B), et ce champ vaut donc `null` — ce qu'il a toujours valu.
+    //
+    //   Le commentaire qui vivait à cette place affirmait que la date était « déduite
+    //   de l'année de la citation neutre […] jamais affichée comme une date de
+    //   décision ». Les DEUX moitiés étaient fausses : rien n'était déduit ici, et
+    //   c'est l'APPELANT — `findCase`, puis `backfill` — qui posait un 1er janvier,
+    //   affiché comme une date et persisté comme telle. Un commentaire qui décrit une
+    //   intention plutôt que le code fait croire la garantie tenue ailleurs, et c'est
+    //   précisément ce qui a permis au défaut de vivre. Corrigé le 2026-09-17.
     decision_date: null,
     keywords: null,
     url: null,
@@ -130,6 +137,14 @@ export function rowFromListItem(
  * COALESCE sur les champs riches : un BALAYAGE (liste, 4 champs) ne doit pas écraser
  * une fiche déjà obtenue par RÉSOLUTION DIRECTE (12 champs) en y remettant des NULL.
  * Le cas se produit dès qu'on vérifie une citation puis qu'on balaie son tribunal.
+ *
+ * ⚠ LE SENS INVERSE COMPTE AUTANT, et c'est pourquoi une ligne de balayage DOIT porter
+ *   `decision_date = NULL`. COALESCE fait gagner `excluded` dès qu'il est NON NUL : une
+ *   date fabriquée par l'appelant n'appauvrit pas la fiche, elle ÉCRASE la vraie — sans
+ *   rétrograder `source` (la règle ci-dessous joue alors CONTRE nous), et laisse une
+ *   ligne corrompue parfaitement éligible à servir une vérification depuis le cache.
+ *   Défaut réel, 1 819 lignes en production, corrigé le 2026-09-17 ; la garantie vit
+ *   dans l'APPELANT, jamais ici, et c'est ce que le test de `tools.test.ts` épingle.
  *
  * `source` enregistre la MEILLEURE provenance atteinte, pas la dernière : une fiche
  * « lookup » recroisée par un balayage garde son étiquette. La rétrograder en « sweep »

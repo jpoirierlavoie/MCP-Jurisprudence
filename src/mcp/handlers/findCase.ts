@@ -214,6 +214,16 @@ export async function findCase(
     // Le balayage est l'outil qui appelle le plus : c'est ici qu'un étranglement
     // se lit le plus facilement comme « rien trouvé ». On le nomme.
     noteEtranglement(ctx.client.usage().throttled, !balayageEchoue && !budgetEpuise) || null,
+    // Un candidat rendu « — » vient d'une LISTE, qui ne porte pas de date. On le dit,
+    // et on le dit dans les mots de `browse_cases`, qui lit la même réponse.
+    //
+    // CONDITIONNELLE, délibérément : une note affichée à chaque appel cesse d'être lue
+    // (le motif de `noteEtranglement`), et elle serait FAUSSE quand tous les candidats
+    // viennent de fiches résolues, qui portent bien leur date.
+    rendus.some((r) => !r.decision_date)
+      ? "Un candidat rendu « — » n'a pas de date : les listes de CanLII n'en portent\n" +
+        "aucune. Pour la date exacte, employer jurisprudence_get_case."
+      : null,
     "",
     GARDE_RECHERCHE,
   ]
@@ -286,10 +296,34 @@ async function balayer(
 
         const lignes = items
           .map((it) => rowFromListItem(it, base, lang, "sweep", now))
-          .filter((r): r is CaseRow => r !== null)
-          .map((r) => ({ ...r, decision_date: r.decision_date ?? `${annee}-01-01` }));
+          .filter((r): r is CaseRow => r !== null);
 
         // D6 : tout balayage est persisté. C'est ainsi que l'index se construit.
+        //
+        // ⚠ QUATRE CHAMPS, ET PAS UN DE PLUS (invariant 3). Il a existé ici un `.map()`
+        //   qui posait `${annee}-01-01` sur chaque ligne, « faute de mieux ». L'ANNÉE
+        //   était vraie — CanLII filtre sur la vraie date de décision — mais le JOUR et
+        //   le MOIS étaient inventés. Trois conséquences, dont la deuxième est la grave :
+        //
+        //     1. la date était RENDUE comme une date de décision : Godbout c. Longueuil
+        //        (Ville) ressortait au 1er janvier 1997, alors que l'arrêt est du
+        //        31 octobre — une date qu'un praticien peut recopier dans une procédure ;
+        //     2. la ligne était PERSISTÉE ainsi, et le COALESCE de l'UPSERT fait gagner
+        //        la valeur NON NULLE : la date fabriquée ÉCRASAIT la vraie date d'une
+        //        fiche déjà obtenue par get_case, sans rétrograder `source`. La ligne
+        //        restait donc pleinement éligible à servir une vérification, corrompue,
+        //        et `verify_citations` l'attribuait ensuite « à CanLII » ;
+        //     3. `subsequent_history` compare des dates : un 1er janvier fait passer un
+        //        arrêt d'appel de la même année pour ANTÉRIEUR au jugement porté en
+        //        appel, et l'écarte EN SILENCE de la sortie même qui existe pour le
+        //        faire voir.
+        //
+        //   Ne pas le remettre. Ce qui se déduit d'une fenêtre de requête, c'est une
+        //   ANNÉE, et une année n'est pas une date : voir `anneeInferee` dans
+        //   `src/store/cases.ts`, qui sert au filtrage et au classement, jamais au rendu.
+        //
+        //   `browse_cases` lit la MÊME réponse de liste et n'a jamais rien inventé : il
+        //   rend « — » et le dit dans son pied. C'est le modèle.
         if (persister) await upsertCases(ctx.db, lignes);
 
         for (const l of lignes) {

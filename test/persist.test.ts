@@ -214,6 +214,28 @@ describe("conversion des réponses de l'API", () => {
   it("rejette un élément de liste sans caseId exploitable", () => {
     expect(rowFromListItem({ title: "x" }, "qcca", "fr", "sweep")).toBeNull();
   });
+
+  it("une ligne de LISTE n'a NI date NI numéro de dossier NI hyperlien (invariant 3)", () => {
+    // ⚠ Ce test passait déjà AVANT le correctif du 2026-09-17, et c'est tout son
+    //   intérêt : la conversion était juste ; c'est l'APPELANT qui reposait un
+    //   1er janvier sur la ligne, juste avant l'UPSERT. On le garde pour fixer la
+    //   frontière — ce qui est garanti ICI, et ce qui ne peut pas l'être.
+    const r = rowFromListItem(
+      {
+        databaseId: "qcca",
+        caseId: { fr: "2005qcca304" },
+        title: "Association c. Hydro-Québec",
+        citation: "2005 QCCA 304 (CanLII)",
+      },
+      "qcca",
+      "fr",
+      "sweep",
+    )!;
+    expect(r.decision_date).toBeNull();
+    expect(r.docket_number).toBeNull();
+    expect(r.url).toBeNull();
+    expect(r.source).toBe("sweep");
+  });
 });
 
 describe("citateur : TTL différencié et « vide » ≠ « jamais demandé »", () => {

@@ -308,6 +308,7 @@ CREATE TABLE cases (
   url             TEXT,
   concatenated_id TEXT,
   source          TEXT NOT NULL,           -- 'lookup' | 'sweep' | 'backfill'
+                                           -- ⚠ 'sweep'/'backfill' ⇒ decision_date EST NULL
   fetched_at      TEXT NOT NULL,
   UNIQUE (database_id, case_id)
 );
@@ -699,7 +700,8 @@ Gabarit de sortie : **Annexe A.1**.
 
 1. **Index local d'abord** : `cases_fts MATCH ?` filtré par `database_id` et par la fenêtre de dates. Résultats suffisants ⇒ renvoyer, en indiquant la provenance.
 2. **Balayage vif** si `live` (défaut : vrai lorsque l'index rend moins de trois candidats) : pour chaque année de la fenêtre, `GET caseBrowse/{lang}/{db}/?offset=0&resultCount=5000&decisionDateAfter=YYYY-01-01&decisionDateBefore=YYYY-12-31`, pagination par `offset` jusqu'à épuisement ou plafond de budget. `resultCount = 5000` et non le maximum de 10 000 : marge sous le plafond de 10 Mo.
-3. Filtrer côté Worker sur `title_norm` (§6.5). **Persister toutes les fiches moissonnées** si `PERSIST_SWEEPS` — c'est ainsi que l'index se construit (D6). Écriture par lots `db.batch()` de 100 énoncés.
+3. Filtrer côté Worker sur `title_norm` (§6.5). **Persister toutes les fiches moissonnées** si `PERSIST_SWEEPS` — c'est ainsi que l'index se construit (D6) — **les QUATRE champs que porte une liste, et pas un de plus**. Écriture par lots `db.batch()` de 100 énoncés.
+   ⚠ **Aucune date n'est écrite, et aucune n'est rendue** (*2026-09-17*). La liste n'en porte pas (annexe B), et en déduire une de la fenêtre d'année inventerait le JOUR et le MOIS — l'année, elle, est vraie. Le gestionnaire l'a fait pendant des mois : Godbout c. Longueuil (Ville) ressortait au 1er janvier 1997 quand l'arrêt est du 31 octobre. Et la ligne étant persistée ainsi, le `COALESCE` de l'UPSERT faisait gagner la valeur non nulle : la date fabriquée **écrasait** la vraie date d'une fiche déjà résolue, sans rétrograder `source`. Ce qui se déduit d'une fenêtre, c'est une **année**, et une année n'est pas une date : voir `anneeInferee`, pour le filtrage et le classement, jamais pour le rendu.
 4. `database_id` absent : exiger une fenêtre de dates d'au plus 3 ans et balayer les bases québécoises usuelles (`qcca`, `qccs`, `qccq`) ; au-delà, refuser en demandant de préciser le tribunal.
 
 5. **Un balayage INTERROMPU s'annonce DANS L'EN-TÊTE**, que la liste rendue soit vide ou non. Il ne suffit pas d'une note en pied : une réserve placée sous « N candidats » corrige une affirmation déjà faite, ce que l'invariant 9(c) interdit. La ligne de troncature disparaît alors, et la note d'étranglement cesse d'affirmer que le résultat n'est « ni tronqué ni affaibli ». *La branche non vide ne le faisait pas avant le 2026-09-17.*
@@ -1440,14 +1442,19 @@ l'étiquette perdrait la réserve avec la prose.
 1. Association provinciale des retraités d'Hydro-Québec c. Hydro-Québec
    2005 QCCA 304 (CanLII) · 2005-03-31 · qcca/2005qcca304
    https://canlii.ca/t/...
-2. …
+2. Untel c. Unetelle
+   2005 QCCA 999 (CanLII) · — · qcca/2005qcca999
 
 Provenance : index local (2 fiches) + balayage vif (1 appel, 1 843 fiches
 parcourues, persistées).
+Un candidat rendu « — » n'a pas de date : les listes de CanLII n'en portent
+aucune. Pour la date exacte, employer jurisprudence_get_case.
 
 Recherche sur l'intitulé et les mots-clés uniquement — l'API de CanLII n'expose
 pas le texte des décisions.
 ```
+
+⚠ *Amendé le 2026-09-17.* Le gabarit ne montrait que des candidats DATÉS, ce qui se lisait comme « un candidat moissonné porte une date ». Il n'en porte pas : le candidat 1 vient de l'**index local** (une fiche résolue, qui a bien sa date), le candidat 2 d'un **balayage** (une ligne de liste, qui n'en a pas). La note de pied est **conditionnelle** — elle ne paraît que si au moins un candidat rendu est sans date, faute de quoi elle cesserait d'être lue et serait fausse quand tous viennent de fiches résolues.
 
 **Variante — balayage INTERROMPU, index local non vide.** L'en-tête change ; il ne se contente pas d'une note en pied (invariant 9(c)).
 

@@ -215,6 +215,21 @@ refuse de conclure.
    rachèterait l'appel. Un suivi quotidien à fenêtres chevauchantes recroise TOUT : le
    cache ne servirait jamais. *(Les deux moitiés sont des défauts réels, trouvés par
    test ; verrouillées dans `test/persist.test.ts` et `test/tools.test.ts`.)*
+   *(c)* **la règle porte sur l'ÉCRITURE, pas sur la conversion.** *Ajouté le 2026-09-17,
+   après l'avoir trouvée enfreinte.* `rowFromListItem` rendait bien `decision_date: null`,
+   et son test unitaire passait — c'est le GESTIONNAIRE de `jurisprudence_find_case` qui
+   reposait `${annee}-01-01` juste avant l'UPSERT. Un invariant vérifié une couche trop
+   bas ne protège pas la couche qui l'enfreint. Et ce qui rendait le défaut GRAVE tient
+   au `COALESCE` : il fait gagner la valeur NON NULLE, donc une date fabriquée
+   n'appauvrit pas la fiche — elle **ÉCRASE la vraie**, sans rétrograder `source` (la
+   règle (b) joue alors contre nous), et laisse une ligne corrompue pleinement éligible
+   à servir une vérification. `jurisprudence_verify_citations` l'attribuait ensuite « à
+   CanLII », et `jurisprudence_subsequent_history` écartait en silence un appel réel de
+   la même année. Ce qui se déduit d'une fenêtre de requête, c'est une ANNÉE — et une
+   année n'est pas une date : elle vit dans `anneeInferee`, pour le filtrage et le
+   classement, et ne s'affiche jamais. *(1 819 lignes en production ; purgées par
+   `migrations/0005`. Épinglé par un balayage structurel de `test/garde.test.ts` sur
+   TOUTES les sources, et par son pendant positif.)*
 4. **Les mises en garde de §2 vivent dans le CORPS des réponses**, pas seulement dans les
    descriptions d'outils. `test/garde.test.ts` échoue si elles disparaissent. Un test de
    garde qui échoue se **répare en remettant la garantie**, jamais en ajustant le test.

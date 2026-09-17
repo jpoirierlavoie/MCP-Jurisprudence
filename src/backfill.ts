@@ -217,13 +217,15 @@ async function pagineret(
     const items = page.cases ?? [];
     if (items.length === 0) break;
 
+    // ⚠ AUCUNE DATE (invariant 3). Ce `.map()` portait le jumeau exact du défaut
+    //   corrigé le 2026-09-17 dans `findCase` : `decision_date ?? `${annee}-01-01``.
+    //   §11 est inerte (invariant 15) et ce code n'a donc jamais tourné en production —
+    //   raison de plus pour le corriger ici : une amorce qui porte un défaut connu sera
+    //   lue comme le MODÈLE le jour où l'on rouvrira la question, et le défaut
+    //   reviendrait alors à l'échelle du moissonnage de masse.
     const lignes = items
       .map((it) => rowFromListItem(it, base, lang, "backfill", now))
-      .filter((r): r is CaseRow => r !== null)
-      .map((r) => ({
-        ...r,
-        decision_date: r.decision_date ?? (annee ? `${annee}-01-01` : null),
-      }));
+      .filter((r): r is CaseRow => r !== null);
     ecrites += await upsertCases(env.DB, lignes);
 
     offset += items.length;

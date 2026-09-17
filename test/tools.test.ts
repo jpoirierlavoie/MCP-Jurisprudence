@@ -483,6 +483,79 @@ describe("§7.2 — jurisprudence_find_case", () => {
     expect(n?.n).toBe(2);
   });
 
+  it("un candidat moissonné n'affiche AUCUNE date, et n'en persiste aucune", async () => {
+    // Le balayage posait `${annee}-01-01` sur chaque ligne : le jour et le mois étaient
+    // INVENTÉS, rendus comme une date de décision, et écrits en D1. Godbout c.
+    // Longueuil (Ville) ressortait au 1er janvier 1997 ; l'arrêt est du 31 octobre.
+    // `browse_cases`, sur la MÊME réponse de liste, rend « — » : c'est le modèle.
+    await seedDatabases();
+    const client = fakeClient({
+      "caseBrowse/fr/qcca/": {
+        cases: [
+          {
+            databaseId: "qcca",
+            caseId: { fr: "2005qcca304" },
+            title: "Association provinciale des retraités d'Hydro-Québec c. Hydro-Québec",
+            citation: "2005 QCCA 304 (CanLII)",
+          },
+        ],
+      },
+    });
+    const out = texte(
+      await callTool(
+        "jurisprudence_find_case",
+        { title: "Hydro-Québec", database_id: "qcca", year_from: 2005, year_to: 2005 },
+        toolCtx(client),
+      ),
+    );
+    expect(out).toContain("· — ·"); // la place de la date, tenue par un tiret
+    expect(out).not.toMatch(/\d{4}-01-01/); // et surtout pas par un 1er janvier
+    expect(out).toContain("n'a pas de date"); // et la sortie DIT pourquoi
+    const r = await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM cases WHERE decision_date IS NOT NULL",
+    ).first<{ n: number }>();
+    expect(r?.n).toBe(0);
+  });
+
+  it("un balayage qui recroise une fiche résolue n'écrase NI sa date NI sa provenance", async () => {
+    // INVARIANT 3(b), À L'ÉTAGE DU GESTIONNAIRE. `persist.test.ts` l'éprouvait déjà sur
+    // `rowFromListItem`, et passait — parce que le défaut était APRÈS lui : le
+    // gestionnaire reposait une date sur la ligne que la conversion avait correctement
+    // laissée nulle, et le COALESCE de l'UPSERT fait gagner la valeur non nulle.
+    //
+    // Un invariant vérifié une couche trop bas ne protège pas la couche qui l'enfreint.
+    await seedDatabases();
+    await env.DB.prepare(
+      "INSERT INTO cases (database_id, case_id, title, title_norm, citation, decision_date, url, source, fetched_at) " +
+        "VALUES ('qcca','2005qcca304','Association provinciale des retraités d''Hydro-Québec c. Hydro-Québec'," +
+        "'association provinciale des retraites d hydro quebec c hydro quebec','2005 QCCA 304 (CanLII)'," +
+        "'2005-03-31','https://canlii.ca/t/1g2h3','lookup','2026-07-23T00:00:00.000Z')",
+    ).run();
+    const client = fakeClient({
+      "caseBrowse/fr/qcca/": {
+        cases: [
+          {
+            databaseId: "qcca",
+            caseId: { fr: "2005qcca304" },
+            title: "Association provinciale des retraités d'Hydro-Québec c. Hydro-Québec",
+            citation: "2005 QCCA 304 (CanLII)",
+          },
+        ],
+      },
+    });
+    await callTool(
+      "jurisprudence_find_case",
+      { title: "Hydro-Québec", database_id: "qcca", year_from: 2005, year_to: 2005, live: true },
+      toolCtx(client),
+    );
+    const apres = await env.DB.prepare(
+      "SELECT decision_date, source, url FROM cases WHERE case_id = '2005qcca304'",
+    ).first<{ decision_date: string; source: string; url: string }>();
+    expect(apres?.decision_date).toBe("2005-03-31"); // la VRAIE date survit
+    expect(apres?.source).toBe("lookup");
+    expect(apres?.url).toBe("https://canlii.ca/t/1g2h3");
+  });
+
   it("une absence de candidat n'établit pas l'inexistence", async () => {
     await seedDatabases();
     const r = await callTool(
