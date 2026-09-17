@@ -29,10 +29,18 @@ mêmes décisions.
 
 La distinction est **sémantique**, pas cosmétique, et elle est **vérifiée par les tests** :
 
-| Préfixe | Source | Appels |
+| Préfixe | Source | Appels sortants |
 |---|---|---|
-| `jurisprudence_` (10) | la collection de **CanLII** — couverture et verdicts en dépendent | oui |
+| `jurisprudence_` (10) | la collection de **CanLII** — couverture et verdicts en dépendent | oui, **sauf** `jurisprudence_parse_citation` |
 | `greffe_` `palais_` (3) | un **relevé local** du ministère de la Justice du Québec, daté | **aucun** |
+
+**Neuf outils sur treize appellent CanLII, pas dix.** `jurisprudence_parse_citation` porte le
+préfixe parce que sa réponse concerne la collection de CanLII — il dit quels identifiants une
+citation permettrait d'y construire — mais il ne l'interroge jamais : c'est un analyseur pur.
+Cette nuance n'est pas seulement écrite ici, elle est **lisible par machine** : les quatre outils
+qui ne font aucun appel portent `openWorldHint: false` dans leurs annotations MCP, les neuf autres
+`openWorldHint: true`. Un hôte qui restreint les outils « monde ouvert » peut donc les distinguer
+sans lire une ligne de prose.
 
 **Le préfixe ne NOMME plus la source** — il s'écrivait `canlii_` jusqu'au 2026-09-16 (D8
 amendée) : un préfixe ne sait pas porter une réserve, il n'en donne que l'illusion, et
@@ -101,7 +109,7 @@ n'est pas de l'ajuster pour qu'il passe : c'est de remettre la mise en garde.
 
 | Outil | Rôle |
 |---|---|
-| `jurisprudence_verify_citations` | **Pivot.** Verdict par citation : CONFIRMÉE · DISCORDANTE · INTROUVABLE · NON CONSTRUCTIBLE · ILLISIBLE |
+| `jurisprudence_verify_citations` | **Pivot.** Verdict par citation : CONFIRMÉE · DISCORDANTE · INTROUVABLE · NON CONSTRUCTIBLE · ILLISIBLE — et **INDÉTERMINÉE**, qui dit qu’aucun constat n’a pu être fait (CanLII injoignable ou étranglé) et ne vaut JAMAIS absence |
 | `jurisprudence_find_case` | Recherche par noms des parties ; index local puis balayage vif |
 | `jurisprudence_get_case` | Fiche officielle d'une décision |
 | `jurisprudence_citator` | Ce qu'une décision cite, ce qui la cite, les dispositions qu'elle cite |

@@ -591,7 +591,21 @@ describe("§8 — méthodes JSON-RPC", () => {
     for (const t of outils) {
       expect(t.name).toMatch(/^(jurisprudence|greffe|palais)_/);
       expect(t.description.length).toBeGreaterThan(80);
-      expect(t.annotations).toEqual({ readOnlyHint: true, openWorldHint: true });
+      // `openWorldHint` n est PAS uniforme : vrai pour les neuf outils qui interrogent
+      // CanLII, faux pour les quatre qui n appellent rien (parse_citation et les trois du
+      // Québec). Annoncer « monde ouvert » sur un outil purement local interdirait sans
+      // raison a un client de mettre en cache ; l inverse ferait croire a une réponse
+      // stable la ou la couverture de CanLII évolue.
+      const sansAppel = [
+        "jurisprudence_parse_citation",
+        "greffe_parse_court_file_number",
+        "palais_list",
+        "palais_get",
+      ].includes(t.name);
+      expect(t.annotations, t.name).toEqual({
+        readOnlyHint: true,
+        openWorldHint: !sansAppel,
+      });
       // §7, conventions : additionalProperties false sur TOUS les schémas.
       expect(t.inputSchema.additionalProperties).toBe(false);
     }

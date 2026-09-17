@@ -42,6 +42,43 @@ type Verdict =
   | "ILLISIBLE"
   | "INDÉTERMINÉE";
 
+/**
+ * La citation soumise est RÉÉMISE dans la sortie : elle doit tenir sur UNE ligne.
+ *
+ * ╔══════════════════════════════════════════════════════════════════════════════╗
+ * ║ UN VERDICT NE DOIT PAS POUVOIR ÊTRE FORGÉ PAR L'ENTRÉE.                      ║
+ * ║                                                                              ║
+ * ║ Le gabarit rend « <citation> — <VERDICT> » en tête de bloc. La citation       ║
+ * ║ n'était jusqu'ici que `.trim()` : une chaîne contenant un saut de ligne       ║
+ * ║ faisait donc apparaître dans la sortie une ligne « … — CONFIRMÉE » que ce     ║
+ * ║ connecteur n'a JAMAIS rendue, et repoussait le vrai verdict en queue d'une    ║
+ * ║ autre ligne, où ni un lecteur ni une expression régulière ne le cherchent.    ║
+ * ║                                                                              ║
+ * ║ Ce n'est pas une hypothèse d'école : la description de l'outil annonce qu'il  ║
+ * ║ sert à éprouver « des références tirées de la doctrine, d'un moteur de        ║
+ * ║ recherche ou d'un texte rédigé par une IA ». L'entrée est donc, par           ║
+ * ║ construction, sous le contrôle du texte que l'on cherche justement à mettre   ║
+ * ║ en doute. Un résultat faux rendu avec aplomb : §2, exactement.                ║
+ * ║                                                                              ║
+ * ║ On REPLIE plutôt que de refuser, et c'est délibéré : une citation collée      ║
+ * ║ depuis un PDF porte souvent un retour à la ligne parasite, et la refuser      ║
+ * ║ transformerait une maladresse banale en échec. Le repli ne perd rien — la     ║
+ * ║ citation reste lisible — et referme la brèche. La troncature, elle, borne un  ║
+ * ║ champ qui vient de l'extérieur, comme `src/index.ts` le fait déjà pour un     ║
+ * ║ nom d'outil inconnu.                                                         ║
+ * ╚══════════════════════════════════════════════════════════════════════════════╝
+ */
+export function citationSure(brut: string): string {
+  // Tout blanc — saut de ligne, tabulation, séparateurs Unicode — devient une
+  // espace simple. `\s` en JavaScript couvre déjà \n, \r, \t, \v, \f et U+2028/29.
+  const uneLigne = brut.replace(/\s+/g, " ").trim();
+  // Les autres caractères de contrôle ne sont pas des blancs et survivraient au
+  // remplacement ci-dessus ; ils n'ont rien à faire dans une citation.
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: c'est précisément ce qu'on retire.
+  const sansControle = uneLigne.replace(/[\u0000-\u001f\u007f]/g, "");
+  return sansControle.length > 200 ? `${sansControle.slice(0, 200)}…` : sansControle;
+}
+
 interface Demande {
   citation: string;
   expected_title?: string;
@@ -64,7 +101,7 @@ export async function verifyCitations(
   let budgetEpuise = false;
 
   for (const d of demandes) {
-    const citation = String(d.citation ?? "").trim();
+    const citation = citationSure(String(d.citation ?? ""));
     const parsed = parseCitation(citation, connus);
     const res = resolve(parsed.primary, dir);
 

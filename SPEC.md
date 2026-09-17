@@ -6,7 +6,7 @@
 **Auteur de la spéc. :** (préparé pour Jason Poirier Lavoie)
 **Cible :** nouveau dépôt autonome — Worker Cloudflare, D1, TypeScript
 **Modèle de référence :** le Worker `legislation` / base D1 `qclaw` (connecteur « Législation du Québec »)
-**Statut :** **livré et en production** sur `jurisprudence.poirierlavoie.ca` — treize outils, 469 tests, page publique bilingue. *Amendé le 2026-09-16 ; l'en-tête portait « prêt à implémenter », vrai jusqu'au premier déploiement du 2026-07-23 et faux depuis.* Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
+**Statut :** **livré et en production** sur `jurisprudence.poirierlavoie.ca` — treize outils, 474 tests, page publique bilingue. *Amendé le 2026-09-16 ; l'en-tête portait « prêt à implémenter », vrai jusqu'au premier déploiement du 2026-07-23 et faux depuis.* Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
 
 ---
 
@@ -164,7 +164,7 @@ arrivés après la rédaction initiale : ils figurent ici, à leur place.*
 │   └── deployer.mjs          # §12 — migrations PUIS déploiement ; refuse un arbre sale
 ├── sources-officielles/      # la PREUVE, pas un résidu — voir ci-dessous
 │   └── mjq-numeros-greffes-2026-07-22.html
-├── test/                     # 469 tests en 15 fichiers, sans réseau ni clef
+├── test/                     # 474 tests en 15 fichiers, sans réseau ni clef
 │   ├── citation.parse.test.ts · citation.compare.test.ts · verify.test.ts
 │   ├── client.test.ts · rpc.test.ts · persist.test.ts · tools.test.ts
 │   ├── qc.tables.test.ts · qc.outils.test.ts · qc.dossier.test.ts
@@ -579,7 +579,9 @@ leur nom le faisait pour elles.*
 **Conventions communes** — appliquées sans exception :
 
 - Nom d'outil en anglais, **description et sortie en français** (motif `qclaw`).
-- `annotations: { readOnlyHint: true, openWorldHint: true }` sur tous les outils.
+- `readOnlyHint: true` sur **les treize** : aucun n'écrit quoi que ce soit hors de son propre cache et de sa télémétrie.
+- `openWorldHint` **n'est PAS uniforme**, et c'est le point : `true` pour les neuf qui appellent CanLII — leur réponse dépend d'un système tiers, faillible et hors de notre contrôle — et `false` pour les quatre qui ne font aucun appel (`jurisprudence_parse_citation`, `greffe_parse_court_file_number`, `palais_list`, `palais_get`), dont la réponse est une fonction pure de tables compilées dans le Worker. *Amendé le 2026-09-16 : les treize portaient `true`, ce qui annonçait un appel sortant là où il n'y en a jamais eu, et privait un client de la seule indication lisible par machine qui distingue les deux familles (§17.1). Un hôte qui limite les outils « monde ouvert » les refusait tous les treize sans motif.* `test/rpc.test.ts` épingle la scission outil par outil.
+- Tout paramètre déclaré porte une `description`. *Ajouté le 2026-09-16 : vingt et un n'en avaient pas. Un paramètre nu se devine par son nom, et `offset` comme `limit` se devinent mal — `test/garde.test.ts` échoue désormais si l'un la perd.*
 - `additionalProperties: false` sur tous les schémas.
 - Tout paramètre `lang` : `enum ["fr","en"]`, défaut `"fr"`.
 - Toute liste : `limit` avec défaut et maximum documentés ; troncature signalée en toutes lettres (« 50 premiers sur 214 »).
@@ -588,7 +590,14 @@ leur nom le faisait pour elles.*
 
 ### 7.1 `jurisprudence_verify_citations` — l'outil pivot
 
-> **Description (verbatim) :** « Vérifie une ou plusieurs citations de jurisprudence contre la collection de CanLII. Pour chacune : un verdict (CONFIRMÉE, DISCORDANTE, INTROUVABLE, NON CONSTRUCTIBLE, ILLISIBLE), la fiche officielle (intitulé, citation, date, n° de dossier, hyperlien) et, s'il y a lieu, l'écart avec l'intitulé attendu. Établit l'EXISTENCE et l'IDENTITÉ d'une décision ; n'établit NI son autorité actuelle (aucun historique d'appel, aucun indicateur de traitement), NI le contenu de son dispositif. Outil de choix pour éprouver des références tirées de la doctrine, d'un moteur de recherche ou d'un texte rédigé par une IA. Les citations de recueils (R.C.S., R.J.Q., C.A.) et les identifiants d'éditeurs (J.E., REJB, EYB, AZ) ne sont pas résolubles directement : enchaîner avec jurisprudence_find_case. »
+> **Description (verbatim) :** « Vérifie une ou plusieurs citations de jurisprudence contre la collection de CanLII. SIX verdicts, dont CINQ portent un constat : CONFIRMÉE, DISCORDANTE, INTROUVABLE, NON CONSTRUCTIBLE, ILLISIBLE. Le sixième, INDÉTERMINÉE, dit qu'AUCUN constat n'a pu être fait — CanLII injoignable, étranglé, ou budget d'appels épuisé — et ne vaut JAMAIS absence : ne pas le confondre avec INTROUVABLE. Un client qui n'attend que cinq valeurs prendra une panne pour une inexistence. Rend aussi la fiche officielle (intitulé, citation, date, n° de dossier, hyperlien) et, s'il y a lieu, l'écart avec l'intitulé attendu. Établit l'EXISTENCE et l'IDENTITÉ d'une décision ; n'établit NI son autorité actuelle (aucun historique d'appel, aucun indicateur de traitement), NI le contenu de son dispositif. Outil de choix pour éprouver des références tirées de la doctrine, d'un moteur de recherche ou d'un texte rédigé par une IA. Les citations de recueils (R.C.S., R.J.Q., C.A.) et les identifiants d'éditeurs (J.E., REJB, EYB, AZ) ne sont pas résolubles directement : enchaîner avec jurisprudence_find_case. Pour la seule FICHE d'une décision déjà tenue pour juste, jurisprudence_get_case suffit et coûte moins. »
+
+*Amendée le 2026-09-16. La rédaction antérieure n'annonçait que **cinq** verdicts alors que le
+gestionnaire en rendait six : INDÉTERMINÉE était produit par le code et absent du contrat. Un
+client qui n'énumère que les cinq annoncés range le sixième dans son cas par défaut — et le cas
+par défaut d'un vérificateur de citations est « pas trouvée ». Une panne de réseau devenait ainsi
+une inexistence, en silence : §2, exactement. Le renvoi vers `jurisprudence_get_case` a été ajouté
+au même moment, dans les deux sens (§7.3).*
 
 ```jsonc
 {
@@ -596,32 +605,45 @@ leur nom le faisait pour elles.*
   "properties": {
     "citations": {
       "type": "array", "minItems": 1, "maxItems": 25,
+      "description": "Les citations à éprouver, au plus 25 par appel.",
       "items": {
         "type": "object",
         "properties": {
-          "citation":       { "type": "string", "maxLength": 400 },
-          "expected_title": { "type": "string", "maxLength": 300 },
-          "expected_year":  { "type": "integer", "minimum": 1800, "maximum": 2100 }
+          "citation":       { "type": "string", "maxLength": 400, "description": "…" },
+          "expected_title": { "type": "string", "maxLength": 300, "description": "…" },
+          "expected_year":  { "type": "integer", "minimum": 1800, "maximum": 2100, "description": "…" }
         },
         "required": ["citation"],
         "additionalProperties": false
       }
     },
-    "lang":    { "type": "string", "enum": ["fr", "en"] },
-    "refresh": { "type": "boolean" }
+    "lang":    { "type": "string", "enum": ["fr", "en"], "description": "…" },
+    "refresh": { "type": "boolean", "description": "…" }
   },
   "required": ["citations"],
   "additionalProperties": false
 }
 ```
 
+*Les `description` sont abrégées ici et font foi dans `src/mcp/registry.ts` : les recopier
+verbatim créerait une seconde source de vérité, qui dériverait. **Depuis le 2026-09-16, TOUT
+paramètre déclaré porte une description**, et `test/garde.test.ts` échoue si l'un la perd.*
+
+⚠ **`citation` n'a délibérément PAS de `minLength`.** Le validateur refuse l'appel ENTIER, jamais
+un seul élément : une chaîne vide dans un lot de vingt-cinq ferait échouer les vingt-quatre autres.
+Rendue au travers de l'outil, elle vaut ILLISIBLE — un constat, porté par la bonne citation. C'est
+le seul paramètre du connecteur où la permissivité du schéma est le bon choix, et c'est pourquoi
+elle est écrite ici.
+
 **Algorithme, par citation :**
 
-1. Analyser (§6). `unparsed` ⇒ `ILLISIBLE`. `reporter`/`publisher` ⇒ `NON CONSTRUCTIBLE` — et si `expected_title` est fourni, **enchaîner automatiquement** un `find_case` borné (± 1 an) et proposer les candidats.
-2. Cache `cases` (sauf `refresh`). Sinon `GET caseBrowse/{lang}/{db}/{caseId}/`, avec la boucle d'auto-correction (§6.4). Persister la fiche obtenue.
-3. `404` définitif ⇒ `INTROUVABLE`.
-4. Comparer : intitulé (§6.5), année de `decisionDate` contre `expected_year`. Concordance ⇒ `CONFIRMÉE` ; écart ⇒ `DISCORDANTE`, les deux valeurs affichées.
-5. Consigner dans `search_log` (`tool`, `query`, `verdict`).
+1. **Assainir la citation reçue** (`citationSure`) : elle est RÉÉMISE en tête du bloc de sortie, sous la forme « <citation> — <VERDICT> ». Les blancs sont repliés sur une espace simple, les caractères de contrôle retirés, la longueur bornée à 200. Sans cela, un saut de ligne dans l'entrée insérerait une SECONDE ligne de cette même forme — un verdict forgé par le texte que l'outil sert précisément à mettre en doute. On replie plutôt qu'on refuse : une citation collée depuis un PDF porte souvent un retour à la ligne parasite, et la refuser transformerait une maladresse banale en échec.
+2. Analyser (§6). `unparsed` ⇒ `ILLISIBLE`. `reporter`/`publisher` ⇒ `NON CONSTRUCTIBLE` — et si `expected_title` est fourni, **enchaîner automatiquement** un `find_case` borné (± 1 an) et proposer les candidats.
+3. Cache `cases` (sauf `refresh`). Sinon `GET caseBrowse/{lang}/{db}/{caseId}/`, avec la boucle d'auto-correction (§6.4). Persister la fiche obtenue.
+4. **Toute issue qui n'est pas un constat ⇒ `INDÉTERMINÉE`**, et jamais `INTROUVABLE` : CanLII injoignable, `401`, `429`, expiration, budget d'appels du tour épuisé. Le corps le dit en toutes lettres — « Ce n'est PAS un constat d'absence ». C'est l'invariant 9.
+5. `404` définitif ⇒ `INTROUVABLE`.
+6. Comparer : intitulé (§6.5), année de `decisionDate` contre `expected_year`. Concordance ⇒ `CONFIRMÉE` ; écart ⇒ `DISCORDANTE`, les deux valeurs affichées.
+7. Consigner dans `search_log` (`tool`, `query`, `verdict`).
 
 Gabarit de sortie : **Annexe A.1**.
 
@@ -657,7 +679,14 @@ Gabarit : **Annexe A.2**.
 
 ### 7.3 `jurisprudence_get_case`
 
-> **Description :** « Fiche CanLII d'une décision : intitulé, citation, date, numéro de dossier de cour, mots-clés et hyperlien canlii.ca. Accepte soit une citation (« 2020 QCCA 495 »), soit le couple database_id + case_id. Ne renvoie PAS le texte de la décision : suivre l'hyperlien. »
+> **Description :** « Fiche CanLII d'une décision : intitulé, citation, date, numéro de dossier de cour, mots-clés et hyperlien canlii.ca. Accepte soit une citation (« 2020 QCCA 495 »), soit le couple database_id + case_id. Ne renvoie PAS le texte de la décision : suivre l'hyperlien. N'ÉPROUVE PAS la citation : aucun verdict, aucune comparaison d'intitulé, aucun contrôle d'année — la fiche rendue est celle de la décision TROUVÉE, qui peut n'être pas celle que l'on croyait citer. Pour savoir si une référence rencontrée ailleurs est juste, employer jurisprudence_verify_citations. »
+
+*Amendée le 2026-09-16. Les deux outils se ressemblent assez pour être confondus : tous deux
+partent d'une citation et rendent une fiche. La différence est qu'ici la citation est tenue pour
+JUSTE et sert d'adresse, tandis que §7.1 la met en doute et rend un verdict. Un modèle qui appelle
+celui-ci pour « vérifier » une référence obtient une fiche d'allure officielle et en conclut que
+la citation est bonne — alors que rien n'a été comparé. Les deux descriptions se renvoient
+désormais l'une à l'autre, et `test/garde.test.ts` épingle ce renvoi croisé.*
 
 Paramètres : `citation` **ou** (`database_id` + `case_id`) ; `lang` ; `refresh`. Valider qu'exactement l'une des deux formes est fournie.
 
@@ -971,6 +1000,10 @@ Deux pièces, posées le 2026-09-16, le rendent MESURABLE sans rouvrir ce qui a 
 
 **Contrat de vérité (test de garde) :** pour chaque outil heuristique, assertion que la sortie **contient** sa mise en garde. Ce test empêche qu'une refonte du gabarit la fasse disparaître silencieusement.
 
+**Schéma des outils (`garde.test.ts`) — ajouté le 2026-09-16.** Quatre gardes portent sur ce que le modèle LIT, et non sur ce que le code fait : les **six** verdicts sont déclarés dans la description de §7.1 et INDÉTERMINÉE y est dite ne pas valoir absence ; `jurisprudence_get_case` et `jurisprudence_verify_citations` se renvoient l'un à l'autre ; **aucun paramètre n'est déclaré sans `description`** ; et les treize portent `readOnlyHint`. Leur mode de panne commun est le silence : une description qui prend du retard ne lève rien, elle continue d'affirmer.
+
+**Citation réémise (`garde.test.ts`) — ajouté le 2026-09-16.** `citationSure` est éprouvée sur ses DEUX passages séparément, parce qu'ils se recouvrent sur `\n` et `\t` et que l'un pourrait donc disparaître sans qu'aucun test ne bouge : le repli des blancs seul atteint le séparateur de ligne U+2028, le retrait des caractères de contrôle seul atteint NUL et DEL. Un test de bout en bout vérifie qu'une citation portant « — CONFIRMÉE » suivi d'un saut de ligne ne produit qu'UNE ligne de verdict, la vraie. Les deux sabotages ont été joués : chacun fait tomber le test.
+
 **Documentation (`doc.test.ts`) — le README contre le REGISTRE.** Ajouté le 2026-09-16, en remplacement de la confrontation `diff` de deux `grep` qui vivait dans `CLAUDE.md`. Cette commande FILTRAIT ses deux côtés par une liste de préfixes écrite à la main (`(canlii|greffe|palais)_`) : le jour du renommage, les deux côtés se sont réduits au même sous-ensemble de trois outils, sont restés égaux, et `diff` aurait rendu 0 — « aucune dérive » affirmé sans avoir regardé dix outils sur treize, et aussi longtemps que personne ne l'aurait relue. On ne répare pas cela en corrigeant la liste : on la corrigerait cette fois, et le prochain renommage rouvrirait le même trou au même endroit. Le test prend `TOOLS` **lui-même** pour l'un de ses deux côtés — non vide par construction, sa longueur (13) affirmée AVANT tout le reste — et le texte du README pour l'autre, lu en `?raw`, sans aucune liste de préfixes. Il éprouve aussi le compte écrit **en toutes lettres**, qui vieillit autrement sans bruit.
 
 ---
@@ -1283,6 +1316,25 @@ Verdict `DISCORDANTE` — les deux valeurs, toujours :
    https://canlii.ca/t/...
    → La citation existe mais ne désigne pas la décision annoncée. Vérifier la source.
 ```
+
+Verdict `INDÉTERMINÉE` — le seul des six qui ne porte AUCUN constat :
+
+```
+4. 2019 QCCS 4444 — INDÉTERMINÉE
+   CanLII n'a pas pu être interrogé. Ce n'est PAS un constat d'absence : réessayer.
+```
+
+```
+5. 2021 QCCA 77 — INDÉTERMINÉE
+   Budget d'appels épuisé : cette citation n'a pas pu être vérifiée.
+```
+
+⚠ **Ces deux blocs sont la raison d'être du sixième verdict.** Un `401`, un `429`, une
+expiration ou un budget épuisé ne disent rien sur l'existence de la décision. Les rendre
+`INTROUVABLE` ferait passer une panne d'infrastructure pour une inexistence, avec le même
+aplomb qu'un vrai constat — le mode de panne que §2 interdit, et l'invariant 9. Le corps le
+dit en toutes lettres plutôt que de le laisser au verdict seul : un client qui n'affiche que
+l'étiquette perdrait la réserve avec la prose.
 
 ### A.2 `jurisprudence_find_case`
 

@@ -293,7 +293,13 @@ describe("§18 — le registre est la source, pas une copie", () => {
     for (const [nom, en] of Object.entries(OUTILS_EN)) {
       const texte = `${en.titre} ${en.texte}`;
       const local = nom.startsWith("greffe_") || nom.startsWith("palais_");
-      expect(texte, nom).toMatch(local ? /minist|MJQ|Québec/i : /canlii/i);
+      // ⚠ « Québec » a été RETIRÉ de l alternative locale le 2026-09-16, et c est le point
+      //   de ce test. Québec est un LIEU, pas une source : il figure par construction dans le
+      //   titre des trois outils locaux, si bien que l assertion passait TOUJOURS — y compris
+      //   quand les trois descriptions anglaises ne nommaient aucune source et ne portaient
+      //   aucune réserve de péremption, ce qui était le cas. Une assertion qui ne peut plus
+      //   échouer achète une confiance qu elle ne finance pas.
+      expect(texte, nom).toMatch(local ? /minist|MJQ/i : /canlii/i);
     }
   });
 

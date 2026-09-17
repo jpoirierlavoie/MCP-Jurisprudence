@@ -37,10 +37,11 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
   jurisprudence_verify_citations: {
     titre: "Verify citations",
     texte:
-      "The pivot tool, answering from CanLII's collection. Each citation gets one of five " +
-      "verdicts: CONFIRMÉE, DISCORDANTE, " +
-      "INTROUVABLE, NON CONSTRUCTIBLE, ILLISIBLE. A confirmed verdict establishes existence " +
-      "and identity — never current authority, never the disposition.",
+      "The pivot tool, answering from CanLII's collection. SIX verdicts, five of which state a " +
+      "FINDING: CONFIRMÉE, DISCORDANTE, INTROUVABLE, NON CONSTRUCTIBLE, ILLISIBLE. The sixth, " +
+      "INDÉTERMINÉE, says that NO finding could be made — CanLII unreachable, throttled, or the " +
+      "call budget spent — and never means absence: do not read it as INTROUVABLE. A confirmed " +
+      "verdict establishes existence and identity — never current authority, never the disposition.",
   },
   jurisprudence_find_case: {
     titre: "Find a decision by party names",
@@ -103,20 +104,25 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
     texte:
       "Reads NNN-NN-NNNNNN-NNN into its registry — courthouse and judicial district — and its " +
       "jurisdiction: court, competence, registry type. A letter prefix (TAL, TAQ, C.F.…) names " +
-      "a tribunal that numbers its own files. Local tables, no call, and no proof that the file exists.",
+      "a tribunal that numbers its own files. Read from tables surveyed from the ministere de la " +
+      "Justice du Quebec on 2026-07-15 and compiled into the Worker: no call is made, no docket is " +
+      "consulted, and nothing here proves that the file exists.",
   },
   palais_list: {
     titre: "Québec courthouses — directory",
     texte:
       "The courthouses and justice service points of Québec, with civic address, the registry " +
-      "numbers sitting there and their judicial district. Filterable by district, type or free text.",
+      "numbers sitting there and their judicial district. Filterable by district, type or free " +
+      "text. Surveyed from the ministere de la Justice du Quebec on 2026-07-15 — addresses age, " +
+      "and no telephone number is carried: check with the Ministry before serving or filing.",
   },
   palais_get: {
     titre: "Québec courthouse — record",
     texte:
       "One location in full, by registry number or by name: address, distinct mailing address " +
       "where one is published, registries sitting there, and — for a circuit court — the " +
-      "communities served.",
+      "communities served. Surveyed from the ministere de la Justice du Quebec on 2026-07-15; a " +
+      "missing address means UNKNOWN, never non-existent.",
   },
 } as const;
 
@@ -154,7 +160,9 @@ export const EN = {
   familleCanlii: "Backed by CanLII",
   familleCanliiTexte: [
     "Ten tools whose answer comes from CanLII's collection — coverage and verdicts depend on it. " +
-      "They make outbound calls and are subject to the API's quota.",
+      "NINE make an outbound call and are subject to the API's quota; jurisprudence_parse_citation " +
+      "makes none — it only reports which identifiers a citation would allow one to build. Its MCP " +
+      "annotations say so.",
   ],
   familleQc: "Local Québec tables — no call, ever",
   familleQcTexte: [

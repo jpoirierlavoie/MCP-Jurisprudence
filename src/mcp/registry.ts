@@ -86,7 +86,33 @@ export interface ToolDescriptor {
   handler: ToolHandler;
 }
 
-const READONLY = { readOnlyHint: true, openWorldHint: true } as const;
+/**
+ * Annotations MCP. `readOnlyHint` vaut vrai partout — aucun outil n'écrit.
+ *
+ * ⚠ `openWorldHint` N'EST PAS UNIFORME, et c'est le point (corrigé le 2026-09-16).
+ *   Il annonce que la source de vérité est DISTANTE et peut changer sous les pieds de
+ *   l'appelant. C'est vrai des neuf outils qui interrogent CanLII. Ce l'est FAUX des
+ *   quatre qui n'appellent rien : `jurisprudence_parse_citation` lit un analyseur pur
+ *   et le répertoire local, et les trois outils du Québec lisent des tables compilées
+ *   dans le Worker. Leur réponse ne dépend d'aucun tiers : à version déployée égale,
+ *   la même entrée rend la même sortie.
+ *
+ *   Le dire compte pour un client par programme : `openWorldHint: false` l'autorise à
+ *   mettre en cache, à rejouer, et à ne pas prévoir de reprise sur panne réseau — trois
+ *   choses que l'annotation uniforme lui interdisait sans raison. L'inverse serait plus
+ *   grave : annoncer « monde fermé » sur un outil qui appelle CanLII ferait croire à une
+ *   réponse stable là où la couverture évolue.
+ */
+const DISTANT = { readOnlyHint: true, openWorldHint: true } as const;
+const LOCAL = { readOnlyHint: true, openWorldHint: false } as const;
+
+/** Les quatre outils dont la réponse ne dépend d'aucun appel sortant. */
+const SANS_APPEL = new Set([
+  "jurisprudence_parse_citation",
+  "greffe_parse_court_file_number",
+  "palais_list",
+  "palais_get",
+]);
 
 const LANG: JsonSchema = {
   type: "string",
@@ -103,6 +129,62 @@ const DATE: JsonSchema = {
   type: "string",
   maxLength: 10,
   description: "Date au format AAAA-MM-JJ. Borne INCLUSIVE.",
+};
+
+/**
+ * Les identifiants qui reviennent d'un outil à l'autre, décrits UNE fois.
+ *
+ * ╔══════════════════════════════════════════════════════════════════════════════╗
+ * ║ CES DESCRIPTIONS SONT LA SEULE DOCUMENTATION D'UN CLIENT PAR PROGRAMME.       ║
+ * ║                                                                              ║
+ * ║ Un humain devine « database_id » d'après le contexte ; un programme, non — il ║
+ * ║ ne dispose que de `tools/list`. Vingt-et-un paramètres n'en portaient aucune  ║
+ * ║ au 2026-09-16, dont SIX des sept `database_id` : construire un appel valide   ║
+ * ║ exigeait de deviner, et deviner est la façon dont naissent les erreurs        ║
+ * ║ silencieuses. Chacune dit donc TROIS choses : à quoi ressemble la valeur, où  ║
+ * ║ l'obtenir, et ce qu'il ne faut pas faire.                                    ║
+ * ║                                                                              ║
+ * ║ `minLength: 1` n'est pas décoratif : `validate.ts` ROGNE les blancs avant de  ║
+ * ║ compter, donc une chaîne vide ou faite d'espaces est refusée À L'ENTRÉE. Sans ║
+ * ║ lui, elle était concaténée telle quelle dans le chemin de l'appel sortant, où ║
+ * ║ elle coûtait un aller-retour pour produire une erreur illisible.              ║
+ * ╚══════════════════════════════════════════════════════════════════════════════╝
+ */
+const BASE_ID: JsonSchema = {
+  type: "string",
+  minLength: 1,
+  maxLength: 20,
+  description:
+    "Identifiant de base CanLII, p. ex. « qcca » (Cour d'appel du Québec) ou « csc-scc ». " +
+    "La liste exacte est rendue par jurisprudence_list_databases : la LIRE plutôt que la deviner, " +
+    "les identifiants fédéraux et administratifs ne suivent aucune règle prévisible.",
+};
+
+const CASE_ID: JsonSchema = {
+  type: "string",
+  minLength: 1,
+  maxLength: 60,
+  description:
+    "Identifiant CanLII de la décision DANS cette base, p. ex. « 2008csc9 ». Rendu par " +
+    "jurisprudence_verify_citations, jurisprudence_find_case et jurisprudence_browse_cases. " +
+    "S'emploie AVEC database_id ; si l'on n'a que la citation neutre, renseigner « citation » à la place.",
+};
+
+const CITATION_REF: JsonSchema = {
+  type: "string",
+  minLength: 1,
+  maxLength: 400,
+  description:
+    "Citation neutre, p. ex. « 2008 CSC 9 » ou « 2020 QCCA 495 ». Voie la plus simple : elle " +
+    "dispense de connaître database_id et case_id. Les recueils (R.C.S., R.J.Q., C.A.) et les " +
+    "identifiants d'éditeur (J.E., REJB, EYB, AZ) ne sont PAS résolubles ici — passer par " +
+    "jurisprudence_find_case.",
+};
+
+const OFFSET: JsonSchema = {
+  type: "integer",
+  minimum: 0,
+  description: "Rang du premier résultat rendu, pour parcourir au-delà de « limit ». 0 par défaut.",
 };
 
 export const SERVER_INFO = {
@@ -136,8 +218,9 @@ export const INSTRUCTIONS =
   // il attribuerait à CanLII une adresse de palais, ou chercherait dans CanLII un
   // numéro de greffe. Les deux erreurs sont silencieuses.
   "DEUX SOURCES DISTINCTES coexistent ici, et le PRÉFIXE ne les annonce plus : c'est la " +
-  "description de chaque outil qui nomme sa source. Les outils jurisprudence_* interrogent " +
-  "CanLII. Les " +
+  "description de chaque outil qui nomme sa source. NEUF des dix outils jurisprudence_* " +
+  "interrogent CanLII ; le dixième, jurisprudence_parse_citation, n'appelle RIEN — il " +
+  "analyse une citation contre le répertoire local et ne confirme aucune existence. Les " +
   "outils greffe_* et palais_* lisent des TABLES LOCALES relevées auprès du ministère de " +
   "la Justice du Québec le 2026-07-15 : ils ne font aucun appel, ne consultent aucun " +
   "registre de dossiers ni plumitif, et n'établissent donc PAS qu'un dossier existe. " +
@@ -153,15 +236,20 @@ export const TOOLS: Record<string, ToolDescriptor> = {
     title: "Vérifier des citations",
     description:
       "Vérifie une ou plusieurs citations de jurisprudence contre la collection de CanLII. " +
-      "Pour chacune : un verdict (CONFIRMÉE, DISCORDANTE, INTROUVABLE, NON CONSTRUCTIBLE, " +
-      "ILLISIBLE), la fiche officielle (intitulé, citation, date, n° de dossier, hyperlien) " +
+      "SIX verdicts, dont CINQ portent un constat : CONFIRMÉE, DISCORDANTE, INTROUVABLE, " +
+      "NON CONSTRUCTIBLE, ILLISIBLE. Le sixième, INDÉTERMINÉE, dit qu'AUCUN constat n'a pu " +
+      "être fait — CanLII injoignable, étranglé, ou budget d'appels épuisé — et ne vaut " +
+      "JAMAIS absence : ne pas le confondre avec INTROUVABLE. Un client qui n'attend que " +
+      "cinq valeurs prendra une panne pour une inexistence. " +
+      "Rend aussi la fiche officielle (intitulé, citation, date, n° de dossier, hyperlien) " +
       "et, s'il y a lieu, l'écart avec l'intitulé attendu. Établit l'EXISTENCE et l'IDENTITÉ " +
       "d'une décision ; n'établit NI son autorité actuelle (aucun historique d'appel, aucun " +
       "indicateur de traitement), NI le contenu de son dispositif. Outil de choix pour " +
       "éprouver des références tirées de la doctrine, d'un moteur de recherche ou d'un texte " +
       "rédigé par une IA. Les citations de recueils (R.C.S., R.J.Q., C.A.) et les identifiants " +
       "d'éditeurs (J.E., REJB, EYB, AZ) ne sont pas résolubles directement : enchaîner avec " +
-      "jurisprudence_find_case.",
+      "jurisprudence_find_case. Pour la seule FICHE d'une décision déjà tenue pour juste, " +
+      "jurisprudence_get_case suffit et coûte moins.",
     inputSchema: {
       type: "object",
       properties: {
@@ -230,8 +318,20 @@ export const TOOLS: Record<string, ToolDescriptor> = {
           maxLength: 20,
           description: "Tribunal ciblé, p. ex. « qcca ». Voir jurisprudence_list_databases.",
         },
-        year_from: { type: "integer", minimum: 1800, maximum: 2100 },
-        year_to: { type: "integer", minimum: 1800, maximum: 2100 },
+        year_from: {
+          type: "integer",
+          minimum: 1800,
+          maximum: 2100,
+          description:
+            "Borne INFÉRIEURE, incluse, sur l'année de la décision. CanLII filtre sur la date de " +
+            "DÉCISION, non de publication : une décision de 2019 diffusée en 2020 répond à 2019.",
+        },
+        year_to: {
+          type: "integer",
+          minimum: 1800,
+          maximum: 2100,
+          description: "Borne SUPÉRIEURE, incluse, sur l'année de la décision.",
+        },
         lang: LANG,
         limit: {
           type: "integer",
@@ -259,13 +359,16 @@ export const TOOLS: Record<string, ToolDescriptor> = {
       "Fiche CanLII d'une décision : intitulé, citation, date, numéro de dossier de cour, " +
       "mots-clés et hyperlien canlii.ca. Accepte soit une citation (« 2020 QCCA 495 »), soit " +
       "le couple database_id + case_id. Ne renvoie PAS le texte de la décision : suivre " +
-      "l'hyperlien.",
+      "l'hyperlien. N'ÉPROUVE PAS la citation : aucun verdict, aucune comparaison d'intitulé, " +
+      "aucun contrôle d'année — la fiche rendue est celle de la décision TROUVÉE, qui peut " +
+      "n'être pas celle que l'on croyait citer. Pour savoir si une référence rencontrée " +
+      "ailleurs est juste, employer jurisprudence_verify_citations.",
     inputSchema: {
       type: "object",
       properties: {
-        citation: { type: "string", maxLength: 400 },
-        database_id: { type: "string", maxLength: 20 },
-        case_id: { type: "string", maxLength: 60 },
+        citation: CITATION_REF,
+        database_id: BASE_ID,
+        case_id: CASE_ID,
         lang: LANG,
         refresh: REFRESH,
       },
@@ -289,9 +392,9 @@ export const TOOLS: Record<string, ToolDescriptor> = {
     inputSchema: {
       type: "object",
       properties: {
-        citation: { type: "string", maxLength: 400 },
-        database_id: { type: "string", maxLength: 20 },
-        case_id: { type: "string", maxLength: 60 },
+        citation: CITATION_REF,
+        database_id: BASE_ID,
+        case_id: CASE_ID,
         rel: {
           type: "string",
           enum: ["cited", "citing", "legislation"],
@@ -299,8 +402,19 @@ export const TOOLS: Record<string, ToolDescriptor> = {
             "« cited » : ce que la décision cite. « citing » : ce qui la cite. " +
             "« legislation » : les dispositions qu'elle cite.",
         },
-        limit: { type: "integer", minimum: 1, maximum: 100 },
-        offset: { type: "integer", minimum: 0, maximum: 100000 },
+        limit: {
+          type: "integer",
+          minimum: 1,
+          maximum: 100,
+          description: "Nombre de lignes rendues (défaut 25, maximum 100).",
+        },
+        offset: {
+          type: "integer",
+          minimum: 0,
+          maximum: 100000,
+          description:
+            "Rang de la première ligne rendue, pour parcourir au-delà de « limit ». 0 par défaut.",
+        },
         refresh: REFRESH,
       },
       required: ["rel"],
@@ -323,10 +437,18 @@ export const TOOLS: Record<string, ToolDescriptor> = {
     inputSchema: {
       type: "object",
       properties: {
-        citation: { type: "string", maxLength: 400 },
-        database_id: { type: "string", maxLength: 20 },
-        case_id: { type: "string", maxLength: 60 },
-        limit: { type: "integer", minimum: 1, maximum: 50 },
+        citation: CITATION_REF,
+        database_id: BASE_ID,
+        case_id: CASE_ID,
+        limit: {
+          type: "integer",
+          minimum: 1,
+          maximum: 50,
+          description:
+            "Nombre de décisions citantes EXAMINÉES (défaut 25, maximum 50). Ce n'est PAS le nombre " +
+            "de sorts rendus : seules sont retenues celles d'une juridiction supérieure dont " +
+            "l'intitulé ressemble au sien.",
+        },
         refresh: REFRESH,
       },
       additionalProperties: false,
@@ -345,9 +467,15 @@ export const TOOLS: Record<string, ToolDescriptor> = {
     inputSchema: {
       type: "object",
       properties: {
-        database_id: { type: "string", maxLength: 20 },
+        database_id: BASE_ID,
         lang: LANG,
-        offset: { type: "integer", minimum: 0, maximum: 100000 },
+        offset: {
+          type: "integer",
+          minimum: 0,
+          maximum: 100000,
+          description:
+            "Rang du premier texte rendu, pour parcourir au-delà de « limit ». 0 par défaut.",
+        },
         limit: {
           type: "integer",
           minimum: 1,
@@ -381,7 +509,13 @@ export const TOOLS: Record<string, ToolDescriptor> = {
     inputSchema: {
       type: "object",
       properties: {
-        kind: { type: "string", enum: ["case", "legislation"] },
+        kind: {
+          type: "string",
+          enum: ["case", "legislation"],
+          description:
+            "Restreindre au répertoire des TRIBUNAUX (« case ») ou à celui des CORPUS LÉGISLATIFS " +
+            "(« legislation »). Omis, les deux sont rendus.",
+        },
         jurisdiction: {
           type: "string",
           maxLength: 10,
@@ -405,11 +539,22 @@ export const TOOLS: Record<string, ToolDescriptor> = {
     inputSchema: {
       type: "object",
       properties: {
-        database_id: { type: "string", maxLength: 20 },
+        database_id: BASE_ID,
         lang: LANG,
         query: { type: "string", maxLength: 100, description: "Filtre sur le titre." },
-        limit: { type: "integer", minimum: 1, maximum: 100 },
-        offset: { type: "integer", minimum: 0, maximum: 100000 },
+        limit: {
+          type: "integer",
+          minimum: 1,
+          maximum: 100,
+          description: "Nombre de décisions rendues (défaut 25, maximum 100).",
+        },
+        offset: {
+          type: "integer",
+          minimum: 0,
+          maximum: 100000,
+          description:
+            "Rang de la première décision rendue, pour parcourir au-delà de « limit ». 0 par défaut.",
+        },
       },
       required: ["database_id"],
       additionalProperties: false,
@@ -429,8 +574,15 @@ export const TOOLS: Record<string, ToolDescriptor> = {
     inputSchema: {
       type: "object",
       properties: {
-        database_id: { type: "string", maxLength: 20 },
-        legislation_id: { type: "string", maxLength: 60 },
+        database_id: BASE_ID,
+        legislation_id: {
+          type: "string",
+          minLength: 1,
+          maxLength: 60,
+          description:
+            "Identifiant CanLII du texte DANS cette base, p. ex. « rlrq-c-c-25.01 ». Rendu par " +
+            "jurisprudence_browse_legislation : le LIRE plutôt que le composer.",
+        },
         lang: LANG,
       },
       required: ["database_id", "legislation_id"],
@@ -443,14 +595,25 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   jurisprudence_parse_citation: {
     title: "Analyser une citation (hors ligne)",
     description:
-      "Analyse une citation sans appeler CanLII : indique la forme reconnue (citation neutre, " +
-      "citation attribuée par CanLII, recueil, identifiant d'éditeur), et, si elle est " +
-      "constructible, le database_id et le case_id qui en découlent. Outil de diagnostic ; " +
-      "pour vérifier réellement l'existence d'une décision, utiliser jurisprudence_verify_citations.",
+      "Analyse une citation SANS aucun appel : la réponse vient de l'analyseur local et du " +
+      "répertoire local des bases, jamais de CanLII. Indique la forme reconnue (citation " +
+      "neutre, citation attribuée par CanLII, recueil, identifiant d'éditeur), et, si elle est " +
+      "constructible, le database_id et le case_id qui en découlent. N'ÉTABLIT RIEN quant à " +
+      "l'existence de la décision : « constructible » veut dire « bien formée », pas " +
+      "« existante ». Outil de diagnostic ; pour éprouver réellement une référence, employer " +
+      "jurisprudence_verify_citations.",
     inputSchema: {
       type: "object",
       properties: {
-        citation: { type: "string", minLength: 1, maxLength: 400 },
+        citation: {
+          type: "string",
+          minLength: 1,
+          maxLength: 400,
+          description:
+            "La citation à analyser, telle qu'elle a été rencontrée, p. ex. « 2020 QCCA 495 » ou " +
+            "« [1996] 3 R.C.S. 211 ». Une forme non reconnue n'est pas une erreur : elle est " +
+            "rendue comme telle.",
+        },
       },
       required: ["citation"],
       additionalProperties: false,
@@ -560,7 +723,7 @@ export function listToolDescriptors(): Array<Record<string, unknown>> {
     title: t.title,
     description: t.description,
     inputSchema: t.inputSchema,
-    annotations: { ...READONLY },
+    annotations: { ...(SANS_APPEL.has(name) ? LOCAL : DISTANT) },
   }));
 }
 

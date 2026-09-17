@@ -472,7 +472,9 @@ ${h2("outils")}
 ${biP(
   [
     "Dix outils dont la réponse vient de la collection de CanLII — la couverture et les " +
-      "verdicts en dépendent. Ils font des appels sortants et sont soumis au quota de l'API.",
+      "verdicts en dépendent. NEUF font un appel sortant et sont soumis au quota de l'API ; " +
+      "jurisprudence_parse_citation, lui, n'appelle rien : il dit seulement quels identifiants " +
+      "une citation permettrait de construire. Ses annotations MCP le déclarent.",
   ],
   EN.familleCanliiTexte,
 )}
