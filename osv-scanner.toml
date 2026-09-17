@@ -1,49 +1,41 @@
 # OSV-Scanner configuration — https://google.github.io/osv-scanner/configuration/
 #
-# Liste d'exceptions CIBLÉE : vulnérabilités triées comme NON APPLICABLES à ce
-# déploiement, pour qu'un non-problème connu ne fasse pas échouer le contrôle OSV
-# BLOQUANT. Toute vulnérabilité absente d'ici fait encore échouer la CI. Chaque
-# entrée reflète une alerte code-scanning écartée — garder les deux en phase.
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║ CE FICHIER NE PORTE PLUS AUCUNE EXEMPTION, et c'est l'état recherché.         ║
+# ║                                                                              ║
+# ║ Au 2026-09-16, il en portait cinq — toutes pour `sharp`/libvips, dépendance   ║
+# ║ transitive de miniflare. Elles ont disparu parce que la vulnérabilité a été   ║
+# ║ CORRIGÉE, et non parce qu'on a cessé de la compter : `sharp` est remonté de   ║
+# ║ 0.35.2 à 0.35.4 par une surcharge `overrides` de `package.json` — la version  ║
+# ║ où l'avis GHSA-rgj7-g3m4-5g8c (libheif) est réparé en amont.                  ║
+# ║                                                                              ║
+# ║ La leçon vaut pour la prochaine alerte : AVANT d'écrire une exemption ici,    ║
+# ║ vérifier qu'aucune version corrigée n'existe. L'ancienne note de ce fichier   ║
+# ║ affirmait qu'« aucun correctif non cassant n'existe en amont » — c'était vrai ║
+# ║ de `npm audit fix --force`, qui proposait de RÉTROGRADER                      ║
+# ║ @cloudflare/vitest-pool-workers de 0.18 à 0.8.30, et faux d'une surcharge     ║
+# ║ ciblée, qui n'a cassé aucun des 469 tests. Exempter est le dernier recours,   ║
+# ║ jamais le premier.                                                           ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 #
-# ⚠ CE QUI FILTRE N'EST PAS CE QUI DÉCIDE, et il faut le savoir pour ne pas se
-#   tromper de fichier en cas d'échec. `osv-scanner` sort en 1 dès qu'une
-#   vulnérabilité est trouvée, MÊME filtrée par ce fichier — son journal dit
-#   « Filtered 1 vulnerability » puis « Exit code: 1 ». Le verdict bloquant est donc
+# ── Comment écrire une exemption, le jour où il en faudra vraiment ────────────
+#
+# Chaque entrée porte l'identifiant que l'OSV emploie RÉELLEMENT — en pratique le
+# GHSA, jamais ses alias CVE. Quatre alias ont figuré ici jusqu'au 2026-09-16 « par
+# prudence » : ils ne s'appariaient jamais, et `osv-scanner` sort en ERREUR sur une
+# exemption inutilisée. Résultat, le contrôle a échoué trente-cinq fois pour cette
+# seule raison. Un identifiant de trop n'est pas neutre.
+#
+# Chaque entrée porte aussi son MOTIF et sa DATE, en toutes lettres. Une exemption
+# sans raison écrite est indiscernable d'un oubli, et personne n'ose la retirer.
+#
+# ⚠ CE QUI FILTRE N'EST PAS CE QUI DÉCIDE. `osv-scanner` sort en 1 dès qu'une
+#   vulnérabilité est trouvée, MÊME filtrée par ce fichier. Le verdict bloquant est
 #   rendu par l'étape « Verdict » de `.github/workflows/osv-scanner.yml`, qui compte
-#   les constats RESTANTS dans le rapport SARIF, c'est-à-dire après application de ce
-#   fichier. Les deux se lisent ensemble : ici le TRI, là-bas la DÉCISION.
+#   les constats RESTANTS dans le rapport SARIF — c'est-à-dire après application de
+#   ce fichier. Les deux se lisent ensemble : ici le TRI, là-bas la DÉCISION.
 #
-# ── sharp / libvips : GHSA-f88m-g3jw-g9cj ────────────────────────────────────
-# `sharp` est une dépendance OPTIONNELLE et TRANSITIVE de miniflare/wrangler,
-# employée uniquement pour émuler LOCALEMENT le binding Images de Cloudflare.
-#
-# Trois raisons d'irrecevabilité, cumulatives :
-#   1. Ce Worker n'a AUCUN binding Images (voir wrangler.jsonc) : le code de
-#      miniflare qui charge sharp n'est jamais atteint, même en dev.
-#   2. `sharp` est en devDependencies transitives. Le bundle déployé sur workerd
-#      ne contient ZÉRO dépendance npm (décision D2 : aucun cadriciel, aucune
-#      dépendance d'exécution) — sharp ne franchit jamais la frontière du déploiement.
-#   3. Les CVE visent le décodage d'images non fiables par libvips. Ce connecteur
-#      ne traite aucune image : ses entrées sont des citations et des identifiants
-#      de tribunaux, ses sorties du texte français.
-#
-# ⚠ NE PAS RÉAJOUTER LES ALIAS CVE (CVE-2026-33327, -33328, -35590, -35591).
-#   Ils ont figuré ici jusqu'au 2026-09-16, « par prudence ». OSV n'emploie que
-#   l'identifiant GHSA : ces quatre entrées ne s'appariaient donc JAMAIS, et l'outil
-#   sort en ERREUR sur une exemption inutilisée. Résultat : l'analyseur de
-#   vulnérabilités a échoué à CHAQUE exécution du 2026-08-30 au 2026-09-16 —
-#   trente-cinq fois — non pour une faille, mais pour ces quatre lignes. Un contrôle
-#   de sécurité rouge en permanence cesse d'être lu, ce qui est exactement ce que
-#   l'écrire BLOQUANT cherchait à éviter.
-#
-#   Corollaire à connaître : si l'avis remontait un jour sous un identifiant CVE
-#   plutôt que GHSA, le filtre ne jouerait pas et le contrôle virerait au rouge.
-#   C'est le comportement VOULU — il faudrait alors réexaminer, pas re-filtrer.
-#
-# Aucun correctif non cassant n'existe en amont : `npm audit fix --force`
-# rétrograderait @cloudflare/vitest-pool-workers de 0.18.x à 0.8.30. À réexaminer
-# à chaque montée de wrangler/miniflare (Dependabot, hebdomadaire).
-
-[[IgnoredVulns]]
-id = "GHSA-f88m-g3jw-g9cj"
-reason = "sharp/libvips via miniflare (émulation locale du binding Images). Aucun binding Images ici, dépendance de développement transitive jamais déployée (bundle sans dépendance npm), et aucune image n'est traitée. Pas de correctif non cassant en amont."
+# ⚠ ET LE RÉSUMÉ CONSOLE NE MONTRE PAS LES CONSTATS. En mode SARIF, le journal du
+#   scanner n'affiche que le nombre de vulnérabilités FILTRÉES. Le 2026-09-16, ce
+#   « Filtered 1 vulnerability » a été pris pour la totalité des constats, alors que
+#   le rapport en contenait SEPT non exemptées. Lire le SARIF, jamais le résumé.
