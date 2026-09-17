@@ -7,7 +7,7 @@
 # encore échouer le contrôle. Chaque entrée reflète une alerte code-scanning
 # écartée — garder les deux en phase.
 #
-# ── sharp / libvips : GHSA-f88m-g3jw-g9cj (+ 4 CVE) ──────────────────────────
+# ── sharp / libvips : GHSA-f88m-g3jw-g9cj ────────────────────────────────────
 # `sharp` est une dépendance OPTIONNELLE et TRANSITIVE de miniflare/wrangler,
 # employée uniquement pour émuler LOCALEMENT le binding Images de Cloudflare.
 #
@@ -21,6 +21,19 @@
 #      ne traite aucune image : ses entrées sont des citations et des identifiants
 #      de tribunaux, ses sorties du texte français.
 #
+# ⚠ NE PAS RÉAJOUTER LES ALIAS CVE (CVE-2026-33327, -33328, -35590, -35591).
+#   Ils ont figuré ici jusqu'au 2026-09-16, « par prudence ». OSV n'emploie que
+#   l'identifiant GHSA : ces quatre entrées ne s'appariaient donc JAMAIS, et l'outil
+#   sort en ERREUR sur une exemption inutilisée. Résultat : l'analyseur de
+#   vulnérabilités a échoué à CHAQUE exécution du 2026-08-30 au 2026-09-16 —
+#   trente-cinq fois — non pour une faille, mais pour ces quatre lignes. Un contrôle
+#   de sécurité rouge en permanence cesse d'être lu, ce qui est exactement ce que
+#   l'écrire BLOQUANT cherchait à éviter.
+#
+#   Corollaire à connaître : si l'avis remontait un jour sous un identifiant CVE
+#   plutôt que GHSA, le filtre ne jouerait pas et le contrôle virerait au rouge.
+#   C'est le comportement VOULU — il faudrait alors réexaminer, pas re-filtrer.
+#
 # Aucun correctif non cassant n'existe en amont : `npm audit fix --force`
 # rétrograderait @cloudflare/vitest-pool-workers de 0.18.x à 0.8.30. À réexaminer
 # à chaque montée de wrangler/miniflare (Dependabot, hebdomadaire).
@@ -28,19 +41,3 @@
 [[IgnoredVulns]]
 id = "GHSA-f88m-g3jw-g9cj"
 reason = "sharp/libvips via miniflare (émulation locale du binding Images). Aucun binding Images ici, dépendance de développement transitive jamais déployée (bundle sans dépendance npm), et aucune image n'est traitée. Pas de correctif non cassant en amont."
-
-[[IgnoredVulns]]
-id = "CVE-2026-33327"
-reason = "Alias de GHSA-f88m-g3jw-g9cj (sharp/libvips) — voir l'entrée ci-dessus."
-
-[[IgnoredVulns]]
-id = "CVE-2026-33328"
-reason = "Alias de GHSA-f88m-g3jw-g9cj (sharp/libvips) — voir l'entrée ci-dessus."
-
-[[IgnoredVulns]]
-id = "CVE-2026-35590"
-reason = "Alias de GHSA-f88m-g3jw-g9cj (sharp/libvips) — voir l'entrée ci-dessus."
-
-[[IgnoredVulns]]
-id = "CVE-2026-35591"
-reason = "Alias de GHSA-f88m-g3jw-g9cj (sharp/libvips) — voir l'entrée ci-dessus."
