@@ -81,6 +81,11 @@ describe("§7.7 — jurisprudence_list_databases", () => {
     expect(client.chemins).toEqual(["caseBrowse/fr/", "legislationBrowse/fr/"]);
     expect(out).toContain("Cour d'appel du Québec");
     expect(out).toContain("Corpus législatifs");
+    // CHAÎNE DE COUPLAGE : `scripts/refresh-databases.mjs` la cherche telle quelle dans
+    // la sortie et sort en code 2 si elle disparaît. Épinglée ici pour qu'elle soit
+    // visible là où on lit cet outil, et dans `test/garde.test.ts` contre le littéral
+    // du script lui-même — les deux moitiés se valent, aucune ne remplace l'autre.
+    expect(out).toContain("base(s) au répertoire de CanLII");
   });
 
   it("SIGNALE toute correspondance démentie par le répertoire réel (§4.3)", async () => {

@@ -17,6 +17,7 @@
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
 
+import script from "../scripts/refresh-databases.mjs?raw";
 import { CanliiError } from "../src/canlii/errors";
 import {
   EXPLICATIONS_INTROUVABLE,
@@ -32,7 +33,9 @@ import {
 import { LIMITES, OFFSET_DEFAUT, OFFSET_MAX } from "../src/mcp/defauts";
 import { citationSure } from "../src/mcp/handlers/verifyCitations";
 import { callTool, listToolDescriptors, TOOLS } from "../src/mcp/registry";
+import caseDatabases from "./fixtures/caseDatabases.json";
 import dunsmuir from "./fixtures/dunsmuir.json";
+import legislationDatabases from "./fixtures/legislationDatabases.json";
 import qcca2005 from "./fixtures/qcca2005.json";
 import { fakeClient, resetDb, seedDatabases, texte, toolCtx } from "./helpers";
 
@@ -786,6 +789,69 @@ describe("§5.3 — la clef d'API ne quitte jamais le processus", () => {
       expect(s).not.toContain("api_key");
       expect(s).not.toContain("SECRET");
     }
+  });
+});
+
+/**
+ * §4.3 — LES DEUX COUPLAGES DU SCRIPT DE RÉCONCILIATION.
+ *
+ * `scripts/refresh-databases.mjs` est la seule barrière BLOQUANTE de §4.3, et il lit la
+ * sortie d'un outil comme on lit un format. DEUX formes l'y portent :
+ *
+ *   1. l'en-tête « base(s) au répertoire de CanLII », sans laquelle il sort en CODE 2 —
+ *      refus de statuer ;
+ *   2. la FORME des lignes d'écart, « · CODE -> base », sans laquelle il conclut
+ *      « aucune correspondance démentie ».
+ *
+ * ⚠ Ni l'une ni l'autre n'avait de test, et la seconde est la plus dangereuse : sa
+ *   disparition ne produit AUCUNE erreur, seulement un feu vert mensonger sur la seule
+ *   question qui compte — « le répertoire est-il livrable ? ».
+ *
+ * ⚠ On lit les littéraux DANS le script, par `?raw`, et on les confronte à la sortie
+ *   réelle. Les RECOPIER ici les ferait vivre des deux côtés d'une frontière
+ *   TypeScript/JavaScript qu'aucun compilateur ne vérifie : ce serait reproduire, dans
+ *   le test, le défaut même que le test prétend fermer. C'est le raisonnement que
+ *   `src/format/render.ts` et `listDatabases.ts` portent depuis le 2026-09-16.
+ */
+describe("§4.3 — les deux couplages du script de réconciliation", () => {
+  /** Le répertoire, rafraîchi depuis les fixtures — ce que le script reçoit vraiment. */
+  async function repertoire(args: Record<string, unknown> = {}): Promise<string> {
+    const client = fakeClient({
+      "caseBrowse/fr/": caseDatabases,
+      "legislationBrowse/fr/": legislationDatabases,
+    });
+    await callTool("jurisprudence_list_databases", { refresh: true }, toolCtx(client));
+    return texte(await callTool("jurisprudence_list_databases", args, toolCtx(fakeClient({}))));
+  }
+
+  it("l'en-tête porte VERBATIM la chaîne que le script cherche", async () => {
+    const m = /repertoire\.includes\("([^"]+)"\)/.exec(script);
+    expect(m, "le garde-fou de refresh-databases.mjs a changé de forme").not.toBeNull();
+    expect(await repertoire(), "sans cette chaîne le script sort en code 2").toContain(m![1]!);
+  });
+
+  it("la chaîne survit AUSSI à un appel FILTRÉ", async () => {
+    // Le script appelle sans filtre. On éprouve tout de même la branche filtrée : c'est
+    // celle qu'une refonte de l'en-tête touche en premier, et elle romprait le couplage
+    // sans faire rougir le test précédent.
+    const m = /repertoire\.includes\("([^"]+)"\)/.exec(script);
+    const t = await repertoire({ kind: "legislation", jurisdiction: "qc" });
+    expect(t).toContain(m![1]!);
+  });
+
+  it("les lignes d'écart ont la FORME que le script sait reconnaître", async () => {
+    const m = /const LIGNE_ECART = \/(.+)\/;/.exec(script);
+    expect(m, "LIGNE_ECART a changé de forme dans refresh-databases.mjs").not.toBeNull();
+    const forme = new RegExp(m![1]!);
+    const lignes = (await repertoire()).split("\n").map((l) => l.trim());
+    // ⚠ Les fixtures ne rendent que six bases : les correspondances d'amorçage qui
+    //   visent les autres sont donc DÉMENTIES, et la sortie porte des lignes d'écart
+    //   par construction. On l'affirme, faute de quoi ce test réussirait sur le vide —
+    //   exactement ce que `test/doc.test.ts` a été écrit pour ne plus laisser passer.
+    expect(
+      lignes.filter((l) => forme.test(l)).length,
+      "aucune ligne d'écart : le test ne vérifie plus rien",
+    ).toBeGreaterThan(0);
   });
 });
 
