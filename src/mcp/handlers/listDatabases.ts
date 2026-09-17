@@ -101,10 +101,20 @@ export async function listDatabasesTool(
       ...courts.map((c) => `  · ${c.code} -> ${c.database_id} (${c.note ?? "hypothèse"})`),
       ...parens.map((p) => `  · (${p.juris_code} ${p.court_code}) -> ${p.database_id}`),
     ];
-    // Le marqueur vient de la CONSTANTE, jamais recopié : `scripts/refresh-databases.mjs`
-    // découpe la sortie dessus pour décider si le répertoire est livrable. Une copie
-    // littérale qui dériverait rendrait le script muet sur la seule barrière bloquante
-    // de §4.3 — il annoncerait « aucune correspondance démentie » alors qu'il y en a.
+    // Le marqueur vient de la CONSTANTE, jamais recopié.
+    //
+    // ⚠ CE COMMENTAIRE AFFIRMAIT, jusqu'au 2026-09-16, que `scripts/refresh-databases.mjs`
+    //   « découpe la sortie dessus ». C'est FAUX : le script ne mentionne nulle part
+    //   `MARQUEUR_RECONCILIATION` (`grep` : zéro occurrence). Il repère les écarts par
+    //   leur FORME — `/^·s+.+s+->s+S+/` — et pose son garde-fou sur l'en-tête
+    //   « base(s) au répertoire de CanLII », rendu plus bas dans ce même fichier. C'est
+    //   CELUI-LÀ qu'il faut propager, et non ce marqueur. Le même énoncé faux vivait
+    //   dans `src/format/render.ts` ; les deux sont corrigés ensemble, faute de quoi
+    //   l'un aurait « confirmé » l'autre au prochain lecteur.
+    //
+    //   Ce qui reste vrai, et qui est le motif de la constante : le marqueur ne se
+    //   recopie pas, parce qu'une copie littérale vivrait des DEUX côtés d'une frontière
+    //   TypeScript/JavaScript qu'aucun compilateur ne vérifie.
     alerte =
       `${MARQUEUR_RECONCILIATION} (§4.3) — ces correspondances d'amorçage désignent un\n` +
       "databaseId ABSENT du répertoire réel de CanLII. Toute citation qui en dépend\n" +
