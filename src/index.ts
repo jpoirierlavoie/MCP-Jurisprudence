@@ -15,6 +15,7 @@
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 
+import { apparie, type Porte, porteursPresentes } from "@poirierlavoie/socle-juridique";
 import { runScheduled } from "./backfill";
 import { createClient } from "./canlii/client";
 import { mcpActif } from "./config";
@@ -33,6 +34,7 @@ import {
   resultResponse,
   type ToolResult,
 } from "./mcp/rpc";
+
 import { pagePubliqueHtml } from "./site";
 
 /** Versions du protocole servies. La plus élevée EN TÊTE (§8). */
@@ -185,15 +187,29 @@ async function secretOk(given: string, expected: string): Promise<boolean> {
  *   exactement ce que la garde coûtait avant. On ne mémorise délibérément PAS l'empreinte
  *   des attendus : `secretOk` est la primitive publiée en §9.1, et relue comme telle.
  */
-async function secretAdmis(presentes: readonly string[], env: Env): Promise<boolean> {
-  const attendus = [env.MCP_SHARED_SECRET, env.MCP_SHARED_SECRET_ATHENA].filter(
-    (s): s is string => typeof s === "string" && s.length > 0,
-  );
-  const verdicts = await Promise.all(
-    attendus.flatMap((attendu) => presentes.map((presente) => secretOk(presente, attendu))),
-  );
-  return verdicts.some(Boolean);
-}
+/**
+ * La porte d'accès, déclarée UNE fois et employée par le runtime comme par les tests.
+ *
+ * `queryKey` EST SERVI DEPUIS LE 2026-09-17, et c'est un ajout délibéré de surface. Motif :
+ * `?key=` est la seule forme qui ait survécu au formulaire de connecteur de claude.ai
+ * (mesuré en juillet 2026 sur le jumeau), de sorte que son absence rendait ce connecteur-ci
+ * probablement inajoutable. Contrepartie assumée et connue : un jeton dans une URL voyage
+ * dans les journaux d'arête, l'historique du navigateur et les captures d'écran — c'est
+ * pourquoi il ne doit JAMAIS être journalisé ici (invariant 5).
+ *
+ * `segmentBorne` reste FAUX : le chemin n'est qu'un porteur, `/mcp*` est capté en entier et
+ * rien n'est remonté sur un chemin de montage. Borner serait un rétrécissement sans
+ * contrepartie — et si le secret contenait « / », `/mcp/a/b` l'authentifierait.
+ *
+ * `MCP_SHARED_SECRET_ATHENA` a été RETIRÉ de Cloudflare le 2026-09-17 : le clavardage de
+ * Pallas Athéna n'existe plus depuis le 2026-09-02, et le secret n'avait donc plus d'appelant.
+ */
+export const PORTE: Porte = {
+  mount: "/mcp",
+  queryKey: "key",
+  nomsSecrets: ["MCP_SHARED_SECRET"],
+  segmentBorne: false,
+};
 
 /**
  * `decodeURIComponent` LÈVE une `URIError` sur un pourcentage malformé (`/mcp/x%FF`).
@@ -492,7 +508,11 @@ export default {
       // Aucune garde `if (!presente)` : une liste VIDE — aucun porteur présenté — produit
       // un produit cartésien vide, donc `some` faux, donc 401. Le défaut fermé vit
       // désormais tout entier dans `secretAdmis`, des deux côtés du produit.
-      if (!(await secretAdmis(secretsPresentes(request, pathname), env))) {
+      const presentes = porteursPresentes(request, url, PORTE);
+      const attendus = PORTE.nomsSecrets
+        .map((nom) => (env as unknown as Record<string, unknown>)[nom])
+        .filter((v): v is string => typeof v === "string" && v.length > 0);
+      if (!(await apparie(presentes, attendus))) {
         return unauthorized(origin);
       }
       return await handleMcp(request, env, ctx, origin);

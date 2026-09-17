@@ -35,12 +35,15 @@ async function appeler(
     method?: string;
     headers?: Record<string, string>;
     env?: Env;
+    /** Paramètres de requête — sert le porteur `?key=`, servi depuis le 2026-09-17. */
+    query?: Record<string, string>;
   } = {},
 ): Promise<Response> {
   const secret = opts.secret === undefined ? SECRET : opts.secret;
   const chemin = secret === null ? "/mcp" : `/mcp/${secret}`;
+  const qs = opts.query ? `?${new URLSearchParams(opts.query).toString()}` : "";
   const ctx = createExecutionContext();
-  const req = new Request(`https://jurisprudence.poirierlavoie.ca${chemin}`, {
+  const req = new Request(`https://jurisprudence.poirierlavoie.ca${chemin}${qs}`, {
     method: opts.method ?? "POST",
     headers: { "Content-Type": "application/json", ...(opts.headers ?? {}) },
     body: opts.method && opts.method !== "POST" ? undefined : JSON.stringify(body),
@@ -486,18 +489,15 @@ describe("§9.1 — authentification", () => {
   // est vérifié ici n'est pas un privilège mais une INDÉPENDANCE : chacun ouvre, et
   // retirer l'un laisse l'autre debout — sans quoi une rotation éteindrait les deux.
 
-  it("le second secret authentifie, par le chemin comme par l'en-tête", async () => {
-    const deux = envAvec({ MCP_SHARED_SECRET_ATHENA: SECRET_ATHENA });
-
-    const parChemin = await appeler(rpc("ping"), { secret: SECRET_ATHENA, env: deux });
-    expect(parChemin.status).toBe(200);
-
-    const parEntete = await appeler(rpc("ping"), {
-      secret: null,
-      headers: { Authorization: `Bearer ${SECRET_ATHENA}` },
-      env: deux,
-    });
-    expect(parEntete.status).toBe(200);
+  it("un second nom de secret n'ouvre PLUS rien — MCP_SHARED_SECRET_ATHENA est retiré", async () => {
+    // REMPLACE le test « le second secret authentifie ». La garantie n'a pas été cassée,
+    // elle a été RETIRÉE : le clavardage de Pallas Athéna a disparu le 2026-09-02, le
+    // secret n'avait plus d'appelant, et il a été supprimé de Cloudflare le 2026-09-17.
+    // Ce qui est épinglé maintenant est l'inverse — poser ce nom ne rouvre rien, parce que
+    // la liste des noms admis est close et vit dans PORTE.
+    const avecAncien = envAvec({ MCP_SHARED_SECRET_ATHENA: SECRET_ATHENA });
+    const res = await appeler(rpc("ping"), { secret: SECRET_ATHENA, env: avecAncien });
+    expect(res.status).toBe(401);
   });
 
   it("les deux porteurs coexistent : configurer le second n'invalide pas le premier", async () => {
@@ -506,21 +506,31 @@ describe("§9.1 — authentification", () => {
     expect(res.status).toBe(200);
   });
 
-  it("révocation SÉPARÉE : retirer le premier laisse le second ouvrir, et l'inverse", async () => {
-    const sansPremier = envAvec({
-      MCP_SHARED_SECRET: undefined,
-      MCP_SHARED_SECRET_ATHENA: SECRET_ATHENA,
-    });
-    expect((await appeler(rpc("ping"), { secret: SECRET_ATHENA, env: sansPremier })).status).toBe(
-      200,
-    );
-    expect((await appeler(rpc("ping"), { secret: SECRET, env: sansPremier })).status).toBe(401);
+  it("retirer l'unique secret ferme tout — le défaut fermé n'a pas de repli", async () => {
+    // REMPLACE le test de révocation séparée. Le MÉCANISME multi-secrets n'a pas disparu :
+    // il vit dans `apparie` du socle, et y est éprouvé (« retirer un secret laisse l'autre
+    // servir »). Ce dépôt n'en déclare plus qu'UN ; ce qui compte ici est donc qu'en le
+    // retirant on ferme, au lieu de retomber sur quoi que ce soit.
+    const sansAucun = envAvec({ MCP_SHARED_SECRET: undefined });
+    expect((await appeler(rpc("ping"), { secret: SECRET, env: sansAucun })).status).toBe(401);
+    expect(
+      (
+        await appeler(rpc("ping"), {
+          secret: null,
+          headers: { Authorization: `Bearer ${SECRET}` },
+          env: sansAucun,
+        })
+      ).status,
+    ).toBe(401);
+  });
 
-    const sansSecond = envAvec({ MCP_SHARED_SECRET_ATHENA: undefined });
-    expect((await appeler(rpc("ping"), { secret: SECRET, env: sansSecond })).status).toBe(200);
-    expect((await appeler(rpc("ping"), { secret: SECRET_ATHENA, env: sansSecond })).status).toBe(
-      401,
-    );
+  it("le porteur ?key= est servi — la forme qui survit au formulaire de claude.ai", async () => {
+    // AJOUT du 2026-09-17. `?key=` est la seule forme qui ait survécu au formulaire de
+    // connecteur de claude.ai (mesuré en juillet 2026 sur le jumeau) : sans elle, ce
+    // connecteur-ci était probablement inajoutable. Surface ajoutée en connaissance de
+    // cause — un jeton dans une URL voyage dans les journaux d'arête et l'historique.
+    const res = await appeler(rpc("ping"), { secret: null, query: { key: SECRET } });
+    expect(res.status).toBe(200);
   });
 
   it("deux secrets configurés n'admettent pas pour autant un troisième", async () => {
