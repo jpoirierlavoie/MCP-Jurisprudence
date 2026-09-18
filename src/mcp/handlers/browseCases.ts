@@ -12,7 +12,7 @@ import { describeError } from "../../canlii/client";
 import type { CaseListResponse, Lang } from "../../canlii/types";
 import { persisterBalayages } from "../../config";
 import { nombreFr, pluriel } from "../../format/fr";
-import { document, GARDE_DIFFUSION, ligneCandidat } from "../../format/render";
+import { document, GARDE_DIFFUSION, LISTES_SANS_FICHE, ligneCandidat } from "../../format/render";
 import { type CaseRow, rowFromListItem, upsertCases } from "../../store/cases";
 import { flushUsage, logSearch } from "../../store/telemetry";
 import { LIMITES } from "../defauts";
@@ -128,8 +128,7 @@ export async function browseCases(
     ecartees > 0
       ? `${nombreFr(ecartees)} entrée(s) rendue(s) par CanLII n'ont pas pu être lues et ne figurent pas ci-dessus.`
       : null,
-    "Les listes de CanLII ne portent ni date de décision, ni numéro de dossier, ni",
-    "hyperlien : pour la fiche complète d'une décision, employer jurisprudence_get_case.",
+    LISTES_SANS_FICHE,
     filtreDiffusion ? `\n${GARDE_DIFFUSION}` : null,
   ]
     .filter((s): s is string => s !== null)

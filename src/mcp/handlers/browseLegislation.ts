@@ -9,7 +9,7 @@ import { describeError } from "../../canlii/client";
 import type { Lang, LegislationListResponse } from "../../canlii/types";
 import { fold } from "../../citation/normalize";
 import { nombreFr, pluriel, troncature } from "../../format/fr";
-import { document } from "../../format/render";
+import { document, LEGISLATION_METADONNEES_LISTE } from "../../format/render";
 import { flushUsage, logSearch } from "../../store/telemetry";
 import { LIMITES } from "../defauts";
 import type { ToolContext } from "../registry";
@@ -89,8 +89,7 @@ export async function browseLegislation(
     `${query ? ` correspondant à « ${query} »` : ""} :`;
   const pied = [
     tronque ? `Troncature : ${tronque} (rappeler avec offset=${nombreFr(offset + limit)}).` : null,
-    "Métadonnées seulement. Pour le TEXTE d'une loi ou d'un règlement du Québec,",
-    "employer le connecteur « Législation du Québec », qui rend le texte officiel verbatim.",
+    LEGISLATION_METADONNEES_LISTE,
   ]
     .filter((s): s is string => s !== null)
     .join("\n");

@@ -14,6 +14,7 @@ import {
   EXPLICATIONS_INTROUVABLE,
   ficheDecision,
   GARDE_VERIFICATION,
+  TEXTE_NON_EXPOSE,
 } from "../../format/render";
 import { getCachedCase, rowFromMetadata, upsertCase } from "../../store/cases";
 import { loadDirectory } from "../../store/databases";
@@ -173,7 +174,7 @@ function rendre(row: Parameters<typeof ficheDecision>[0], provenance: string): s
     ficheDecision(row, { avecIds: true }),
     "",
     `Provenance : ${provenance}.`,
-    "Le TEXTE de la décision n'est pas exposé par l'API de CanLII : suivre l'hyperlien.",
+    TEXTE_NON_EXPOSE,
     "",
     GARDE_VERIFICATION,
   ].join("\n");

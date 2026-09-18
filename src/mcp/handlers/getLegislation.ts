@@ -28,7 +28,7 @@
 import { describeError } from "../../canlii/client";
 import type { Lang, LegislationMetadata } from "../../canlii/types";
 import { dateFr, nombreFr, ou } from "../../format/fr";
-import { GARDE_VERSION_LEGISLATIVE, lien } from "../../format/render";
+import { GARDE_VERSION_LEGISLATIVE, LEGISLATION_METADONNEES, lien } from "../../format/render";
 import { flushUsage, logSearch } from "../../store/telemetry";
 import type { ToolContext } from "../registry";
 import { err, ok, type ToolResult } from "../rpc";
@@ -143,9 +143,7 @@ export async function getLegislation(
     parties > 0 ? `Découpage : ${nombreFr(parties)} partie(s).` : null,
     url,
     "",
-    "Métadonnées seulement — l'API de CanLII ne rend pas le texte. Pour le TEXTE d'une",
-    "loi ou d'un règlement du Québec, employer le connecteur « Législation du Québec »,",
-    "qui rend le texte officiel verbatim.",
+    LEGISLATION_METADONNEES,
   ].filter((s): s is string => s !== null);
 
   return ok(lignes.join("\n"));

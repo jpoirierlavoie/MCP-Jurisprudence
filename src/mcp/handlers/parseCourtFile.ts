@@ -18,7 +18,7 @@
  */
 
 import { joindre } from "../../format/fr";
-import { GARDE_DOSSIER, GARDE_SANS_ADRESSE } from "../../format/render";
+import { GARDE_DOSSIER, GARDE_SANS_ADRESSE, SANS_PLUMITIF } from "../../format/render";
 import { analyserNumeroDossier } from "../../qc/dossier";
 import { LIBELLE_CATEGORIE } from "../../qc/forums";
 import { LIBELLE_TYPE_GREFFE } from "../../qc/juridictions";
@@ -122,11 +122,7 @@ export async function parseCourtFileTool(
 
   if (r.parse_error) lignes.push("", `⚠ ${r.parse_error}`);
 
-  lignes.push(
-    "",
-    "Pour la fiche complète du palais, employer palais_get.",
-    "Ce connecteur ne consulte AUCUN registre de dossiers : il n'a pas accès au plumitif.",
-  );
+  lignes.push("", "Pour la fiche complète du palais, employer palais_get.", SANS_PLUMITIF);
 
   return ok([...lignes, "", GARDE_DOSSIER].join("\n"));
 }

@@ -82,22 +82,30 @@ export const GARDE_CITATEUR =
  *   La PREMIÈRE LIGNE est identique dans les deux modes, délibérément : la cause reste
  *   nommée quoi qu'il arrive (invariant 9(a)).
  */
+/**
+ * Le corps de la note d'étranglement quand TOUT a été rejoué avec succès.
+ *
+ * Séparé de la première ligne parce que celle-ci porte un décompte, et qu'un registre de
+ * gardes est statique. La coupure tombe exactement là où la phrase cesse de dépendre de
+ * l'appel : la cause nommée reste en tête (invariant 9(a)), la portée devient citable.
+ */
+export const ETRANGLEMENT_SANS_PERTE =
+  "Ils ont été rejoués et le rythme a été réduit d'office : les résultats ci-dessus\n" +
+  "ne sont ni tronqués ni affaiblis par ce fait. Un lot plus petit, ou repris plus\n" +
+  "tard, s'exécutera plus vite.";
+
+/** Le corps de la même note quand le résultat n'est PAS complet. Ajouté après un défaut réel. */
+export const ETRANGLEMENT_RESULTAT_PARTIEL =
+  "Ils ont été rejoués, mais le résultat ci-dessus n'est PAS complet pour autant :\n" +
+  "son étendue réelle n'est pas connue. Reprendre plus tard, ou sur un lot plus petit.";
+
 export function noteEtranglement(etranglements: number, resultatComplet = true): string {
   if (etranglements <= 0) return "";
   const pluriel = etranglements > 1 ? "appels" : "appel";
   const tete = `CanLII a étranglé ${nombreFr(etranglements)} ${pluriel} pendant cet appel (HTTP 429).`;
-  return resultatComplet
-    ? [
-        tete,
-        "Ils ont été rejoués et le rythme a été réduit d'office : les résultats ci-dessus",
-        "ne sont ni tronqués ni affaiblis par ce fait. Un lot plus petit, ou repris plus",
-        "tard, s'exécutera plus vite.",
-      ].join("\n")
-    : [
-        tete,
-        "Ils ont été rejoués, mais le résultat ci-dessus n'est PAS complet pour autant :",
-        "son étendue réelle n'est pas connue. Reprendre plus tard, ou sur un lot plus petit.",
-      ].join("\n");
+  return [tete, resultatComplet ? ETRANGLEMENT_SANS_PERTE : ETRANGLEMENT_RESULTAT_PARTIEL].join(
+    "\n",
+  );
 }
 
 /**
@@ -183,6 +191,47 @@ export const EXPLICATION_INDETERMINEE =
  * Pied imposé de toute sortie `palais_*`. Porte la DATE du relevé : sans elle, le
  * lecteur ne peut pas juger du risque qu'il prend.
  */
+/**
+ * Les réserves PERMANENTES restées littérales jusqu'au 2026-09-17.
+ *
+ * Chacune était écrite dans son gestionnaire, servie à CHAQUE sortie réussie de son outil.
+ * Elles montent ici pour une seule raison : le registre de gardes (`src/gardes.ts`) importe
+ * ses textes au lieu de les recopier, de sorte que la prose servie et la réserve structurée
+ * sont le même objet. Une réserve anonyme ne peut pas être importée.
+ *
+ * ⚠ AUCUN CARACTÈRE N'A CHANGÉ au passage. Déplacement, jamais réécriture : réécrire une
+ *   réserve est une décision éditoriale, donc de l'avocat (invariant 16).
+ */
+
+/** `jurisprudence_browse_cases` — pied inconditionnel. */
+export const LISTES_SANS_FICHE =
+  "Les listes de CanLII ne portent ni date de décision, ni numéro de dossier, ni\n" +
+  "hyperlien : pour la fiche complète d'une décision, employer jurisprudence_get_case.";
+
+/** `jurisprudence_get_case` — servie avec toute fiche. */
+export const TEXTE_NON_EXPOSE =
+  "Le TEXTE de la décision n'est pas exposé par l'API de CanLII : suivre l'hyperlien.";
+
+/** `jurisprudence_get_legislation` — pied. */
+export const LEGISLATION_METADONNEES =
+  "Métadonnées seulement — l'API de CanLII ne rend pas le texte. Pour le TEXTE d'une\n" +
+  "loi ou d'un règlement du Québec, employer le connecteur « Législation du Québec »,\n" +
+  "qui rend le texte officiel verbatim.";
+
+/** `jurisprudence_browse_legislation` — pied. Texte VOISIN du précédent, et distinct. */
+export const LEGISLATION_METADONNEES_LISTE =
+  "Métadonnées seulement. Pour le TEXTE d'une loi ou d'un règlement du Québec,\n" +
+  "employer le connecteur « Législation du Québec », qui rend le texte officiel verbatim.";
+
+/** `jurisprudence_parse_citation` — pied inconditionnel. */
+export const DIAGNOSTIC_SEULEMENT =
+  "Outil de diagnostic : il n'établit RIEN sur l'existence de la décision. " +
+  "Pour l'éprouver réellement, utiliser jurisprudence_verify_citations.";
+
+/** `greffe_parse_court_file_number` — pied du numéro judiciaire. */
+export const SANS_PLUMITIF =
+  "Ce connecteur ne consulte AUCUN registre de dossiers : il n'a pas accès au plumitif.";
+
 export const GARDE_PALAIS =
   "Adresses relevées auprès du ministère de la Justice du Québec le 2026-07-15.\n" +
   "Les palais de justice déménagent : VÉRIFIER la liste officielle du Ministère\n" +

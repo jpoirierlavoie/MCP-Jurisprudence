@@ -6,6 +6,7 @@
  */
 
 import { formLabel, parseCitation, resolve } from "../../citation/parse";
+import { DIAGNOSTIC_SEULEMENT } from "../../format/render";
 import { loadDirectory } from "../../store/databases";
 import type { ToolContext } from "../registry";
 import { ok, type ToolResult } from "../rpc";
@@ -55,11 +56,7 @@ export async function parseCitationTool(
     for (const f of parsed.parallel) lignes.push(`  · ${formLabel(f)}`);
   }
 
-  lignes.push(
-    "",
-    "Outil de diagnostic : il n'établit RIEN sur l'existence de la décision. " +
-      "Pour l'éprouver réellement, utiliser jurisprudence_verify_citations.",
-  );
+  lignes.push("", DIAGNOSTIC_SEULEMENT);
 
   return ok(lignes.join("\n"));
 }
