@@ -463,18 +463,11 @@ automatique a été retiré le 2026-09-16 : il n'avait jamais mis une seule vers
 d'aujourd'hui, et aucune ligne ne subsiste sous un ancien nom — l'historique de §10 n'est
 donc pas coupé en deux à la date du renommage.
 
-⚠ **`migrations/0005_purge_dates_fabriquees.sql` est ÉCRITE et N'EST PAS ENCORE APPLIQUÉE
-en production** *(2026-09-17)*. Elle retire les 1 819 dates de décision fabriquées par le
-balayage vif — recensées contre la D1 vivante avant écriture : 2 630 lignes `sweep`, dont
-811 sans date et 1 819 au 1er janvier, et aucune à un autre jour. `npm run deploy` la
-passera **avant** le Worker : c'est le sens sûr pour une migration de SCHÉMA, et l'inverse
-pour une migration de DONNÉE. Pendant les quelques secondes qui séparent les deux étapes,
-la base nettoyée tourne sous le code qui fabrique encore — **ne pas appeler
-`jurisprudence_find_case` entre les deux**. Rien d'automatisé n'écrit dans `cases` : le
-cron ne rafraîchit que le répertoire, et `BACKFILL_ENABLED` vaut `"false"`. Contrôle après
-coup, attendu à zéro puis à l'égalité :
-`SELECT COUNT(*) FROM cases WHERE source <> 'lookup' AND decision_date IS NOT NULL;` et
-`SELECT (SELECT COUNT(*) FROM cases), (SELECT COUNT(*) FROM cases_fts);`
+`migrations/0005_purge_dates_fabriquees.sql` est **appliquée en production** *(2026-09-17)* :
+elle a purgé les 1 819 dates de décision au 1er janvier fabriquées par l'ancien balayage vif
+(sur 2 630 lignes `sweep` recensées avant purge, dont 811 sans date). Vérifiée sur la D1
+vivante : `0` ligne hors `lookup` porte une `decision_date`, et `cases` = `cases_fts` (parité
+à 457 311 entrées).
 
 **UN seul client aujourd'hui, et un porteur qui attend** (§19). Le connecteur claude.ai
 est le seul appelant vivant. Le clavardage de Pallas Athéna, second client de
