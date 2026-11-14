@@ -82,4 +82,4 @@ npx.cmd vitest run
 npx.cmd wrangler deploy --dry-run
 ```
 
-**Déploiement manuel uniquement (§12) :** ne **jamais** exécuter `npx wrangler deploy` seul (les migrations D1 passent **avant** le déploiement via `npm run deploy` / `scripts/deployer.mjs`, qui refuse un arbre sale et pose `--var COMMIT:<sha>`). Ne pas déployer en production sans instruction explicite du praticien.
+**Déploiement continu sur `main` et repli local (§12) :** un `push` sur `main` déclenche `.github/workflows/deploy.yml` (`environment: production`), qui exécute `npm run deploy` (`scripts/deployer.mjs` : migrations D1 **avant** le déploiement avec `--var COMMIT:<sha>`). Ne **jamais** exécuter `npx wrangler deploy` seul, et ne jamais lancer de déploiement local en production sans instruction explicite du praticien.

@@ -243,8 +243,8 @@ npx wrangler secret put MCP_SHARED_SECRET
 openssl rand -hex 32
 npx wrangler secret put MCP_SHARED_SECRET_ATHENA
 
-# Déploiement — MANUEL et assumé (§12) : l'automatique a été retiré le 2026-09-16.
-# `npm run deploy` tient l'ordre : migrations --remote PUIS wrangler deploy.
+# Déploiement continu sur `main` (§12) via `.github/workflows/deploy.yml` (`environment: production`),
+# ou repli local via `npm run deploy` (`scripts/deployer.mjs` : migrations --remote PUIS wrangler deploy).
 export CLOUDFLARE_API_TOKEN="$(tr -d '\r\n' < cf.token)"   # gitignoré, jamais affiché
 npm run deploy
 ```
@@ -284,49 +284,41 @@ node scripts/mcp-client.mjs --remote tools/call jurisprudence_verify_citations \
 Attendu : *Dunsmuir* CONFIRMÉE · `2020 QCCA 999999` INTROUVABLE (avec les explications
 concurrentes) · `[1985] C.A. 105` NON CONSTRUCTIBLE (avec renvoi à `jurisprudence_find_case`).
 
-### Déploiement — MANUEL, et c'est un choix *(2026-09-16)*
+### Déploiement — continu sur `main` via `.github/workflows/deploy.yml` *(rétabli le 2026-11-14)*
 
-**Pousser sur `main` ne déploie pas, et rien ne le fera.** Le dépôt a porté un workflow de
-déploiement automatique du 2026-07-23 au 2026-09-16 : dix-neuf exécutions, dix-neuf échecs,
-**zéro version mise en ligne**. Il tombait toujours à l'étape des migrations, faute du
-secret `CLOUDFLARE_API_TOKEN` — établi par l'audit de sortie de `harden-runner`, qui ne
-montrait aucun appel à `api.cloudflare.com`, puis confirmé mot pour mot par le workflow
-lui-même avant son retrait. Il a été **supprimé** plutôt que réparé : le motif du choix est
-en §12.
+**Pousser sur `main` déclenche [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)**
+dans l'environnement GitHub `production` (`CLOUDFLARE_API_TOKEN` requis côté GitHub) :
 
-**Ce que le retrait ne change pas : l'ordre.** Les migrations passent AVANT le déploiement —
-l'inverse met en ligne du code qui lit des colonnes inexistantes. Cet ordre n'est plus écrit
-dans un fichier de CI qui ne s'exécutait pas ; il est tenu par `npm run deploy`, qui enchaîne
-les migrations puis le déploiement et s'arrête au premier échec.
+1. **4 contrôles préalables en lecture seule** (présence du jeton sans espace/retour chariot,
+   validité auprès de Cloudflare, compte unique, concordance de la D1 `canlii` avec
+   `wrangler.jsonc`).
+2. **Porte technique complète** (`wrangler types`, `tsc --noEmit`, `biome check .`,
+   `vitest run`, `wrangler deploy --dry-run`).
+3. **`npm run deploy`** (`scripts/deployer.mjs`), qui applique les migrations D1 **avant**
+   de déployer le Worker avec `--var COMMIT:<sha>`, et s'arrête au premier échec.
+4. **Vérification vivante** de `/health` (correspondance exacte du `commit` déployé) et de
+   `/mcp/server-card` (`HTTP 200`).
 
-⚠ **Ne pas appeler `npx wrangler deploy` directement.** Jusqu'au 2026-09-16, `npm run deploy`
-valait précisément cela — le déploiement seul, sans les migrations, c'est-à-dire l'ordre
-interdit sous un nom rassurant.
+⚠ **Ne pas appeler `npx wrangler deploy` directement.** L'ordre migrations → déploiement est
+tenu par `npm run deploy` (`scripts/deployer.mjs`), aussi bien en CI qu'en repli local.
 
-**Et le retard, lui, se voit.** `/health` annonce le commit dont la version en ligne est
-issue, et `.github/workflows/verifier-deploiement.yml` le compare **chaque jour** au dernier
-commit de `main`. Ce contrôle n'a aucun secret, aucun jeton et `contents: read` : il
-regarde, il ne déploie rien et ne le peut pas — c'est le compromis inverse de celui qui a
-été écarté. Un rouge y signifie « à déployer », jamais « cassé » : la production sert
-toujours, elle sert une version antérieure.
+**Le filet indépendant de dérive reste actif.** `/health` annonce le commit dont la version en
+ligne est issue, et `.github/workflows/verifier-deploiement.yml` (aucun secret, `contents: read`)
+le compare **chaque jour** au dernier commit de `main` pour signaler tout déploiement CD manqué
+ou expiré :
 
 ```bash
 curl -s https://jurisprudence.poirierlavoie.ca/health
 # {"status":"ok","commit":"8b34810"}   ← ce sha change à chaque déploiement
 ```
 
-`scripts/deployer.mjs` **refuse un arbre de travail sale** : déployer un arbre modifié
-ferait annoncer un commit qui ne décrit pas le code en ligne.
-
+En repli local, `scripts/deployer.mjs` **refuse un arbre de travail sale** (déployer un arbre
+modifié ferait annoncer un commit qui ne décrit pas le code en ligne) :
 
 ```powershell
 $env:CLOUDFLARE_API_TOKEN = (Get-Content cf.token -Raw).Trim()   # gitignoré, jamais affiché
 npm run deploy    # = migrations --remote PUIS wrangler deploy, arrêt au premier échec
 ```
-
-La CI de contrôle (`ci.yml`), elle, tourne et doit rester verte : type-check, mise en
-forme, tests, et validation du paquet à blanc. C'est le **déploiement** qui est manuel,
-pas la vérification.
 
 ### Après le déploiement
 
@@ -334,13 +326,13 @@ pas la vérification.
   `https://jurisprudence.poirierlavoie.ca/mcp/<secret>`, nom
   « MCP Jurisprudence ».
 - **Google Antigravity** (`plugin.json`, `mcp_config.json`, `assets/logo.svg` à la racine) :
-  installer via `agy plugin install https://github.com/jpoirierlavoie/MCP-Jurisprudence-Quebec.git`
+  installer via `agy plugin install https://github.com/jpoirierlavoie/MCP-Jurisprudence.git`
   (ou copier les fichiers du greffon dans `~/.gemini/config/plugins/mcp-jurisprudence`),
   renseigner la variable `MCP_JURISPRUDENCE_SECRET` sur la page du greffon puis l'activer
   — les treize outils se chargent à la demande (*lazy*) par défaut, sans contexte additionnel
   hors les `INSTRUCTIONS` canoniques du serveur.
 - **Gemini CLI** (`gemini-extension.json`) : installer via
-  `gemini extensions install https://github.com/jpoirierlavoie/MCP-Jurisprudence-Quebec`
+  `gemini extensions install https://github.com/jpoirierlavoie/MCP-Jurisprudence`
   et saisir `MCP_JURISPRUDENCE_SECRET` (stocké de façon sensible). Le manifeste déclare
   `"contextFileName": []` afin que `GEMINI.md` (réservé au développement de ce dépôt) ne
   soit pas injecté dans les sessions d'usage général.

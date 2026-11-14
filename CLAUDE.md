@@ -167,10 +167,7 @@ node scripts/mcp-client.mjs --local tools/list
 node scripts/refresh-databases.mjs --remote --sql   # réconciliation §4.3
 ```
 
-**Déploiement — MANUEL, et c'est assumé** (§12 ; le déploiement automatique a été retiré le
-2026-09-16 après dix-neuf échecs et zéro mise en ligne). **Les migrations passent d'abord,
-sans exception** — et c'est `npm run deploy` qui le garantit, via `scripts/deployer.mjs`.
-Ne pas appeler `npx wrangler deploy` directement : c'est l'ordre inverse.
+**Déploiement — continu sur `main` via `.github/workflows/deploy.yml` *(rétabli le 2026-11-14)*, ou local via `npm run deploy`** (§12 ; l'interlude manuel du 2026-09-16 au 2026-11-14 est clos). **Les migrations passent d'abord, sans exception** — et c'est `npm run deploy` (`scripts/deployer.mjs`) qui le garantit des deux côtés : en CI (dans l'environnement GitHub `production` avec `CLOUDFLARE_API_TOKEN`, précédé de 4 contrôles préalables et d'une porte complète de tests, suivi d'une vérification de `/health` et `/mcp/server-card`) comme en repli local. Ne pas appeler `npx wrangler deploy` directement : c'est l'ordre inverse.
 
 Ce script fait trois choses qu'une ligne de `package.json` ne saurait faire : il **refuse
 un arbre sale** — le Worker annonce son commit sur `/health`, et déployer un arbre modifié
@@ -402,11 +399,15 @@ l'ordre à un workflow — « **Les migrations D1 passent AVANT le déploiement*
 alors systématiquement sautée. Aucune version en production n'en est jamais sortie. Il a
 été **supprimé** plutôt que réparé (décision du praticien, motivée en §12).
 
-**L'ordre n'est donc plus tenu par un fichier de CI : il l'est par `npm run deploy`**, qui
-vaut désormais `db:migrate:remote` PUIS `wrangler deploy` et s'arrête au premier échec. Le
-script valait auparavant `wrangler deploy` tout court — c'est-à-dire exactement l'ordre
-inverse, disponible sous un nom rassurant. Le déploiement reste manuel, mais la règle qui
-comptait est passée de la prose au code, et elle s'exécute maintenant pour de bon.
+**L'ordre migrations → déploiement est tenu en un seul endroit : `npm run deploy`**
+(`scripts/deployer.mjs`), qui exécute `wrangler d1 migrations apply canlii --remote` PUIS
+`wrangler deploy --var COMMIT:<sha>` et s'arrête au premier échec. Le script valait
+auparavant `wrangler deploy` tout court — l'ordre inverse, disponible sous un nom
+rassurant. Le workflow `.github/workflows/deploy.yml` (rétabli le 2026-11-14 dans
+l'environnement GitHub `production`, actions épinglées par SHA, `harden-runner`, 4 contrôles
+préalables du jeton et de la D1 avant `npm ci`, puis vérification vivante de `/health` et
+`/mcp/server-card`) exécute lui aussi **`npm run deploy`**. Le déploiement reste jouable à
+la main en repli local via le même script.
 
 ⚠ *Cause établie le 2026-09-16, et une fausse piste retirée le même jour.* Cette note a
 porté quelques heures « le jeton ouvre DEUX comptes Cloudflare et wrangler ne sait pas
@@ -456,10 +457,10 @@ qu'elle vaudra encore le jour où l'on voudra rouvrir la question (§12).
 
 **Livré et en production** sur `jurisprudence.poirierlavoie.ca`, 532 tests verts en quinze
 fichiers. Treize outils — dix `jurisprudence_*`, trois `greffe_*`/`palais_*` — et une page
-publique bilingue sur la même origine (§18). La version en ligne a été déployée **à la main**, comme toutes celles qui l'ont
-précédée ; `/health` annonce le commit dont elle est issue (§8, §12.1). Le déploiement
-automatique a été retiré le 2026-09-16 : il n'avait jamais mis une seule version en ligne
-(§12). `migrations/0004_rename_tool_prefix.sql` est
+publique bilingue sur la même origine (§18). `/health` annonce le commit dont la version en
+ligne est issue (§8, §12.1), et le déploiement sur `main` est automatisé via
+`.github/workflows/deploy.yml` (`npm run deploy`, `environment: production`) *(rétabli le
+2026-11-14 après le retrait manuel du 2026-09-16, §12)*. `migrations/0004_rename_tool_prefix.sql` est
 **appliquée en production** : `search_log.tool` et `court_codes.note` portent les noms
 d'aujourd'hui, et aucune ligne ne subsiste sous un ancien nom — l'historique de §10 n'est
 donc pas coupé en deux à la date du renommage.
@@ -502,5 +503,10 @@ appel sortant), et se confirmeront à l'usage par la boucle de §6.4.
 `Mcp-Session-Id` en pré-vol `2026-07-28`), fiche publique SEP-2127 (`GET /mcp/server-card`),
 et `GEMINI.md` (< 24 000 octets, synthèse d'espace de travail renvoyant à `CLAUDE.md` et
 `SPEC.md`). Parité des versions, descriptions et taille de `GEMINI.md` verrouillée par
-`test/doc.test.ts` (note : les changements dans `src/index.ts` et `src/site.ts` nécessitent
-`npm run deploy` manuel, §12, pour prendre effet sur `jurisprudence.poirierlavoie.ca`).
+`test/doc.test.ts`.
+
+*(2026-11-14)* Rétablissement du déploiement continu sécurisé via `.github/workflows/deploy.yml`
+(`environment: production`, `CLOUDFLARE_API_TOKEN`, 4 contrôles préalables en lecture seule,
+porte complète, `npm run deploy` via `scripts/deployer.mjs`, puis vérification vivante sur
+`/health` et `/mcp/server-card`) ; alignement de l'URL canonique du dépôt sur `MCP-Jurisprudence`
+(`src/index.ts`, `src/site.ts`, `plugin.json`, `README.md`, vérifié par `test/doc.test.ts`).

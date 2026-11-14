@@ -131,6 +131,10 @@ describe("Manifestes Antigravity / Gemini et version — aucune dérive silencie
     expect(plugin.description).toBe(PUBLIC_DESCRIPTION);
     expect(geminiExt.description).toBe(PUBLIC_DESCRIPTION);
     expect(card.description).toBe(PUBLIC_DESCRIPTION);
+
+    expect(plugin.repository).toBe("https://github.com/jpoirierlavoie/MCP-Jurisprudence");
+    expect(card.repository.url).toBe("https://github.com/jpoirierlavoie/MCP-Jurisprudence");
+    expect(readme).not.toContain("MCP-Jurisprudence-Quebec");
   });
 
   it("mcp_config.json et gemini-extension.json configurent Streamable HTTP par en-tête, sans secret ni eager", () => {

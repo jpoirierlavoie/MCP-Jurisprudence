@@ -1003,6 +1003,7 @@ Dépôt GitHub distinct, calqué sur les protections d'Athéna : **actions épin
 | Fichier | Contenu |
 |---|---|
 | `.github/workflows/ci.yml` | `tsc --noEmit` · Biome (lint + format) · Vitest avec `@cloudflare/vitest-pool-workers` · `wrangler deploy --dry-run` |
+| `.github/workflows/deploy.yml` | Déploiement continu sur `push` vers `main` (+ `workflow_dispatch`), `environment: production` : 4 contrôles préalables en lecture seule du jeton Cloudflare et de la D1 `canlii`, porte complète (`wrangler types`, `tsc`, Biome, Vitest, `--dry-run`), `npm run deploy` (`scripts/deployer.mjs` : migrations D1 puis Worker avec `COMMIT`), puis vérification vivante de `/health` et `/mcp/server-card` |
 | `.github/workflows/codeql.yml` | CodeQL, langage `javascript-typescript` |
 | `.github/workflows/osv-scanner.yml` | OSV-Scanner sur `package-lock.json` |
 | `.github/workflows/trivy.yml` | Trivy, mode système de fichiers |
@@ -1010,32 +1011,20 @@ Dépôt GitHub distinct, calqué sur les protections d'Athéna : **actions épin
 | `.github/workflows/verifier-deploiement.yml` | Contrôle de dérive quotidien (§12.1) : compare le `commit` de `/health` au dernier commit de `main`. Aucun secret, aucun jeton, `contents: read` — il regarde, il ne déploie rien |
 | `.github/dependabot.yml` | npm + github-actions, hebdomadaire |
 
-**LE DÉPLOIEMENT EST MANUEL, ET C'EST UNE DÉCISION — prise le 2026-09-16.** Il n'y a plus de workflow de déploiement : `.github/workflows/deploy.yml` a été **supprimé**.
+**LE DÉPLOIEMENT CONTINU EST RÉTABLI *(2026-11-14)* VIA L'ENVIRONNEMENT `production`.** Après l'interlude manuel entamé le 2026-09-16 (historique conservé ci-dessous), `.github/workflows/deploy.yml` a été rétabli de manière sécurisée : `permissions: contents: read`, actions épinglées par SHA, `harden-runner`, concurrence sérialisée (`cancel-in-progress: false`), isolation du jeton dans l'environnement GitHub `production` (`CLOUDFLARE_API_TOKEN`), quatre contrôles préalables avant installation, porte complète de tests et exécution de **`npm run deploy`** (`scripts/deployer.mjs`) suivie d'une vérification vivante de `/health` et `/mcp/server-card`. La règle d'ordre demeure inchangée : les migrations D1 passent **avant** le déploiement du Worker.
 
-*Ce que disait cette section jusqu'au 2026-09-16 : « `.github/workflows/deploy.yml` — Sur `push` vers `main` : `wrangler d1 migrations apply canlii --remote` **puis** `wrangler deploy` », et « Ordre impératif dans `deploy.yml` : les migrations d'abord, le déploiement ensuite ». La règle d'ordre reste vraie ; c'est son support qui a changé.*
+*Historique (2026-09-16) :* `.github/workflows/deploy.yml` avait été temporairement **supprimé** entre le 2026-09-16 et le 2026-11-14 après dix-neuf échecs dus à un `CLOUDFLARE_API_TOKEN` vide au niveau du dépôt, l'ordre migrations-puis-Worker ayant alors été déplacé dans `scripts/deployer.mjs` (`npm run deploy`), où il vit toujours et est désormais appelé à la fois par la CI et en repli local.
 
-**Pourquoi il est parti plutôt que réparé.** Dix-neuf exécutions du 2026-07-23 au 2026-09-16, dix-neuf échecs, **zéro version mise en ligne** — toutes l'ont été à la main. Il tombait toujours au même endroit, et pour une raison désormais **confirmée à la source** : le secret `CLOUDFLARE_API_TOKEN` n'atteignait pas le job. Le journal dit `CLOUDFLARE_API_TOKEN:` suivi de rien, puis « In a non-interactive environment, it's necessary to set a CLOUDFLARE_API_TOKEN environment variable for wrangler to work ». La variable était littéralement vide.
+### 12.1 Le coût du manuel, et le filet indépendant de dérive
 
-⚠ *Amendé le 2026-09-16 dans la même journée que sa rédaction.* Cette section a d'abord tenu que les journaux de la CI « exigent des droits d'administration, l'API rendant 403 ». C'est vrai de l'API **anonyme**, et faux pour le propriétaire : `gh run view <id> --log` les rend intégralement. La cause avait donc été établie par un détour — l'audit de sortie de `harden-runner`, lui public, ne montrant aucun appel à `api.cloudflare.com`, ce qui prouvait que `wrangler` renonçait avant tout réseau — là où la source directe était à portée d'une commande. Le détour a donné la bonne réponse ; il n'aurait pas dû être nécessaire. **Avant de conclure qu'une trace est inaccessible, essayer `gh`.**
+Un déploiement manuel — ou une exécution CD manquée — a un coût : **rien ne signale qu'un commit est poussé sans être en ligne.** L'écart se tient de mémoire, et un écart tenu de mémoire dure plus longtemps qu'on ne croit.
 
-Le réparer n'aurait tenu qu'à déposer le jeton dans les réglages du dépôt. Ce n'est pas un geste anodin : **c'est confier à un tiers un pouvoir d'écriture sur l'infrastructure** — appliquer des migrations, remplacer le Worker en production. Le praticien a préféré n'avoir aucun tel pouvoir stocké ailleurs que sur son poste, et une voie de déploiement unique plutôt que deux. Le connecteur jumeau, lui aussi un Worker en production, n'a jamais eu de workflow de déploiement : les deux dépôts sont désormais alignés.
-
-**CE QUE LE RETRAIT NE CHANGE PAS : L'ORDRE.** Les migrations passent AVANT le déploiement ; le schéma inverse met en ligne du code qui lit des colonnes inexistantes. Cet ordre n'est plus écrit dans un fichier qui ne s'exécutait pas — il est tenu par **`npm run deploy`**, qui vaut `db:migrate:remote` PUIS `wrangler deploy` et s'arrête au premier échec.
-
-⚠ Le script `deploy` de `package.json` valait jusqu'au 2026-09-16 `wrangler deploy` tout court : **le déploiement seul, sans les migrations, c'est-à-dire l'ordre interdit sous un nom rassurant.** C'était le seul endroit du dépôt où l'invariant pouvait être enfreint par la commande la plus naturelle. Le retrait du workflow a donc eu un effet net POSITIF sur l'invariant : il l'a déplacé d'un fichier inerte vers un script qui s'exécute.
-
-**Si la question était rouverte**, ce qu'il faudrait peser n'est pas la commodité mais le dépôt du jeton, et le fait qu'un déploiement automatique sur `push` retire au praticien le dernier temps d'arrêt avant la mise en ligne d'un outil juridique.
-
-### 12.1 Le coût du manuel, et comment il est payé
-
-Le déploiement manuel a un coût, et il faut le payer plutôt que l'ignorer : **rien ne signale qu'un commit est poussé sans être en ligne.** L'écart se tient de mémoire, et un écart tenu de mémoire dure plus longtemps qu'on ne croit — les dix-neuf échecs de l'ancien workflow en sont la démonstration.
-
-Deux pièces, posées le 2026-09-16, le rendent MESURABLE sans rouvrir ce qui a été refusé :
+Deux pièces, posées le 2026-09-16 et conservées avec le rétablissement de `deploy.yml` *(2026-11-14)*, rendent tout écart MESURABLE indépendamment du workflow de déploiement :
 
 1. **Le Worker annonce son commit** sur `/health` (§8). La valeur est posée à la volée par `scripts/deployer.mjs`, en `--var COMMIT:<sha>` ; le défaut de `wrangler.jsonc` est « inconnu ».
-2. **`.github/workflows/verifier-deploiement.yml`** compare cette valeur au dernier commit de `main`, **une fois par jour**. Il n'a AUCUN secret, aucun jeton, et `permissions: contents: read` : un `GET` sur un point d'entrée public et une comparaison de chaînes. **Surveiller sans rien pouvoir écrire** — le compromis inverse de celui qui a été écarté.
+2. **`.github/workflows/verifier-deploiement.yml`** compare cette valeur au dernier commit de `main`, **une fois par jour**. Il n'a AUCUN secret, aucun jeton, et `permissions: contents: read` : un `GET` sur un point d'entrée public et une comparaison de chaînes. Il attrape tout échec silencieux de `deploy.yml` (jeton expiré, déploiement sauté).
 
-⚠ **Pas de déclenchement sur `push`, délibérément.** Juste après une poussée, la production est forcément en retard : le contrôle serait rouge à chaque commit, pour une raison normale. C'est exactement le mode de panne qui a fait vivre dix-neuf échecs sans que personne les regarde. Une fois par jour, un rouge veut dire quelque chose. **Et un rouge ici signifie « à déployer », jamais « cassé »** : la production sert toujours, elle sert une version antérieure.
+⚠ **Pas de déclenchement sur `push`, délibérément.** Juste après une poussée, `deploy.yml` vérifie déjà `/health` ; une fois par jour, un rouge sur `verifier-deploiement.yml` veut dire quelque chose. **Et un rouge ici signifie « à déployer » (ou échec CD), jamais « cassé »** : la production sert toujours, elle sert une version antérieure.
 
 ⚠ **Trois issues distinctes, qui ne se confondent pas** : point d'entrée injoignable, coupe-circuit baissé (`404`), et commit « inconnu » ne sont PAS des dérives — ce sont des absences de mesure. Le contrôle refuse alors de conclure plutôt que de supposer la production à jour. C'est la règle d'INDÉTERMINÉE de §2, appliquée au déploiement.
 
@@ -1100,7 +1089,7 @@ satisferait la première en retirant la garantie de §2 partout.
 
 ## 14. Mise en service — marche à suivre, et ce qu'elle est devenue
 
-*Les onze étapes ont TOUTES été franchies ; le connecteur est en production depuis le 2026-07-23. La liste est conservée — datée et corrigée sur place le 2026-09-16 — parce qu'elle sert deux fois : à repartir d'une base neuve, et à savoir ce qui a été fait le jour où une étape se révèle fausse. Trois ont bougé : la 4 (son second porteur n'a plus de client, §19), la 6 (le déploiement est manuel, §12) et la 10 (la limitation de débit voyage désormais avec le Worker, §9.3).*
+*Les onze étapes ont TOUTES été franchies ; le connecteur est en production depuis le 2026-07-23. La liste est conservée — datée et mise à jour sur place — parce qu'elle sert deux fois : à repartir d'une base neuve, et à savoir ce qui a été fait le jour où une étape se révèle fausse. Trois ont bougé : la 4 (son second porteur n'a plus de client, §19), la 6 (rétablissement du déploiement continu via `environment: production` le 2026-11-14 après l'interlude manuel du 2026-09-16, §12) et la 10 (la limitation de débit voyage désormais avec le Worker, §9.3).*
 
 1. Demander la clef d'API par le formulaire de commentaires de CanLII, en décrivant l'usage : outil interne de vérification de références pour une pratique d'avocat au Québec. **Y poser les questions de §16.1 et §16.2 dans le même message.**
 2. `wrangler d1 create canlii --location enam` ; reporter l'`database_id` dans `wrangler.jsonc`.
@@ -1108,7 +1097,7 @@ satisferait la première en retirant la garantie de §2 partout.
 4. `wrangler secret put CANLII_API_KEY` ; `openssl rand -hex 32` puis `wrangler secret put MCP_SHARED_SECRET`. **Un second porteur, facultatif** (§19) : refaire l'opération pour `MCP_SHARED_SECRET_ATHENA`. ⚠ Le secret doit être transmis **octet pour octet** aux deux systèmes qui le portent : un saut de ligne final suffit à faire diverger les valeurs — donc un `401` permanent que rien n'explique. Sous Windows, `openssl` termine en CRLF et `tr -d '
 '` n'enlève que la moitié du problème.
 5. Créer l'enregistrement DNS `jurisprudence` sur la zone `poirierlavoie.ca` (domaine personnalisé du Worker — Cloudflare le gère).
-6. **Déployer — À LA MAIN.** Il n'existe aucun déploiement automatique : le workflow qui s'en chargeait a été retiré le 2026-09-16 après dix-neuf échecs et zéro mise en ligne (§12). Le jeton d'API est présenté localement, par l'environnement, et jamais écrit dans un fichier versionné.
+6. **Déployer — automatiquement sur `main` via `.github/workflows/deploy.yml` (`environment: production`), ou en repli local.** Déposer `CLOUDFLARE_API_TOKEN` dans l'environnement GitHub `production` (`gh secret set CLOUDFLARE_API_TOKEN --env production`). En repli local, le jeton d'API est présenté par l'environnement, jamais écrit dans un fichier versionné :
 
    ```powershell
    $env:CLOUDFLARE_API_TOKEN = (Get-Content cf.token -Raw).Trim()
@@ -1138,7 +1127,7 @@ satisferait la première en retirant la garantie de §2 partout.
 10. `migrations/0001_initial.sql`, `0002_seed_court_codes.sql`, `0003_reconcile_court_codes.sql`, `0004_rename_tool_prefix.sql` — la troisième consigne la réconciliation de §4.3 **avec sa preuve d'observation** ; la quatrième (2026-09-16, appliquée en production) rattrape la DONNÉE déjà écrite sous `canlii_*` (`search_log.tool`, `court_codes.note`) sans toucher au schéma : sans elle, la télémétrie de §10 serait coupée en deux séries à la date du renommage, dont aucune ne serait fausse et dont la somme ne serait faite nulle part.
 11. `scripts/` — `mcp-client.mjs` (recette), `refresh-databases.mjs` (réconciliation §4.3), `extraire-lieux-mjq.mjs` (transcription du relevé MJQ ; §17.6 : générée, jamais recopiée), `deployer.mjs` (§12 : `db:migrate:remote` PUIS `wrangler deploy`, refus d'un arbre de travail sale, `--var COMMIT:<sha>`).
 12. `test/` — matrice de l'analyseur, comparaison, vérification, client, transport, persistance, tables du Québec, différentiel du parseur de dossiers, page publique, garde du contrat de vérité.
-13. `.github/workflows/` — 6 workflows + `dependabot.yml`, actions épinglées par SHA.
+13. `.github/workflows/` — 7 workflows (`ci`, `deploy`, `verifier-deploiement`, `codeql`, `osv-scanner`, `trivy`, `scorecard`) + `dependabot.yml`, actions épinglées par SHA.
 14. `README.md` — mise en service, réserve de §9.5, et **reproduction in extenso du contrat de vérité de §2**.
 
 ---
@@ -1185,7 +1174,7 @@ question effacée se repose.*
 
 Le balayage vif de `jurisprudence_find_case` tombait sous la même cause (`resultCount = 5 000` par page). Vérifié en production le même jour sur la reproduction du rapport de test — `{title: "Godbout Longueuil", database_id: "csc-scc", year_from: 1995, year_to: 1998}` : 4 appels, 433 fiches parcourues, un candidat rendu **sans date** et disant pourquoi.
 
-**Ce qui reste réellement à faire, tout § confondus** *(relevé du 2026-09-16)* : les **coordonnées** des palais (§17.7) ; le réglage de `CANLII_MIN_INTERVAL_MS` ci-dessus ; et **`SERVER_INFO.version`**, littéral recopié de `package.json` que rien n'épingle (§8) — il ne casse rien, il fait seulement croire qu'un client connaît la version qu'il interroge. *(La question du déploiement automatique, longtemps portée ici, est CLOSE depuis le 2026-09-16 : le workflow a été retiré et l'ordre migrations-puis-déploiement est passé dans `npm run deploy`. Voir §12.)*
+**Ce qui reste réellement à faire, tout § confondus** *(relevé du 2026-09-16, mis à jour le 2026-11-14)* : les **coordonnées** des palais (§17.7) et le réglage de `CANLII_MIN_INTERVAL_MS` ci-dessus *(la parité de `SERVER_INFO.version` a été épinglée le 2026-11-13 dans `test/doc.test.ts`, et le déploiement continu a été rétabli via `.github/workflows/deploy.yml` et `scripts/deployer.mjs` le 2026-11-14 — voir §12)*.
 
 ---
 

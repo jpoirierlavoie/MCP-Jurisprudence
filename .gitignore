@@ -54,3 +54,5 @@ sources-officielles/*
 *.swp
 .DS_Store
 Thumbs.db
+
+cf.token

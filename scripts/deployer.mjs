@@ -67,7 +67,8 @@ if (sale) {
 
 const commit = git("rev-parse", "--short", "HEAD");
 const branche = git("rev-parse", "--abbrev-ref", "HEAD");
-if (branche !== "main") {
+const surMain = branche === "main" || process.env.GITHUB_REF === "refs/heads/main";
+if (!surMain) {
   console.warn(`⚠ Branche « ${branche} » et non « main » — le contrôle de dérive comparera`);
   console.warn("  la production au dernier commit de main, et signalera donc un écart.\n");
 }

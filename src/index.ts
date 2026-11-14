@@ -210,7 +210,7 @@ export function carteServeur() {
     description: PUBLIC_DESCRIPTION,
     websiteUrl: "https://jurisprudence.poirierlavoie.ca/",
     repository: {
-      url: "https://github.com/jpoirierlavoie/MCP-Jurisprudence-Quebec",
+      url: "https://github.com/jpoirierlavoie/MCP-Jurisprudence",
       source: "github",
     },
     remotes: [

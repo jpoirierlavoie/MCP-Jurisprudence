@@ -807,7 +807,7 @@ ${biP(
   ],
   EN.acces,
 )}
-<p><a href="https://github.com/jpoirierlavoie/MCP-Jurisprudence-Quebec">github.com/jpoirierlavoie/MCP-Jurisprudence-Quebec</a>
+<p><a href="https://github.com/jpoirierlavoie/MCP-Jurisprudence">github.com/jpoirierlavoie/MCP-Jurisprudence</a>
  · <a href="mailto:jason@poirierlavoie.ca">jason@poirierlavoie.ca</a></p>
 </section>`;
 }

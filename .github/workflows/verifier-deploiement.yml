@@ -3,28 +3,25 @@ name: verifier-deploiement
 # CONTRÔLE DE DÉRIVE — il REGARDE, il ne déploie rien et ne le peut pas.
 #
 # ╔═════════════════════════════════════════════════════════════════════════════╗
-# ║ Le déploiement est MANUEL depuis le 2026-09-16 (§12), par choix : confier à ║
-# ║ un tiers un pouvoir d'ÉCRITURE sur l'infrastructure — appliquer des         ║
-# ║ migrations, remplacer le Worker — ne valait pas la commodité. Mais le       ║
-# ║ manuel a un coût, et il faut le payer plutôt que l'ignorer : RIEN ne        ║
-# ║ signale qu'un commit est poussé sans être en ligne. L'écart se tient de     ║
-# ║ mémoire, et un écart tenu de mémoire dure plus longtemps qu'on ne croit.    ║
+# ║ Historique : du 2026-09-16 au 2026-11-14, le déploiement était manuel       ║
+# ║ (§12). Depuis le 2026-11-14, `.github/workflows/deploy.yml` déploie         ║
+# ║ automatiquement sur `push` vers `main` via `npm run deploy`                 ║
+# ║ (`environment: production`, `CLOUDFLARE_API_TOKEN`, migrations avant        ║
+# ║ Worker).                                                                    ║
 # ║                                                                             ║
-# ║ Ce workflow paie ce coût sans rouvrir ce qui a été refusé. Il n'a AUCUN     ║
-# ║ secret, AUCUN jeton, et `permissions: contents: read`. Tout ce qu'il fait   ║
-# ║ est un GET sur un point d'entrée public, et une comparaison de chaînes.     ║
-# ║ Surveiller sans rien pouvoir écrire : c'est exactement le compromis         ║
-# ║ inverse de celui qui a été écarté.                                          ║
+# ║ Ce workflow demeure ACTIF comme filet de sécurité indépendant sans secret : ║
+# ║ aucun jeton, `permissions: contents: read`, un simple GET sur `/health`.    ║
+# ║ Il détecte un déploiement CD manqué, un jeton Cloudflare expiré ou une      ║
+# ║ désynchronisation silencieuse entre `main` et la production.                ║
 # ╚═════════════════════════════════════════════════════════════════════════════╝
 #
-# ⚠ PAS DE DÉCLENCHEMENT SUR `push`, et c'est délibéré. Juste après une poussée, la
-#   production est forcément en retard — le contrôle serait rouge à chaque commit,
-#   pour une raison normale. C'est exactement le mode de panne qui a fait vivre
-#   dix-neuf échecs sans que personne les regarde : un feu rouge permanent auquel on
-#   cesse de croire. Une fois par jour, un rouge veut dire quelque chose.
+# ⚠ PAS DE DÉCLENCHEMENT SUR `push`, et c'est délibéré : `deploy.yml` vérifie déjà
+#   `/health` juste après le déploiement. Une fois par jour, un rouge ici signale une
+#   dérive réelle entre `main` et la production.
 #
-# ⚠ UN ROUGE ICI SIGNIFIE « À DÉPLOYER », PAS « CASSÉ ». La production sert toujours ;
-#   elle sert simplement une version antérieure. Le remède est `npm run deploy`.
+# ⚠ UN ROUGE ICI SIGNIFIE « À DÉPLOYER » (ou échec CD), PAS « CASSÉ ». La production
+#   sert toujours une version antérieure. Remède : relancer `deploy.yml` (ou exécuter
+#   `npm run deploy` localement).
 
 on:
   schedule:
