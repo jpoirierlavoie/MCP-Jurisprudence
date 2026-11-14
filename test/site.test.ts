@@ -72,18 +72,27 @@ describe("§18 — routage de la page publique", () => {
   it("« tout le reste est 404 » reste VRAI", async () => {
     // La page est une exception NOMMÉE, pas un fourre-tout : une égalité stricte,
     // jamais un `startsWith("/")`.
-    for (const chemin of ["/autre", "/index.html", "/favicon.ico", "/mcp2", "/a/b"]) {
+    for (const chemin of [
+      "/autre",
+      "/index.html",
+      "/favicon.ico",
+      "/mcp2",
+      "/a/b",
+      "/server-card",
+      "/.well-known/mcp.json",
+    ]) {
       expect((await demander(chemin)).status, chemin).toBe(404);
     }
   });
 
-  it("la page survit au coupe-circuit, /health et /mcp non", async () => {
+  it("la page survit au coupe-circuit, /health, /mcp/server-card et /mcp non", async () => {
     // Exception délibérée : le coupe-circuit protège la SURFACE MCP. La page ne
     // porte ni secret ni donnée vivante, et c'est justement quand le connecteur est
     // coupé qu'on veut pouvoir lire pourquoi.
     const e = envAvec({ MCP_ENABLED: "false" });
     expect((await demander("/", { env: e })).status).toBe(200);
     expect((await demander("/health", { env: e })).status).toBe(404);
+    expect((await demander("/mcp/server-card", { env: e })).status).toBe(404);
     expect((await demander(`/mcp/${SECRET}`, { method: "POST", env: e })).status).toBe(404);
   });
 });

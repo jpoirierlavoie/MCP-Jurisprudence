@@ -7,7 +7,8 @@
 import { createExecutionContext, env, waitOnExecutionContext } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 
-import worker from "../src/index";
+import worker, { VERSIONS } from "../src/index";
+import { PUBLIC_DESCRIPTION, SERVER_INFO } from "../src/mcp/registry";
 import { parseMessage } from "../src/mcp/rpc";
 import { type JsonSchema, validateArgs } from "../src/mcp/validate";
 
@@ -181,6 +182,153 @@ describe("CORS — sans quoi claude.ai ne peut pas joindre le serveur", () => {
       await waitOnExecutionContext(ctx);
       expect(res.status, origine).toBe(attendu);
     }
+  });
+
+  it("admet les origines web Gemini et les en-têtes MCP 2026-07-28 en pré-vol", async () => {
+    for (const origin of ["https://gemini.google.com", "https://aistudio.google.com"]) {
+      const ctxPre = createExecutionContext();
+      const pre = await worker.fetch(
+        new Request("https://x/mcp", {
+          method: "OPTIONS",
+          headers: {
+            Origin: origin,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers":
+              "authorization, mcp-protocol-version, mcp-method, mcp-name, mcp-session-id",
+          },
+        }),
+        envAvec(),
+        ctxPre,
+      );
+      await waitOnExecutionContext(ctxPre);
+      expect(pre.status, origin).toBe(204);
+      expect(pre.headers.get("Access-Control-Allow-Origin"), origin).toBe(origin);
+      const allows = (pre.headers.get("Access-Control-Allow-Headers") ?? "").toLowerCase();
+      for (const h of [
+        "authorization",
+        "mcp-protocol-version",
+        "mcp-method",
+        "mcp-name",
+        "mcp-session-id",
+      ]) {
+        expect(allows, `${origin} ${h}`).toContain(h);
+      }
+
+      const ctxPost = createExecutionContext();
+      const post = await worker.fetch(
+        new Request(SECRET_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Origin: origin },
+          body: JSON.stringify(rpc("ping")),
+        }),
+        envAvec(),
+        ctxPost,
+      );
+      await waitOnExecutionContext(ctxPost);
+      expect(post.status, origin).toBe(200);
+      expect(post.headers.get("Access-Control-Allow-Origin"), origin).toBe(origin);
+    }
+  });
+});
+
+describe("SEP-2127 — fiche de découverte /mcp/server-card", () => {
+  it("GET /mcp/server-card rend 200 en application/mcp-server-card+json, dérivé sans secret", async () => {
+    const ctx = createExecutionContext();
+    const res = await worker.fetch(
+      new Request("https://jurisprudence.poirierlavoie.ca/mcp/server-card", {
+        headers: { Origin: "https://exemple.invalide" },
+      }),
+      envAvec(),
+      ctx,
+    );
+    await waitOnExecutionContext(ctx);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("application/mcp-server-card+json; charset=utf-8");
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    const cc = res.headers.get("Cache-Control") ?? "";
+    expect(cc).toContain("max-age=600");
+    expect(cc).not.toContain("s-maxage");
+
+    const brut = await res.text();
+    expect(brut).not.toContain(SECRET);
+    expect(brut).not.toContain(SECRET_ATHENA);
+    expect(brut).not.toContain("api.canlii.org");
+    expect(brut).not.toMatch(/[0-9a-f]{32,}/i);
+
+    const card = JSON.parse(brut) as {
+      $schema: string;
+      name: string;
+      title: string;
+      version: string;
+      description: string;
+      websiteUrl: string;
+      remotes: Array<{
+        type: string;
+        url: string;
+        supportedProtocolVersions: string[];
+        headers: Array<{ name: string; isRequired: boolean; isSecret: boolean }>;
+      }>;
+    };
+    expect(card.$schema).toBe("https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json");
+    expect(card.name).toBe(`ca.poirierlavoie.jurisprudence/${SERVER_INFO.name}`);
+    expect(card.title).toBe(SERVER_INFO.title);
+    expect(card.version).toBe(SERVER_INFO.version);
+    expect(card.description).toBe(PUBLIC_DESCRIPTION);
+    expect(card.websiteUrl).toBe("https://jurisprudence.poirierlavoie.ca/");
+    expect(card.remotes).toHaveLength(1);
+    expect(card.remotes[0]).toMatchObject({
+      type: "streamable-http",
+      url: "https://jurisprudence.poirierlavoie.ca/mcp",
+      supportedProtocolVersions: [...VERSIONS],
+    });
+    expect(card.remotes[0]!.headers[0]).toMatchObject({
+      name: "Authorization",
+      isRequired: true,
+      isSecret: true,
+    });
+  });
+
+  it("HEAD et OPTIONS répondent sans corps, POST et DELETE rendent 405", async () => {
+    const appel = async (method: string) => {
+      const ctx = createExecutionContext();
+      const res = await worker.fetch(
+        new Request("https://jurisprudence.poirierlavoie.ca/mcp/server-card", { method }),
+        envAvec(),
+        ctx,
+      );
+      await waitOnExecutionContext(ctx);
+      return res;
+    };
+
+    const head = await appel("HEAD");
+    expect(head.status).toBe(200);
+    expect(head.headers.get("Content-Type")).toBe("application/mcp-server-card+json; charset=utf-8");
+    expect(await head.text()).toBe("");
+
+    const opt = await appel("OPTIONS");
+    expect(opt.status).toBe(204);
+    expect(opt.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(opt.headers.get("Access-Control-Allow-Methods")).toContain("GET");
+
+    for (const m of ["POST", "DELETE"]) {
+      const r = await appel(m);
+      expect(r.status, m).toBe(405);
+      expect(r.headers.get("Allow")).toBe("GET, HEAD, OPTIONS");
+      expect(r.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    }
+  });
+
+  it("MCP_ENABLED = « false » coupe aussi /mcp/server-card en 404", async () => {
+    const eteint = envAvec({ MCP_ENABLED: "false" });
+    const ctx = createExecutionContext();
+    const res = await worker.fetch(
+      new Request("https://jurisprudence.poirierlavoie.ca/mcp/server-card"),
+      eteint,
+      ctx,
+    );
+    await waitOnExecutionContext(ctx);
+    expect(res.status).toBe(404);
   });
 });
 

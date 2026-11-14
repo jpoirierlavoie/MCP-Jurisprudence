@@ -1,0 +1,18 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "mcp-jurisprudence",
+  "displayName": "MCP Jurisprudence",
+  "version": "0.2.0",
+  "description": "Vérification déterministe de citations de jurisprudence canadienne (collection CanLII, métadonnées en lecture seule) et tables hors ligne des greffes et palais de justice du Québec.",
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "Vérifie de façon déterministe l'existence et l'intitulé de ces citations de jurisprudence : 2008 CSC 9 et 2020 QCCA 495",
+    "Retrouve dans la collection CanLII une décision de la Cour d'appel du Québec à partir des noms des parties et d'une plage d'années",
+    "Décompose le numéro de dossier judiciaire québécois 500-17-123456-241 et donne l'adresse du palais de justice correspondant"
+  ],
+  "author": {
+    "name": "Jason Poirier Lavoie"
+  },
+  "homepage": "https://jurisprudence.poirierlavoie.ca/",
+  "repository": "https://github.com/jpoirierlavoie/MCP-Jurisprudence-Quebec"
+}

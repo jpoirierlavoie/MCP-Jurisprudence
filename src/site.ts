@@ -796,8 +796,13 @@ ${h2("acces")}
 ${biP(
   [
     "Instance privée, exploitée par un avocat du Québec pour sa propre pratique. Le point " +
-      "d'entrée a la forme https://jurisprudence.poirierlavoie.ca/mcp/<secret> — le secret " +
+      "d'entrée a la forme https://jurisprudence.poirierlavoie.ca/mcp/<secret> ou " +
+      "https://jurisprudence.poirierlavoie.ca/mcp (par en-tête d'autorisation) — le secret " +
       "n'apparaît nulle part sur cette page, et n'y apparaîtra jamais.",
+    "La fiche publique de découverte (SEP-2127) est publiée sans secret sur " +
+      "https://jurisprudence.poirierlavoie.ca/mcp/server-card ; le dépôt inclut les manifestes " +
+      "pour Google Antigravity (plugin.json, mcp_config.json) et Gemini CLI " +
+      "(gemini-extension.json).",
     "Le code est public et la suite de tests s'exécute sans clef d'API ni réseau.",
   ],
   EN.acces,

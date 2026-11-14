@@ -67,6 +67,7 @@ est une recherche de chaîne dans les documents du praticien, pas une commande d
 | **une table de `src/qc/`** | les comptes de `test/qc.tables.test.ts` (51 palais · 57 greffes · 27 juridictions · 20 forums · 36 districts) · le nombre de lignes de la table de la page (`test/site.test.ts`) · « 43 palais et 8 points de service » dans `README.md` · les dates `RELEVE_LE` et `MJQ_MAJ` affichées |
 | **la page** | `test/site.test.ts` · §18 de la spécification · la section « Page publique » de `README.md` · le style reste **identique** à celui du connecteur jumeau (invariant 21) |
 | **le comportement d'un outil** | la page peut le DOCUMENTER : les exemples d'analyse y sont produits par le vrai parseur au rendu, mais la prose qui les entoure, elle, est écrite à la main |
+| **version, identité ou manifestes** | `package.json` · `SERVER_INFO` et `PUBLIC_DESCRIPTION` (`src/mcp/registry.ts`) · `carteServeur()` (`/mcp/server-card`) · `plugin.json` · `mcp_config.json` · `gemini-extension.json` · `GEMINI.md` (< 24 000 octets) · vérifié par `test/doc.test.ts` |
 
 ### Comment vérifier
 
@@ -101,7 +102,7 @@ Worker TypeScript sans cadriciel, **zéro dépendance d'exécution** (D2), base 
 transport Streamable HTTP en **mode JSON sans état** (D3). Config : `wrangler.jsonc`.
 
 ```
-src/index.ts      routage, authentification à temps constant (§9.1), coupe-circuit, cron
+src/index.ts      routage, authentification à temps constant (§9.1), CORS, fiche SEP-2127 `/mcp/server-card`, coupe-circuit, cron
 src/config.ts     lecture des `vars` : `flag()`, `entier()`. `wrangler types` les type en
                   LITTÉRAUX — `env.MCP_ENABLED === "true"` écrit en direct ne compile pas,
                   ou se réduit à une constante aux yeux du lecteur. Passer par ici.
@@ -109,7 +110,7 @@ src/mcp/          rpc.ts (JSON-RPC) · validate.ts (JSON-Schema en sous-ensemble
                   defauts.ts — LIMITES et OFFSET_*, en un seul exemplaire : la description
                   que le modèle lit et le `??` du gestionnaire viennent d'ici, sinon ils
                   divergent (ils l'ont fait, sur trois outils sur cinq)
-                  registry.ts (les 13 descripteurs, `SERVER_INFO`, `INSTRUCTIONS`) ·
+                  registry.ts (les 13 descripteurs, `SERVER_INFO`, `PUBLIC_DESCRIPTION`, `INSTRUCTIONS`) ·
                   handlers/ (un par outil, plus `cible.ts` — la résolution de la décision
                   de départ, partagée par le citateur et les sorts ultérieurs)
 src/citation/     analyseur PUR — parse, normalize, compare. AUCUNE E/S.
@@ -493,3 +494,13 @@ ressusciter les hypothèses fausses sur une base neuve.
 Les lignes encore `verified = 0` ne sont pas un reliquat : elles sont **inertes par
 construction** (invariant 8 — un tribunal absent du répertoire rend INTROUVABLE sans
 appel sortant), et se confirmeront à l'usage par la boucle de §6.4.
+
+*(2026-11-13)* Ajout de la compatibilité et découvrabilité **Google Antigravity** (`plugin.json`,
+`mcp_config.json`, `assets/logo.svg`), **Gemini CLI** (`gemini-extension.json` avec
+`"contextFileName": []`), **Gemini web** (`https://gemini.google.com` et
+`https://aistudio.google.com` admises par défaut dans CORS, avec `Mcp-Method`, `Mcp-Name`,
+`Mcp-Session-Id` en pré-vol `2026-07-28`), fiche publique SEP-2127 (`GET /mcp/server-card`),
+et `GEMINI.md` (< 24 000 octets, synthèse d'espace de travail renvoyant à `CLAUDE.md` et
+`SPEC.md`). Parité des versions, descriptions et taille de `GEMINI.md` verrouillée par
+`test/doc.test.ts` (note : les changements dans `src/index.ts` et `src/site.ts` nécessitent
+`npm run deploy` manuel, §12, pour prendre effet sur `jurisprudence.poirierlavoie.ca`).

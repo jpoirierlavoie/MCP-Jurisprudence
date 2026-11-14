@@ -172,9 +172,12 @@ arrivés après la rédaction initiale : ils figurent ici, à leur place.*
 │   ├── site.test.ts · garde.test.ts · backfill.test.ts
 │   ├── doc.test.ts           # README contre REGISTRE (§13) — remplace la porte shell
 │   └── fixtures/             # réponses JSON figées + dossier-athena.json
+├── assets/
+│   └── logo.svg              # icône vectorielle du greffon Antigravity
 ├── .github/workflows/        # §12
 ├── wrangler.jsonc · biome.json · tsconfig.json · vitest.config.ts
-├── package.json · README.md · SECURITY.md · CLAUDE.md
+├── plugin.json · mcp_config.json · gemini-extension.json     # §20 — Antigravity & Gemini CLI
+├── package.json · README.md · SECURITY.md · CLAUDE.md · GEMINI.md
 └── SPEC.md
 ```
 
@@ -215,9 +218,9 @@ arrivés après la rédaction initiale : ils figurent ici, à leur place.*
     "BACKFILL_ENABLED": "false",
     "BACKFILL_DATABASES": "qcca,qccs,qccq,qctal",
     "DEFAULT_LANG": "fr",
-    // Origines de navigateur admises EN PLUS de claude.ai et claude.com, séparées par
-    // des virgules ; vide en temps normal. Toute origine de navigateur absente de la
-    // liste est refusée par un 403 (§9.6).
+    // Origines de navigateur admises EN PLUS de claude.ai, claude.com, gemini.google.com
+    // et aistudio.google.com, séparées par des virgules ; vide en temps normal. Toute
+    // origine de navigateur absente de la liste est refusée par un 403 (§9.6).
     "ALLOWED_ORIGINS": ""
   },
   // Limitation de débit (§9.3) : DANS le Worker, jamais par une règle WAF de zone —
@@ -801,6 +804,7 @@ Aucun appel sortant, aucune écriture. Utile au débogage de la table `court_cod
 | `/mcp/<secret>/<suite>` | `POST` | **Identique si le secret contient `/`** — la profondeur est conservée, on ne borne pas à un segment (§9.1) |
 | `/mcp` · `/mcp/` | `POST` | `401` + `WWW-Authenticate: Bearer` — **sauf** si l'en-tête `Authorization` porte un secret admis |
 | `/mcp/<chemin mal encodé>` | `POST` | `401` — **jamais `500`** (§9.1) |
+| `/mcp/server-card` | `GET`, `HEAD`, `OPTIONS` | `200` (`application/mcp-server-card+json; charset=utf-8`) · `204` sur `OPTIONS` (`Access-Control-Allow-Origin: *`) · `405` sur toute autre méthode. Exception **nommée** avant la garde `/mcp*` : métadonnées publiques SEP-2127 sans secret (§20), soumises au coupe-circuit (`404` si `MCP_ENABLED !== "true"`) |
 | `/mcp*` | `OPTIONS` | Pré-vol CORS, répondu **avant** l'authentification lorsque l'`Origin` est admise — un pré-vol ne porte aucun secret ; l'exiger casserait le connecteur sans rien protéger (§9.6) |
 | `/mcp*` | toute méthode | `403` si l'en-tête `Origin` est présent et inconnu — ré-attachement DNS (§9.6). `Origin` absent (serveur à serveur) ⇒ admis |
 | `/mcp*` | toute méthode | `429` + `Retry-After` au-delà de 60 requêtes/minute par IP : **après** le pré-vol, **avant** le contrôle de méthode et l'authentification (§9.3) |
@@ -808,13 +812,13 @@ Aucun appel sortant, aucune écriture. Utile au débogage de la table `court_cod
 | `/health` | `GET` | `200 {"status":"ok","commit":"<sha court>"}` — sans authentification. *Amendé le 2026-09-16 : disait « sans divulgation ». Le champ `commit` EN EST UNE, et elle est assumée — il annonce de quel commit la version en ligne est issue, donc si un correctif publié est déjà déployé. Le dépôt étant public, tout le code l'est déjà ; ce qui s'ajoute est un horodatage de fait. « inconnu » quand la version n'est pas passée par `npm run deploy` : un aveu, pas un remplissage (§12).* |
 | tout le reste | — | `404` |
 
-`MCP_ENABLED !== "true"` ⇒ **`404` sur toutes les routes MCP**, y compris `/health`. Coupe-circuit identique à celui d'Athéna.
+`MCP_ENABLED !== "true"` ⇒ **`404` sur toutes les routes MCP**, y compris `/health` et `/mcp/server-card`. Coupe-circuit identique à celui d'Athéna.
 
-**Méthodes JSON-RPC :** `initialize`, `notifications/initialized` (⇒ `202`, corps vide), `tools/list`, `tools/call`, `ping`. Toute autre méthode ⇒ `-32601`.
+**Méthodes JSON-RPC :** `server/discover` (obligatoire sous `2026-07-28`), `initialize`, `notifications/initialized` (⇒ `202`, corps vide), `tools/list`, `tools/call`, `ping`. Toute autre méthode ⇒ `-32601`.
 
-`initialize` : négocier `protocolVersion` (accepter `2025-06-18` et `2025-03-26` ; renvoyer la plus élevée commune) ; `serverInfo: { name: "mcp-jurisprudence", title: "MCP Jurisprudence", version }` *(identifiant et libellé renommés le 2026-09-16 ; l'identifiant s'écrivait `jurisprudence-canlii`)* ; `capabilities: { tools: {} }`.
+`initialize` : négocier `protocolVersion` (versions servies : `2026-07-28`, `2025-11-25`, `2025-06-18`, `2025-03-26` ; pour `initialize`, la plus élevée des versions **héritées**, §8 / `rpc.test.ts`) ; `serverInfo: { name: "mcp-jurisprudence", title: "MCP Jurisprudence", version }` *(identifiant et libellé renommés le 2026-09-16 ; l'identifiant s'écrivait `jurisprudence-canlii`)* ; `capabilities: { tools: { listChanged: false } }`.
 
-⚠ **`version` est aujourd'hui un LITTÉRAL recopié de `package.json` dans `SERVER_INFO` (`src/mcp/registry.ts`) — constaté le 2026-09-16.** La rédaction antérieure prescrivait « `version: <package.json>` » : elle décrivait une intention que le code n'a jamais eue, le paquet du Worker n'important pas `package.json`. Les deux valeurs coïncident (`0.2.0`) et rien ne les tient ensemble ; le premier `npm version` les fera diverger **en silence**, et le client recevra une version qui n'est celle d'aucune livraison. Deux sorties acceptables, une seule à choisir : importer la valeur (`resolveJsonModule`), ou l'épingler par un test qui confronte `SERVER_INFO.version` au `package.json` lu en `?raw` — comme `test/doc.test.ts` confronte déjà le registre au README. Tant que ni l'une ni l'autre n'est faite, la présente ligne décrit un littéral, et surtout pas un emprunt.
+⚠ **`version` est un littéral dans `SERVER_INFO` (`src/mcp/registry.ts`), désormais ÉPINGLÉ PAR TEST *(2026-11-13)*.** Le `2026-09-16`, `SERVER_INFO.version` et `package.json` pouvaient diverger en silence après un `npm version`. Depuis le 2026-11-13, `test/doc.test.ts` confronte ensemble `package.json`, `SERVER_INFO.version`, `plugin.json`, `gemini-extension.json` et `carteServeur().version` (`/mcp/server-card`), ce qui ferme la dérive silencieuse entre le paquet, le serveur et les manifestes clients.
 
 **Enveloppe de résultat**, calquée sur `mcp/tools.py` d'Athéna :
 
@@ -944,11 +948,11 @@ Ce connecteur est, sur ce plan, exceptionnellement propre : ce qui sort de l'inf
 
 *Ajoutée le 2026-09-16. Le contrôle existait dans `src/index.ts` depuis l'origine, six tests de `test/rpc.test.ts` le tiennent, et §18.2 y renvoyait déjà — vers un numéro qui n'avait jamais été écrit. Une règle vivante sans section est une règle qu'on retire « par simplification » sans trouver personne qui l'ait défendue.*
 
-Sur `/mcp*`, un en-tête `Origin` **présent mais inconnu** est refusé d'emblée par un `403`, avant le pré-vol, avant la limitation de débit et avant l'authentification. Les origines admises sont `https://claude.ai` et `https://claude.com`, plus celles qu'ajoute la variable `ALLOWED_ORIGINS` (liste séparée par des virgules, vide en temps normal) : elles s'**ajoutent**, elles ne remplacent pas.
+Sur `/mcp*`, un en-tête `Origin` **présent mais inconnu** est refusé d'emblée par un `403`, avant le pré-vol, avant la limitation de débit et avant l'authentification. Les origines admises sont `https://claude.ai`, `https://claude.com`, `https://gemini.google.com` et `https://aistudio.google.com` *(clients web Gemini ajoutés le 2026-11-13)*, plus celles qu'ajoute la variable `ALLOWED_ORIGINS` (liste séparée par des virgules, vide en temps normal) : elles s'**ajoutent**, elles ne remplacent pas.
 
-Une origine **absente** passe, et ce n'est pas un relâchement : un appel serveur à serveur n'est pas soumis à la politique de même origine et ne peut donc pas être détourné de cette façon. C'est le trajet de `scripts/mcp-client.mjs` — et c'était celui du clavardage retiré le 2026-09-02 (§19).
+Une origine **absente** passe, et ce n'est pas un relâchement : un appel serveur à serveur — comme `scripts/mcp-client.mjs`, le gestionnaire d'extensions Gemini CLI, le serveur de langage Antigravity ou l'ancien clavardage retiré le 2026-09-02 (§19) — n'est pas soumis à la politique de même origine et ne peut donc pas être détourné de cette façon.
 
-Trois corollaires, tous testés. Le **pré-vol** `OPTIONS` est répondu **sans** exiger de porteur : un navigateur n'en envoie jamais sur un pré-vol, et l'exiger casserait le connecteur sans rien protéger. Un `401` porte lui aussi les en-têtes CORS, faute de quoi le navigateur rapporte un échec de CORS au lieu du refus réel — un défaut indiscernable d'une panne. Et `Vary: Origin` accompagne toute réponse reflétée, sans quoi un cache intermédiaire resservirait à une origine la réponse calculée pour une autre. La page publique de §18 est **délibérément hors** de ce contrôle (§18.2, point 1).
+Quatre corollaires, tous testés. Le **pré-vol** `OPTIONS` est répondu **sans** exiger de porteur et autorise les en-têtes MCP `2026-07-28` (`MCP-Protocol-Version`, `Mcp-Method`, `Mcp-Name`, `Mcp-Session-Id`) en plus de `Content-Type`, `Authorization`, `Accept` et `Last-Event-ID`. Un `401` porte lui aussi les en-têtes CORS, faute de quoi le navigateur rapporte un échec de CORS au lieu du refus réel — un défaut indiscernable d'une panne. `Vary: Origin` accompagne toute réponse reflétée, sans quoi un cache intermédiaire resservirait à une origine la réponse calculée pour une autre. Enfin, la page publique de §18 et la fiche de découverte SEP-2127 (`/mcp/server-card`, §20) sont **délibérément hors** de ce contrôle (§18.2, point 1).
 
 ---
 
@@ -1403,6 +1407,19 @@ périmètre : les treize outils lui répondent comme au premier porteur. Il n'ex
 pour la révocation séparée (§9.1). Une conséquence assumée : la limitation de débit de
 §9.3 est **par IP**, donc les deux clients ne se gênent pas — mais ils partagent le même
 quota d'API CanLII, et c'est bien ce quota que D7 protège.
+
+---
+
+## 20. Manifestes clients et fiche de découverte (SEP-2127)
+
+*Ajoutée le 2026-11-13.*
+
+Le connecteur est empaqueté à la racine pour **Google Antigravity** (`plugin.json`, `mcp_config.json`, `assets/logo.svg`) et **Gemini CLI** (`gemini-extension.json`) sans dupliquer les compétences de `pratique-civile-quebecoise` ni injecter de prose de développement dans les sessions d'usage :
+
+- **Transport et authentification :** les deux manifestes pointent sur `https://jurisprudence.poirierlavoie.ca/mcp` en Streamable HTTP avec l'en-tête `Authorization: Bearer ${MCP_JURISPRUDENCE_SECRET}` (`variables` sous Antigravity ; `settings` sensible dans `gemini-extension.json`). Sous Antigravity, les treize outils restent chargés à la demande (*lazy*, aucun `eager: true`).
+- **Contexte minimal (« connector only ») :** `gemini-extension.json` fixe `"contextFileName": []` afin qu'une installation utilisateur n'importe pas le `GEMINI.md` racine dans ses conversations ordinaires ; les instructions canoniques demeurent portées par le serveur (`INSTRUCTIONS` sur `initialize` / `server/discover` et descriptions d'outils).
+- **`GEMINI.md` d'espace de travail :** Antigravity tronque tout fichier de règles au-delà de 24 000 octets, alors que `CLAUDE.md` dépasse 40 Ko. `GEMINI.md` synthétise donc les invariants et renvoie vers `CLAUDE.md` et `SPEC.md`, en demeurant sous 24 000 octets (épinglé par `test/doc.test.ts`).
+- **Fiche de découverte HTTP (`GET /mcp/server-card`, SEP-2127) :** exception exacte et nommée avant la garde `/mcp*`, servie en `application/mcp-server-card+json; charset=utf-8` avec `Access-Control-Allow-Origin: *`, dérivée uniquement de `SERVER_INFO`, `PUBLIC_DESCRIPTION` et `VERSIONS` (invariant 19), sans jamais lire ni exposer de secret, et coupée en `404` lorsque `MCP_ENABLED !== "true"`.
 
 ---
 

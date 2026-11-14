@@ -27,8 +27,15 @@
  */
 import { describe, expect, it } from "vitest";
 
+import geminiMd from "../GEMINI.md?raw";
+import geminiExtRaw from "../gemini-extension.json?raw";
+import mcpConfigRaw from "../mcp_config.json?raw";
+import packageRaw from "../package.json?raw";
+import pluginRaw from "../plugin.json?raw";
 import readme from "../README.md?raw";
-import { TOOLS } from "../src/mcp/registry";
+import logoSvg from "../assets/logo.svg?raw";
+import { carteServeur } from "../src/index";
+import { PUBLIC_DESCRIPTION, SERVER_INFO, TOOLS } from "../src/mcp/registry";
 
 const NOMS = Object.keys(TOOLS).sort();
 
@@ -67,5 +74,100 @@ describe("README contre registre — ce que la porte shell ne savait pas faire",
 
   it("le titre de la section porte le bon NUMÉRAL, en toutes lettres", () => {
     expect(readme).toContain(`## Les ${EN_LETTRES[NOMS.length]} outils`);
+  });
+});
+
+describe("Manifestes Antigravity / Gemini et version — aucune dérive silencieuse", () => {
+  const pkg = JSON.parse(packageRaw) as { name: string; version: string };
+  const plugin = JSON.parse(pluginRaw) as {
+    name: string;
+    displayName: string;
+    version: string;
+    description: string;
+    logo: string;
+    homepage: string;
+    repository: string;
+  };
+  const mcpConfig = JSON.parse(mcpConfigRaw) as {
+    mcpServers: Record<
+      string,
+      {
+        url?: string;
+        headers?: Record<string, string>;
+        variables?: Array<{ name: string; title: string; description: string }>;
+        eager?: boolean;
+      }
+    >;
+  };
+  const geminiExt = JSON.parse(geminiExtRaw) as {
+    name: string;
+    version: string;
+    description: string;
+    contextFileName?: unknown;
+    settings?: Array<{ name: string; description: string; envVar: string; sensitive?: boolean }>;
+    mcpServers: Record<
+      string,
+      { httpUrl?: string; headers?: Record<string, string>; eager?: boolean }
+    >;
+  };
+  const card = carteServeur();
+
+  it("package.json, SERVER_INFO, plugin.json, gemini-extension.json et /mcp/server-card portent la MÊME version", () => {
+    expect(pkg.version.length).toBeGreaterThan(0);
+    expect(SERVER_INFO.version).toBe(pkg.version);
+    expect(plugin.version).toBe(pkg.version);
+    expect(geminiExt.version).toBe(pkg.version);
+    expect(card.version).toBe(pkg.version);
+  });
+
+  it("identifiant, titre et description canonique concordent partout", () => {
+    expect(pkg.name).toBe("mcp-jurisprudence");
+    expect(SERVER_INFO.name).toBe(pkg.name);
+    expect(plugin.name).toBe(pkg.name);
+    expect(geminiExt.name).toBe(pkg.name);
+
+    expect(plugin.displayName).toBe(SERVER_INFO.title);
+    expect(card.title).toBe(SERVER_INFO.title);
+
+    expect(plugin.description).toBe(PUBLIC_DESCRIPTION);
+    expect(geminiExt.description).toBe(PUBLIC_DESCRIPTION);
+    expect(card.description).toBe(PUBLIC_DESCRIPTION);
+  });
+
+  it("mcp_config.json et gemini-extension.json configurent Streamable HTTP par en-tête, sans secret ni eager", () => {
+    for (const brut of [mcpConfigRaw, geminiExtRaw]) {
+      expect(brut).not.toMatch(/[0-9a-f]{32,}/i);
+    }
+
+    const agy = mcpConfig.mcpServers.jurisprudence;
+    expect(agy?.url).toBe("https://jurisprudence.poirierlavoie.ca/mcp");
+    expect(agy?.headers?.Authorization).toBe("Bearer ${MCP_JURISPRUDENCE_SECRET}");
+    expect(agy?.eager).toBeUndefined();
+    expect(agy?.variables?.some((v) => v.name === "MCP_JURISPRUDENCE_SECRET")).toBe(true);
+
+    // Critiquement vide : évite d'injecter le GEMINI.md de développement dans les sessions utilisateur.
+    expect(geminiExt.contextFileName).toEqual([]);
+    const gcli = geminiExt.mcpServers.jurisprudence;
+    expect(gcli?.httpUrl).toBe("https://jurisprudence.poirierlavoie.ca/mcp");
+    expect(gcli?.headers?.Authorization).toBe("Bearer ${MCP_JURISPRUDENCE_SECRET}");
+    expect(
+      geminiExt.settings?.some(
+        (s) => s.envVar === "MCP_JURISPRUDENCE_SECRET" && s.sensitive === true,
+      ),
+    ).toBe(true);
+  });
+
+  it("assets/logo.svg est un SVG carré valide", () => {
+    expect(plugin.logo).toBe("assets/logo.svg");
+    expect(logoSvg).toContain("<svg");
+    expect(logoSvg).toContain('viewBox="0 0 128 128"');
+  });
+
+  it("GEMINI.md reste strictement sous la limite de troncature Antigravity (24 000 octets UTF-8)", () => {
+    const octets = new TextEncoder().encode(geminiMd).byteLength;
+    expect(octets).toBeGreaterThan(1_000);
+    expect(octets).toBeLessThan(24_000);
+    expect(geminiMd).toContain("CLAUDE.md");
+    expect(geminiMd).toContain("SPEC.md");
   });
 });

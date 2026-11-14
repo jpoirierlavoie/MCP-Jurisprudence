@@ -185,9 +185,10 @@ s'affiche et tout reste lisible.
 ## Architecture
 
 ```
-claude.ai / Claude Code
+claude.ai / Claude Code / Google Antigravity / Gemini
         │  POST /mcp/<secret>  OU  POST /mcp + Authorization: Bearer <secret>
-        │  (JSON-RPC 2.0, un message par requête ; deux porteurs SANS préséance, §9.1)
+        │  (JSON-RPC 2.0, un message par requête ; porteurs SANS préséance, §9.1)
+        │  GET /mcp/server-card (fiche publique SEP-2127, sans secret)
         ▼
   Worker `jurisprudence` (workerd, TypeScript, ZÉRO dépendance d'exécution)
     routeur → authentification → JSON-RPC → registre d'outils
@@ -332,6 +333,22 @@ pas la vérification.
 - Ajouter le connecteur dans `claude.ai` : URL
   `https://jurisprudence.poirierlavoie.ca/mcp/<secret>`, nom
   « MCP Jurisprudence ».
+- **Google Antigravity** (`plugin.json`, `mcp_config.json`, `assets/logo.svg` à la racine) :
+  installer via `agy plugin install https://github.com/jpoirierlavoie/MCP-Jurisprudence-Quebec.git`
+  (ou copier les fichiers du greffon dans `~/.gemini/config/plugins/mcp-jurisprudence`),
+  renseigner la variable `MCP_JURISPRUDENCE_SECRET` sur la page du greffon puis l'activer
+  — les treize outils se chargent à la demande (*lazy*) par défaut, sans contexte additionnel
+  hors les `INSTRUCTIONS` canoniques du serveur.
+- **Gemini CLI** (`gemini-extension.json`) : installer via
+  `gemini extensions install https://github.com/jpoirierlavoie/MCP-Jurisprudence-Quebec`
+  et saisir `MCP_JURISPRUDENCE_SECRET` (stocké de façon sensible). Le manifeste déclare
+  `"contextFileName": []` afin que `GEMINI.md` (réservé au développement de ce dépôt) ne
+  soit pas injecté dans les sessions d'usage général.
+- **Gemini web** : les origines `https://gemini.google.com` et `https://aistudio.google.com`
+  sont admises par défaut dans CORS (§9.6), aux côtés de `https://claude.ai` et
+  `https://claude.com`.
+- **Découverte HTTP (SEP-2127)** : la fiche publique de connectivité est exposée sans secret
+  sur `GET https://jurisprudence.poirierlavoie.ca/mcp/server-card` (`application/mcp-server-card+json`).
 - ~~Créer une règle de limitation de débit au tableau de bord~~ — **fait, mais autrement**
   (2026-07-23). La limitation de débit de §9.3 est implémentée **dans le Worker**
   (binding `ratelimits`, 60 requêtes/minute par IP), et non par une règle WAF de zone :
@@ -413,7 +430,12 @@ le quota.
   le statut n'est donc pas le déclencheur — et un `404` rendrait indiscernables le
   coupe-circuit et le secret refusé. Ce qu'il fallait corriger, c'est le refus
   **injustifié**, pas sa forme.
-- `MCP_ENABLED=false` ⇒ **404 sur toutes les routes MCP**, `/health` compris.
+  *(2026-11-13)* Antigravity (`mcp_config.json`) et Gemini CLI (`gemini-extension.json`)
+  emploient désormais la forme par en-tête `Authorization: Bearer <secret>` sur `POST /mcp`,
+  tandis que le Worker accepte par défaut les origines navigateur `gemini.google.com` et
+  `aistudio.google.com` (en plus de `claude.ai` et `claude.com`) ainsi que les en-têtes
+  MCP `2026-07-28` (`Mcp-Method`, `Mcp-Name`, `Mcp-Session-Id`) en pré-vol CORS.
+- `MCP_ENABLED=false` ⇒ **404 sur toutes les routes MCP**, `/health` et `/mcp/server-card` compris.
 - Chemin d'évolution vers OAuth 2.1 documenté en §9.4 de la spécification — **non
   implémenté** : la complexité n'est pas justifiée par la valeur protégée, qui est la clef
   d'API et son quota, non du contenu confidentiel.

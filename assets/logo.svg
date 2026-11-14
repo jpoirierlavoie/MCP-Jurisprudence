@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="MCP Jurisprudence">
+  <!-- Balanced scales and open casebook with deterministic verification mark, 18px+ margin -->
+  <g fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Open casebook base (site terracotta palette, legible on light & dark UI) -->
+    <path d="M22 96 C36 89 50 89 64 96 C78 89 92 89 106 96" stroke="#c25438" />
+    <path d="M22 106 C36 99 50 99 64 106 C78 99 92 99 106 106" stroke="#e08b6a" />
+    <!-- Central pillar -->
+    <line x1="64" y1="24" x2="64" y2="96" stroke="#c25438" />
+    <circle cx="64" cy="22" r="4" stroke="#d97706" />
+    <!-- Scale beam -->
+    <line x1="28" y1="34" x2="100" y2="34" stroke="#d97706" />
+    <!-- Left pan -->
+    <path d="M28 34 L18 62 L38 62 Z" stroke="#e08b6a" />
+    <path d="M18 62 C20 71 36 71 38 62" stroke="#d97706" />
+    <!-- Right pan -->
+    <path d="M100 34 L90 62 L110 62 Z" stroke="#e08b6a" />
+    <path d="M90 62 C92 71 108 71 110 62" stroke="#d97706" />
+    <!-- Verification checkmark above book spine -->
+    <path d="M51 64 L60 73 L78 52" stroke="#d97706" />
+  </g>
+</svg>

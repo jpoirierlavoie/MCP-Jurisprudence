@@ -32,7 +32,14 @@ import {
 import { runScheduled } from "./backfill";
 import { createClient } from "./canlii/client";
 import { mcpActif } from "./config";
-import { callTool, INSTRUCTIONS, listToolDescriptors, SERVER_INFO, TOOLS } from "./mcp/registry";
+import {
+  callTool,
+  INSTRUCTIONS,
+  listToolDescriptors,
+  PUBLIC_DESCRIPTION,
+  SERVER_INFO,
+  TOOLS,
+} from "./mcp/registry";
 import {
   err,
   errorResponse,
@@ -51,7 +58,7 @@ import {
 import { pagePubliqueHtml } from "./site";
 
 /** Versions du protocole servies. La plus élevée EN TÊTE (§8). */
-const VERSIONS = ["2026-07-28", "2025-11-25", "2025-06-18", "2025-03-26"] as const;
+export const VERSIONS = ["2026-07-28", "2025-11-25", "2025-06-18", "2025-03-26"] as const;
 
 /** Une heure : le registre ne bouge qu'au déploiement. */
 const TTL_LISTE = 3_600_000;
@@ -96,18 +103,25 @@ const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
  * ║ Deux exigences DISTINCTES se rejoignent ici, et il faut les servir toutes    ║
  * ║ les deux :                                                                   ║
  * ║                                                                              ║
- * ║ 1. CORS. `claude.ai` est une application de NAVIGATEUR. Sans pré-vol accepté ║
- * ║    et sans `Access-Control-Allow-Origin`, le navigateur refuse la requête —  ║
- * ║    et le connecteur se solde par « Impossible de joindre le serveur », alors ║
- * ║    que le même point d'entrée répond parfaitement à un client serveur.       ║
+ * ║ 1. CORS. `claude.ai` et les clients web Gemini (`gemini.google.com`,         ║
+ * ║    `aistudio.google.com`) sont des applications de NAVIGATEUR. Sans pré-vol  ║
+ * ║    accepté et sans `Access-Control-Allow-Origin`, le navigateur refuse la    ║
+ * ║    requête — et le connecteur se solde par « Impossible de joindre le        ║
+ * ║    serveur », alors que le même point d'entrée répond parfaitement à un       ║
+ * ║    client serveur.                                                           ║
  * ║                                                                              ║
  * ║ 2. Défense contre le RÉ-ATTACHEMENT DNS, exigée par la spécification MCP :   ║
  * ║    une origine de navigateur non reconnue est REFUSÉE. Une origine absente   ║
- * ║    (appel serveur à serveur, scripts/mcp-client.mjs) reste admise — c'est le ║
- * ║    motif retenu par `athena/mcp/bearer.py`.                                  ║
+ * ║    (appel serveur à serveur, scripts/mcp-client.mjs, Antigravity, Gemini CLI)║
+ * ║    reste admise — c'est le motif retenu par `athena/mcp/bearer.py`.          ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
-const ORIGINES_PAR_DEFAUT = ["https://claude.ai", "https://claude.com"];
+const ORIGINES_PAR_DEFAUT = [
+  "https://claude.ai",
+  "https://claude.com",
+  "https://gemini.google.com",
+  "https://aistudio.google.com",
+];
 
 function originesAdmises(env: Env): string[] {
   const brut = (env.ALLOWED_ORIGINS as string | undefined) ?? "";
@@ -170,11 +184,84 @@ function preflight(origin: string): Response {
       "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Methods": "POST, OPTIONS",
       "Access-Control-Allow-Headers":
-        "Content-Type, Authorization, MCP-Protocol-Version, Accept, Last-Event-ID",
+        "Content-Type, Authorization, MCP-Protocol-Version, Mcp-Method, Mcp-Name, Mcp-Session-Id, Accept, Last-Event-ID",
       "Access-Control-Max-Age": "86400",
       Vary: "Origin",
     },
   });
+}
+
+/** URI canonique du schéma SEP-2127 (MCP Server Cards). */
+export const SERVER_CARD_SCHEMA =
+  "https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json";
+
+/**
+ * Fiche de découverte HTTP MCP (SEP-2127) — PURE, sans accès à `env` ni à aucun secret.
+ *
+ * Toutes les valeurs d'identité et de protocole dérivent de `SERVER_INFO`,
+ * `PUBLIC_DESCRIPTION` et `VERSIONS` (invariant 19 : aucune copie littérale).
+ */
+export function carteServeur() {
+  return {
+    $schema: SERVER_CARD_SCHEMA,
+    name: `ca.poirierlavoie.jurisprudence/${SERVER_INFO.name}`,
+    title: SERVER_INFO.title,
+    version: SERVER_INFO.version,
+    description: PUBLIC_DESCRIPTION,
+    websiteUrl: "https://jurisprudence.poirierlavoie.ca/",
+    repository: {
+      url: "https://github.com/jpoirierlavoie/MCP-Jurisprudence-Quebec",
+      source: "github",
+    },
+    remotes: [
+      {
+        type: "streamable-http",
+        url: "https://jurisprudence.poirierlavoie.ca/mcp",
+        supportedProtocolVersions: [...VERSIONS],
+        headers: [
+          {
+            name: "Authorization",
+            description: "Secret partagé de l'instance (« Bearer <secret> »).",
+            isRequired: true,
+            isSecret: true,
+          },
+        ],
+      },
+    ],
+  };
+}
+
+function reponseCarteServeur(method: string): Response {
+  if (method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+        "Access-Control-Allow-Headers": "Accept, Content-Type",
+        "Access-Control-Max-Age": "86400",
+      },
+    });
+  }
+  if (method !== "GET" && method !== "HEAD") {
+    return new Response(JSON.stringify({ error: "method_not_allowed" }), {
+      status: 405,
+      headers: {
+        ...JSON_HEADERS,
+        Allow: "GET, HEAD, OPTIONS",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
+  }
+  const headers: Record<string, string> = {
+    "Content-Type": "application/mcp-server-card+json; charset=utf-8",
+    "Cache-Control": "public, max-age=600",
+    "X-Content-Type-Options": "nosniff",
+    "Access-Control-Allow-Origin": "*",
+  };
+  return method === "HEAD"
+    ? new Response(null, { status: 200, headers })
+    : new Response(JSON.stringify(carteServeur()), { status: 200, headers });
 }
 
 /**
@@ -524,6 +611,15 @@ export default {
         });
       }
       return pagePublique(request);
+    }
+
+    // ── Fiche de découverte SEP-2127 (`/mcp/server-card`) ─────────────────────
+    //
+    // Exception NOMMÉE et exacte avant la garde `/mcp*` : métadonnées publiques sans
+    // secret, lisibles par tout catalogue ou client MCP avant authentification, tout en
+    // respectant le coupe-circuit `MCP_ENABLED` (§8).
+    if (pathname === "/mcp/server-card") {
+      return actif ? reponseCarteServeur(request.method) : notFound();
     }
 
     if (pathname === "/mcp" || pathname.startsWith("/mcp/")) {

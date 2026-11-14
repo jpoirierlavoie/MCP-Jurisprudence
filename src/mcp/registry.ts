@@ -223,6 +223,14 @@ export const SERVER_INFO = {
   version: "0.2.0",
 };
 
+/**
+ * Description publique canonique — partagée avec la fiche SEP-2127 (`/mcp/server-card`)
+ * et épinglée contre `plugin.json` et `gemini-extension.json` dans `test/doc.test.ts`.
+ */
+export const PUBLIC_DESCRIPTION =
+  "Vérification déterministe de citations de jurisprudence canadienne (collection CanLII, " +
+  "métadonnées en lecture seule) et tables hors ligne des greffes et palais de justice du Québec.";
+
 /** Orientation rendue à l'initialisation. Elle porte, elle aussi, le contrat de §2. */
 export const INSTRUCTIONS =
   "Connecteur de VÉRIFICATION DE RÉFÉRENCES adossé à la collection de CanLII. " +

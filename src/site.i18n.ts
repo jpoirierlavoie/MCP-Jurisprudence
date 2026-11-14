@@ -157,8 +157,13 @@ export const EN = {
 
   acces: [
     "A private instance, run by a Québec lawyer for their own practice. The endpoint has " +
-      "the form https://jurisprudence.poirierlavoie.ca/mcp/<secret> — the secret appears " +
-      "nowhere on this page, and never will.",
+      "the form https://jurisprudence.poirierlavoie.ca/mcp/<secret> or " +
+      "https://jurisprudence.poirierlavoie.ca/mcp (by authorization header) — the secret " +
+      "appears nowhere on this page, and never will.",
+    "A public MCP Server Card (SEP-2127) without secrets is published at " +
+      "https://jurisprudence.poirierlavoie.ca/mcp/server-card; the repository ships manifests " +
+      "for Google Antigravity (plugin.json, mcp_config.json) and Gemini CLI " +
+      "(gemini-extension.json).",
     "The code is public, and the test suite runs with no API key and no network.",
   ],
 

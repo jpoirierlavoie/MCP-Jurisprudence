@@ -92,11 +92,11 @@
     "BACKFILL_ENABLED": "false",
     "BACKFILL_DATABASES": "qcca,qccs,qccq,qctal",
     "DEFAULT_LANG": "fr",
-    // Origines de navigateur admises EN PLUS de claude.ai et claude.com (séparées
-    // par des virgules). Vide en temps normal. Sert à deux choses : ajouter un
-    // client web tiers, ou autoriser une origine de développement. Toute origine
-    // de navigateur absente de la liste est refusée par un 403 — c'est la défense
-    // contre le ré-attachement DNS exigée par la spécification MCP.
+    // Origines de navigateur admises EN PLUS de claude.ai, claude.com, gemini.google.com
+    // et aistudio.google.com (séparées par des virgules). Vide en temps normal. Sert à
+    // deux choses : ajouter un client web tiers, ou autoriser une origine de
+    // développement. Toute origine de navigateur absente de la liste est refusée par un
+    // 403 — c'est la défense contre le ré-attachement DNS exigée par la spécification MCP.
     "ALLOWED_ORIGINS": ""
   }
 }
