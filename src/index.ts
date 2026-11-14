@@ -17,17 +17,25 @@
 
 import {
   apparie,
-  avecCache,
-  complet,
-  estModerne,
-  HEADER_MISMATCH,
-  negocier,
+  construireCarteServeur,
+  debitAcceptable,
+  err,
+  methodeNonPermise,
+  origineAutorisee,
+  origineInterdite,
+  origineRefusee,
+  originesAdmises,
   type Porte,
   porteursPresentes,
-  resultatDecouverte,
-  VERSION_SANS_ENTETE,
-  validerEntetes,
-  versionAbsenteAdmise,
+  preflight,
+  refuser,
+  repondreCarteServeur,
+  reponseSante,
+  SERVER_CARD_SCHEMA,
+  secretsAdmis,
+  servirRequeteMcp,
+  type ToolResult,
+  tropDeRequetes,
 } from "@poirierlavoie/socle-juridique";
 import { runScheduled } from "./backfill";
 import { createClient } from "./canlii/client";
@@ -40,25 +48,13 @@ import {
   SERVER_INFO,
   TOOLS,
 } from "./mcp/registry";
-import {
-  err,
-  errorResponse,
-  INTERNAL_ERROR,
-  INVALID_REQUEST,
-  isNotification,
-  JsonRpcError,
-  METHOD_NOT_FOUND,
-  PARSE_ERROR,
-  parseMessage,
-  type RequestId,
-  resultResponse,
-  type ToolResult,
-} from "./mcp/rpc";
 
 import { pagePubliqueHtml } from "./site";
 
 /** Versions du protocole servies. La plus élevée EN TÊTE (§8). */
 export const VERSIONS = ["2026-07-28", "2025-11-25", "2025-06-18", "2025-03-26"] as const;
+
+export { SERVER_CARD_SCHEMA };
 
 /** Une heure : le registre ne bouge qu'au déploiement. */
 const TTL_LISTE = 3_600_000;
@@ -84,243 +80,27 @@ const TTL_LISTE = 3_600_000;
 const SERT_AVANT_2025_06_18 = true;
 
 /**
- * La plus haute révision HÉRITÉE — le repli de `initialize` quand la version demandée est
- * inconnue.
- *
- * ⚠ ET NON `VERSIONS[0]`, qui est désormais `2026-07-28`. Cette révision a SUPPRIMÉ la
- *   poignée : répondre son nom à un client qui vient d'appeler `initialize` lui annoncerait
- *   une ère où sa propre requête n'existe pas. Un client qui emploie la poignée est hérité
- *   par définition — le même raisonnement qui l'exempte déjà de la validation d'en-têtes.
- */
-const PLUS_HAUTE_HERITEE = VERSIONS.find((v) => !estModerne(v)) ?? VERSIONS[VERSIONS.length - 1];
-
-const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
-
-/**
- * Origines de navigateur admises.
- *
- * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║ Deux exigences DISTINCTES se rejoignent ici, et il faut les servir toutes    ║
- * ║ les deux :                                                                   ║
- * ║                                                                              ║
- * ║ 1. CORS. `claude.ai` et les clients web Gemini (`gemini.google.com`,         ║
- * ║    `aistudio.google.com`) sont des applications de NAVIGATEUR. Sans pré-vol  ║
- * ║    accepté et sans `Access-Control-Allow-Origin`, le navigateur refuse la    ║
- * ║    requête — et le connecteur se solde par « Impossible de joindre le        ║
- * ║    serveur », alors que le même point d'entrée répond parfaitement à un       ║
- * ║    client serveur.                                                           ║
- * ║                                                                              ║
- * ║ 2. Défense contre le RÉ-ATTACHEMENT DNS, exigée par la spécification MCP :   ║
- * ║    une origine de navigateur non reconnue est REFUSÉE. Une origine absente   ║
- * ║    (appel serveur à serveur, scripts/mcp-client.mjs, Antigravity, Gemini CLI)║
- * ║    reste admise — c'est le motif retenu par `athena/mcp/bearer.py`.          ║
- * ╚══════════════════════════════════════════════════════════════════════════════╝
- */
-const ORIGINES_PAR_DEFAUT = [
-  "https://claude.ai",
-  "https://claude.com",
-  "https://gemini.google.com",
-  "https://aistudio.google.com",
-];
-
-function originesAdmises(env: Env): string[] {
-  const brut = (env.ALLOWED_ORIGINS as string | undefined) ?? "";
-  const sup = brut
-    .split(",")
-    .map((o) => o.trim())
-    .filter((o) => o.length > 0);
-  return [...ORIGINES_PAR_DEFAUT, ...sup];
-}
-
-/** Origine à refléter, ou null si l'origine est absente ou refusée. */
-function originAutorisee(request: Request, env: Env): string | null {
-  const o = request.headers.get("Origin");
-  if (!o) return null; // serveur à serveur : pas de CORS à négocier
-  return originesAdmises(env).includes(o) ? o : null;
-}
-
-/** Une origine de NAVIGATEUR présente mais non reconnue doit être refusée. */
-function origineRefusee(request: Request, env: Env): boolean {
-  const o = request.headers.get("Origin");
-  return Boolean(o) && !originesAdmises(env).includes(o as string);
-}
-
-/**
- * En-têtes CORS d'une réponse effective.
- *
- * `Vary: Origin` est obligatoire : sans lui, un cache intermédiaire pourrait
- * resservir à une origine la réponse calculée pour une autre.
- */
-function corsHeaders(origin: string | null): Record<string, string> {
-  if (!origin) return {};
-  return {
-    "Access-Control-Allow-Origin": origin,
-    Vary: "Origin",
-    // Le client lit ces en-têtes ; sans exposition explicite ils lui sont invisibles.
-    "Access-Control-Expose-Headers": "WWW-Authenticate, MCP-Protocol-Version",
-  };
-}
-
-function jsonResponse(body: unknown, status = 200, origin: string | null = null): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...JSON_HEADERS, ...corsHeaders(origin) },
-  });
-}
-
-/**
- * Réponse au pré-vol CORS.
- *
- * ⚠ Le pré-vol est traité AVANT toute vérification du secret, et c'est
- *   obligatoire : un navigateur émet `OPTIONS` SANS en-tête d'authentification et
- *   sans corps. Exiger le secret ici ferait échouer le pré-vol, donc la requête
- *   réelle, donc le connecteur — sans que rien n'ait été authentifié pour autant.
- *   Le pré-vol ne divulgue rien : il ne fait qu'annoncer ce que le serveur accepte.
- */
-function preflight(origin: string): Response {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": origin,
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers":
-        "Content-Type, Authorization, MCP-Protocol-Version, Mcp-Method, Mcp-Name, Mcp-Session-Id, Accept, Last-Event-ID",
-      "Access-Control-Max-Age": "86400",
-      Vary: "Origin",
-    },
-  });
-}
-
-/** URI canonique du schéma SEP-2127 (MCP Server Cards). */
-export const SERVER_CARD_SCHEMA =
-  "https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json";
-
-/**
  * Fiche de découverte HTTP MCP (SEP-2127) — PURE, sans accès à `env` ni à aucun secret.
  *
  * Toutes les valeurs d'identité et de protocole dérivent de `SERVER_INFO`,
  * `PUBLIC_DESCRIPTION` et `VERSIONS` (invariant 19 : aucune copie littérale).
  */
 export function carteServeur() {
-  return {
-    $schema: SERVER_CARD_SCHEMA,
+  return construireCarteServeur({
     name: `ca.poirierlavoie.jurisprudence/${SERVER_INFO.name}`,
     title: SERVER_INFO.title,
     version: SERVER_INFO.version,
     description: PUBLIC_DESCRIPTION,
     websiteUrl: "https://jurisprudence.poirierlavoie.ca/",
-    repository: {
-      url: "https://github.com/jpoirierlavoie/MCP-Jurisprudence",
-      source: "github",
-    },
-    remotes: [
-      {
-        type: "streamable-http",
-        url: "https://jurisprudence.poirierlavoie.ca/mcp",
-        supportedProtocolVersions: [...VERSIONS],
-        headers: [
-          {
-            name: "Authorization",
-            description: "Secret partagé de l'instance (« Bearer <secret> »).",
-            isRequired: true,
-            isSecret: true,
-          },
-        ],
-      },
-    ],
-  };
+    repositoryUrl: "https://github.com/jpoirierlavoie/MCP-Jurisprudence",
+    remoteUrl: "https://jurisprudence.poirierlavoie.ca/mcp",
+    supportedProtocolVersions: VERSIONS,
+    authDescription: "Secret partagé de l'instance (« Bearer <secret> »).",
+  });
 }
 
-function reponseCarteServeur(method: string): Response {
-  if (method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
-        "Access-Control-Allow-Headers": "Accept, Content-Type",
-        "Access-Control-Max-Age": "86400",
-      },
-    });
-  }
-  if (method !== "GET" && method !== "HEAD") {
-    return new Response(JSON.stringify({ error: "method_not_allowed" }), {
-      status: 405,
-      headers: {
-        ...JSON_HEADERS,
-        Allow: "GET, HEAD, OPTIONS",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
-  }
-  const headers: Record<string, string> = {
-    "Content-Type": "application/mcp-server-card+json; charset=utf-8",
-    "Cache-Control": "public, max-age=600",
-    "X-Content-Type-Options": "nosniff",
-    "Access-Control-Allow-Origin": "*",
-  };
-  return method === "HEAD"
-    ? new Response(null, { status: 200, headers })
-    : new Response(JSON.stringify(carteServeur()), { status: 200, headers });
-}
+const nonTrouve = () => new Response("Not found", { status: 404 });
 
-/**
- * Comparaison À TEMPS CONSTANT, sur les empreintes plutôt que sur les chaînes (§9.1).
- *
- * Passer par SHA-256 neutralise aussi l'écart de LONGUEUR : `timingSafeEqual` exige
- * deux tampons de même taille et lèverait sur des chaînes de longueurs différentes —
- * ce qui, en soi, divulguerait la longueur du secret.
- */
-async function secretOk(given: string, expected: string): Promise<boolean> {
-  const enc = new TextEncoder();
-  const [a, b] = await Promise.all([
-    crypto.subtle.digest("SHA-256", enc.encode(given)),
-    crypto.subtle.digest("SHA-256", enc.encode(expected)),
-  ]);
-  return crypto.subtle.timingSafeEqual(a, b);
-}
-
-/**
- * L'un des secrets PRÉSENTÉS est-il l'un des secrets ADMIS ?
- *
- * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║ DEUX SECRETS, DES DROITS IDENTIQUES, ET UNE SEULE RAISON : LA RÉVOCATION.    ║
- * ║                                                                              ║
- * ║ `MCP_SHARED_SECRET` sert le connecteur claude.ai. `MCP_SHARED_SECRET_ATHENA` ║
- * ║ SERVAIT le clavardage de Pallas Athéna, retiré de son dépôt le 2026-09-02 :  ║
- * ║ il n'a plus aucun porteur. Le second n'ouvrait AUCUN droit de plus — ce que  ║
- * ║ protège D7 reste la clef d'API et son quota, pas un périmètre de données.    ║
- * ║ Ils sont distincts pour qu'un porteur se retire SEUL : faire tourner celui de║
- * ║ claude.ai ne devait pas éteindre le cabinet, ni l'inverse.                   ║
- * ║                                                                              ║
- * ║ Le secret reste admis et n'est pas à retirer — il ne coûte rien, et la règle ║
- * ║ vaudra pour le prochain client. Mais PLUS AUCUN CLIENT RÉEL ne signalerait   ║
- * ║ qu'on a cassé la forme par en-tête : depuis cette date, ce trajet n'est      ║
- * ║ couvert que par `test/rpc.test.ts` et par un `curl` à la main.               ║
- * ╚══════════════════════════════════════════════════════════════════════════════╝
- *
- * ⚠ FERMÉ PAR DÉFAUT, et désormais des DEUX CÔTÉS du produit. Le second secret étant
- *   facultatif, la tentation serait de traiter « aucun secret configuré » comme « rien
- *   à comparer » : ce serait le défaut ouvert par omission que §9.1 interdit. Liste
- *   vide d'un côté OU de l'autre ⇒ produit vide ⇒ `some` rend faux ⇒ tout est refusé.
- *   « Aucun porteur présenté » se traite donc par la MÊME ligne que « aucun secret
- *   configuré » : le défaut fermé devient structurel, au lieu de reposer sur une garde
- *   `if` que l'appelant portait — et qu'un remaniement pouvait laisser tomber.
- *
- * ⚠ On compare TOUTES les paires, sans court-circuit, et on ne journalise ni ne renvoie
- *   jamais lequel a servi (§9.2) : tous les échecs sont le même 401. `Promise.all` résout
- *   l'intégralité du produit AVANT que `some` ne lise des booléens déjà calculés ; sa
- *   sortie anticipée porte donc sur un tableau figé et ne coûte aucun temps observable.
- *   Ni le PORTEUR ni le SECRET qui a servi n'est déductible de la latence.
- *
- * ⚠ COÛT, puisque la liste des présentés s'est allongée : au pire 5 candidats × 2 secrets
- *   = 10 paires, soit 20 empreintes SHA-256, en une seule vague. Quelques dizaines de
- *   microsecondes sur une requête qui en passera 100 à 600 MILLIsecondes en D1 et chez
- *   CanLII. Le dédoublonnage de `secretsPresentes` ramène le cas normal — secret
- *   hexadécimal, sans barre finale, un seul secret configuré — à DEUX empreintes, soit
- *   exactement ce que la garde coûtait avant. On ne mémorise délibérément PAS l'empreinte
- *   des attendus : `secretOk` est la primitive publiée en §9.1, et relue comme telle.
- */
 /**
  * La porte d'accès, déclarée UNE fois et employée par le runtime comme par les tests.
  *
@@ -344,175 +124,6 @@ export const PORTE: Porte = {
   nomsSecrets: ["MCP_SHARED_SECRET"],
   segmentBorne: false,
 };
-
-/**
- * `decodeURIComponent` LÈVE une `URIError` sur un pourcentage malformé (`/mcp/x%FF`).
- *
- * ⚠ DÉFAUT RÉEL, mesuré en direct sur la production : l'exception remontait NON RATTRAPÉE
- *   hors du gestionnaire, et le Worker sortait en 500. Un refus doit refuser — un 500
- *   annonce au sondeur qu'il a trouvé un bord, sans avoir rien refusé pour autant.
- *
- * ⚠ L'exception est avalée SANS AUCUNE TRACE, et c'est §9.2 (invariant 5) : le segment
- *   fautif EST le secret présenté. Ni `console.error`, ni le message de l'`URIError`, ni
- *   `request.url`. Le `catch` est vide DÉLIBÉRÉMENT — ne pas y « ajouter un log pour
- *   déboguer », ce serait publier le secret dans `wrangler tail`.
- *
- * Même parade et même nom que chez le connecteur jumeau (« Législation du Québec »,
- * `src/auth.ts`), pour qu'on la reconnaisse en passant de l'un à l'autre.
- */
-function decodeOrNull(segment: string): string | null {
-  try {
-    return decodeURIComponent(segment);
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Les secrets PRÉSENTÉS par la requête — tous les porteurs, toutes leurs graphies
- * plausibles, sans aucune préséance entre eux.
- *
- * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║ POURQUOI UNE LISTE, ET NON « LE » SECRET PRÉSENTÉ.                           ║
- * ║                                                                              ║
- * ║ Cette fonction rendait UNE valeur, par RETOUR ANTICIPÉ : tout en-tête        ║
- * ║ `Bearer` non vide masquait définitivement le secret du chemin. Un            ║
- * ║ `Authorization` résiduel — périmé, collé d'un autre connecteur, posé par un  ║
- * ║ mandataire — rendait donc inopérante une URL PARFAITEMENT CORRECTE, et son   ║
- * ║ refus était indiscernable d'un mauvais secret. §9.1 énonce deux formes SANS  ║
- * ║ préséance ; le code en avait inventé une, et la spécification décrivait      ║
- * ║ depuis lors un comportement qui n'existait pas. On essaie désormais TOUT ce  ║
- * ║ qui est présenté, et aucun porteur n'en masque un autre.                     ║
- * ╚══════════════════════════════════════════════════════════════════════════════╝
- *
- * ⚠ LA BARRE FINALE EST LE DÉFAUT QUI A COÛTÉ UN CONNECTEUR. Les clients normalisent
- *   l'URL saisie et y ajoutent « / ». Le refus qui s'ensuivait n'était pas lu comme
- *   « mauvais secret » mais comme « ressource OAuth protégée » : claude.ai enchaîne sur
- *   `.well-known/*` (404), puis sur `POST /register` (404), et l'inscription dynamique
- *   échoue — « Impossible de s'inscrire auprès du service de connexion ». Le connecteur
- *   reste coincé là. Constaté en production sur le jumeau le 2026-07-23, corrigé ici le
- *   2026-09-16. `/mcp/<secret>/` DOIT valoir `/mcp/<secret>`, et `/mcp/` valoir `/mcp`.
- *
- * ⚠ TOLÉRANCE STRICTEMENT ÉLARGISSANTE : on AJOUTE des candidats, on n'en TRANSFORME
- *   aucun. Le secret de production n'est pas connu d'ici et ne doit pas l'être (CLAUDE.md,
- *   « Secrets ») : il peut se terminer lui-même par « / » — l'alphabet base64 STANDARD en
- *   produit — ou porter un « % ». Rogner « ce qui est évidemment de trop » casserait alors
- *   une authentification qui fonctionne, en production, sans qu'aucun test ne le dise. Le
- *   pire cas d'un candidat surnuméraire est une empreinte SHA-256 calculée pour rien ; le
- *   pire cas d'un rognage est un connecteur mort. ON NE RESSERRE PAS L'ANALYSE D'UN
- *   PORTEUR CONTRE UNE VALEUR QU'ON S'INTERDIT DE LIRE.
- *
- * ⚠ ÉLARGIR N'EST PAS OUVRIR : seules des barres obliques FINALES sont ôtées, et seulement
- *   pour produire un candidat de PLUS. Aucun PRÉFIXE du secret n'est admis — toute valeur
- *   ainsi acceptée est une valeur dont la connaissance implique déjà celle du secret.
- *   Épinglé par un test.
- *
- * ⚠ ON NE BORNE PAS À UN SEUL SEGMENT, contrairement au jumeau. Lui le DOIT : il retire le
- *   segment-jeton et remonte la requête sur son chemin de montage, où une profondeur
- *   imprévue casserait le routage de `McpAgent.serve("/mcp")`. Ici le chemin n'est qu'un
- *   PORTEUR — rien n'est remonté, `/mcp*` est capté en entier, et tout ce qui ne s'apparie
- *   pas rend le même 401. Borner serait un RÉTRÉCISSEMENT sans contrepartie : si le secret
- *   de production contient « / », `/mcp/a/b` l'authentifie aujourd'hui.
- *
- * Limite connue et assumée : les barres finales sont ôtées TOUTES D'UN COUP, non une à
- * une. Un secret finissant par « / » présenté avec une barre surnuméraire reste refusé. Ce
- * cas n'a aucun client, et l'échelle complète des suffixes n'ajouterait que des candidats
- * que personne n'émet.
- */
-function secretsPresentes(request: Request, pathname: string): string[] {
-  const candidats: (string | null)[] = [];
-
-  // Porteur par en-tête (§19 — le clavardage de Pallas Athéna). `\s+` et le drapeau `/i` :
-  // le nom du schéma est insensible à la casse (RFC 7235 §2.1), et `startsWith("Bearer ")`
-  // refusait « bearer x » comme « Bearer  x ». Le `.trim()` sur le jeton est sans danger
-  // ICI — la couche `Headers` normalise déjà les espaces de bord d'une valeur d'en-tête —
-  // alors que le même geste sur le CHEMIN, lui, serait un rognage.
-  const entete = request.headers.get("Authorization");
-  const bearer = entete === null ? null : /^Bearer\s+(.+)$/i.exec(entete.trim());
-  if (bearer?.[1]) candidats.push(bearer[1].trim());
-
-  // Porteur par le chemin. `(.+)` : tout ce qui suit `/mcp/`, profondeur comprise.
-  // `/mcp` et `/mcp/` ne s'apparient pas — rien n'est alors présenté par le chemin, et
-  // l'en-tête décide seul. C'est le comportement voulu pour les deux.
-  const chemin = /^\/mcp\/(.+)$/.exec(pathname);
-  if (chemin?.[1]) {
-    const brut = chemin[1];
-    const rogne = brut.replace(/\/+$/, "");
-    // `rogne` EN PLUS de `brut`, jamais à sa place.
-    for (const forme of rogne === brut ? [brut] : [brut, rogne]) {
-      candidats.push(forme); // tel quel : ferme le cas « le secret contient un % »
-      candidats.push(decodeOrNull(forme)); // décodé : le cas normal
-    }
-  }
-
-  // Dédoublonnage. Sur un secret hexadécimal sans barre finale — le cas normal — les
-  // quatre graphies du chemin se réduisent à UNE, et la garde coûte exactement ce qu'elle
-  // coûtait avant le correctif. La comparaison n'oppose que des valeurs PRÉSENTÉES entre
-  // elles : elle ne touche aucun secret attendu, et ne peut donc rien en divulguer.
-  return [...new Set(candidats.filter((c): c is string => c !== null && c.length > 0))];
-}
-
-function unauthorized(origin: string | null = null): Response {
-  return new Response(JSON.stringify({ error: "unauthorized" }), {
-    status: 401,
-    headers: { ...JSON_HEADERS, "WWW-Authenticate": "Bearer", ...corsHeaders(origin) },
-  });
-}
-
-function methodNotAllowed(origin: string | null = null): Response {
-  return new Response(JSON.stringify({ error: "method_not_allowed" }), {
-    status: 405,
-    headers: { ...JSON_HEADERS, Allow: "POST, OPTIONS", ...corsHeaders(origin) },
-  });
-}
-
-/**
- * Limitation de débit (§9.3) : 60 requêtes/minute par IP, dans le Worker.
- *
- * ⚠ FAIL OPEN délibéré. Si le binding manque (développement local, mauvaise
- *   configuration) ou si l'appel échoue, on LAISSE PASSER.
- *
- *   Ce choix se justifie parce que la limitation de débit n'est PAS le contrôle
- *   d'accès : l'authentification, elle, échoue fermée (sans aucun secret configuré,
- *   tout est refusé). Ici, la seule chose protégée est le coût — requêtes Workers
- *   facturables et quota CanLII. Échouer fermé sur un compteur indisponible
- *   rendrait le connecteur inutilisable pour protéger une facture, ce qui est le
- *   mauvais arbitrage.
- */
-async function debitAcceptable(request: Request, env: Env): Promise<boolean> {
-  const limiteur = env.RATE_LIMITER;
-  if (!limiteur) return true;
-  // L'IP du client vue par Cloudflare. La documentation déconseille l'IP comme clef
-  // dans le cas général (elle est partagée derrière un NAT) ; pour un connecteur
-  // mono-usager, deux usagers derrière la même sortie partageraient un budget de
-  // 60/min, ce qui est sans portée pratique ici.
-  const ip = request.headers.get("CF-Connecting-IP") ?? "sans-ip";
-  try {
-    const { success } = await limiteur.limit({ key: ip });
-    return success;
-  } catch {
-    return true;
-  }
-}
-
-function tooManyRequests(origin: string | null): Response {
-  return new Response(JSON.stringify({ error: "rate_limited" }), {
-    status: 429,
-    headers: { ...JSON_HEADERS, "Retry-After": "60", ...corsHeaders(origin) },
-  });
-}
-
-/** Origine de navigateur présente mais non reconnue (§ défense ré-attachement DNS). */
-function forbiddenOrigin(): Response {
-  return new Response(JSON.stringify({ error: "forbidden_origin" }), {
-    status: 403,
-    headers: JSON_HEADERS,
-  });
-}
-
-function notFound(): Response {
-  return new Response("Not found", { status: 404 });
-}
 
 /**
  * Page publique (§18).
@@ -582,13 +193,12 @@ export default {
     // ║ déploiement.                                                                 ║
     // ╚══════════════════════════════════════════════════════════════════════════════╝
     if (pathname === "/health") {
-      const commit = (env.COMMIT as string | undefined) ?? "inconnu";
-      return actif ? jsonResponse({ status: "ok", commit }) : notFound();
+      return reponseSante({ actif, commit: env.COMMIT as string | undefined });
     }
 
     // ── Page publique (§18) ──────────────────────────────────────────────────
     //
-    // ⚠ ÉGALITÉ STRICTE, jamais `startsWith("/")` : le `notFound()` final doit rester
+    // ⚠ ÉGALITÉ STRICTE, jamais `startsWith("/")` : le `nonTrouve()` final doit rester
     //   la réponse de tout le reste, et c'est épinglé par un test.
     //
     // ⚠ DÉLIBÉRÉMENT HORS de la garde du bloc `/mcp` ci-dessous. Le contrôle
@@ -619,18 +229,19 @@ export default {
     // secret, lisibles par tout catalogue ou client MCP avant authentification, tout en
     // respectant le coupe-circuit `MCP_ENABLED` (§8).
     if (pathname === "/mcp/server-card") {
-      return actif ? reponseCarteServeur(request.method) : notFound();
+      return actif ? repondreCarteServeur(request.method, carteServeur()) : nonTrouve();
     }
 
     if (pathname === "/mcp" || pathname.startsWith("/mcp/")) {
-      if (!actif) return notFound();
+      if (!actif) return nonTrouve();
 
       // Défense contre le ré-attachement DNS (spécification MCP) : une origine de
       // NAVIGATEUR présente mais inconnue est refusée d'emblée. Une origine absente
       // (serveur à serveur) passe — elle n'est pas soumise à la politique de même
       // origine et ne peut donc pas être détournée de cette façon.
-      if (origineRefusee(request, env)) return forbiddenOrigin();
-      const origin = originAutorisee(request, env);
+      const admises = originesAdmises(env.ALLOWED_ORIGINS as string | undefined);
+      if (origineRefusee(request, admises)) return origineInterdite();
+      const origin = origineAutorisee(request, admises);
 
       // Pré-vol CORS AVANT l'authentification : le navigateur l'émet sans en-tête
       // d'authentification. L'exiger ici casserait le connecteur sans rien protéger.
@@ -643,25 +254,42 @@ export default {
       // CORS), tandis que limiter AVANT le contrôle de méthode et l'authentification
       // fait que même une rafale de requêtes mal formées ou mal authentifiées cesse
       // de coûter — ce qui est précisément l'objet de la mesure.
-      if (!(await debitAcceptable(request, env))) return tooManyRequests(origin);
+      const ip = request.headers.get("CF-Connecting-IP") ?? "sans-ip";
+      if (!(await debitAcceptable(env.RATE_LIMITER, ip))) return tropDeRequetes(60, origin);
 
       // Aucun flux SSE, aucune session à supprimer : mode JSON sans état (D3).
-      if (request.method !== "POST") return methodNotAllowed(origin);
+      if (request.method !== "POST") return methodeNonPermise(origin);
 
       // Aucune garde `if (!presente)` : une liste VIDE — aucun porteur présenté — produit
       // un produit cartésien vide, donc `some` faux, donc 401. Le défaut fermé vit
-      // désormais tout entier dans `secretAdmis`, des deux côtés du produit.
+      // tout entier dans `apparie`, des deux côtés du produit.
       const presentes = porteursPresentes(request, url, PORTE);
-      const attendus = PORTE.nomsSecrets
-        .map((nom) => (env as unknown as Record<string, unknown>)[nom])
-        .filter((v): v is string => typeof v === "string" && v.length > 0);
+      const attendus = secretsAdmis(env as unknown as Record<string, unknown>, PORTE);
       if (!(await apparie(presentes, attendus))) {
-        return unauthorized(origin);
+        return refuser("401", origin);
       }
-      return await handleMcp(request, env, ctx, origin);
+
+      return await servirRequeteMcp(request, {
+        versions: VERSIONS,
+        capabilities: { tools: { listChanged: false } },
+        serverInfo: SERVER_INFO,
+        instructions: INSTRUCTIONS,
+        descripteurs: listToolDescriptors,
+        appeler: (nom, args) => executerOutil(nom, args, env, ctx),
+        origin,
+        sertAvant2025_06_18: SERT_AVANT_2025_06_18,
+        ttlListeMs: TTL_LISTE,
+        surErreur: (method, error) => {
+          // Journalisation SANS l'URL (§9.2) : méthode et nature de l'échec, rien d'autre.
+          console.error("échec de répartition MCP", {
+            method,
+            error: error instanceof Error ? error.name : "inconnu",
+          });
+        },
+      });
     }
 
-    return notFound();
+    return nonTrouve();
   },
 
   /**
@@ -675,154 +303,13 @@ export default {
   },
 };
 
-async function handleMcp(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext,
-  origin: string | null,
-): Promise<Response> {
-  let message: ReturnType<typeof parseMessage>;
-  try {
-    message = parseMessage(await request.text());
-  } catch (e) {
-    const je = e instanceof JsonRpcError ? e : new JsonRpcError(PARSE_ERROR, "Erreur d'analyse.");
-    return jsonResponse(errorResponse(je.requestId, je.code, je.message), 200, origin);
-  }
-
-  // notifications/initialized, notifications/cancelled, … : accusé de réception vide.
-  if (isNotification(message))
-    return new Response(null, { status: 202, headers: corsHeaders(origin) });
-
-  const id = (message.id ?? null) as RequestId;
-  const params = message.params ?? {};
-
-  // ── Version ──────────────────────────────────────────────────────────────────────────
-  // Après l'analyse du corps, et non avant : l'exemption d'`initialize` a besoin de la
-  // méthode, et la comparaison en-tête ↔ corps a besoin du `_meta`.
-  const entete = request.headers.get("MCP-Protocol-Version");
-  let version: string;
-  if (entete === null) {
-    if (!versionAbsenteAdmise(message.method, SERT_AVANT_2025_06_18)) {
-      return jsonResponse(
-        errorResponse(id, HEADER_MISMATCH, "En-tête « MCP-Protocol-Version » manquant."),
-        400,
-        origin,
-      );
-    }
-    version = (params.protocolVersion as string) ?? VERSION_SANS_ENTETE;
-  } else {
-    const n = negocier(entete, VERSIONS);
-    if ("erreur" in n) {
-      return jsonResponse({ jsonrpc: "2.0", id, error: n.erreur }, 400, origin);
-    }
-    version = n.version;
-  }
-
-  const moderne = estModerne(version);
-
-  // `initialize` en est exclu : la révision moderne a SUPPRIMÉ la poignée, donc un client
-  // qui l'appelle relève de l'ère héritée quelle que soit la version qu'il annonce.
-  if (moderne && message.method !== "initialize") {
-    const meta = (params._meta ?? {}) as Record<string, unknown>;
-    const faute = validerEntetes(request.headers, {
-      method: message.method,
-      params,
-      versionMeta: meta["io.modelcontextprotocol/protocolVersion"] as string | undefined,
-    });
-    if (faute) return jsonResponse(errorResponse(id, HEADER_MISMATCH, faute), 400, origin);
-  }
-
-  /** N'habille de `resultType` et des indices de cache que sous une révision moderne. */
-  const habiller = (brut: Record<string, unknown>, ttlMs?: number): Record<string, unknown> => {
-    if (!moderne) return brut;
-    const t = complet(brut);
-    return ttlMs === undefined ? t : avecCache(t, ttlMs, "public");
-  };
-
-  try {
-    switch (message.method) {
-      case "server/discover":
-        // OBLIGATOIRE sous `2026-07-28`. Servi aussi aux révisions antérieures : elles ne
-        // le demandent pas, mais le refuser n'apporterait rien à personne.
-        return jsonResponse(
-          resultResponse(
-            id,
-            resultatDecouverte({
-              supportedVersions: VERSIONS,
-              capabilities: { tools: { listChanged: false } },
-              serverInfo: SERVER_INFO,
-              instructions: INSTRUCTIONS,
-              ttlMs: TTL_LISTE,
-            }),
-          ),
-          200,
-          origin,
-        );
-      case "initialize":
-        // Imitation de poignée : on répond comme avant, et on ne retient RIEN.
-        return jsonResponse(resultResponse(id, initialize(params)), 200, origin);
-      case "ping":
-        return jsonResponse(resultResponse(id, habiller({})), 200, origin);
-      case "tools/list":
-        return jsonResponse(
-          resultResponse(id, habiller({ tools: listToolDescriptors() }, TTL_LISTE)),
-          200,
-          origin,
-        );
-      case "tools/call":
-        return jsonResponse(
-          // `ToolResult` n'a pas de signature d'index : la conversion est de forme, non de
-          // fond — `habiller` n'ajoute que `resultType` sous une révision moderne.
-          resultResponse(
-            id,
-            habiller((await toolsCall(params, env, ctx)) as unknown as Record<string, unknown>),
-          ),
-          200,
-          origin,
-        );
-      default:
-        // `404` AVEC un corps JSON-RPC : c'est le corps qui distingue ce cas du 404 d'un
-        // serveur d'ancienne génération, lequel n'en porte aucun.
-        return jsonResponse(
-          errorResponse(id, METHOD_NOT_FOUND, `Méthode inconnue : ${message.method}`),
-          404,
-          origin,
-        );
-    }
-  } catch (e) {
-    if (e instanceof JsonRpcError) {
-      return jsonResponse(errorResponse(id, e.code, e.message), 200, origin);
-    }
-    // Journalisation SANS l'URL (§9.2) : méthode et nature de l'échec, rien d'autre.
-    console.error("échec de répartition MCP", {
-      method: message.method,
-      error: e instanceof Error ? e.name : "inconnu",
-    });
-    return jsonResponse(errorResponse(id, INTERNAL_ERROR, "Erreur interne."), 200, origin);
-  }
-}
-
-function initialize(params: Record<string, unknown>): Record<string, unknown> {
-  const demandee = params.protocolVersion;
-  const negociee =
-    typeof demandee === "string" && VERSIONS.includes(demandee as (typeof VERSIONS)[number])
-      ? demandee
-      : PLUS_HAUTE_HERITEE;
-  return {
-    protocolVersion: negociee,
-    capabilities: { tools: { listChanged: false } },
-    serverInfo: SERVER_INFO,
-    instructions: INSTRUCTIONS,
-  };
-}
-
-async function toolsCall(
-  params: Record<string, unknown>,
+async function executerOutil(
+  nom: unknown,
+  args: unknown,
   env: Env,
   ctx: ExecutionContext,
 ): Promise<ToolResult> {
-  const nom = params.name;
-  if (typeof nom !== "string" || !(nom in TOOLS)) {
+  if (typeof nom !== "string" || !Object.hasOwn(TOOLS, nom)) {
     // Outil inconnu : c'est une erreur d'EXÉCUTION rendue au modèle, pas une faute de
     // protocole — le modèle doit pouvoir la lire et se corriger (§7, conventions).
     return err(
@@ -830,15 +317,15 @@ async function toolsCall(
     );
   }
 
-  const args = params.arguments ?? {};
-  if (typeof args !== "object" || args === null || Array.isArray(args)) {
+  const objet = args ?? {};
+  if (typeof objet !== "object" || objet === null || Array.isArray(objet)) {
     return err("« arguments » doit être un objet.");
   }
 
   const client = createClient(env);
   const debut = Date.now();
   try {
-    return await callTool(nom, args as Record<string, unknown>, { env, db: env.DB, client, ctx });
+    return await callTool(nom, objet as Record<string, unknown>, { env, db: env.DB, client, ctx });
   } catch (e) {
     console.error("échec d'exécution d'outil", {
       tool: nom,

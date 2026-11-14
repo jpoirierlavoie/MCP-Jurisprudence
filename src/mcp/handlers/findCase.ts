@@ -10,6 +10,7 @@
  *   possible. La sortie le dit à chaque fois (GARDE_RECHERCHE).
  */
 
+import { err, ok, type ToolResult } from "@poirierlavoie/socle-juridique";
 import { describeError } from "../../canlii/client";
 import { CanliiBudgetError } from "../../canlii/errors";
 import type { CaseListResponse, Lang } from "../../canlii/types";
@@ -34,7 +35,6 @@ import {
 import { flushUsage, logSearch } from "../../store/telemetry";
 import { LIMITES } from "../defauts";
 import type { ToolContext } from "../registry";
-import { err, ok, type ToolResult } from "../rpc";
 
 /** Bases québécoises usuelles, balayées quand aucun tribunal n'est précisé (§7.2). */
 const BASES_QC_USUELLES = ["qcca", "qccs", "qccq"];

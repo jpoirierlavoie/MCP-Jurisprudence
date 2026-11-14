@@ -17,6 +17,7 @@
  *   ne vaut pas la conservation. Verrouillé par `test/garde.test.ts`.
  */
 
+import { ok, type ToolResult } from "@poirierlavoie/socle-juridique";
 import { joindre } from "../../format/fr";
 import { GARDE_DOSSIER, GARDE_SANS_ADRESSE, SANS_PLUMITIF } from "../../format/render";
 import { analyserNumeroDossier } from "../../qc/dossier";
@@ -24,7 +25,6 @@ import { LIBELLE_CATEGORIE } from "../../qc/forums";
 import { LIBELLE_TYPE_GREFFE } from "../../qc/juridictions";
 import { adresseDuGreffe, localitesItinerantes } from "../../qc/lookup";
 import type { ToolContext } from "../registry";
-import { ok, type ToolResult } from "../rpc";
 
 export async function parseCourtFileTool(
   args: Record<string, unknown>,

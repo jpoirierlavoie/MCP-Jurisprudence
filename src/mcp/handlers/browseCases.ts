@@ -8,6 +8,7 @@
  * Toutes au format AAAA-MM-JJ, bornes INCLUSIVES (annexe B).
  */
 
+import { err, ok, type ToolResult } from "@poirierlavoie/socle-juridique";
 import { describeError } from "../../canlii/client";
 import type { CaseListResponse, Lang } from "../../canlii/types";
 import { persisterBalayages } from "../../config";
@@ -17,7 +18,6 @@ import { type CaseRow, rowFromListItem, upsertCases } from "../../store/cases";
 import { flushUsage, logSearch } from "../../store/telemetry";
 import { LIMITES } from "../defauts";
 import type { ToolContext } from "../registry";
-import { err, ok, type ToolResult } from "../rpc";
 
 /** Correspondance argument -> paramètre de l'API (annexe B). */
 const FILTRES: Array<[string, string]> = [

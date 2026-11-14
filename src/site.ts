@@ -20,9 +20,9 @@
  * Sans JavaScript, le FRANÇAIS s'affiche et tout le contenu reste lisible.
  */
 
+import type { JsonSchema } from "@poirierlavoie/socle-juridique";
 import { GARDE_DOSSIER, GARDE_PALAIS, GARDE_SANS_ADRESSE } from "./format/render";
 import { listToolDescriptors } from "./mcp/registry";
-import type { JsonSchema } from "./mcp/validate";
 import { analyserNumeroDossier } from "./qc/dossier";
 import { GREFFES } from "./qc/greffes";
 import { JURIDICTIONS, LIBELLE_TYPE_GREFFE } from "./qc/juridictions";

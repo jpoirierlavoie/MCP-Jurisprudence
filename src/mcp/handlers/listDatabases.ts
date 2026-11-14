@@ -9,6 +9,7 @@
  * SIGNALÉE dans la sortie. L'outil détecte, il ne corrige jamais de lui-même.
  */
 
+import { ok, type ToolResult } from "@poirierlavoie/socle-juridique";
 import { describeError } from "../../canlii/client";
 import type { Lang } from "../../canlii/types";
 import { nombreFr } from "../../format/fr";
@@ -21,7 +22,6 @@ import {
 } from "../../store/databases";
 import { flushUsage, logSearch } from "../../store/telemetry";
 import type { ToolContext } from "../registry";
-import { ok, type ToolResult } from "../rpc";
 
 export async function listDatabasesTool(
   args: Record<string, unknown>,

@@ -5,12 +5,10 @@
  * faire varier `env` (coupe-circuit, secret absent) d'un test à l'autre.
  */
 import { createExecutionContext, env, waitOnExecutionContext } from "cloudflare:test";
+import { type JsonSchema, parseMessage, validateArgs } from "@poirierlavoie/socle-juridique";
 import { describe, expect, it } from "vitest";
-
 import worker, { VERSIONS } from "../src/index";
 import { PUBLIC_DESCRIPTION, SERVER_INFO } from "../src/mcp/registry";
-import { parseMessage } from "../src/mcp/rpc";
-import { type JsonSchema, validateArgs } from "../src/mcp/validate";
 
 const SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 /** Second porteur (§19) — le clavardage de Pallas Athéna. Droits identiques. */

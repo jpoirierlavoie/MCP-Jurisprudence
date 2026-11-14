@@ -5,6 +5,7 @@
  * donc appliquée CÔTÉ WORKER, et la troncature est annoncée en toutes lettres.
  */
 
+import { err, ok, type ToolResult } from "@poirierlavoie/socle-juridique";
 import { describeError } from "../../canlii/client";
 import type { Lang, LegislationListResponse } from "../../canlii/types";
 import { fold } from "../../citation/normalize";
@@ -13,7 +14,6 @@ import { document, LEGISLATION_METADONNEES_LISTE } from "../../format/render";
 import { flushUsage, logSearch } from "../../store/telemetry";
 import { LIMITES } from "../defauts";
 import type { ToolContext } from "../registry";
-import { err, ok, type ToolResult } from "../rpc";
 
 export async function browseLegislation(
   args: Record<string, unknown>,

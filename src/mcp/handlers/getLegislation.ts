@@ -25,13 +25,13 @@
  *   affirmation déjà faite.
  */
 
+import { err, ok, type ToolResult } from "@poirierlavoie/socle-juridique";
 import { describeError } from "../../canlii/client";
 import type { Lang, LegislationMetadata } from "../../canlii/types";
 import { dateFr, nombreFr, ou } from "../../format/fr";
 import { GARDE_VERSION_LEGISLATIVE, LEGISLATION_METADONNEES, lien } from "../../format/render";
 import { flushUsage, logSearch } from "../../store/telemetry";
 import type { ToolContext } from "../registry";
-import { err, ok, type ToolResult } from "../rpc";
 
 /** `repealed` arrive tantôt en booléen, tantôt en chaîne selon les corpus. */
 function abroge(v: string | boolean | undefined): string {

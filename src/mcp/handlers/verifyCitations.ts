@@ -18,6 +18,7 @@
  *      praticien tranche, l'outil ne masque pas.
  */
 
+import { ok, type ToolResult } from "@poirierlavoie/socle-juridique";
 import { describeError } from "../../canlii/client";
 import type { Lang } from "../../canlii/types";
 import { compareTitles } from "../../citation/compare";
@@ -36,7 +37,6 @@ import { loadDirectory } from "../../store/databases";
 import { lookupCase } from "../../store/lookup";
 import { flushUsage, logSearchBatch } from "../../store/telemetry";
 import type { ToolContext } from "../registry";
-import { ok, type ToolResult } from "../rpc";
 
 type Verdict =
   | "CONFIRMÉE"

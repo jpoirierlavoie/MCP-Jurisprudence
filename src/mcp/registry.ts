@@ -54,6 +54,12 @@
  *     `browse_cases` rendait `false` dans la même situation.
  */
 
+import {
+  err,
+  type JsonSchema,
+  type ToolResult,
+  validateArgs,
+} from "@poirierlavoie/socle-juridique";
 import type { CanliiClient } from "../canlii/client";
 import { LIMITES, OFFSET_DEFAUT, OFFSET_MAX } from "./defauts";
 import { browseCases } from "./handlers/browseCases";
@@ -69,8 +75,6 @@ import { parseCitationTool } from "./handlers/parseCitation";
 import { parseCourtFileTool } from "./handlers/parseCourtFile";
 import { subsequentHistory } from "./handlers/subsequentHistory";
 import { verifyCitations } from "./handlers/verifyCitations";
-import { err, type ToolResult } from "./rpc";
-import { type JsonSchema, validateArgs } from "./validate";
 
 export interface ToolContext {
   env: Env;
@@ -775,7 +779,7 @@ export async function callTool(
   args: Record<string, unknown>,
   ctx: ToolContext,
 ): Promise<ToolResult> {
-  const outil = TOOLS[name];
+  const outil = Object.hasOwn(TOOLS, name) ? TOOLS[name] : undefined;
   if (!outil) return err(`Outil inconnu : « ${name} ».`);
   const erreurs = validateArgs(outil.inputSchema, args);
   if (erreurs.length > 0) {

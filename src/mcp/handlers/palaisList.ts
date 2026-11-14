@@ -4,12 +4,12 @@
  * AUCUN appel sortant, AUCUNE lecture D1 : table en mémoire, relevé du MJQ.
  */
 
+import { ok, type ToolResult } from "@poirierlavoie/socle-juridique";
 import { nombreFr, pluriel } from "../../format/fr";
 import { document, GARDE_PALAIS } from "../../format/render";
 import { listerDistricts, listerPalais, type PalaisResolu } from "../../qc/lookup";
 import type { TypeLieu } from "../../qc/palais";
 import type { ToolContext } from "../registry";
-import { err, ok, type ToolResult } from "../rpc";
 
 /** Une ligne compacte par lieu — l'analogue de `ligneCandidat` pour les palais. */
 function ligne(p: PalaisResolu): string {

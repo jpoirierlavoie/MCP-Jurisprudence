@@ -8,6 +8,7 @@
  * le contrôle est donc ici, sur le modèle de `handlers/cible.ts`.
  */
 
+import { err, ok, type ToolResult } from "@poirierlavoie/socle-juridique";
 import { joindre, pluriel } from "../../format/fr";
 import { GARDE_PALAIS, GARDE_SANS_ADRESSE } from "../../format/render";
 import {
@@ -21,7 +22,6 @@ import {
 } from "../../qc/lookup";
 import { PAYS, PROVINCE } from "../../qc/palais";
 import type { ToolContext } from "../registry";
-import { err, ok, type ToolResult } from "../rpc";
 
 export async function palaisGetTool(
   args: Record<string, unknown>,

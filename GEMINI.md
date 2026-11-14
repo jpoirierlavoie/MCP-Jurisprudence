@@ -17,7 +17,7 @@ Aucune modification n'est terminée tant que ses répercussions n'ont pas été 
 
 1. **Outils MCP** (`src/mcp/registry.ts`, `src/mcp/handlers/`, partition `jurisprudence_*` vs `greffe_*`/`palais_*`, annotations `readOnlyHint`/`openWorldHint`).
 2. **Descriptions et titres** (`registry.ts`, `INSTRUCTIONS`, `OUTILS_EN` dans `src/site.i18n.ts` — traduction véritable, jamais copie).
-3. **Schémas d'entrée** (`src/mcp/validate.ts`, constantes de `src/mcp/defauts.ts` uniquement, `additionalProperties: false`, `description` sur chaque paramètre, règles inter-champs répétées sur chaque paramètre concerné).
+3. **Schémas d'entrée** (`validateArgs` de `@poirierlavoie/socle-juridique`, constantes de `src/mcp/defauts.ts` uniquement, `additionalProperties: false`, `description` sur chaque paramètre, règles inter-champs répétées sur chaque paramètre concerné).
 4. **Documentation et manifestes** (`README.md`, `SPEC.md`, `CLAUDE.md`, `plugin.json`, `mcp_config.json`, `gemini-extension.json`, `/mcp/server-card`, `test/doc.test.ts`).
 5. **Page publique** (`src/site.ts` + `src/site.i18n.ts`, §18) — le contenu **dérive** du registre et des tables, sans copie ni URL tierce non admise (`test/site.test.ts`).
 

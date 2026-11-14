@@ -6,6 +6,7 @@
  * contrôlé ici.
  */
 
+import { err, ok, type ToolResult } from "@poirierlavoie/socle-juridique";
 import { analyserErreur } from "../../canlii/client";
 import type { CaseMetadata, Lang } from "../../canlii/types";
 import { parseCitation, resolve } from "../../citation/parse";
@@ -21,7 +22,6 @@ import { loadDirectory } from "../../store/databases";
 import { lookupCase } from "../../store/lookup";
 import { flushUsage, logSearch } from "../../store/telemetry";
 import type { ToolContext } from "../registry";
-import { err, ok, type ToolResult } from "../rpc";
 
 export async function getCase(
   args: Record<string, unknown>,

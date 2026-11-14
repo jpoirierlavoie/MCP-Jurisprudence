@@ -7,6 +7,7 @@
  *   n'expose AUCUN paramètre `lang` : en exposer un serait mensonger.
  */
 
+import { err, ok, type ToolResult } from "@poirierlavoie/socle-juridique";
 import { describeError } from "../../canlii/client";
 import type { CitatorRel } from "../../canlii/types";
 import { nombreFr, pluriel, troncature } from "../../format/fr";
@@ -21,7 +22,6 @@ import {
 import { flushUsage, logSearch } from "../../store/telemetry";
 import { LIMITES } from "../defauts";
 import type { ToolContext } from "../registry";
-import { err, ok, type ToolResult } from "../rpc";
 import { resoudreCible } from "./cible";
 
 const LIBELLE: Record<CitatorRel, string> = {

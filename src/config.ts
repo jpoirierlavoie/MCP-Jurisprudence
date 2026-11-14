@@ -15,13 +15,11 @@
  *   code correct dans les deux cas.
  */
 
+import { drapeau } from "@poirierlavoie/socle-juridique";
+
 /** Lit un drapeau booléen. Absent ou illisible => la valeur par défaut. */
 export function flag(value: string | undefined, defaut = false): boolean {
-  if (value === undefined || value === null) return defaut;
-  const v = String(value).trim().toLowerCase();
-  if (v === "true") return true;
-  if (v === "false") return false;
-  return defaut;
+  return drapeau(value, defaut);
 }
 
 /** Lit un entier positif. Absent ou illisible => la valeur par défaut. */

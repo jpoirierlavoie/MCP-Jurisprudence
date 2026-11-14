@@ -12,6 +12,7 @@
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 
+import { err, ok, type ToolResult } from "@poirierlavoie/socle-juridique";
 import { describeError } from "../../canlii/client";
 import { titleSimilarity } from "../../citation/compare";
 import { dateFr, pluriel } from "../../format/fr";
@@ -27,7 +28,6 @@ import {
 import { flushUsage, logSearch } from "../../store/telemetry";
 import { LIMITES } from "../defauts";
 import type { ToolContext } from "../registry";
-import { err, ok, type ToolResult } from "../rpc";
 import { resoudreCible } from "./cible";
 
 /** Table de hiérarchie (§7.5). Base de départ -> juridictions supérieures. */
