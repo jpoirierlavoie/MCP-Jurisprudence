@@ -39,9 +39,14 @@ import { PUBLIC_DESCRIPTION, SERVER_INFO, TOOLS } from "../src/mcp/registry";
 const NOMS = Object.keys(TOOLS).sort();
 
 /** Un compte écrit en toutes lettres vieillit en silence : on l'éprouve aussi. */
-const EN_LETTRES: Record<number, string> = { 12: "douze", 13: "treize", 14: "quatorze" };
+const EN_LETTRES: Record<number, string> = {
+  10: "dix",
+  11: "onze",
+  12: "douze",
+  13: "treize",
+};
 
-/** La section « Les treize outils » du README, bornée au titre de niveau 2 suivant. */
+/** La section « Les dix outils » du README, bornée au titre de niveau 2 suivant. */
 function sectionOutils(): string {
   const debut = readme.indexOf("\n## Les ");
   expect(debut, "le README n'a plus de section « Les N outils »").toBeGreaterThan(-1);
@@ -50,10 +55,10 @@ function sectionOutils(): string {
 }
 
 describe("README contre registre — ce que la porte shell ne savait pas faire", () => {
-  it("le registre n'est pas vide : treize outils, et c'est affirmé AVANT le reste", () => {
+  it("le registre n'est pas vide : dix outils, et c'est affirmé AVANT le reste", () => {
     // L'assertion qui rend impossible la réussite sur le vide. Elle vient en premier
     // délibérément : si elle tombe, les trois suivantes ne veulent plus rien dire.
-    expect(NOMS.length).toBe(13);
+    expect(NOMS.length).toBe(10);
   });
 
   it("chaque outil du registre est nommé dans la section des outils", () => {
@@ -67,7 +72,7 @@ describe("README contre registre — ce que la porte shell ne savait pas faire",
     // par la section ET par la forme de ligne évite toute liste d'exceptions — c'est-
     // à-dire exactement ce qui a pourri la porte précédente.
     const cites = [...sectionOutils().matchAll(/^\| `([a-z][a-z0-9_]+)` \|/gm)].map((m) => m[1]!);
-    expect(cites).toHaveLength(13);
+    expect(cites).toHaveLength(10);
     expect([...new Set(cites)].sort()).toEqual(NOMS);
   });
 

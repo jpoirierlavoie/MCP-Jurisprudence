@@ -46,15 +46,12 @@ Out of scope:
 This connector is deliberately narrow. What leaves the infrastructure is **citations,
 court identifiers and dates** — no client names, no case facts, no documents.
 
-Three of the thirteen tools (`greffe_parse_court_file_number`, `palais_list`,
-`palais_get`) make **no outbound request at all**, and **write nothing**. They read
-in-memory tables of Quebec courthouses and registry codes compiled into the Worker.
+One tool (`jurisprudence_parse_citation`) makes **no outbound request at all**, and
+**writes nothing**. It parses neutral citations against local normalization rules only.
 
-A court file number submitted to them therefore never leaves the infrastructure, and
-is not written to `search_log` either. That second part is deliberate, not an
-oversight: a court file number identifies a **live matter** far more directly than a
-case citation does, so the tuning value of logging it does not justify keeping it.
-The tools are stateless by design, and a guard test enforces it.
+Quebec court file number parsing and courthouse / registry lookup tools (`greffe_*`,
+`palais_*`) were moved on 2026-11-14 to the separate public stateless connector
+`pratique-civile-outils`.
 
 One reservation, stated plainly because it is better known than discovered:
 `jurisprudence_find_case` accepts **party names**. If a name searched is that of a party to a

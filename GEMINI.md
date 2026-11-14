@@ -15,7 +15,7 @@ Règles d'espace de travail pour **Google Antigravity** et **Gemini CLI** lors d
 
 Aucune modification n'est terminée tant que ses répercussions n'ont pas été évaluées et incluses dans le **même** changement sur les cinq surfaces :
 
-1. **Outils MCP** (`src/mcp/registry.ts`, `src/mcp/handlers/`, partition `jurisprudence_*` vs `greffe_*`/`palais_*`, annotations `readOnlyHint`/`openWorldHint`).
+1. **Outils MCP** (`src/mcp/registry.ts`, `src/mcp/handlers/`, préfixe `jurisprudence_*`, annotations `readOnlyHint`/`openWorldHint`).
 2. **Descriptions et titres** (`registry.ts`, `INSTRUCTIONS`, `OUTILS_EN` dans `src/site.i18n.ts` — traduction véritable, jamais copie).
 3. **Schémas d'entrée** (`validateArgs` de `@poirierlavoie/socle-juridique`, constantes de `src/mcp/defauts.ts` uniquement, `additionalProperties: false`, `description` sur chaque paramètre, règles inter-champs répétées sur chaque paramètre concerné).
 4. **Documentation et manifestes** (`README.md`, `SPEC.md`, `CLAUDE.md`, `plugin.json`, `mcp_config.json`, `gemini-extension.json`, `/mcp/server-card`, `test/doc.test.ts`).
@@ -52,11 +52,11 @@ Le coût en jetons de cette relecture est assumé. Penser aussi aux consommateur
 13. **Télémétrie (`search_log`, `api_usage`)** n'échoue jamais l'outil observé.
 14. **Fins de ligne LF (`\n`)** obligatoires (`.gitattributes`), sinon Biome Windows et Linux CI divergent.
 15. **§11 (`BACKFILL_ENABLED="false"`)** reste inerte par décision du praticien (2026-07-23) ; ne pas basculer le drapeau.
-16. **Préfixes partitionnent (`jurisprudence_*` vs `greffe_*`/`palais_*`), descriptions nomment la source** ; `openWorldHint` vaut `false` sur les 4 outils sans appel sortant et `true` sur les 9 autres.
-17. **Tables `src/qc/` = relevé daté** (`GARDE_PALAIS` avec dates `RELEVE_LE` et `MJQ_MAJ`) ; ne pas confondre `point_de_service`, `location_type` et `lieux.itinerant` ; adresse absente = **inconnue**.
-18. **`src/qc/lieux.ts`** fait autorité sur le rattachement (extrait de `sources-officielles/`) ; passer par `adresseDuGreffe()`. Ne jamais supprimer `sources-officielles/`.
-19. **Page publique (`/`) et `/mcp/server-card` DÉRIVENT** des données vives (`listToolDescriptors()`, `SERVER_INFO`, `VERSIONS`, `src/qc/`, `GARDE_*`) ; zéro copie manuelle. Route `/` = égalité stricte, hors garde `/mcp*`, zéro en-tête CORS, survit au coupe-circuit (`MCP_ENABLED=false`).
-20. **`src/qc/dossier.ts` = port vérifié par différentiel** (`test/fixtures/dossier-athena.json`, 127 cas) : ni somme de contrôle ni règle d'année inventée.
+16. **Préfixe `jurisprudence_*`, description nomme CanLII** ; `openWorldHint` vaut `false` sur `jurisprudence_parse_citation` (aucun appel) et `true` sur les 9 autres.
+17. *(Retiré le 2026-11-14 — déplacé vers `pratique-civile-outils`.)* Les tables `src/qc/` et les outils `greffe_*`/`palais_*` ne vivent plus ici.
+18. *(Retiré le 2026-11-14 — déplacé vers `pratique-civile-outils`.)* `lieux.ts` et `sources-officielles/` ont suivi vers `pratique-civile-outils`.
+19. **Page publique (`/`) et `/mcp/server-card` DÉRIVENT** des données vives (`listToolDescriptors()`, `SERVER_INFO`, `VERSIONS`, `GARDE_*`) ; zéro copie manuelle. Route `/` = égalité stricte, hors garde `/mcp*`, zéro en-tête CORS, survit au coupe-circuit (`MCP_ENABLED=false`).
+20. *(Retiré le 2026-11-14 — déplacé vers `pratique-civile-outils`.)* Le parseur de dossiers (`src/qc/dossier.ts` et son différentiel Athéna) a suivi vers `pratique-civile-outils`.
 21. **Style de page identique au connecteur jumeau** (« Législation du Québec ») : aucune couleur en dur hors jeux clair/sombre, mêmes variables CSS des deux côtés.
 22. **Refus `/mcp` (`401`) déclenche la découverte OAuth des clients** : conserver les porteurs sans préséance (chemin `/mcp/<secret>`, `Authorization: Bearer`, `?key=`), tolérance élargissante seulement (barres finales, `decodeURIComponent` sans lever 500), aucun rognage de secret. Exception nommée `/mcp/server-card` (SEP-2127) : publique sans secret, respecte `MCP_ENABLED`.
 
@@ -65,8 +65,7 @@ Le coût en jetons de cette relecture est assumé. Penser aussi aux consommateur
 ## Secrets & éléments à ne pas « nettoyer »
 
 - **Interdiction absolue** de lire, afficher ou copier : `.dev.vars`, `mcp.url`, `cf.token` / `*.token`, `~/.gemini/config/mcp_config.json`, `CANLII_API_KEY`, `MCP_SHARED_SECRET`.
-- **Ne pas supprimer comme « code mort »** : `src/backfill.ts`, `listCases()` (`src/store/cases.ts`), `idx_cases_docket` (`migrations/0001_initial.sql`), `sources-officielles/`.
-- **Ne pas fusionner** `src/store/lookup.ts` (boucle D1/CanLII avec E/S) et `src/qc/lookup.ts` (tables en mémoire sans E/S).
+- **Ne pas supprimer comme « code mort »** : `src/backfill.ts`, `listCases()` (`src/store/cases.ts`), `idx_cases_docket` (`migrations/0001_initial.sql`).
 
 ---
 

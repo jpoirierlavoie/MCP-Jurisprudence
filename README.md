@@ -1,10 +1,9 @@
 # MCP Jurisprudence
 
-*Jurisprudence canadienne et greffes du Québec.*
+*Vérification déterministe de jurisprudence canadienne (collection CanLII).*
 
 Serveur MCP autonome sur Cloudflare Workers, exposant la **REST API de CanLII** sous forme
-d'outils orientés **vérification de références** plutôt que d'enveloppes d'endpoints, plus
-trois outils **hors ligne** sur les greffes et palais de justice du Québec.
+de dix outils orientés **vérification de références** plutôt que d'enveloppes d'endpoints.
 
 - **Page publique** : <https://jurisprudence.poirierlavoie.ca/> — bilingue, trois thèmes
 - **Point d'entrée** : `https://jurisprudence.poirierlavoie.ca/mcp/<secret>`
@@ -21,37 +20,33 @@ texte d'une décision. La valeur du connecteur tient donc à trois usages :
 3. **Identifier** précisément une décision, puis en obtenir l'hyperlien `canlii.ca` afin
    d'en tirer le texte par un autre moyen.
 
-À quoi s'ajoute, depuis le 2026-07-30, la lecture d'un **numéro de dossier de cour du
-Québec** et le **répertoire des palais de justice** — la pratique quotidienne autour des
-mêmes décisions.
+*(Note — 2026-11-14 : les trois outils hors ligne sur les numéros de dossier de cour et les
+palais de justice du Québec — `greffe_parse_court_file_number`, `palais_list`, `palais_get` —
+ont été déplacés vers le connecteur public sans authentification `pratique-civile-outils`, où ils
+ne requièrent aucun secret.)*
 
-### ⚠ Deux sources, deux préfixes
+### ⚠ Source et portée des dix outils
 
-La distinction est **sémantique**, pas cosmétique, et elle est **vérifiée par les tests** :
+Tous les outils portent le préfixe `jurisprudence_` :
 
 | Préfixe | Source | Appels sortants |
 |---|---|---|
-| `jurisprudence_` (10) | la collection de **CanLII** — couverture et verdicts en dépendent | oui, **sauf** `jurisprudence_parse_citation` |
-| `greffe_` `palais_` (3) | un **relevé local** du ministère de la Justice du Québec, daté | **aucun** |
+| `jurisprudence_` (10) | la collection de **CanLII** — couverture et verdicts en dépendent | oui (9), **sauf** `jurisprudence_parse_citation` (1) |
 
-**Neuf outils sur treize appellent CanLII, pas dix.** `jurisprudence_parse_citation` porte le
+**Neuf outils sur dix appellent CanLII, pas dix.** `jurisprudence_parse_citation` porte le
 préfixe parce que sa réponse concerne la collection de CanLII — il dit quels identifiants une
 citation permettrait d'y construire — mais il ne l'interroge jamais : c'est un analyseur pur.
-Cette nuance n'est pas seulement écrite ici, elle est **lisible par machine** : les quatre outils
-qui ne font aucun appel portent `openWorldHint: false` dans leurs annotations MCP, les neuf autres
-`openWorldHint: true`. Un hôte qui restreint les outils « monde ouvert » peut donc les distinguer
-sans lire une ligne de prose.
+Cette nuance n'est pas seulement écrite ici, elle est **lisible par machine** :
+`jurisprudence_parse_citation` porte `openWorldHint: false` dans ses annotations MCP, les neuf
+autres `openWorldHint: true`. Un hôte qui restreint les outils « monde ouvert » peut donc le
+distinguer sans lire une ligne de prose.
 
-**Le préfixe ne NOMME plus la source** — il s'écrivait `canlii_` jusqu'au 2026-09-16 (D8
-amendée) : un préfixe ne sait pas porter une réserve, il n'en donne que l'illusion, et
+**Le préfixe ne NOMME pas la source à lui seul** — il s'écrivait `canlii_` jusqu'au 2026-09-16
+(D8 amendée) : un préfixe ne sait pas porter une réserve, il n'en donne que l'illusion, et
 quatre descriptions sur dix s'en remettaient à lui au point de ne jamais écrire « CanLII ».
 L'annonce vit désormais dans la **description de chaque outil**, dans les instructions du
 serveur et sur la page publique — trois surfaces qui sont des phrases, et que des tests
 épinglent dans les deux langues.
-
-Ce que le préfixe fait toujours, c'est **partitionner** : ranger une adresse de palais du
-côté de CanLII lui attribuerait une donnée dont il n'est pas la source, et c'est ce que la
-décision D8 interdit depuis l'origine. La partition, elle, reste vérifiée.
 
 ---
 
@@ -104,7 +99,7 @@ n'est pas de l'ajuster pour qu'il passe : c'est de remettre la mise en garde.
 
 ---
 
-## Les treize outils
+## Les dix outils
 
 ### Adossés à CanLII
 
@@ -121,22 +116,7 @@ n'est pas de l'ajuster pour qu'il passe : c'est de remettre la mise en garde.
 | `jurisprudence_get_legislation` | Fiche d'une loi : abrogation, découpage, et les dates de la VERSION servie — jamais celles de l'instrument |
 | `jurisprudence_parse_citation` | Analyse hors ligne d'une citation — **aucun appel** |
 
-### Tables locales du Québec — **aucun appel, jamais**
-
-| Outil | Rôle |
-|---|---|
-| `greffe_parse_court_file_number` | `500-05-123456-241` → greffe, district judiciaire, tribunal, compétence. Un préfixe `TAL-`, `C.F.-`… désigne le tribunal qui numérote lui-même |
-| `palais_list` | Répertoire des 43 palais et 8 points de service, filtrable par district, type ou texte libre |
-| `palais_get` | Fiche d'un lieu : adresse, greffes qui y siègent, localités desservies d'une cour itinérante |
-
 Sorties en **texte français**, jamais en JSON (décision D4).
-
-**Ce que les trois outils du Québec n'établissent PAS** : qu'un dossier existe ou soit actif.
-Ils lisent une **nomenclature** et un **relevé d'adresses**, pas un registre — le connecteur
-n'a accès à aucun plumitif. Les adresses datent du **2026-07-15** et **aucune coordonnée
-téléphonique** n'est portée : les palais déménagent, et il faut vérifier auprès du Ministère
-avant toute signification ou tout dépôt. Ces réserves vivent **dans le corps des réponses**
-et sont verrouillées par `test/garde.test.ts`, comme celles de CanLII.
 
 ---
 
@@ -159,16 +139,15 @@ mais il n'est pas nul, et il mérite d'être connu plutôt que découvert.
 ## Page publique (§18)
 
 `GET /` sert une page **statique et bilingue** (français · anglais, thème auto / clair /
-sombre) en cinq sections : les treize outils, leurs schémas, la structure d'un numéro de
-dossier judiciaire, le répertoire des greffes et l'accès. Depuis le 2026-09-16 elle porte
-aussi, comme la description de chaque outil et les instructions du serveur, l'**annonce
+sombre) en trois sections : les dix outils, leurs schémas et l'accès. Depuis le 2026-09-16 elle
+porte aussi, comme la description de chaque outil et les instructions du serveur, l'**annonce
 de la source** que le préfixe `canlii_` portait seul jusque-là — dans les deux langues, et
 un test échoue si une traduction cesse de la porter.
 
 **Tout y dérive des données vives** : les outils viennent de `listToolDescriptors()` — la
-fonction même que sert `tools/list` —, les issues d'analyse du **vrai parseur exécuté au
-rendu**, les greffes des tables de `src/qc/`, les réserves des constantes `GARDE_*`. Une
-valeur recopiée deviendrait fausse sans qu'aucun test n'échoue ; il n'y a donc aucune copie.
+fonction même que sert `tools/list` —, les schémas du même `inputSchema` que le validateur
+applique, et les annotations MCP du registre. Une valeur recopiée deviendrait fausse sans
+qu'aucun test n'échoue ; il n'y a donc aucune copie.
 
 Trois propriétés de sa route sont délibérées et testées : égalité stricte sur `/` ;
 **hors** du bloc `/mcp`, dont la garde d'origine refuserait la page à tout visiteur venu
@@ -192,20 +171,16 @@ claude.ai / Claude Code / Google Antigravity / Gemini
         ▼
   Worker `jurisprudence` (workerd, TypeScript, ZÉRO dépendance d'exécution)
     routeur → authentification → JSON-RPC → registre d'outils
-        │                  │                        │
-   analyseur de       tables du Québec        client CanLII
-   citations          `src/qc/` — greffes,    (séquentiel, étranglé,
-   (pur, hors ligne)  palais, juridictions     réessayé)
-        │             (PUR, aucune E/S)             │
-        └────────────┬────────────────────────────┬─┘
-                     ▼                            ▼
-                D1 `canlii`                 https://api.canlii.org/v1/…
-                index ET cache
+        │                                           │
+   analyseur de                               client CanLII
+   citations                                 (séquentiel, étranglé,
+   (pur, hors ligne)                          réessayé)
+        │                                           │
+        └───────────────────┬───────────────────────┘
+                            ▼
+                       D1 `canlii`      <─►  https://api.canlii.org/v1/…
+                       index ET cache
 ```
-
-Les tables `src/qc/` sont des **constantes TypeScript**, non une base : rien ne les réécrit
-à l'exécution, et les trois outils qui s'en servent ne peuvent donc ni échouer, ni consommer
-de quota, ni dépendre du réseau. Leur fraîcheur est celle du dépôt — d'où la réserve datée.
 
 **Transport** : Streamable HTTP, **mode JSON sans état** — un message JSON-RPC par `POST`,
 pas de SSE, pas de `Mcp-Session-Id`.
@@ -329,7 +304,7 @@ npm run deploy    # = migrations --remote PUIS wrangler deploy, arrêt au premie
   installer via `agy plugin install https://github.com/jpoirierlavoie/MCP-Jurisprudence.git`
   (ou copier les fichiers du greffon dans `~/.gemini/config/plugins/mcp-jurisprudence`),
   renseigner la variable `MCP_JURISPRUDENCE_SECRET` sur la page du greffon puis l'activer
-  — les treize outils se chargent à la demande (*lazy*) par défaut, sans contexte additionnel
+  — les dix outils se chargent à la demande (*lazy*) par défaut, sans contexte additionnel
   hors les `INSTRUCTIONS` canoniques du serveur.
 - **Gemini CLI** (`gemini-extension.json`) : installer via
   `gemini extensions install https://github.com/jpoirierlavoie/MCP-Jurisprudence`

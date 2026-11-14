@@ -6,7 +6,7 @@
 **Auteur de la spéc. :** (préparé pour Jason Poirier Lavoie)
 **Cible :** nouveau dépôt autonome — Worker Cloudflare, D1, TypeScript
 **Modèle de référence :** le Worker `legislation` / base D1 `qclaw` (connecteur « Législation du Québec »)
-**Statut :** **livré et en production** sur `jurisprudence.poirierlavoie.ca` — treize outils, 532 tests, page publique bilingue. *Amendé le 2026-09-16 ; l'en-tête portait « prêt à implémenter », vrai jusqu'au premier déploiement du 2026-07-23 et faux depuis.* Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
+**Statut :** **livré et en production** sur `jurisprudence.poirierlavoie.ca` — dix outils `jurisprudence_*`, page publique bilingue *(amendé le 2026-11-14 en `0.3.0` : retrait de §17 vers « pratique-civile-outils » ; historiquement treize outils / 532 tests à l'origine)*. Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
 
 ---
 
@@ -39,7 +39,7 @@ Ces décisions sont prises. Ne pas les rouvrir sans instruction contraire ; les 
 | D5 | **D1 sert à la fois d'index et de cache**, pas de KV | Le compte ne possède aucun *namespace* KV ; `qclaw` fonctionne sur D1 seul. Les métadonnées d'une décision sont quasi immuables : un cache permanent est correct. |
 | D6 | **Le cache se remplit par l'usage** | Tout balayage effectué pour répondre à une requête est **persisté**. Le « miroir » n'est donc pas un téléchargement en masse, mais la sédimentation des appels déjà faits. Le moissonnage planifié (§11) reste facultatif et désactivé par défaut. |
 | D7 | **Authentification par secret partagé** dans le chemin *ou* l'en-tête `Authorization` | Ce qui est protégé n'est pas du contenu confidentiel — les métadonnées sont publiques — mais **la clef d'API et son quota**. Un secret de 256 bits sur TLS est proportionné. Chemin d'évolution vers OAuth 2.1 documenté en §9.4. |
-| D8 | **Nom d'hôte `jurisprudence.poirierlavoie.ca`**, Worker `jurisprudence`, base D1 `canlii`, préfixe d'outils `jurisprudence_` | **AMENDÉE le 2026-09-16.** Symétrie avec `legislation.poirierlavoie.ca` : ni le nom d'hôte ni le préfixe d'outil n'emploient plus la marque d'un tiers. *La rédaction en vigueur du 2026-07-15 au 2026-09-16 disait : « Le nom d'hôte évite d'employer la marque d'un tiers ; le préfixe d'outil la conserve, parce que la couverture et les verdicts dépendent de la collection de CanLII et que le modèle doit le savoir. » Elle est citée et non effacée, parce que sa prémisse était juste et que seule sa conclusion a changé.* Le modèle doit toujours savoir que la couverture et les verdicts dépendent de la collection de CanLII — mais **un préfixe ne sait pas porter une réserve** : il ne dit ni la couverture bornée, ni qu'une absence n'est pas une inexistence, ni que l'API ne rend que des métadonnées. Il en donnait l'illusion, et quatre descriptions sur dix s'en remettaient à lui au point de ne jamais écrire « CanLII » (six sur dix côté anglais). L'annonce a donc MIGRÉ vers des PHRASES — description de chaque outil, `INSTRUCTIONS`, page publique — que des tests épinglent dans les deux langues. Ce que le préfixe conserve, c'est la PARTITION en deux familles (§17.1), et elle reste vérifiée. |
+| D8 | **Nom d'hôte `jurisprudence.poirierlavoie.ca`**, Worker `jurisprudence`, base D1 `canlii`, préfixe d'outils `jurisprudence_` | **AMENDÉE le 2026-09-16.** Symétrie avec `legislation.poirierlavoie.ca` : ni le nom d'hôte ni le préfixe d'outil n'emploient plus la marque d'un tiers. *La rédaction en vigueur du 2026-07-15 au 2026-09-16 disait : « Le nom d'hôte évite d'employer la marque d'un tiers ; le préfixe d'outil la conserve, parce que la couverture et les verdicts dépendent de la collection de CanLII et que le modèle doit le savoir. » Elle est citée et non effacée, parce que sa prémisse était juste et que seule sa conclusion a changé.* Le modèle doit toujours savoir que la couverture et les verdicts dépendent de la collection de CanLII — mais **un préfixe ne sait pas porter une réserve** : il ne dit ni la couverture bornée, ni qu'une absence n'est pas une inexistence, ni que l'API ne rend que des métadonnées. Il en donnait l'illusion, et quatre descriptions sur dix s'en remettaient à lui au point de ne jamais écrire « CanLII » (six sur dix côté anglais). L'annonce a donc MIGRÉ vers des PHRASES — description de chaque outil, `INSTRUCTIONS`, page publique — que des tests épinglent dans les deux langues. La partition en deux familles qui préservait alors le préfixe (`jurisprudence_*` vs `greffe_*`/`palais_*`, §17.1) a pris fin le 2026-11-14 (v0.3.0) avec le transfert des outils hors ligne vers `pratique-civile-outils` ; les dix outils restants portent tous le préfixe `jurisprudence_`. |
 | D9 | **Outils composites**, pas des enveloppes 1:1 d'endpoints | Un outil `jurisprudence_verify_citations` qui analyse, construit, appelle, compare et rend un verdict fait en un aller-retour ce qui en exigerait quatre. C'est aussi la seule façon d'imposer la mise en garde au bon endroit. |
 | D10 | **Auto-correction du répertoire des tribunaux** | La correspondance code de citation → `databaseId` n'est documentée que pour `csc-scc`. Les identifiants fédéraux sont incertains. Le système apprend : sur échec, il essaie la variante linguistique et consigne celle qui a fonctionné (§6.4). |
 
@@ -105,8 +105,7 @@ claude.ai / Claude Code      (Athéna : client du 2026-08-27 au 2026-09-02, reti
 
 ### 3.2 Arborescence du dépôt
 
-*Relevée sur le dépôt au 2026-08-27. §17 (`src/qc/`) et §18 (`src/site.ts`) sont
-arrivés après la rédaction initiale : ils figurent ici, à leur place.*
+*Relevée sur le dépôt (mise à jour du 2026-11-14 après le retrait de §17 vers « pratique-civile-outils »).*
 
 ```
 .
@@ -116,14 +115,13 @@ arrivés après la rédaction initiale : ils figurent ici, à leur place.*
 │   ├── env.d.ts              # les SECRETS, déclarés à la main (absents de wrangler.jsonc)
 │   ├── mcp/
 │   │   ├── rpc.ts            # enveloppe JSON-RPC, codes d'erreur, initialize/ping
-│   │   ├── registry.ts       # les 13 descripteurs (nom, titre, description FR, schéma)
+│   │   ├── registry.ts       # les 10 descripteurs (nom, titre, description FR, schéma)
 │   │   ├── validate.ts       # validateur JSON-Schema (sous-ensemble) — calqué sur mcp/tools.py
 │   │   └── handlers/         # un fichier par outil, + un module partagé
 │   │       ├── verifyCitations.ts · parseCitation.ts · findCase.ts
 │   │       ├── getCase.ts · citator.ts · subsequentHistory.ts
 │   │       ├── browseCases.ts · listDatabases.ts
 │   │       ├── browseLegislation.ts · getLegislation.ts
-│   │       ├── parseCourtFile.ts · palaisList.ts · palaisGet.ts   # §17
 │   │       └── cible.ts      # résolution de cible, partagée
 │   ├── canlii/
 │   │   ├── client.ts         # fetch sortant : étranglement, réessais, délais, quota
@@ -139,11 +137,6 @@ arrivés après la rédaction initiale : ils figurent ici, à leur place.*
 │   │   ├── lookup.ts         # la boucle d'auto-correction de §6.4, en UN SEUL exemplaire
 │   │   ├── citator.ts        # arêtes du citateur + TTL
 │   │   └── telemetry.ts      # search_log, api_usage
-│   ├── qc/                   # §17 — tables du MJQ, PURES : constantes, aucun D1, aucune E/S
-│   │   ├── palais.ts · greffes.ts · lieux.ts    # lieux.ts = relevé officiel 2026-07-22
-│   │   ├── juridictions.ts · forums.ts
-│   │   ├── dossier.ts        # analyseur de numéros — PORT d'Athéna, éprouvé par différentiel
-│   │   └── lookup.ts         # consultation EN MÉMOIRE (à ne pas confondre avec store/lookup.ts)
 │   ├── format/
 │   │   ├── fr.ts             # dates, listes, troncature
 │   │   └── render.ts         # gabarits de sortie (Annexe A) + mises en garde
@@ -160,18 +153,13 @@ arrivés après la rédaction initiale : ils figurent ici, à leur place.*
 ├── scripts/
 │   ├── mcp-client.mjs        # client de recette (§14) — ne divulgue jamais le secret
 │   ├── refresh-databases.mjs # réconciliation du répertoire (§4.3)
-│   ├── extraire-lieux-mjq.mjs # transcription du relevé MJQ (§17.6 : générée, non recopiée)
 │   └── deployer.mjs          # §12 — migrations PUIS déploiement ; refuse un arbre sale
-├── sources-officielles/      # la PREUVE, pas un résidu — voir ci-dessous
-│   └── mjq-numeros-greffes-2026-07-22.html
-├── test/                     # 532 tests en 15 fichiers, sans réseau ni clef
+├── test/                     # tests sans réseau ni clef
 │   ├── citation.parse.test.ts · citation.compare.test.ts · verify.test.ts
 │   ├── client.test.ts · rpc.test.ts · persist.test.ts · tools.test.ts
-│   ├── qc.tables.test.ts · qc.outils.test.ts · qc.dossier.test.ts
-│   ├── qc.dossier.differentiel.test.ts   # 127 entrées rejouées contre Athéna
 │   ├── site.test.ts · garde.test.ts · backfill.test.ts
 │   ├── doc.test.ts           # README contre REGISTRE (§13) — remplace la porte shell
-│   └── fixtures/             # réponses JSON figées + dossier-athena.json
+│   └── fixtures/             # réponses JSON figées de l'API CanLII (gitignoré ou tests)
 ├── assets/
 │   └── logo.svg              # icône vectorielle du greffon Antigravity
 ├── .github/workflows/        # §12
@@ -230,8 +218,6 @@ arrivés après la rédaction initiale : ils figurent ici, à leur place.*
   ]
 }
 ```
-
-⚠ **`sources-officielles/` n'est pas un résidu, et il ne doit pas être « nettoyé ».** Ce répertoire conserve la page du ministère de la Justice dont `scripts/extraire-lieux-mjq.mjs` tire `src/qc/lieux.ts` — la transcription est ENGENDRÉE, jamais recopiée (§17.6), et la source doit rester versionnée pour qu'elle demeure vérifiable. Elle est enregistrée à la main parce que `justice.gouv.qc.ca` répond **403** à une récupération automatique. Un fichier de 60 Ko dont personne n'explique la présence finit par disparaître au premier ménage : c'est pour cela que ce paragraphe existe. *(Ajouté le 2026-09-16 — le répertoire n'était nommé dans aucun document.)*
 
 *Bloc relevé sur le `wrangler.jsonc` versionné le 2026-09-16 ; en cas d'écart, **le fichier fait foi** — c'est lui que Cloudflare lit.*
 
@@ -598,12 +584,9 @@ Un **appariement partiel** produit le verdict `DISCORDANTE`, jamais `CONFIRMÉE`
 
 ---
 
-## 7. Les dix outils adossés à CanLII
+## 7. Les dix outils `jurisprudence_*`
 
-*Le connecteur en compte **treize**. Les dix décrits ici portent le préfixe
-`jurisprudence_` et interrogent la collection de CanLII ; les trois autres —
-`greffe_*`, `palais_*` — lisent un relevé local et sont décrits en **§17**, séparément
-et délibérément (§17.1 : le préfixe partitionne, la description nomme la source).*
+*Le connecteur en compte **dix**, tous sous le préfixe `jurisprudence_`. Neuf interrogent la collection de CanLII ; `jurisprudence_parse_citation` n'appelle rien.* *(Note — 2026-11-14, `0.3.0` : les trois outils hors ligne `greffe_*` et `palais_*` anciennement décrits en §17 ont été déplacés vers « pratique-civile-outils ».)*
 
 *Préfixe renommé le 2026-09-16 : il s'écrivait `canlii_`. Les descriptions ci-dessous
 sont reproduites verbatim du registre et ont été amendées dans le même changement —
@@ -613,15 +596,15 @@ leur nom le faisait pour elles.*
 **Conventions communes** — appliquées sans exception :
 
 - Nom d'outil en anglais, **description et sortie en français** (motif `qclaw`).
-- `readOnlyHint: true` sur **les treize** : aucun n'écrit quoi que ce soit hors de son propre cache et de sa télémétrie.
-- `openWorldHint` **n'est PAS uniforme**, et c'est le point : `true` pour les neuf qui appellent CanLII — leur réponse dépend d'un système tiers, faillible et hors de notre contrôle — et `false` pour les quatre qui ne font aucun appel (`jurisprudence_parse_citation`, `greffe_parse_court_file_number`, `palais_list`, `palais_get`), dont la réponse est une fonction pure de tables compilées dans le Worker. *Amendé le 2026-09-16 : les treize portaient `true`, ce qui annonçait un appel sortant là où il n'y en a jamais eu, et privait un client de la seule indication lisible par machine qui distingue les deux familles (§17.1). Un hôte qui limite les outils « monde ouvert » les refusait tous les treize sans motif.* `test/rpc.test.ts` épingle la scission outil par outil.
+- `readOnlyHint: true` sur **les dix** : aucun n'écrit quoi que ce soit hors de son propre cache et de sa télémétrie.
+- `openWorldHint` **n'est PAS uniforme**, et c'est le point : `true` pour les neuf qui appellent CanLII — leur réponse dépend d'un système tiers, faillible et hors de notre contrôle — et `false` pour `jurisprudence_parse_citation`, qui ne fait aucun appel sortant. *Amendé le 2026-09-16 : les outils portaient tous `true`, ce qui annonçait un appel sortant là où il n'y en a jamais eu.* `test/rpc.test.ts` épingle la scission outil par outil.
 - Tout paramètre déclaré porte une `description`. *Ajouté le 2026-09-16 : vingt et un n'en avaient pas. Un paramètre nu se devine par son nom, et `offset` comme `limit` se devinent mal — `test/garde.test.ts` échoue désormais si l'un la perd.*
 - `additionalProperties: false` sur tous les schémas.
 - Tout paramètre `lang` : `enum ["fr","en"]`, défaut `"fr"`.
 - Toute liste : `limit` avec défaut et maximum documentés ; troncature signalée en toutes lettres (« 50 premiers sur 214 »).
 - Toute sortie d'outil heuristique se termine par sa mise en garde (§2).
 - Erreur d'exécution ⇒ `{ content: [...], isError: true }` en français, **jamais** une erreur JSON-RPC (réservée aux fautes de protocole).
-- **La FRONTIÈRE de `isError`.** *Écrite le 2026-09-16 ; elle ne l'était nulle part, et elle était enfreinte.* `isError: true` quand l'outil n'a **rien** à livrer — argument refusé, forme d'appel invalide, appel sortant échoué sans repli. `isError: false` dès qu'un résultat part, **même vide, même partiel, même dégradé** : une liste vide est une réponse, pas une panne, et la réserve de §2 voyage alors dans le corps. ⚠ C'est le SEUL signal lisible par machine que ce connecteur émette, et un client l'interroge pour décider s'il RÉESSAIE : il doit donc vouloir dire la même chose partout. `palais_list` rendait `true` sur une liste vide là où `browse_cases` rendait `false` dans exactement la même situation — pour la même question posée à deux outils, une panne d'un côté, une réponse de l'autre. Un garde-fou éprouve les DEUX bords : la liste vide n'est pas une erreur, **et** un appel mal formé en est une ; sans le second, on satisferait le premier en rendant `false` partout, ce qui priverait le client du seul signal qu'il possède.
+- **La FRONTIÈRE de `isError`.** *Écrite le 2026-09-16 ; elle ne l'était nulle part, et elle était enfreinte.* `isError: true` quand l'outil n'a **rien** à livrer — argument refusé, forme d'appel invalide, appel sortant échoué sans repli. `isError: false` dès qu'un résultat part, **même vide, même partiel, même dégradé** : une liste vide est une réponse, pas une panne, et la réserve de §2 voyage alors dans le corps. ⚠ C'est le SEUL signal lisible par machine que ce connecteur émette, et un client l'interroge pour décider s'il RÉESSAIE : il doit donc vouloir dire la même chose partout. Un garde-fou éprouve les DEUX bords : la liste vide n'est pas une erreur, **et** un appel mal formé en est une ; sans le second, on satisferait le premier en rendant `false` partout, ce qui priverait le client du seul signal qu'il possède.
 
 ### 7.1 `jurisprudence_verify_citations` — l'outil pivot
 
@@ -832,10 +815,10 @@ Ne **pas** émettre `structuredContent` : `qclaw` ne le fait pas, la sortie est 
 
 **Ce que le sous-ensemble NE SAIT PAS imposer, et ce qu'on en fait.** *Arbitré le 2026-09-16.*
 Le validateur ne connaît ni `pattern`, ni `oneOf`, ni aucune contrainte ENTRE champs :
-`validateValue(schema, value, nom)` ne voit jamais le parent. Cinq outils imposent donc dans
+`validateValue(schema, value, nom)` ne voit jamais le parent. Plusieurs outils imposent donc dans
 leur GESTIONNAIRE une règle qu'un appel conforme au schéma peut enfreindre — le XOR
-`citation` / (`database_id` + `case_id`) pour `get_case`, `citator` et `subsequent_history`,
-le XOR `greffe_number` / `palais` pour `palais_get`, le format `AAAA-MM-JJ` des huit filtres
+`citation` / (`database_id` + `case_id`) pour `get_case`, `citator` et `subsequent_history`
+(ainsi que l'ex-outil `palais_get`, transféré en v0.3.0 vers `pratique-civile-outils`), le format `AAAA-MM-JJ` des huit filtres
 de dates, et les bornes d'année de `find_case`. Le modèle composait un appel valide et
 recevait un refus, sans avoir eu le moyen de le prévoir.
 
@@ -961,7 +944,7 @@ Quatre corollaires, tous testés. Le **pré-vol** `OPTIONS` est répondu **sans*
 - `observability: { enabled: true }` dans `wrangler.jsonc` ; consultation par `wrangler tail`.
 - **Une ligne `search_log` par invocation d'outil qui TOUCHE D1**, succès compris : un succès non consigné rend les échecs inexploitables faute de dénominateur. Les échecs (`result_count = 0`) sont indexés séparément.
 
-  **Quatre outils sur treize n'écrivent rien, par construction et non par omission** (constaté le 2026-09-16) : `greffe_parse_court_file_number`, `palais_list` et `palais_get` sont purs — aucune lecture D1, donc aucune écriture (§17.6) — et `jurisprudence_parse_citation` ne fait aucun appel sortant. Leur silence dans `search_log` ne se lit donc pas comme un défaut d'usage, et **on ne le corrige pas** : leur ouvrir D1 pour les compter échangerait une statistique contre la disponibilité qui est leur seule garantie.
+  **Un outil sur dix n'écrit rien, par construction et non par omission** (constaté le 2026-09-16 pour les quatre outils d'alors, mis à jour le 2026-11-14 en v0.3.0) : `jurisprudence_parse_citation` ne fait aucun appel sortant ni aucune lecture D1 (les trois ex-outils hors ligne `greffe_parse_court_file_number`, `palais_list` et `palais_get` ayant été transférés en v0.3.0 vers `pratique-civile-outils`). Son silence dans `search_log` ne se lit donc pas comme un défaut d'usage, et **on ne le corrige pas** : lui ouvrir D1 pour le compter échangerait une statistique contre la disponibilité qui est sa seule garantie.
 - **`api_usage`** incrémentée à chaque appel sortant (`calls`), erreur (`errors`) et `429` (`throttled`). Requête d'exploitation :
 
 ```sql
@@ -1062,7 +1045,7 @@ Deux pièces, posées le 2026-09-16 et conservées avec le rétablissement de `d
 
 ⚠ **Ces assertions ne peuvent vivre que dans `test/client.test.ts`.** `test/helpers.ts` remplace la classe `CanliiClient` en entier et rend des objets **déjà analysés** : aucun test de gestionnaire ne construit de `Response`, ne lit de corps, n'appelle `JSON.parse`. Le seuil de 100 000 aurait pu valoir 10 sans qu'aucun d'eux ne bouge. Ce n'est pas un défaut du client factice — l'envelopper ferait dépendre quatre cents tests du transport — mais c'est un angle mort, et il est **écrit** en tête du fichier.
 
-**Transport (`rpc.test.ts`) :** `initialize` négocie la version ; `tools/list` rend **13** outils tous pourvus d'une description non vide, et la scission des préfixes de §17.1 est vérifiée dans les deux sens ; `tools/call` sur outil inconnu ⇒ `isError`; `GET /mcp/<secret>` ⇒ `405` ; secret erroné ⇒ `401` ; **`/mcp/<secret>/` et `/mcp/<secret>//` ⇒ `200`** (barre oblique finale tolérée) ; **`/mcp/` nu ⇒ `401` seul, `200` avec un en-tête valide** ; **`/mcp/x%FF` ⇒ `401`, jamais `500` ni une exception qui remonte** ; **un en-tête `Bearer` erroné ne masque pas un chemin correct, ni l'inverse, et les deux porteurs se croisent** ; **deux porteurs faux ⇒ `401`** (élargir n'est pas ouvrir) ; **un secret contenant ou terminé par `/` s'authentifie encore** ; `MCP_ENABLED = "false"` ⇒ `404` partout.
+**Transport (`rpc.test.ts`) :** `initialize` négocie la version ; `tools/list` rend **10** outils `jurisprudence_*` tous pourvus d'une description non vide, et le rejet des trois ex-outils de §17 (`Outil inconnu`) est vérifié ; `tools/call` sur outil inconnu ⇒ `isError`; `GET /mcp/<secret>` ⇒ `405` ; secret erroné ⇒ `401` ; **`/mcp/<secret>/` et `/mcp/<secret>//` ⇒ `200`** (barre oblique finale tolérée) ; **`/mcp/` nu ⇒ `401` seul, `200` avec un en-tête valide** ; **`/mcp/x%FF` ⇒ `401`, jamais `500` ni une exception qui remonte** ; **un en-tête `Bearer` erroné ne masque pas un chemin correct, ni l'inverse, et les deux porteurs se croisent** ; **deux porteurs faux ⇒ `401`** (élargir n'est pas ouvrir) ; **un secret contenant ou terminé par `/` s'authentifie encore** ; `MCP_ENABLED = "false"` ⇒ `404` partout.
 
 **Invariant 9, balayage STRUCTUREL (`garde.test.ts`) — ajouté le 2026-09-16.** Six chemins qui
 appelaient CanLII pouvaient présenter une panne comme une absence, et aucun ne levait d'erreur :
@@ -1079,11 +1062,11 @@ satisferait la première en retirant la garantie de §2 partout.
 
 **Contrat de vérité (test de garde) :** pour chaque outil heuristique, assertion que la sortie **contient** sa mise en garde. Ce test empêche qu'une refonte du gabarit la fasse disparaître silencieusement.
 
-**Schéma des outils (`garde.test.ts`) — ajouté le 2026-09-16.** Quatre gardes portent sur ce que le modèle LIT, et non sur ce que le code fait : les **six** verdicts sont déclarés dans la description de §7.1 et INDÉTERMINÉE y est dite ne pas valoir absence ; `jurisprudence_get_case` et `jurisprudence_verify_citations` se renvoient l'un à l'autre ; **aucun paramètre n'est déclaré sans `description`** ; et les treize portent `readOnlyHint`. Leur mode de panne commun est le silence : une description qui prend du retard ne lève rien, elle continue d'affirmer.
+**Schéma des outils (`garde.test.ts`) — ajouté le 2026-09-16.** Quatre gardes portent sur ce que le modèle LIT, et non sur ce que le code fait : les **six** verdicts sont déclarés dans la description de §7.1 et INDÉTERMINÉE y est dite ne pas valoir absence ; `jurisprudence_get_case` et `jurisprudence_verify_citations` se renvoient l'un à l'autre ; **aucun paramètre n'est déclaré sans `description`** ; et les dix portent `readOnlyHint`. Leur mode de panne commun est le silence : une description qui prend du retard ne lève rien, elle continue d'affirmer.
 
 **Citation réémise (`garde.test.ts`) — ajouté le 2026-09-16.** `citationSure` est éprouvée sur ses DEUX passages séparément, parce qu'ils se recouvrent sur `\n` et `\t` et que l'un pourrait donc disparaître sans qu'aucun test ne bouge : le repli des blancs seul atteint le séparateur de ligne U+2028, le retrait des caractères de contrôle seul atteint NUL et DEL. Un test de bout en bout vérifie qu'une citation portant « — CONFIRMÉE » suivi d'un saut de ligne ne produit qu'UNE ligne de verdict, la vraie. Les deux sabotages ont été joués : chacun fait tomber le test.
 
-**Documentation (`doc.test.ts`) — le README contre le REGISTRE.** Ajouté le 2026-09-16, en remplacement de la confrontation `diff` de deux `grep` qui vivait dans `CLAUDE.md`. Cette commande FILTRAIT ses deux côtés par une liste de préfixes écrite à la main (`(canlii|greffe|palais)_`) : le jour du renommage, les deux côtés se sont réduits au même sous-ensemble de trois outils, sont restés égaux, et `diff` aurait rendu 0 — « aucune dérive » affirmé sans avoir regardé dix outils sur treize, et aussi longtemps que personne ne l'aurait relue. On ne répare pas cela en corrigeant la liste : on la corrigerait cette fois, et le prochain renommage rouvrirait le même trou au même endroit. Le test prend `TOOLS` **lui-même** pour l'un de ses deux côtés — non vide par construction, sa longueur (13) affirmée AVANT tout le reste — et le texte du README pour l'autre, lu en `?raw`, sans aucune liste de préfixes. Il éprouve aussi le compte écrit **en toutes lettres**, qui vieillit autrement sans bruit.
+**Documentation (`doc.test.ts`) — le README contre le REGISTRE.** Ajouté le 2026-09-16, en remplacement de la confrontation `diff` de deux `grep` qui vivait dans `CLAUDE.md`. Cette commande FILTRAIT ses deux côtés par une liste de préfixes écrite à la main (`(canlii|greffe|palais)_`) : le jour du renommage, les deux côtés se sont réduits au même sous-ensemble de trois outils, sont restés égaux, et `diff` aurait rendu 0 — « aucune dérive » affirmé sans avoir regardé dix outils sur treize, et aussi longtemps que personne ne l'aurait relue. On ne répare pas cela en corrigeant la liste : on la corrigerait cette fois, et le prochain renommage rouvrirait le même trou au même endroit. Le test prend `TOOLS` **lui-même** pour l'un de ses deux côtés — non vide par construction, sa longueur (10 ; 13 avant le retrait de §17 en v0.3.0) affirmée AVANT tout le reste — et le texte du README pour l'autre, lu en `?raw`, sans aucune liste de préfixes. Il éprouve aussi le compte écrit **en toutes lettres**, qui vieillit autrement sans bruit.
 
 ---
 
@@ -1116,17 +1099,17 @@ satisferait la première en retirant la garantie de §2 partout.
 ## 15. Récapitulatif des livrables de code
 
 1. `src/index.ts` — routage, garde d'authentification à temps constant, coupe-circuit, gestionnaire `scheduled`.
-2. `src/mcp/` — enveloppe JSON-RPC, registre des **13** outils, validateur de schéma, 13 gestionnaires.
+2. `src/mcp/` — enveloppe JSON-RPC, registre des **10** outils, validateur de schéma, 10 gestionnaires.
 3. `src/citation/` — analyseur, normalisation, comparaison d'intitulés. **Aucune E/S.**
 4. `src/canlii/` — client étranglé et réessayé, types, erreurs, `redactUrl`.
 5. `src/store/` — accès D1 : fiches + FTS, répertoire + auto-correction, citateur avec TTL, télémétrie.
 6. `src/format/` — gabarits de sortie (Annexe A), formatage français des dates et des listes.
-7. `src/qc/` — §17 : tables du Québec (palais, greffes, lieux du MJQ, juridictions, forums), analyseur de numéros de dossier, consultation en mémoire. **Constantes, aucune E/S, aucun D1.**
+7. *(Retiré en v0.3.0 — déplacé vers `pratique-civile-outils`)* `src/qc/` — ancien §17 : tables du Québec, analyseur de numéros de dossier et consultation en mémoire.
 8. `src/site.ts` + `src/site.i18n.ts` — §18 : la page publique bilingue, DÉRIVÉE des données vives.
 9. `src/backfill.ts` — §11, écrit et testé, **inerte** (invariant : la question est tranchée, pas ouverte).
 10. `migrations/0001_initial.sql`, `0002_seed_court_codes.sql`, `0003_reconcile_court_codes.sql`, `0004_rename_tool_prefix.sql` — la troisième consigne la réconciliation de §4.3 **avec sa preuve d'observation** ; la quatrième (2026-09-16, appliquée en production) rattrape la DONNÉE déjà écrite sous `canlii_*` (`search_log.tool`, `court_codes.note`) sans toucher au schéma : sans elle, la télémétrie de §10 serait coupée en deux séries à la date du renommage, dont aucune ne serait fausse et dont la somme ne serait faite nulle part.
-11. `scripts/` — `mcp-client.mjs` (recette), `refresh-databases.mjs` (réconciliation §4.3), `extraire-lieux-mjq.mjs` (transcription du relevé MJQ ; §17.6 : générée, jamais recopiée), `deployer.mjs` (§12 : `db:migrate:remote` PUIS `wrangler deploy`, refus d'un arbre de travail sale, `--var COMMIT:<sha>`).
-12. `test/` — matrice de l'analyseur, comparaison, vérification, client, transport, persistance, tables du Québec, différentiel du parseur de dossiers, page publique, garde du contrat de vérité.
+11. `scripts/` — `mcp-client.mjs` (recette), `refresh-databases.mjs` (réconciliation §4.3), `deployer.mjs` (§12 : `db:migrate:remote` PUIS `wrangler deploy`, refus d'un arbre de travail sale, `--var COMMIT:<sha>`) ; `extraire-lieux-mjq.mjs` a été déplacé vers `pratique-civile-outils` en v0.3.0.
+12. `test/` — matrice de l'analyseur, comparaison, vérification, client, transport, persistance, documentation, page publique, garde du contrat de vérité (les tests QC ont été déplacés vers `pratique-civile-outils` en v0.3.0).
 13. `.github/workflows/` — 7 workflows (`ci`, `deploy`, `verifier-deploiement`, `codeql`, `osv-scanner`, `trivy`, `scorecard`) + `dependabot.yml`, actions épinglées par SHA.
 14. `README.md` — mise en service, réserve de §9.5, et **reproduction in extenso du contrat de vérité de §2**.
 
@@ -1174,109 +1157,27 @@ question effacée se repose.*
 
 Le balayage vif de `jurisprudence_find_case` tombait sous la même cause (`resultCount = 5 000` par page). Vérifié en production le même jour sur la reproduction du rapport de test — `{title: "Godbout Longueuil", database_id: "csc-scc", year_from: 1995, year_to: 1998}` : 4 appels, 433 fiches parcourues, un candidat rendu **sans date** et disant pourquoi.
 
-**Ce qui reste réellement à faire, tout § confondus** *(relevé du 2026-09-16, mis à jour le 2026-11-14)* : les **coordonnées** des palais (§17.7) et le réglage de `CANLII_MIN_INTERVAL_MS` ci-dessus *(la parité de `SERVER_INFO.version` a été épinglée le 2026-11-13 dans `test/doc.test.ts`, et le déploiement continu a été rétabli via `.github/workflows/deploy.yml` et `scripts/deployer.mjs` le 2026-11-14 — voir §12)*.
+**Ce qui reste réellement à faire, tout § confondus** *(relevé du 2026-09-16, mis à jour le 2026-11-14)* : le réglage de `CANLII_MIN_INTERVAL_MS` ci-dessus *(la parité de `SERVER_INFO.version` a été épinglée le 2026-11-13 dans `test/doc.test.ts`, le déploiement continu rétabli via `.github/workflows/deploy.yml` et `scripts/deployer.mjs` le 2026-11-14 — voir §12 — et l'extension des greffes et palais §17 déplacée vers « pratique-civile-outils » en `0.3.0`)*.
 
 ---
 
-## 17. Extension — greffes et palais du Québec (HORS CanLII)
+## 17. Extension — greffes et palais du Québec *(Retirée le 2026-11-14, v0.3.0)*
 
-*Ajoutée le 2026-07-30. Les §1 à §16 décrivent un connecteur adossé à la seule collection de CanLII ; la présente section étend le connecteur à des données d'une AUTRE provenance, et pose la frontière entre les deux.*
+*Retirée le 2026-11-14 (`0.3.0`) — déplacée vers le connecteur public hors ligne « pratique-civile-outils » (`0.2.0`).*
 
-### 17.1 La frontière des sources : le préfixe partitionne, la description nomme
+Les trois outils hors ligne `greffe_parse_court_file_number`, `palais_list` et `palais_get`, leurs tables TypeScript (`src/qc/`), le relevé MJQ (`sources-officielles/mjq-numeros-greffes-2026-07-22.html`), son script d'extraction (`scripts/extraire-lieux-mjq.mjs`) et les tests dédiés (`test/qc.*.test.ts`, `test/fixtures/dossier-athena.json`) ne nécessitent ni clef CanLII ni authentification par secret partagé ; ils vivent désormais dans `pratique-civile-outils` avec leurs réserves d'intégrité (`GARDE_PALAIS`, `GARDE_SANS_ADRESSE`, `GARDE_DOSSIER`, `SANS_PLUMITIF`).
 
-*Amendée le 2026-09-16, en même temps que D8. Cette section s'intitulait « La frontière des sources, et pourquoi elle est dans le NOM des outils », et elle tenait que le préfixe `canlii_` ANNONÇAIT la source. Elle est réécrite, non parce que la frontière a bougé — elle n'a pas bougé — mais parce que le porteur de l'annonce a changé. L'ancienne rédaction est citée au fil du texte.*
-
-**Ce qui était écrit, et pourquoi c'était insuffisant.** « La décision D8 conserve le préfixe `canlii_` parce que la couverture et les verdicts DÉPENDENT de la collection de CanLII et que le modèle doit le savoir. » La prémisse reste vraie ; la conclusion ne tenait pas. **Un préfixe ne sait pas porter une réserve.** `canlii_get_case` ne dit ni que la couverture a des bornes historiques, ni qu'une absence n'est pas une inexistence, ni que l'API ne rend que des métadonnées — il donne seulement l'impression que quelque chose a été dit. Le prix de cette illusion s'est mesuré : **quatre descriptions sur dix ne nommaient CanLII nulle part** (citator, subsequent_history, browse_legislation, get_legislation), et **six sur dix côté anglais**. Le nom le disait pour elles, et le nom ne dit rien.
-
-**Où vit l'annonce désormais.** Dans trois surfaces qui sont des PHRASES, et que des tests épinglent : la **description** de chacun des treize outils, les **`INSTRUCTIONS`** rendues à l'initialisation, et la **page publique** dans ses deux langues. Le test est formulé sur la PRÉSENCE d'une source et non sur une formulation — « CanLII » pour les dix, le Ministère ou le Québec pour les trois — parce que c'est l'absence, et elle seule, qui est silencieuse.
-
-**Ce que le préfixe conserve, et qui reste load-bearing : la PARTITION.**
-
-| Préfixe | Source | Appels sortants | Mode de panne redouté |
-|---|---|---|---|
-| `jurisprudence_` (10) | collection de CanLII | oui | l'absence prise pour une inexistence |
-| `greffe_`, `palais_` (3) | relevé local du ministère de la Justice du Québec (MJQ) | **aucun** | la **péremption** prise pour une vérité |
-
-Ranger un outil qui lit une table du MJQ parmi ceux qui interrogent CanLII resterait une attribution fausse. La partition est donc **vérifiée par `test/rpc.test.ts`** : aucun outil ne relève des deux familles ni n'échappe aux deux, et le compte de chacune est figé. Ajouter un outil oblige encore à choisir sa famille délibérément.
-
-⚠ L'assertion « aucun outil local ne porte la chaîne `canlii` dans son nom » a été **retirée** du test, et non conservée : sous le nouveau préfixe, aucun nom nulle part ne contient plus cette chaîne, donc elle ne peut plus échouer. Une assertion qui ne peut plus échouer achète une confiance qu'elle ne finance pas.
-
-### 17.2 `greffe_parse_court_file_number`
-
-Analyse `NNN-NN-NNNNNN-NNN` : positions 1-3 le greffe (palais + district judiciaire), positions 5-6 la juridiction (tribunal + compétence + type de greffe). **Les positions 7 et suivantes ne sont PAS analysées** : il n'existe ni somme de contrôle ni règle d'année, et en inventer une rejetterait des numéros valides.
-
-Un **préfixe alphabétique** (`TAL-`, `TAQ-`, `C.F.-`…) désigne un corps qui numérote ses dossiers lui-même : le préfixe EST la réponse à « quel tribunal ». Il se résout contre la table des forums, insensiblement aux points (`C.F.` ≡ `CF`). `is_administrative` n'est vrai que pour la catégorie *administratif* — **une cour fédérale n'est pas un tribunal administratif**. Un préfixe **inconnu** reste prudent (administratif, forum nul) et **n'est jamais une erreur** : aucun nom de tribunal n'est deviné.
-
-Le code est un **port** de `parse_court_file_number` de Pallas Athéna, éprouvé par un **différentiel de 127 entrées** rejouées des deux côtés (`test/fixtures/dossier-athena.json`). Une divergence se répare dans le code, jamais dans la fixture.
-
-### 17.3 `palais_list` · 17.4 `palais_get`
-
-Répertoire des **43 palais de justice et 8 points de service** du MJQ, avec adresse municipale, greffes qui y siègent, district judiciaire et, pour les cours itinérantes, les localités desservies. `palais_get` accepte **exactement l'une** de deux formes (numéro de greffe OU nom), contrôlée dans le gestionnaire — le validateur de §8 ne sait pas exprimer `oneOf`.
-
-### 17.5 Conséquences imposées au code (le contrat de vérité, transposé)
-
-1. **La réserve de péremption, DATÉE, dans le corps de chaque réponse `palais_*`.** Le relevé est du **2026-07-15**. Sans sa date, le lecteur ne peut pas juger du risque qu'il prend ; les palais déménagent, et l'outil doit renvoyer à la liste officielle **avant toute signification ou tout dépôt**.
-2. **Une adresse INCONNUE n'est jamais rendue comme INEXISTANTE.** Six greffes — **525, 614, 625, 640, 652, 715** — n'ont aucune adresse résolvable. C'est le pendant exact de la règle INTROUVABLE de §2 : on énumère les explications concurrentes.
-
-   ⚠ **On ne sort de cette liste que par une SOURCE, jamais en assouplissant la formulation**, et la liste a bougé dans les deux sens le 2026-07-30 (§17.7) : **635 en est SORTI** — le relevé officiel du MJQ lui rattache Kuujjuaq — et **625 y est ENTRÉ**, parce qu'il manquait purement et simplement à la table. Un greffe absent ne se lit pas comme « sans adresse » : il se lit « greffe inconnu », ce qui est pire.
-3. **Aucune coordonnée n'est portée**, et l'outil le DIT plutôt que de le laisser découvrir. Ni Athéna ni aucune donnée ouverte n'en fournit, et `justice.gouv.qc.ca` refuse toute requête automatisée. Le champ `contacts` existe, vide, **en tableau** : un palais publie plusieurs numéros, un par chambre — Montréal en publie au moins quatre.
-4. **Des pièges se conservent, ne se corrigent pas.** `point_de_service` désigne les greffes de cour **itinérante** côté greffe et les points de service du **MJQ** côté palais : ils divergent par construction — et ni l'un ni l'autre n'est le drapeau `itinerant` de `lieux.ts`, qui qualifie un LIEU. Les **trois** notions divergent. Le **nom d'un palais n'est pas sa ville** (Chicoutimi est à Saguenay ; Havre-Aubert aux Îles-de-la-Madeleine) — d'où une jointure par `palais_key`, jamais par le nom.
-
-   **Kuujjuaq : la réserve a été LEVÉE le 2026-07-30, par une source.** Cette section a longtemps porté « un palais publié qu'aucun greffe ne nomme : il reste non rattaché plutôt que deviné ». La prudence était juste — Athéna refusait de le rattacher faute de savoir à quel greffe, et deviner aurait été une faute. Mais la page officielle du MJQ (mise à jour du 2026-07-22) le dit : **Kuujjuaq est le siège FIXE du greffe 635**, qui dessert sept localités du Nunavik dont six en cour itinérante. Le rattachement n'est donc pas une déduction, c'est une lecture.
-
-   La leçon, elle, se conserve, et c'est pour cela que le démenti reste écrit ici plutôt qu'effacé : **« itinérant » n'implique pas « sans adresse »** — la cour se déplace, le greffe siège quelque part — et une réserve ne se lève que contre une source, jamais par lassitude. Un lecteur qui trouverait l'ancienne formulation ailleurs doit savoir qu'elle est périmée : elle ferait « corriger » le code vers le défaut.
-
-Ces conséquences sont verrouillées par `test/garde.test.ts`, au même titre que celles de §2, et les sorties du Québec entrent dans le balayage des **formulations interdites** — par leurs chemins d'ABSENCE, qui sont précisément ceux où la tentation existe.
-
-### 17.6 Où vivent les données, et pourquoi pas en D1
-
-**Constantes TypeScript** (`src/qc/`), et non une migration. La règle qui sépare les deux précédents du dépôt : `court_codes` vit en D1 parce que la boucle de §6.4 le **réécrit** ; ces tables-ci ne sont jamais réécrites, rien à l'exécution ne les contredit. Le gain décisif est que les trois outils restent **purs** — aucune lecture D1, donc aucun mode de panne, aucun quota, aucune dépendance au réseau. La transcription est **générée** depuis la source d'Athéna, non recopiée : 130 lignes recopiées à la main, c'est une adresse fausse qui ne se signale par aucune erreur.
-
-### 17.7 Ce qui reste à faire
-
-*Cette section annonçait UN travail à deux usages. Le second est fait ; le premier
-reste entier.*
-
-**FAIT — la réconciliation des numéros de greffe (2026-07-30).** Menée contre la page
-officielle du MJQ « **Numéros des greffes des palais de justice et des points de service
-de justice** » (mise à jour du 2026-07-22), enregistrée dans `sources-officielles/` et
-transcrite par `scripts/extraire-lieux-mjq.mjs` en `src/qc/lieux.ts`. Deux corrections
-réelles, du même ordre que celles de §4.3 et consignées avec leur preuve d'observation :
-
-- le greffe **625 (Senneterre)** manquait à la table — « 625-… » rendait « greffe
-  inconnu » sur un greffe qui existe ;
-- **Kuujjuaq** relève du greffe **635** (§17.5, point 4), ce qu'aucune source
-  antérieure ne permettait d'affirmer.
-
-*Corrigé le 2026-09-16 : cette section nommait la page « Trouver un palais de justice ». C'est une AUTRE page du même ministère. Celle qui a servi — et qui est versionnée dans `sources-officielles/` — s'intitule « Numéros des greffes des palais de justice et des points de service de justice » ; son propre `<title>` et l'en-tête de `src/qc/lieux.ts` le disent tous deux. Les deux pages traitent des mêmes palais sous des angles différents, et se confondre sur la source d'un relevé DATÉ, c'est perdre la capacité de le vérifier — ce que §17 pose précisément comme sa seule sortie de liste (invariant 17 : « on sort de cette liste par une SOURCE »).*
-
-La table passe de 56 à **57 greffes**. Le gain de conception est plus large que ces
-deux lignes : `lieux.ts` sait dire qu'un greffe dessert **plusieurs** lieux, ce que
-`palais_key` (1:1) ne pouvait pas exprimer. D'où `adresseDuGreffe`, qui essaie
-`palais_key` **puis** le siège fixe du MJQ ; les gestionnaires passent par elle et ne
-lisent jamais `palais_key` en direct, sous peine de faire diverger deux outils sur le
-même greffe.
-
-**RESTE — les coordonnées.** `contacts` est déclaré, typé **en tableau** (un palais
-publie plusieurs numéros, un par chambre — Montréal en publie au moins quatre) et
-**vide sur les 51 lieux**. Les outils le DISENT plutôt que de le laisser découvrir.
-Ils s'ajouteront depuis la page officielle « Numéros des greffes des palais de justice
-et des points de service de justice », enregistrée à la main puisque
-`justice.gouv.qc.ca` refuse toute requête automatisée.
-
-⚠ Quand ce sera fait, la réserve de péremption de §17.5 point 1 vaudra **davantage**,
-non moins : un numéro de téléphone périme plus vite qu'une adresse municipale, et la
-date du relevé devra suivre la donnée la plus fraîche — pas la plus ancienne.
+Les numéros de sections §18, §19 et §20 ci-après restent inchangés afin de préserver les renvois internes du dépôt.
 
 ---
 
 ## 18. Page publique (`GET /`)
 
-*Ajoutée le 2026-07-30. Les §1 à §17 décrivent une surface exclusivement JSON, consommée par des clients MCP. Cette section ajoute la PREMIÈRE surface HTML, sur la même origine que `/mcp/<secret>` — d'où le soin.*
+*Ajoutée le 2026-07-30. Les §1 à §16 décrivent une surface exclusivement JSON, consommée par des clients MCP. Cette section ajoute la PREMIÈRE surface HTML, sur la même origine que `/mcp/<secret>` — d'où le soin.*
 
 ### 18.1 Ce que la page est, et ce qu'elle n'est pas
 
-Une page **statique, publique, bilingue** décrivant le connecteur : ses treize outils, leurs schémas, la structure d'un numéro de dossier judiciaire québécois et ses issues, et le répertoire des greffes et palais. Elle sert deux publics — qui n'a pas accès au connecteur, et qui l'utilise et veut relire le contrat.
+Une page **statique, publique, bilingue** décrivant le connecteur : ses dix outils `jurisprudence_*`, leurs schémas et l'accès. Elle sert deux publics — qui n'a pas accès au connecteur, et qui l'utilise et veut relire le contrat — tout en renvoyant vers « pratique-civile-outils » pour les utilitaires hors ligne de greffes et palais déplacés le 2026-11-14.
 
 Elle n'est **pas** une console, n'accepte aucune saisie, n'appelle rien et n'écrit rien.
 
@@ -1296,7 +1197,7 @@ Trois propriétés, toutes testées :
 
 ### 18.3 Le contenu DÉRIVE des données, il ne les recopie pas
 
-C'est la règle qui gouverne toute la section. Une page qui recopierait un titre d'outil, une borne de schéma ou une adresse de palais deviendrait fausse **sans qu'aucun test n'échoue**.
+C'est la règle qui gouverne toute la section. Une page qui recopierait un titre d'outil ou une borne de schéma deviendrait fausse **sans qu'aucun test n'échoue**.
 
 | Rendu | Source |
 |---|---|
@@ -1315,9 +1216,7 @@ exige une valeur dérivée, et qui prétendait justement le contraire.
 ⚠ **La colonne « Description » reste en FRANÇAIS dans la vue anglaise, délibérément.** Ces
 phrases sont celles que le MODÈLE reçoit : elles sont le texte canonique, non son rendu. Les
 traduire ferait deux copies d'une même vérité, qui divergeraient — et la version anglaise
-donnerait une fausse idée de ce que le connecteur annonce réellement. Le précédent est établi :
-`GARDE_DOSSIER`, `GARDE_PALAIS` et `GARDE_SANS_ADRESSE`, les trois réserves les plus lourdes de
-la page, sont déjà rendues en français aux deux publics. Ce qui manquait n'était pas la
+donnerait une fausse idée de ce que le connecteur annonce réellement. Ce qui manquait n'était pas la
 traduction, c'était de DIRE qu'il n'y en a pas, et pourquoi : la page le dit maintenant.
 
 ⚠ **Formulation load-bearing du marqueur.** `openWorldHint: true` dit que la SOURCE DE VÉRITÉ est
@@ -1326,12 +1225,6 @@ depuis D1 sans aucun appel dès qu'une ligne fraîche existe, et `jurisprudence_
 rafraîchit qu'au bout de sept jours. Écrire « Appel sortant à CanLII » serait donc faux dans le
 cas le plus courant, et faux avec l'aplomb d'une valeur dérivée. On annonce la SOURCE, pas le
 trafic.
-| Issues de l'analyse d'un numéro | `analyserNumeroDossier()` **exécutée au rendu** sur des exemples |
-| Greffes, palais, districts, localités | les tables de `src/qc/` (§17) |
-| Codes de juridiction | `JURIDICTIONS` |
-| Réserves | les constantes `GARDE_*` **verbatim** |
-
-Les exemples d'analyse sont **vivants** : la page appelle le vrai parseur et affiche ce qu'il rend. Cette documentation ne peut donc pas diverger du comportement — même raisonnement que le différentiel de §17.2.
 
 ### 18.4 Bilinguisme et thème
 
@@ -1345,10 +1238,8 @@ Les exemples d'analyse sont **vivants** : la page appelle le vrai parseur et aff
 
 ### 18.5 Ce que la page doit dire, et qu'un site vitrine tairait
 
-- Les **trois réserves imposées** (`GARDE_PALAIS` avec sa date, `GARDE_SANS_ADRESSE`, `GARDE_DOSSIER`), verbatim et dans le corps.
-- **Aucune coordonnée n'est portée** — ni téléphone, ni courriel, ni heures — pour aucun palais, avec renvoi au ministère de la Justice. C'est une propriété de la donnée, énoncée plutôt que laissée à découvrir.
-- Les **six greffes sans adresse publiée**, formulés comme « inconnue » et jamais « inexistante ».
-- La **frontière des sources** : `jurisprudence_*` contre `greffe_*`/`palais_*`. La section des greffes ne mentionne pas CanLII, et un test le vérifie. Depuis le 2026-09-16 (D8 amendée), la prose de la page dit explicitement que la source est nommée dans la DESCRIPTION de chaque outil et non plus par son préfixe — dans les deux langues, et la version anglaise est éprouvée séparément.
+- Le **contrat de vérité** de §2 (métadonnées seulement, jamais le texte ni l'autorité actuelle ; une absence n'est jamais une preuve d'inexistence).
+- L'**annonce explicite de la source** : depuis le 2026-09-16 (D8 amendée), la prose de la page dit explicitement que la source est nommée dans la DESCRIPTION de chaque outil et non par le seul préfixe — dans les deux langues, et la version anglaise est éprouvée séparément.
 - Les **formulations interdites** de §2 sont refusées dans la prose propre à la page. Les fiches d'outils en sont exclues du balayage : elles rendent les descriptions de §7 **verbatim**, dont l'une contient « a été infirmée » à l'intérieur d'une négation.
 
 ### 18.6 Autonomie
@@ -1392,7 +1283,7 @@ blocs et le calcul du coût. Sortir les appels d'outil de ce registre reviendrai
 perdre la traçabilité, qui est précisément ce qu'un dossier privilégié exige.
 
 **Ce que le second secret change, et ce qu'il ne change pas.** Il ne délimite aucun
-périmètre : les treize outils lui répondent comme au premier porteur. Il n'existe que
+périmètre : les dix outils (historiquement treize avant le transfert de §17 en v0.3.0) lui répondent comme au premier porteur. Il n'existe que
 pour la révocation séparée (§9.1). Une conséquence assumée : la limitation de débit de
 §9.3 est **par IP**, donc les deux clients ne se gênent pas — mais ils partagent le même
 quota d'API CanLII, et c'est bien ce quota que D7 protège.
@@ -1405,7 +1296,7 @@ quota d'API CanLII, et c'est bien ce quota que D7 protège.
 
 Le connecteur est empaqueté à la racine pour **Google Antigravity** (`plugin.json`, `mcp_config.json`, `assets/logo.svg`) et **Gemini CLI** (`gemini-extension.json`) sans dupliquer les compétences de `pratique-civile-quebecoise` ni injecter de prose de développement dans les sessions d'usage :
 
-- **Transport et authentification :** les deux manifestes pointent sur `https://jurisprudence.poirierlavoie.ca/mcp` en Streamable HTTP avec l'en-tête `Authorization: Bearer ${MCP_JURISPRUDENCE_SECRET}` (`variables` sous Antigravity ; `settings` sensible dans `gemini-extension.json`). Sous Antigravity, les treize outils restent chargés à la demande (*lazy*, aucun `eager: true`).
+- **Transport et authentification :** les deux manifestes pointent sur `https://jurisprudence.poirierlavoie.ca/mcp` en Streamable HTTP avec l'en-tête `Authorization: Bearer ${MCP_JURISPRUDENCE_SECRET}` (`variables` sous Antigravity ; `settings` sensible dans `gemini-extension.json`). Sous Antigravity, les dix outils restent chargés à la demande (*lazy*, aucun `eager: true`).
 - **Contexte minimal (« connector only ») :** `gemini-extension.json` fixe `"contextFileName": []` afin qu'une installation utilisateur n'importe pas le `GEMINI.md` racine dans ses conversations ordinaires ; les instructions canoniques demeurent portées par le serveur (`INSTRUCTIONS` sur `initialize` / `server/discover` et descriptions d'outils).
 - **`GEMINI.md` d'espace de travail :** Antigravity tronque tout fichier de règles au-delà de 24 000 octets, alors que `CLAUDE.md` dépasse 40 Ko. `GEMINI.md` synthétise donc les invariants et renvoie vers `CLAUDE.md` et `SPEC.md`, en demeurant sous 24 000 octets (épinglé par `test/doc.test.ts`).
 - **Fiche de découverte HTTP (`GET /mcp/server-card`, SEP-2127) :** exception exacte et nommée avant la garde `/mcp*`, servie en `application/mcp-server-card+json; charset=utf-8` avec `Access-Control-Allow-Origin: *`, dérivée uniquement de `SERVER_INFO`, `PUBLIC_DESCRIPTION` et `VERSIONS` (invariant 19), sans jamais lire ni exposer de secret, et coupée en `404` lorsque `MCP_ENABLED !== "true"`.

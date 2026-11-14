@@ -1,7 +1,7 @@
 {
   "name": "mcp-jurisprudence",
-  "version": "0.2.0",
-  "description": "Vérification déterministe de citations de jurisprudence canadienne (collection CanLII, métadonnées en lecture seule) et tables hors ligne des greffes et palais de justice du Québec.",
+  "version": "0.3.0",
+  "description": "Vérification déterministe de citations de jurisprudence canadienne (collection CanLII, métadonnées en lecture seule).",
   "contextFileName": [],
   "settings": [
     {

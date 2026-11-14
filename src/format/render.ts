@@ -179,18 +179,6 @@ export const EXPLICATIONS_INTROUVABLE =
 export const EXPLICATION_INDETERMINEE =
   "AUCUN constat n'a été fait : ce n'est PAS un constat d'absence. Réessayer plus tard.";
 
-// ── Mises en garde des tables du Québec (§17) ─────────────────────────────────
-//
-// Les trois constantes ci-dessous obéissent à la MÊME règle que celles de CanLII
-// ci-dessus, pour une raison différente : les tables `src/qc/` ne viennent PAS de
-// CanLII, elles sont un relevé daté du ministère de la Justice du Québec. Leur
-// mode de panne n'est pas l'absence mais la PÉREMPTION — une adresse juste hier,
-// fausse aujourd'hui, et rendue avec le même aplomb dans les deux cas.
-
-/**
- * Pied imposé de toute sortie `palais_*`. Porte la DATE du relevé : sans elle, le
- * lecteur ne peut pas juger du risque qu'il prend.
- */
 /**
  * Les réserves PERMANENTES restées littérales jusqu'au 2026-09-17.
  *
@@ -227,33 +215,6 @@ export const LEGISLATION_METADONNEES_LISTE =
 export const DIAGNOSTIC_SEULEMENT =
   "Outil de diagnostic : il n'établit RIEN sur l'existence de la décision. " +
   "Pour l'éprouver réellement, utiliser jurisprudence_verify_citations.";
-
-/** `greffe_parse_court_file_number` — pied du numéro judiciaire. */
-export const SANS_PLUMITIF =
-  "Ce connecteur ne consulte AUCUN registre de dossiers : il n'a pas accès au plumitif.";
-
-export const GARDE_PALAIS =
-  "Adresses relevées auprès du ministère de la Justice du Québec le 2026-07-15.\n" +
-  "Les palais de justice déménagent : VÉRIFIER la liste officielle du Ministère\n" +
-  "avant toute signification ou tout dépôt.";
-
-/**
- * Adresse absente — le pendant exact de la règle INTROUVABLE de §2.
- *
- * ⚠ « Aucune adresse publiée » n'est PAS « il n'existe pas d'adresse ». Six greffes
- *   sont concernés, dont quatre cours itinérantes qui siègent là où la cour se
- *   déplace. Formuler l'inconnu comme une absence ferait renoncer un praticien à
- *   une démarche possible.
- */
-export const GARDE_SANS_ADRESSE =
-  "Cela n'établit PAS qu'il n'en existe aucune : ce greffe siège en cour itinérante,\n" +
-  "ou son adresse n'a pas été relevée. La demander au ministère de la Justice.";
-
-/** Pied imposé de `greffe_parse_court_file_number`. */
-export const GARDE_DOSSIER =
-  "Cet outil lit une NOMENCLATURE : il n'établit pas que ce dossier existe, ni qu'il\n" +
-  "est actif. Les positions 7 et suivantes (séquence et contrôle) ne sont pas\n" +
-  "analysées — aucune somme de contrôle n'est vérifiée.";
 
 // ── Rendu d'une fiche ─────────────────────────────────────────────────────────
 

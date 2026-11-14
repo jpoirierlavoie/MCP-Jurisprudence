@@ -6,8 +6,7 @@
  *   Ce dépôt est francophone : les titres d'outils, leurs descriptions et les mises en
  *   garde de §2 n'existent qu'en français, et le français y est CANONIQUE — c'est lui
  *   que le modèle reçoit. La page rend donc le français DIRECTEMENT DEPUIS LES DONNÉES
- *   (`listToolDescriptors()`, les tables de `src/qc/`, les constantes `GARDE_*`), et
- *   ne recopie rien.
+ *   (`listToolDescriptors()`), et ne recopie rien.
  *
  *   Ce fichier ne porte QUE l'anglais, qui n'a pas de source ailleurs. Il ne doit
  *   JAMAIS recevoir une copie française : deux copies d'une même vérité divergent, et
@@ -112,40 +111,12 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
       "citation is constructible, the identifiers that follow from it. It establishes NOTHING " +
       "about whether the decision exists.",
   },
-  greffe_parse_court_file_number: {
-    titre: "Québec court file number (offline)",
-    texte:
-      "Reads NNN-NN-NNNNNN-NNN into its registry — courthouse and judicial district — and its " +
-      "jurisdiction: court, competence, registry type. A letter prefix (TAL, TAQ, C.F.…) names " +
-      "a tribunal that numbers its own files. Read from tables surveyed from the ministère de la " +
-      "Justice du Québec on 2026-07-15 and compiled into the Worker: no call is made, no docket is " +
-      "consulted, and nothing here proves that the file exists.",
-  },
-  palais_list: {
-    titre: "Québec courthouses — directory",
-    texte:
-      "The courthouses and justice service points of Québec, with civic address, the registry " +
-      "numbers sitting there and their judicial district. Filterable by district, type or free " +
-      "text. Surveyed from the ministère de la Justice du Québec on 2026-07-15 — addresses age, " +
-      "and no telephone number is carried: check with the Ministry before serving or filing.",
-  },
-  palais_get: {
-    titre: "Québec courthouse — record",
-    texte:
-      "One location in full, by registry number or by name: address, distinct mailing address " +
-      "where one is published, registries sitting there, and — for a circuit court — the " +
-      "communities served. Surveyed from the ministère de la Justice du Québec on 2026-07-15; a " +
-      "missing address means UNKNOWN, never non-existent.",
-  },
 } as const;
 
 export const EN = {
-  titre: "Canadian case law and Québec court registries",
+  titre: "Canadian case law — citation verification",
 
-  intro: [
-    "A read-only MCP server. It tests case-law citations against CanLII's collection, and " +
-      "reads Québec judicial nomenclature — court file numbers, registries, courthouses.",
-  ],
+  intro: ["A read-only MCP server that tests case-law citations against CanLII's collection."],
 
   avertissement: [
     "This connector establishes the EXISTENCE and IDENTITY of a decision. It establishes " +
@@ -168,29 +139,20 @@ export const EN = {
   ],
 
   pied: [
-    "Jason Poirier Lavoie, lawyer (Québec). Case-law data: CanLII. Registry and courthouse " +
-      "data: ministère de la Justice du Québec.",
+    "Jason Poirier Lavoie, lawyer (Québec). Case-law data: CanLII.",
     "No legal advice. This tool replaces neither verification at the source nor professional " +
       "judgment.",
   ],
 
-  // ── Les deux familles d'outils ─────────────────────────────────────────────
+  // ── Les outils ─────────────────────────────────────────────────────────────
   familleCanlii: "Backed by CanLII",
   familleCanliiTexte: [
-    "Ten tools whose answer comes from CanLII's collection — coverage and verdicts depend on it. " +
+    "Ten tools whose answer relates to CanLII's collection — coverage and verdicts depend on it. " +
       "NINE make an outbound call and are subject to the API's quota; jurisprudence_parse_citation " +
       "makes none — it only reports which identifiers a citation would allow one to build. Its MCP " +
       "annotations say so.",
-  ],
-  familleQc: "Local Québec tables — no call, ever",
-  familleQcTexte: [
-    "Three tools that read reference tables compiled into the Worker, surveyed from the " +
-      "ministère de la Justice du Québec. They make no outbound request and write nothing.",
-    "Each tool names its own source in its description, rather than leaving that to a prefix: " +
-      "a prefix cannot carry a caveat, it can only look as though it does. What the prefix still " +
-      "does is keep the two families apart — filing a courthouse address alongside CanLII's own " +
-      "answers would credit a third party with data it never published. Tests enforce the split " +
-      "in both languages; it is not merely documented.",
+    "The offline Québec court-file and courthouse utilities (greffe_*, palais_*) now live in " +
+      "the public unauthenticated connector « pratique-civile-outils ».",
   ],
 
   // ── Schémas ────────────────────────────────────────────────────────────────
@@ -209,56 +171,4 @@ export const EN = {
   colContrainte: "Constraints",
   colDescription: "Description",
   requis: "required",
-
-  // ── Numéro de dossier ──────────────────────────────────────────────────────
-  dossierTexte: [
-    "A Québec judicial file number reads NNN-NN-NNNNNN-NNN. Positions 1-3 are the registry — " +
-      "courthouse and judicial district. Positions 5-6 are the jurisdiction — court, competence, " +
-      "registry type. The remainder is a sequence and check digits.",
-    "Positions 7 onward are NOT parsed, and no checksum is verified: there is none. Inventing " +
-      "one would reject valid numbers, which is the worse of the two faults.",
-    "A letter prefix short-circuits all of this: TAL-, TAQ-, C.F.- and the like name a tribunal " +
-      "that numbers its own files. The prefix IS the answer to « which tribunal ».",
-  ],
-  dossierExemples: "Outcomes, produced by the real parser",
-  dossierExemplesTexte: [
-    "The examples below are not transcribed. The page runs the parser as it renders and prints " +
-      "what it returns, so this documentation cannot drift from the behaviour.",
-  ],
-  colEntree: "Input",
-  colIssue: "Outcome",
-
-  // ── Greffes et palais ──────────────────────────────────────────────────────
-  greffesTexte: [
-    "The registries of Québec, keyed on the three-digit number a court file number begins with. " +
-      "A registry is a REGISTER; a courthouse is a BUILDING — the relation is neither one-to-one " +
-      "nor total, and one registry often serves several locations.",
-  ],
-  colGreffe: "Registry",
-  colPalais: "Courthouse",
-  colDistrict: "Judicial district",
-  colAdresse: "Address",
-  colTypeLieu: "Type",
-  typePalais: "courthouse",
-  typePoint: "service point",
-  typeItinerant: "circuit court",
-  sansAdresse: "no published address",
-  filtrer: "Filter…",
-  tousDistricts: "All districts",
-  aucuneCoordonnee: "No contact information",
-  aucuneCoordonneeTexte: [
-    "This connector carries NO telephone number, no email address and no opening hours — for any " +
-      "courthouse. That is a property of the data, not a failure of the page.",
-    "Registry telephone numbers are published per chamber (Montréal alone publishes at least " +
-      "four), on the Ministry's own site. Obtain them there.",
-  ],
-  juridictionsTitre: "Jurisdiction codes",
-  juridictionsTexte: [
-    "The two-digit code at positions 5-6. The em dash in codes 46, 72 and 73 is a real value: " +
-      "those series belong to no named court.",
-  ],
-  colCode: "Code",
-  colTribunal: "Court",
-  colCompetence: "Competence",
-  colGreffeType: "Registry type",
 } as const;

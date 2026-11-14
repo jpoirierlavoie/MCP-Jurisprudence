@@ -11,13 +11,8 @@
 import { createExecutionContext, env, waitOnExecutionContext } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 
-import { GARDE_DOSSIER, GARDE_PALAIS, GARDE_SANS_ADRESSE } from "../src/format/render";
 import worker from "../src/index";
 import { TOOLS } from "../src/mcp/registry";
-import { GREFFES } from "../src/qc/greffes";
-import { JURIDICTIONS } from "../src/qc/juridictions";
-import { MJQ_MAJ } from "../src/qc/lieux";
-import { RELEVE_LE } from "../src/qc/palais";
 import { SECTIONS } from "../src/site";
 import { OUTILS_EN } from "../src/site.i18n";
 
@@ -202,7 +197,7 @@ describe("§18 — autonomie et absence de dérive", () => {
     expect(html).not.toMatch(/<script[^>]+src=/i);
     expect(html).not.toMatch(/<link[^>]+stylesheet/i);
     expect(html).not.toMatch(
-      /https?:\/\/(?!jurisprudence\.poirierlavoie\.ca|github\.com|www\.justice\.gouv\.qc\.ca|canlii\.ca)[a-z]/i,
+      /https?:\/\/(?!jurisprudence\.poirierlavoie\.ca|github\.com|canlii\.ca)[a-z]/i,
     );
     expect(html).not.toContain("@import");
   });
@@ -301,14 +296,7 @@ describe("§18 — le registre est la source, pas une copie", () => {
     // le préfixe le disait pour elles, et il ne le dira plus.
     for (const [nom, en] of Object.entries(OUTILS_EN)) {
       const texte = `${en.titre} ${en.texte}`;
-      const local = nom.startsWith("greffe_") || nom.startsWith("palais_");
-      // ⚠ « Québec » a été RETIRÉ de l alternative locale le 2026-09-16, et c est le point
-      //   de ce test. Québec est un LIEU, pas une source : il figure par construction dans le
-      //   titre des trois outils locaux, si bien que l assertion passait TOUJOURS — y compris
-      //   quand les trois descriptions anglaises ne nommaient aucune source et ne portaient
-      //   aucune réserve de péremption, ce qui était le cas. Une assertion qui ne peut plus
-      //   échouer achète une confiance qu elle ne finance pas.
-      expect(texte, nom).toMatch(local ? /minist|MJQ/i : /canlii/i);
+      expect(texte, nom).toMatch(/canlii/i);
     }
   });
 
@@ -351,54 +339,9 @@ describe("§18 — le registre est la source, pas une copie", () => {
     expect(OUTILS_EN.jurisprudence_list_databases!.texte).not.toMatch(/\breconcil/i);
     expect(OUTILS_EN.jurisprudence_list_databases!.texte).toMatch(/flagged/i);
   });
-
-  it("la table des greffes porte EXACTEMENT les greffes de la table", async () => {
-    const html = await (await demander("/")).text();
-    const corps = html.slice(html.indexOf('<table id="tgreffes"'));
-    const rangs = (corps.match(/<tr data-d=/g) ?? []).length;
-    expect(rangs).toBe(Object.keys(GREFFES).length);
-    for (const numero of Object.keys(GREFFES)) {
-      expect(corps, numero).toContain(`<code>${numero}</code>`);
-    }
-  });
-
-  it("les 27 codes de juridiction paraissent, tiret cadratin compris", async () => {
-    const html = await (await demander("/")).text();
-    for (const code of Object.keys(JURIDICTIONS)) {
-      expect(html, code).toContain(`<code>${code}</code>`);
-    }
-    // Le tiret cadratin de 46, 72 et 73 est une VALEUR, pas un champ vide.
-    expect(html).toContain("<td>—</td>");
-  });
 });
 
 describe("§18 — le contrat de vérité tient sur la page", () => {
-  it("porte les trois réserves imposées, verbatim", async () => {
-    const html = await (await demander("/")).text();
-    // Les réserves traversent `esc()` : l'apostrophe devient `&#39;`. On compare donc
-    // la forme ÉCHAPPÉE — comparer la forme brute passerait à côté sans rien prouver.
-    const echapper = (s: string) =>
-      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/'/g, "&#39;");
-    const plat = (s: string) => s.replace(/\s+/g, " ").trim();
-    const page = plat(html);
-    for (const [nom, garde] of [
-      ["GARDE_PALAIS", GARDE_PALAIS],
-      ["GARDE_SANS_ADRESSE", GARDE_SANS_ADRESSE],
-      ["GARDE_DOSSIER", GARDE_DOSSIER],
-    ] as const) {
-      expect(page, nom).toContain(plat(echapper(garde)));
-    }
-    // La réserve de péremption ne vaut rien sans sa DATE.
-    expect(html).toContain(RELEVE_LE);
-    expect(html).toContain(MJQ_MAJ);
-  });
-
-  it("énonce l'absence de coordonnées plutôt que de la laisser découvrir", async () => {
-    const html = await (await demander("/")).text();
-    expect(html).toContain("AUCUN numéro de téléphone");
-    expect(html).toContain("justice.gouv.qc.ca");
-  });
-
   it("la PROSE DE LA PAGE n'emploie aucune formulation interdite", async () => {
     // Les mêmes que celles qu'interdit test/garde.test.ts aux sorties d'outils : une
     // page qui affirmerait plus que l'API n'établit serait le même défaut, en vitrine.
@@ -423,15 +366,6 @@ describe("§18 — le contrat de vérité tient sur la page", () => {
     ]) {
       expect(prose, `formulation interdite ${interdite}`).not.toMatch(interdite);
     }
-  });
-
-  it("n'attribue PAS à CanLII les données locales du Québec", async () => {
-    const html = await (await demander("/")).text();
-    const debut = html.indexOf('<section id="greffes"');
-    const fin = html.indexOf("<section", debut + 1);
-    const greffes = html.slice(debut, fin > 0 ? fin : undefined);
-    expect(greffes.length).toBeGreaterThan(1000);
-    expect(greffes).not.toMatch(/CanLII/i);
   });
 });
 
@@ -474,11 +408,11 @@ describe("§18 / invariant 19 — la page dérive, et ses classes existent", () 
     expect(orphelines).toEqual([]);
   });
 
-  it("le marqueur openWorldHint est DÉRIVÉ : quatre faux, neuf vrais", async () => {
+  it("le marqueur openWorldHint est DÉRIVÉ : un faux, neuf vrais", async () => {
     const html = await (await demander("/")).text();
     const vrais = [...html.matchAll(/openWorldHint: true/g)].length;
     const faux = [...html.matchAll(/openWorldHint: false/g)].length;
-    expect(faux).toBe(4);
+    expect(faux).toBe(1);
     expect(vrais).toBe(9);
     expect(faux + vrais).toBe(Object.keys(TOOLS).length);
   });
@@ -508,7 +442,7 @@ describe("§18 / invariant 19 — la page dérive, et ses classes existent", () 
         }
       }
     }
-    expect(toutes.length).toBeGreaterThan(50);
+    expect(toutes.length).toBeGreaterThan(40);
     // L'échappement HTML transforme les apostrophes : on compare sur un fragment sûr.
     // La page ÉCHAPPE le HTML : on déséchappe plutôt que d'amputer l'aiguille, sans
     // quoi le test passerait sur des fragments tronqués avant la première apostrophe.

@@ -35,13 +35,6 @@ credentials.json
 reconcile-*.sql
 reconcile-report.md
 
-# Pages officielles enregistrées à la main : on garde le HTML (il est la SOURCE de
-# `src/qc/lieux.ts` et permet de régénérer), jamais le dossier d'actifs que le
-# navigateur dépose à côté — 1,6 Mo de CSS, de scripts et d'images sans rapport.
-*_files/
-sources-officielles/*
-!sources-officielles/*.html
-
 # Configuration locale d'outils.
 #
 # ⚠ `.claude/settings.local.json` n'était exclu que par le fichier d'exclusion

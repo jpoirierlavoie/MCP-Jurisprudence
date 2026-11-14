@@ -1,5 +1,5 @@
 /**
- * Registre des treize outils (spécification §7 et §17).
+ * Registre des dix outils `jurisprudence_*` (spécification §7).
  *
  * ⚠ LES DESCRIPTIONS SONT REPRISES VERBATIM DE §7 ET NE DOIVENT PAS ÊTRE
  *   REFORMULÉES. Elles portent elles-mêmes leurs mises en garde : c'est le second
@@ -8,38 +8,25 @@
  *   surface de contrat, pas de la prose.
  *
  * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║ DEUX FAMILLES DE PRÉFIXES, ET LA FRONTIÈRE RESTE SÉMANTIQUE (D8, amendée le  ║
- * ║ 2026-09-16 ; §17).                                                           ║
+ * ║ PROVENANCE DANS LA DESCRIPTION (D8, amendée le 2026-09-16 ; §17 retiré le    ║
+ * ║ 2026-11-14).                                                                 ║
  * ║                                                                              ║
- * ║   `jurisprudence_*`     la réponse vient de la COLLECTION DE CANLII, et sa   ║
- * ║   (10 outils)           couverture comme ses verdicts en dépendent.          ║
+ * ║   `jurisprudence_*`     la réponse se rapporte à la COLLECTION DE CANLII,    ║
+ * ║   (10 outils)           et sa couverture comme ses verdicts en dépendent.      ║
  * ║                                                                              ║
- * ║   `greffe_*` `palais_*` la réponse vient d'un RELEVÉ LOCAL du ministère de   ║
- * ║   (3 outils)            la Justice du Québec, daté, sans aucun appel.        ║
- * ║                                                                              ║
- * ║ CE QUI A CHANGÉ, ET CE QUI NE CHANGE PAS. Le préfixe s'appelait `canlii_` et ║
- * ║ portait à lui seul l'annonce de la source. Il ne la porte plus : un préfixe  ║
- * ║ ne peut de toute façon pas porter une RÉSERVE — il ne dit ni la couverture   ║
- * ║ bornée, ni qu'une absence n'est pas une inexistence, ni que l'API ne rend que║
- * ║ des métadonnées. Il en donnait seulement l'illusion. L'annonce vit désormais ║
- * ║ dans la DESCRIPTION de chacun des dix, dans `INSTRUCTIONS` et sur la page —  ║
- * ║ trois surfaces qui sont des PHRASES, et que des tests épinglent (« chaque    ║
- * ║ description NOMME sa source », dans les deux langues).                       ║
- * ║                                                                              ║
- * ║ Le préfixe ne fait plus que PARTITIONNER. Cette partition, elle, reste       ║
- * ║ load-bearing et vérifiée par test/rpc.test.ts : servir une adresse de palais ║
- * ║ dans la même famille qu'une réponse de CanLII resterait une attribution      ║
- * ║ fausse. Ajouter un outil oblige donc encore à choisir sa famille.            ║
+ * ║ NOTE HISTORIQUE (2026-11-14) : les trois outils hors ligne `greffe_*` et     ║
+ * ║ `palais_*` ont été déplacés vers le connecteur public sans authentification  ║
+ * ║ « pratique-civile-outils » (v0.2.0). Les dix outils restants portent         ║
+ * ║ tous « CanLII » dans leur description en français et en anglais (épinglé     ║
+ * ║ par test/garde.test.ts et test/site.test.ts).                                ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  *
  * Conventions communes appliquées sans exception :
  *   - nom d'outil en anglais, description ET sortie en français ;
  *   - `readOnlyHint: true` sur TOUS les outils : aucun n'écrit hors de son cache ;
  *   - `openWorldHint` N'EST PAS uniforme — vrai pour les NEUF qui interrogent CanLII
- *     (source de vérité distante), faux pour les QUATRE qui ne font aucun appel. Ce
- *     cartouche a affirmé l'uniformité jusqu'au 2026-09-16, soixante lignes au-dessus
- *     du code qui fait l'inverse : un contributeur lisant « les conventions » posait
- *     `true` d'office. Voir `DISTANT`/`LOCAL` et `SANS_APPEL` plus bas ;
+ *     (source de vérité distante), faux pour `jurisprudence_parse_citation` qui ne
+ *     fait aucun appel. Voir `DISTANT`/`LOCAL` et `SANS_APPEL` plus bas ;
  *   - tout paramètre déclaré porte une `description` ;
  *   - `additionalProperties: false` sur tous les schémas ;
  *   - tout `lang` : enum ["fr","en"], défaut "fr" ;
@@ -49,9 +36,7 @@
  *     sortant échoué sans repli. Il vaut `false` dès qu'un résultat part, **même vide,
  *     même partiel, même dégradé** : une liste vide est une réponse, pas une panne, et
  *     la réserve voyage alors dans le corps. La distinction est celle qu'un client lit
- *     pour décider s'il RÉESSAIE. Elle était incohérente jusqu'au 2026-09-16 —
- *     `palais_list` rendait `isError: true` sur une liste vide là où
- *     `browse_cases` rendait `false` dans la même situation.
+ *     pour décider s'il RÉESSAIE.
  */
 
 import {
@@ -69,10 +54,7 @@ import { findCase } from "./handlers/findCase";
 import { getCase } from "./handlers/getCase";
 import { getLegislation } from "./handlers/getLegislation";
 import { listDatabasesTool } from "./handlers/listDatabases";
-import { palaisGetTool } from "./handlers/palaisGet";
-import { palaisListTool } from "./handlers/palaisList";
 import { parseCitationTool } from "./handlers/parseCitation";
-import { parseCourtFileTool } from "./handlers/parseCourtFile";
 import { subsequentHistory } from "./handlers/subsequentHistory";
 import { verifyCitations } from "./handlers/verifyCitations";
 
@@ -109,11 +91,9 @@ export interface ToolDescriptor {
  *
  * ⚠ `openWorldHint` N'EST PAS UNIFORME, et c'est le point (corrigé le 2026-09-16).
  *   Il annonce que la source de vérité est DISTANTE et peut changer sous les pieds de
- *   l'appelant. C'est vrai des neuf outils qui interrogent CanLII. Ce l'est FAUX des
- *   quatre qui n'appellent rien : `jurisprudence_parse_citation` lit un analyseur pur
- *   et le répertoire local, et les trois outils du Québec lisent des tables compilées
- *   dans le Worker. Leur réponse ne dépend d'aucun tiers : à version déployée égale,
- *   la même entrée rend la même sortie.
+ *   l'appelant. C'est vrai des neuf outils qui interrogent CanLII. Ce l'est FAUX de
+ *   `jurisprudence_parse_citation`, qui lit un analyseur pur et le répertoire local sans
+ *   appeler CanLII : à version déployée égale, la même entrée rend la même sortie.
  *
  *   Le dire compte pour un client par programme : `openWorldHint: false` l'autorise à
  *   mettre en cache, à rejouer, et à ne pas prévoir de reprise sur panne réseau — trois
@@ -124,13 +104,8 @@ export interface ToolDescriptor {
 const DISTANT = { readOnlyHint: true, openWorldHint: true } as const;
 const LOCAL = { readOnlyHint: true, openWorldHint: false } as const;
 
-/** Les quatre outils dont la réponse ne dépend d'aucun appel sortant. */
-const SANS_APPEL = new Set([
-  "jurisprudence_parse_citation",
-  "greffe_parse_court_file_number",
-  "palais_list",
-  "palais_get",
-]);
+/** Outil(s) dont la réponse ne dépend d'aucun appel sortant. */
+const SANS_APPEL = new Set(["jurisprudence_parse_citation"]);
 
 const LANG: JsonSchema = {
   type: "string",
@@ -224,7 +199,7 @@ export const SERVER_INFO = {
   // le jour où il devient le dernier endroit à dire l'inverse des douze autres.
   name: "mcp-jurisprudence",
   title: "MCP Jurisprudence",
-  version: "0.2.0",
+  version: "0.3.0",
 };
 
 /**
@@ -233,7 +208,7 @@ export const SERVER_INFO = {
  */
 export const PUBLIC_DESCRIPTION =
   "Vérification déterministe de citations de jurisprudence canadienne (collection CanLII, " +
-  "métadonnées en lecture seule) et tables hors ligne des greffes et palais de justice du Québec.";
+  "métadonnées en lecture seule).";
 
 /** Orientation rendue à l'initialisation. Elle porte, elle aussi, le contrat de §2. */
 export const INSTRUCTIONS =
@@ -249,21 +224,13 @@ export const INSTRUCTIONS =
   "Pour le TEXTE des lois et règlements du Québec, employer le connecteur « Législation " +
   "du Québec ». Les verdicts et la couverture dépendent de la collection de CanLII : " +
   "une absence n'est jamais une preuve d'inexistence. " +
-  // §17 — la frontière des sources, énoncée au modèle AVANT tout appel : sans elle,
-  // il attribuerait à CanLII une adresse de palais, ou chercherait dans CanLII un
-  // numéro de greffe. Les deux erreurs sont silencieuses.
-  "DEUX SOURCES DISTINCTES coexistent ici, et le PRÉFIXE ne les annonce plus : c'est la " +
-  "description de chaque outil qui nomme sa source. NEUF des dix outils jurisprudence_* " +
-  "interrogent CanLII ; le dixième, jurisprudence_parse_citation, n'appelle RIEN — il " +
-  "analyse une citation contre le répertoire local et ne confirme aucune existence. Les " +
-  "outils greffe_* et palais_* lisent des TABLES LOCALES relevées auprès du ministère de " +
-  "la Justice du Québec le 2026-07-15 : ils ne font aucun appel, ne consultent aucun " +
-  "registre de dossiers ni plumitif, et n'établissent donc PAS qu'un dossier existe. " +
-  "greffe_parse_court_file_number lit un numéro de dossier québécois (500-05-123456-241) " +
-  "et en tire le greffe, le district judiciaire, le tribunal et la compétence ; palais_list " +
-  "et palais_get donnent les palais de justice et leur adresse. Ces adresses vieillissent " +
-  "et ne portent aucune coordonnée téléphonique : les vérifier auprès du Ministère avant " +
-  "toute signification ou tout dépôt.";
+  "C'est la description de chaque outil qui nomme sa source et ses limites. NEUF des dix " +
+  "outils jurisprudence_* interrogent CanLII ; le dixième, jurisprudence_parse_citation, " +
+  "n'appelle RIEN — il analyse une citation contre le répertoire local et ne confirme aucune " +
+  "existence. Pour analyser un numéro de dossier judiciaire québécois " +
+  "(greffe_parse_court_file_number) ou consulter le répertoire des palais de justice et " +
+  "greffes du Québec (palais_list, palais_get), employer le connecteur public hors ligne " +
+  "« pratique-civile-outils ».";
 
 export const TOOLS: Record<string, ToolDescriptor> = {
   // ── 7.1 — l'outil pivot ────────────────────────────────────────────────────
@@ -651,108 +618,6 @@ export const TOOLS: Record<string, ToolDescriptor> = {
       additionalProperties: false,
     },
     handler: parseCitationTool,
-  },
-
-  // ══ §17 — greffes et palais du Québec. HORS CANLII : relevé local, aucun appel. ══
-
-  // ── 17.2 ───────────────────────────────────────────────────────────────────
-  greffe_parse_court_file_number: {
-    title: "Numéro de dossier de cour du Québec (hors ligne)",
-    description:
-      "Analyse un numéro de dossier de cour du Québec (NNN-NN-NNNNNN-NNN) et en tire le greffe " +
-      "— palais de justice et district judiciaire — puis la juridiction : tribunal, compétence, " +
-      "type de greffe. Un préfixe alphabétique (TAL, TAQ, C.F.…) désigne un tribunal administratif " +
-      "ou une cour fédérale, qui numérotent leurs dossiers eux-mêmes. Données de référence LOCALES, " +
-      "relevées auprès du ministère de la Justice du Québec : cet outil n'interroge ni CanLII ni " +
-      "aucun registre, et n'établit donc PAS que le dossier existe ou qu'il est actif. Les positions " +
-      "7 et suivantes ne sont pas analysées ; aucune somme de contrôle n'est vérifiée.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        court_file_number: {
-          type: "string",
-          minLength: 1,
-          maxLength: 40,
-          description: "Le numéro brut, p. ex. « 500-05-123456-241 » ou « TAL-594531 ».",
-        },
-      },
-      required: ["court_file_number"],
-      additionalProperties: false,
-    },
-    handler: parseCourtFileTool,
-  },
-
-  // ── 17.3 ───────────────────────────────────────────────────────────────────
-  palais_list: {
-    title: "Palais de justice du Québec — répertoire",
-    description:
-      "Répertorie les palais de justice et points de service de justice du Québec, avec leur " +
-      "adresse municipale, les numéros de greffe qui y siègent et leur district judiciaire. " +
-      "Filtrable par district, par type de lieu ou par texte libre (nom, ville, numéro de greffe). " +
-      "Relevé auprès du ministère de la Justice du Québec le 2026-07-15 : les adresses DÉMÉNAGENT, " +
-      "et ce connecteur ne porte aucune coordonnée téléphonique ni courriel. Vérifier la liste " +
-      "officielle du Ministère avant toute signification ou tout dépôt.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        district: {
-          type: "string",
-          maxLength: 60,
-          description: "District judiciaire, p. ex. « Montréal ». Les diacritiques sont pliés.",
-        },
-        query: {
-          type: "string",
-          maxLength: 60,
-          description: "Texte libre : nom du palais, ville ou numéro de greffe.",
-        },
-        type: {
-          type: "string",
-          enum: ["palais", "point_de_service"],
-          description:
-            "« palais » (43) ou « point_de_service » (8, au sens du MJQ — à ne pas confondre " +
-            "avec les greffes de cour itinérante).",
-        },
-      },
-      additionalProperties: false,
-    },
-    handler: palaisListTool,
-  },
-
-  // ── 17.4 ───────────────────────────────────────────────────────────────────
-  palais_get: {
-    title: "Palais de justice du Québec — fiche",
-    description:
-      "Fiche d'un lieu de justice du Québec, par numéro de greffe (3 chiffres) OU par nom de " +
-      "palais : adresse municipale, adresse postale distincte le cas échéant, greffes qui y " +
-      "siègent, district judiciaire et, pour une cour itinérante, les localités desservies. " +
-      "Relevé LOCAL auprès du ministère de la Justice du Québec, sans appel sortant. Six greffes " +
-      "n'ont aucune adresse publiée : l'outil le dit sans jamais affirmer qu'il n'en existe pas. " +
-      "Aucune coordonnée téléphonique ni courriel n'est portée par ce connecteur.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        greffe_number: {
-          type: "string",
-          minLength: 1,
-          maxLength: 3,
-          description:
-            "Numéro de greffe à 3 chiffres, p. ex. « 500 ». ⚠ Fournir EXACTEMENT l'un des deux : " +
-            "soit « greffe_number », soit « palais ». Les deux ensemble, ou aucun, sont REFUSÉS.",
-        },
-        palais: {
-          type: "string",
-          minLength: 1,
-          maxLength: 60,
-          description:
-            "Nom ou clef du palais, p. ex. « Montréal » ou « saint-jerome ». ⚠ Fournir " +
-            "EXACTEMENT l'un des deux : soit « palais », soit « greffe_number ». Les deux " +
-            "ensemble, ou aucun, sont REFUSÉS. Un nom ambigu fait rendre la LISTE des candidats " +
-            "plutôt qu'un choix arbitraire.",
-        },
-      },
-      additionalProperties: false,
-    },
-    handler: palaisGetTool,
   },
 };
 

@@ -10,25 +10,17 @@
  * ║ un jeton dans le corps rendu.                                                ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  *
- * TOUT LE CONTENU DÉRIVE DES DONNÉES VIVES : les outils viennent du registre, les
- * schémas du même `inputSchema` que le validateur applique, les issues d'analyse du
- * VRAI parseur exécuté au rendu, les palais des tables de `src/qc/`. Une page qui
- * recopierait ces valeurs deviendrait fausse sans que rien n'échoue — c'est le mode
- * de panne que ce dépôt combat partout ailleurs.
+ * TOUT LE CONTENU DÉRIVE DES DONNÉES VIVES : les outils viennent du registre et les
+ * schémas du même `inputSchema` que le validateur applique. Une page qui recopierait
+ * ces valeurs deviendrait fausse sans que rien n'échoue — c'est le mode de panne que ce
+ * dépôt combat partout ailleurs.
  *
  * Aucune dépendance, aucune requête tierce : ni police distante, ni CDN, ni image.
  * Sans JavaScript, le FRANÇAIS s'affiche et tout le contenu reste lisible.
  */
 
 import type { JsonSchema } from "@poirierlavoie/socle-juridique";
-import { GARDE_DOSSIER, GARDE_PALAIS, GARDE_SANS_ADRESSE } from "./format/render";
 import { listToolDescriptors } from "./mcp/registry";
-import { analyserNumeroDossier } from "./qc/dossier";
-import { GREFFES } from "./qc/greffes";
-import { JURIDICTIONS, LIBELLE_TYPE_GREFFE } from "./qc/juridictions";
-import { MJQ_MAJ } from "./qc/lieux";
-import { adresseDuGreffe, listerDistricts, localitesItinerantes, siegeFixe } from "./qc/lookup";
-import { RELEVE_LE } from "./qc/palais";
 import { EN, OUTILS_EN } from "./site.i18n";
 
 /** Échappement HTML. Appliqué à TOUTE valeur interpolée, sans exception. */
@@ -67,8 +59,6 @@ export function biP(fr: readonly string[], en: readonly string[]): string {
 export const SECTIONS = [
   { id: "outils", fr: "Les outils", en: "The tools" },
   { id: "schema", fr: "Les schémas", en: "The schemas" },
-  { id: "dossier", fr: "Numéro de dossier", en: "Court file numbers" },
-  { id: "greffes", fr: "Greffes et palais", en: "Registries and courthouses" },
   { id: "acces", fr: "Accès", en: "Access" },
 ] as const;
 
@@ -146,10 +136,6 @@ html:not(.t-light):not(.t-dark) #theme [data-t=auto],
 html.t-light #theme [data-t=light],
 html.t-dark #theme [data-t=dark]{display:inline}
 
-.ctl{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin:1rem 0}
-.ctl input,.ctl select{font:inherit;font-size:.9rem;padding:.4rem .6rem;border:1px solid var(--b);
-  border-radius:4px;background:var(--card);color:var(--f)}
-.ctl input{flex:1;min-width:10rem}
 .m{color:var(--m);font-size:.85rem}
 .tw{overflow-x:auto;border:1px solid var(--b);border-radius:6px;background:var(--card)}
 table{border-collapse:collapse;width:100%;font-size:.88rem}
@@ -229,12 +215,10 @@ try{
 /**
  * JS client, en fin de corps.
  *
- * ⚠ PIÈGE D'ÉCRITURE : dans un littéral de gabarit NON balisé, `\d` devient `d` en
- *   silence. Ce bloc est donc écrit en `String.raw` — et ne doit contenir NI backtick
- *   NI `${`, puisque `String.raw` interpole quand même. Le point de rupture voyage
- *   donc comme un jeton textuel, substitué par `jsClient()` sous garde.
+ * Aucun caractère d'échappement dans ce bloc ; le point de rupture voyage comme un
+ * jeton textuel substitué par `jsClient()` sous garde.
  */
-const JS = String.raw`
+const JS = `
 (function(){
   var d=document, h=d.documentElement;
 
@@ -307,39 +291,6 @@ const JS = String.raw`
       window.addEventListener('scroll',maj,{passive:true});
     }catch(e){}
   }
-
-  var q=d.getElementById('q'), sel=d.getElementById('dist'), tb2=d.getElementById('tgreffes');
-  if(q&&sel&&tb2){
-    var corps=tb2.tBodies[0], rangs=[].slice.call(corps.rows);
-    var cpt=d.getElementById('compte');
-    // Pliage des diacritiques : "quebec" doit trouver "Quebec".
-    //
-    // Ce bloc est en String.raw et reste donc en ASCII PUR, commentaires compris :
-    // une lettre accentuee y survivrait, mais l'echappement d'une classe de
-    // caracteres, lui, ne survit pas a une relecture distraite. La classe des
-    // marques combinantes est ecrite en echappement (u0300 a u036f) : String.raw la
-    // laisse passer telle quelle, et c'est le moteur d'expression reguliere du
-    // NAVIGATEUR qui l'interprete. Ecrire les caracteres combinants en clair
-    // marcherait aussi, mais ils sont invisibles a l'oeil et invisibles en revue.
-    var plier=function(s){
-      return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-    };
-    var filtrer=function(){
-      var t=plier(q.value.trim()), dd=sel.value, n=0;
-      for(var i=0;i<rangs.length;i++){
-        var r=rangs[i];
-        var okd=(dd===''||r.getAttribute('data-d')===dd);
-        var okt=(t===''||plier(r.textContent).indexOf(t)>=0);
-        var vu=okd&&okt;
-        r.style.display=vu?'':'none';
-        if(vu) n++;
-      }
-      if(cpt) cpt.textContent=n+' / '+rangs.length;
-    };
-    q.addEventListener('input',filtrer);
-    sel.addEventListener('change',filtrer);
-    filtrer();
-  }
 })();
 `;
 
@@ -348,7 +299,6 @@ const JS = String.raw`
  * réécriture, on préfère un échec bruyant à un CSS muet.
  */
 function jsClient(): string {
-  if (!JS.includes("plier")) throw new Error("JS client tronqué : « plier » absent");
   // Le point de rupture ne peut pas être interpolé : `String.raw` interpole `${…}`
   // malgré la balise, ce qui rouvrirait le piège d'échappement. Il voyage donc comme
   // un JETON textuel, substitué ici — sous garde, pour qu'une réécriture qui le
@@ -412,8 +362,7 @@ function entete(): string {
 ${biP(
   [
     "Serveur MCP en lecture seule. Il éprouve des citations de jurisprudence contre la " +
-      "collection de CanLII, et lit la nomenclature judiciaire québécoise — numéros de " +
-      "dossier, greffes, palais de justice.",
+      "collection de CanLII.",
   ],
   EN.intro,
 )}
@@ -478,10 +427,6 @@ function marqueurAppel(d: Descripteur): string {
   )}</p>`;
 }
 
-function estLocal(nom: string): boolean {
-  return nom.startsWith("greffe_") || nom.startsWith("palais_");
-}
-
 function outils(): string {
   const carte = (d: Descripteur) => {
     const en = OUTILS_EN[d.name];
@@ -494,36 +439,23 @@ ${marqueurAppel(d)}
   };
 
   const tous = descripteurs();
-  const canlii = tous.filter((d) => !estLocal(d.name));
-  const locaux = tous.filter((d) => estLocal(d.name));
 
   return `<section id="outils">
 ${h2("outils")}
 <h3>${bi("Adossés à CanLII", EN.familleCanlii)}</h3>
 ${biP(
   [
-    "Dix outils dont la réponse vient de la collection de CanLII — la couverture et les " +
+    "Dix outils dont la réponse se rapporte à la collection de CanLII — la couverture et les " +
       "verdicts en dépendent. NEUF font un appel sortant et sont soumis au quota de l'API ; " +
       "jurisprudence_parse_citation, lui, n'appelle rien : il dit seulement quels identifiants " +
       "une citation permettrait de construire. Ses annotations MCP le déclarent.",
+    "Les outils hors ligne pour les numéros de dossier de cour et les palais de justice du " +
+      "Québec (greffe_*, palais_*) relèvent désormais du connecteur public sans authentification " +
+      "« pratique-civile-outils ».",
   ],
   EN.familleCanliiTexte,
 )}
-${canlii.map(carte).join("\n")}
-<h3>${bi("Tables locales du Québec — aucun appel, jamais", EN.familleQc)}</h3>
-${biP(
-  [
-    "Trois outils qui lisent des tables de référence compilées dans le Worker, relevées auprès " +
-      "du ministère de la Justice du Québec. Ils ne font aucune requête sortante et n'écrivent rien.",
-    "La source est nommée dans la description de chaque outil, et non plus par son préfixe : " +
-      "un préfixe ne sait pas porter une réserve, il n'en donne que l'illusion. Le préfixe, lui, " +
-      "partitionne toujours les deux familles — ranger une adresse de palais du côté de CanLII " +
-      "attribuerait au tiers une donnée dont il n'est pas la source. La scission est vérifiée " +
-      "par des tests, dans les deux langues, et non seulement documentée.",
-  ],
-  EN.familleQcTexte,
-)}
-${locaux.map(carte).join("\n")}
+${tous.map(carte).join("\n")}
 </section>`;
 }
 
@@ -557,7 +489,7 @@ function schemas(): string {
     // Une ligne par paramètre — et, pour un tableau d'objets, une ligne par PROPRIÉTÉ
     // de ses éléments. Sans ce dépliage, `citations` se rendait « array<object> » et
     // les trois entrées de l'outil PIVOT (citation, expected_title, expected_year)
-    // n'apparaissaient nulle part : le plus important des treize était celui que la
+    // n'apparaissaient nulle part : le plus important des dix était celui que la
     // page documentait le moins. 2026-09-16.
     const ligne = (n: string, p: JsonSchema, obligatoire: boolean, sous = false) => {
       const type = p.type === "array" ? `array&lt;${p.items?.type ?? "?"}&gt;` : (p.type ?? "?");
@@ -608,188 +540,6 @@ ${descripteurs().map(bloc).join("\n")}
 </section>`;
 }
 
-// ── Numéro de dossier : les issues, PRODUITES PAR LE VRAI PARSEUR ─────────────
-
-const EXEMPLES = [
-  "500-05-123456-241",
-  "TAL-594531",
-  "C.F.-T-1234-26",
-  "XYZ-9999",
-  "999-99-123456",
-  "500 - 05 - 123456",
-] as const;
-
-/** Résume en une ligne ce que le parseur a rendu. Aucune issue n'est réécrite. */
-function issue(entree: string): string {
-  const r = analyserNumeroDossier(entree);
-  if (r.parse_error) return `⚠ ${r.parse_error}`;
-  if (r.forum) {
-    return `${r.forum.name} (${r.forum.abbr}) — ${
-      r.is_administrative ? "tribunal administratif" : "cour fédérale"
-    }`;
-  }
-  if (r.is_administrative && !r.greffe_number) {
-    return "Préfixe alphabétique non répertorié — aucun tribunal deviné, et ce n'est pas une erreur.";
-  }
-  const bouts = [
-    r.greffe ? `greffe ${r.greffe_number} · ${r.greffe.palais_de_justice}` : null,
-    r.greffe ? `district de ${r.greffe.district_judiciaire}` : null,
-    r.juridiction ? `${r.juridiction.tribunal} · ${r.juridiction.competence}` : null,
-  ].filter((b): b is string => b !== null);
-  return bouts.join(" · ");
-}
-
-function dossier(): string {
-  const lignes = EXEMPLES.map(
-    (e) => `<tr><td><code>${esc(e)}</code></td><td class="m">${esc(issue(e))}</td></tr>`,
-  ).join("");
-
-  const jur = Object.entries(JURIDICTIONS)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(
-      ([code, j]) => `<tr><td><code>${esc(code)}</code></td><td>${esc(j.tribunal)}</td>
-<td>${esc(j.competence)}</td><td class="m">${esc(LIBELLE_TYPE_GREFFE[j.greffe_type])}</td></tr>`,
-    )
-    .join("");
-
-  return `<section id="dossier">
-${h2("dossier")}
-${biP(
-  [
-    "Un numéro de dossier judiciaire québécois se lit NNN-NN-NNNNNN-NNN. Les positions 1 à 3 " +
-      "sont le greffe — palais de justice et district judiciaire. Les positions 5 et 6 sont la " +
-      "juridiction — tribunal, compétence, type de greffe. Le reste est une séquence et des " +
-      "chiffres de contrôle.",
-    "Les positions 7 et suivantes ne sont PAS analysées, et aucune somme de contrôle n'est " +
-      "vérifiée : il n'y en a pas. En inventer une rejetterait des numéros valides, ce qui est " +
-      "le pire des deux défauts.",
-    "Un préfixe alphabétique court-circuite tout cela : TAL-, TAQ-, C.F.- et leurs pareils " +
-      "nomment un corps qui numérote ses dossiers lui-même. Le préfixe EST la réponse à " +
-      "« quel tribunal ».",
-  ],
-  EN.dossierTexte,
-)}
-<h3>${bi("Les issues, rendues par le vrai parseur", EN.dossierExemples)}</h3>
-${biP(
-  [
-    "Les exemples ci-dessous ne sont pas transcrits : la page exécute le parseur au moment du " +
-      "rendu et affiche ce qu'il renvoie. Cette documentation ne peut donc pas diverger du " +
-      "comportement.",
-  ],
-  EN.dossierExemplesTexte,
-)}
-<div class="tw"><table><thead><tr>
-<th>${bi("Entrée", EN.colEntree)}</th><th>${bi("Issue", EN.colIssue)}</th>
-</tr></thead><tbody>${lignes}</tbody></table></div>
-<div class="avert"><p>${bi(GARDE_DOSSIER, GARDE_DOSSIER)}</p></div>
-<h3>${bi("Codes de juridiction", EN.juridictionsTitre)}</h3>
-${biP(
-  [
-    "Le code à deux chiffres des positions 5 et 6. Le tiret cadratin des codes 46, 72 et 73 est " +
-      "une valeur RÉELLE : ces séries ne relèvent d'aucun tribunal nommé.",
-  ],
-  EN.juridictionsTexte,
-)}
-<div class="tw"><table><thead><tr>
-<th>${bi("Code", EN.colCode)}</th><th>${bi("Tribunal", EN.colTribunal)}</th>
-<th>${bi("Compétence", EN.colCompetence)}</th><th>${bi("Type de greffe", EN.colGreffeType)}</th>
-</tr></thead><tbody>${jur}</tbody></table></div>
-</section>`;
-}
-
-// ── Greffes et palais ─────────────────────────────────────────────────────────
-
-function greffes(): string {
-  const districts = listerDistricts();
-  const options = districts.map((d) => `<option value="${esc(d)}">${esc(d)}</option>`).join("");
-
-  const lignes = Object.keys(GREFFES)
-    .sort()
-    .map((numero) => {
-      const g = GREFFES[numero]!;
-      const adresse = adresseDuGreffe(numero);
-      const siege = g.palais_key ? null : siegeFixe(numero);
-      const localites = localitesItinerantes(numero);
-
-      const cellAdresse = adresse
-        ? `${esc(adresse.street)}${adresse.unit ? `, ${esc(adresse.unit)}` : ""}<br>` +
-          `${esc(adresse.city)} (Québec) ${esc(adresse.postal_code)}` +
-          (siege
-            ? `<br><span class="m">${bi(
-                `Siège fixe : ${siege.palais.name}, rattaché par le relevé du Ministère`,
-                `Fixed seat: ${siege.palais.name}, attached by the Ministry's listing`,
-              )}</span>`
-            : "")
-        : `<span class="m">${bi("aucune adresse publiée", EN.sansAdresse)}</span>`;
-
-      const types = [
-        g.point_de_service
-          ? `<span class="m">${bi("cour itinérante", EN.typeItinerant)}</span>`
-          : null,
-        localites.length > 0 ? `<span class="m">${esc(localites.join(", "))}</span>` : null,
-      ]
-        .filter((t): t is string => t !== null)
-        .join("<br>");
-
-      return `<tr data-d="${esc(g.district_judiciaire)}">
-<td><code>${esc(numero)}</code></td>
-<td>${esc(g.palais_de_justice)}</td>
-<td>${esc(g.district_judiciaire)}</td>
-<td>${cellAdresse}</td>
-<td>${types}</td>
-</tr>`;
-    })
-    .join("");
-
-  return `<section id="greffes">
-${h2("greffes")}
-${biP(
-  [
-    "Les greffes du Québec, cléés sur le numéro à trois chiffres par lequel commence un numéro " +
-      "de dossier. Un greffe est un REGISTRE ; un palais est un BÂTIMENT — la relation n'est ni " +
-      "bijective ni totale, et un greffe dessert souvent plusieurs lieux.",
-  ],
-  EN.greffesTexte,
-)}
-<div class="ctl">
-<input id="q" type="search" placeholder="Filtrer…" aria-label="Filtrer">
-<select id="dist" aria-label="District"><option value="">${bi("Tous les districts", EN.tousDistricts)}</option>${options}</select>
-<span class="m" id="compte"></span>
-</div>
-<div class="tw"><table id="tgreffes"><thead><tr>
-<th>${bi("Greffe", EN.colGreffe)}</th><th>${bi("Palais", EN.colPalais)}</th>
-<th>${bi("District judiciaire", EN.colDistrict)}</th><th>${bi("Adresse", EN.colAdresse)}</th>
-<th>${bi("Type", EN.colTypeLieu)}</th>
-</tr></thead><tbody>${lignes}</tbody></table></div>
-
-<div class="avert">
-<p>${bi(GARDE_SANS_ADRESSE, GARDE_SANS_ADRESSE)}</p>
-</div>
-
-<h3>${bi("Aucune coordonnée", EN.aucuneCoordonnee)}</h3>
-<div class="avert">
-${biP(
-  [
-    "Ce connecteur ne porte AUCUN numéro de téléphone, aucun courriel et aucune heure " +
-      "d'ouverture — pour aucun palais. C'est une propriété de la donnée, non un échec de la page.",
-    "Les numéros des greffes sont publiés par chambre (Montréal en publie au moins quatre), sur " +
-      "le site du Ministère. Les y obtenir.",
-  ],
-  EN.aucuneCoordonneeTexte,
-)}
-<p><a href="https://www.justice.gouv.qc.ca/nous-joindre/trouver-un-palais-de-justice/">justice.gouv.qc.ca</a></p>
-</div>
-
-<div class="avert">
-<p>${bi(GARDE_PALAIS, GARDE_PALAIS)}</p>
-<p class="m">${bi(
-    `Adresses relevées le ${RELEVE_LE} · rattachements des greffes selon le relevé du Ministère mis à jour le ${MJQ_MAJ}.`,
-    `Addresses surveyed ${RELEVE_LE} · registry attachments per the Ministry's listing updated ${MJQ_MAJ}.`,
-  )}</p>
-</div>
-</section>`;
-}
-
 function acces(): string {
   return `<section id="acces">
 ${h2("acces")}
@@ -816,8 +566,7 @@ function pied(): string {
   return `<footer>
 ${biP(
   [
-    "Jason Poirier Lavoie, avocat (Québec). Données de jurisprudence : CanLII. Données " +
-      "des greffes et palais : ministère de la Justice du Québec.",
+    "Jason Poirier Lavoie, avocat (Québec). Données de jurisprudence : CanLII.",
     "Aucun conseil juridique. Cet outil ne remplace ni la vérification à la source, ni le " +
       "jugement professionnel.",
   ],
@@ -831,15 +580,15 @@ ${biP(
  * `Request`. C'est ce qui permet de la mémoïser sans risque de fuite entre requêtes.
  */
 export function renderSite(): string {
-  const corps = [entete(), outils(), schemas(), dossier(), greffes(), acces(), pied()].join("\n");
+  const corps = [entete(), outils(), schemas(), acces(), pied()].join("\n");
 
   return `<!doctype html>
 <html lang="fr" class="l-fr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MCP Jurisprudence — jurisprudence canadienne et greffes du Québec</title>
-<meta name="description" content="Serveur MCP en lecture seule : vérification de citations de jurisprudence contre la collection de CanLII, et nomenclature judiciaire québécoise (numéros de dossier, greffes, palais de justice).">
+<title>MCP Jurisprudence — vérification de citations (collection CanLII)</title>
+<meta name="description" content="Serveur MCP en lecture seule : vérification déterministe de citations de jurisprudence canadienne contre la collection de CanLII.">
 <style>${CSS}</style>
 <script>${BOOT}</script>
 </head>
