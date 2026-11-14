@@ -270,7 +270,9 @@ describe("SEP-2127 — fiche de découverte /mcp/server-card", () => {
         headers: Array<{ name: string; isRequired: boolean; isSecret: boolean }>;
       }>;
     };
-    expect(card.$schema).toBe("https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json");
+    expect(card.$schema).toBe(
+      "https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json",
+    );
     expect(card.name).toBe(`ca.poirierlavoie.jurisprudence/${SERVER_INFO.name}`);
     expect(card.title).toBe(SERVER_INFO.title);
     expect(card.version).toBe(SERVER_INFO.version);
@@ -303,7 +305,9 @@ describe("SEP-2127 — fiche de découverte /mcp/server-card", () => {
 
     const head = await appel("HEAD");
     expect(head.status).toBe(200);
-    expect(head.headers.get("Content-Type")).toBe("application/mcp-server-card+json; charset=utf-8");
+    expect(head.headers.get("Content-Type")).toBe(
+      "application/mcp-server-card+json; charset=utf-8",
+    );
     expect(await head.text()).toBe("");
 
     const opt = await appel("OPTIONS");

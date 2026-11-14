@@ -26,14 +26,13 @@
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 import { describe, expect, it } from "vitest";
-
+import logoSvg from "../assets/logo.svg?raw";
 import geminiMd from "../GEMINI.md?raw";
 import geminiExtRaw from "../gemini-extension.json?raw";
 import mcpConfigRaw from "../mcp_config.json?raw";
 import packageRaw from "../package.json?raw";
 import pluginRaw from "../plugin.json?raw";
 import readme from "../README.md?raw";
-import logoSvg from "../assets/logo.svg?raw";
 import { carteServeur } from "../src/index";
 import { PUBLIC_DESCRIPTION, SERVER_INFO, TOOLS } from "../src/mcp/registry";
 
@@ -141,7 +140,7 @@ describe("Manifestes Antigravity / Gemini et version — aucune dérive silencie
 
     const agy = mcpConfig.mcpServers.jurisprudence;
     expect(agy?.url).toBe("https://jurisprudence.poirierlavoie.ca/mcp");
-    expect(agy?.headers?.Authorization).toBe("Bearer ${MCP_JURISPRUDENCE_SECRET}");
+    expect(agy?.headers?.Authorization).toBe(`Bearer $${"{MCP_JURISPRUDENCE_SECRET}"}`);
     expect(agy?.eager).toBeUndefined();
     expect(agy?.variables?.some((v) => v.name === "MCP_JURISPRUDENCE_SECRET")).toBe(true);
 
@@ -149,7 +148,7 @@ describe("Manifestes Antigravity / Gemini et version — aucune dérive silencie
     expect(geminiExt.contextFileName).toEqual([]);
     const gcli = geminiExt.mcpServers.jurisprudence;
     expect(gcli?.httpUrl).toBe("https://jurisprudence.poirierlavoie.ca/mcp");
-    expect(gcli?.headers?.Authorization).toBe("Bearer ${MCP_JURISPRUDENCE_SECRET}");
+    expect(gcli?.headers?.Authorization).toBe(`Bearer $${"{MCP_JURISPRUDENCE_SECRET}"}`);
     expect(
       geminiExt.settings?.some(
         (s) => s.envVar === "MCP_JURISPRUDENCE_SECRET" && s.sensitive === true,
