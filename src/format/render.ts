@@ -219,13 +219,23 @@ export const DIAGNOSTIC_SEULEMENT =
 // ── Rendu d'une fiche ─────────────────────────────────────────────────────────
 
 /**
- * Hyperlien public. On ne rend JAMAIS d'URL `api.canlii.org` (§5.3) : uniquement
- * l'hyperlien `canlii.ca` que l'API fournit.
+ * Hyperlien public. On ne rend JAMAIS d'URL `api.canlii.org` ni un hôte tiers (§5.3) :
+ * uniquement l'hyperlien HTTPS `canlii.ca` (ou un sous-domaine `*.canlii.ca`).
  */
 export function lien(row: { url: string | null }): string | null {
   const u = (row.url ?? "").trim();
   if (u.length === 0) return null;
-  return u.includes("api.canlii.org") ? null : u;
+  let parsed: URL;
+  try {
+    parsed = new URL(u);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== "https:") return null;
+  const host = parsed.hostname.toLowerCase();
+  if (host === "api.canlii.org" || host.endsWith(".api.canlii.org")) return null;
+  if (host === "canlii.ca" || host.endsWith(".canlii.ca")) return u;
+  return null;
 }
 
 /**
