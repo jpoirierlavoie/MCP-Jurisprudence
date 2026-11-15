@@ -16,6 +16,7 @@
   "workers_dev": false,
 
   "observability": { "enabled": true },
+  "cache": { "enabled": true },
 
   // Garde-fous d'exécution (forfait Workers PAYANT — confirmé avec Jason, 2026-07-23).
   // `limits` n'est honoré que sur le modèle d'usage Standard ; sur le forfait gratuit ce
