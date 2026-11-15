@@ -27,6 +27,7 @@ import {
   GARDE_SORTS_TETE,
   GARDE_VERIFICATION,
   GARDE_VERSION_LEGISLATIVE,
+  lien,
 } from "../src/format/render";
 import { LIMITES, OFFSET_DEFAUT, OFFSET_MAX } from "../src/mcp/defauts";
 import { citationSure } from "../src/mcp/handlers/verifyCitations";
@@ -850,6 +851,20 @@ describe("§5.3 — la clef d'API ne quitte jamais le processus", () => {
       expect(s).not.toContain("api_key");
       expect(s).not.toContain("SECRET");
     }
+  });
+
+  it("lien() n'admet que HTTPS sur canlii.ca / *.canlii.ca et rejette api.canlii.org et tout hôte tiers", () => {
+    expect(lien({ url: "https://canlii.ca/t/1vxsn" })).toBe("https://canlii.ca/t/1vxsn");
+    expect(
+      lien({ url: "https://www.canlii.ca/fr/qc/qcca/doc/2005/2005qcca304/2005qcca304.html" }),
+    ).toBe("https://www.canlii.ca/fr/qc/qcca/doc/2005/2005qcca304/2005qcca304.html");
+    expect(lien({ url: "https://api.canlii.org/v1/caseBrowse/fr/" })).toBeNull();
+    expect(lien({ url: "https://evil.example/?next=https://canlii.ca/t/1vxsn" })).toBeNull();
+    expect(lien({ url: "https://notcanlii.ca/t/1vxsn" })).toBeNull();
+    expect(lien({ url: "http://canlii.ca/t/1vxsn" })).toBeNull();
+    expect(lien({ url: "javascript:alert(1)" })).toBeNull();
+    expect(lien({ url: "" })).toBeNull();
+    expect(lien({ url: null })).toBeNull();
   });
 });
 
