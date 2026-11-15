@@ -96,7 +96,66 @@ commande ne sait réclamer**.
 
 ---
 
-## Architecture
+## Architecture et intégration dans le cadre global
+
+### Le cadre global à trois couches (`pratique-civile-quebecoise`)
+
+```
+             ┌────────────────────────────────────────────────────────┐
+             │       pratique-civile-quebecoise (Plugin Cadre)        │
+             │   5 compétences : recherche-juridique, analyse-doc,     │
+             │  calendrier-proc, redaction-juridique, déontologie     │
+             └──────┬───────────────────────┬──────────────────┬──────┘
+                    │                       │                  │
+   (10 outils `legislation_*`)    (10 outils `jurisprudence_*`) (6 outils `calendrier_*`,
+                    │                       │           `interets_*`, `greffe_*`, `palais_*`)
+                    ▼                       ▼                  ▼
+         ┌─────────────────────┐ ┌─────────────────────┐ ┌──────────────────────────┐
+         │   MCP-Legislation   │ │  MCP-Jurisprudence  │ │  pratique-civile-outils  │
+         │  (Worker Cloudflare │ │ (Worker Cloudflare  │ │    (Worker Cloudflare    │
+         │  D1 + Vectorize +   │ │  D1 cache CanLII    │ │    public, sans état,    │
+         │    Workers AI)      │ │  authentifié Bearer │ │    zéro secret, Zod)     │
+         └──────────┬──────────┘ └──────────┬──────────┘ └──────────────────────────┘
+                    │                       │
+                    └───────────┬───────────┘
+                                ▼ (dépendance de dev `#v0.6.0`, zéro runtime dep)
+                 ┌─────────────────────────────┐
+                 │    MCP-Socle-Juridique      │
+                 │  Transport JSON-RPC 2.0     │
+                 │  Streamable HTTP sans état  │
+                 │  Auth SHA-256 temps constant│
+                 │  Zéro concept juridique     │
+                 └─────────────────────────────┘
+```
+
+### Intégration avec le plugin et les compétences (`pratique-civile-quebecoise`)
+- **`skills/recherche-juridique`** : Consommateur principal des 10 outils `jurisprudence_*`. Vérifie les citations d'autorités (`jurisprudence_verify_citations`), résout une décision par intitulé et année (`jurisprudence_find_case`), explore les décisions qui la citent (`jurisprudence_citator` avec `en` dans le chemin), retrace l'historique d'appel (`jurisprudence_subsequent_history`), et consulte les répertoires de tribunaux (`jurisprudence_list_databases`). L'outil rappelle rigoureusement au modèle que CanLII ne livre que des métadonnées et jamais le texte intégral d'un jugement. Nomme également l'ensemble des 10 outils `legislation_*`, `greffe_parse_court_file_number`, `palais_list`, `palais_get` et `interets_compute_1619` (notamment dans `references/methode-sources.md`, `livrables.md`, `preliminaires.md`, `sources-doctrinales.md`), et mobilise les besoins d'aptitude `TEXTE`, `CALCUL`, `GREFFE`, `INSCRIPTION`.
+- **`skills/redaction-juridique`** : Consomme `legislation_get_article` (dont `lang="en"`), `legislation_search_text`, `calendrier_compute_deadlines` et `interets_compute_1619` (besoins `CALCUL`, `GREFFE`).
+- **`skills/calendrier-procedural`** : Consomme `calendrier_compute_deadlines` et `calendrier_list_holidays` (avec repli local `scripts/calcul_delai.py`, besoins `CALCUL`, `INSCRIPTION`, `TEXTE`). N'appelle aucun outil `jurisprudence_*` ni `legislation_*` directement.
+- **`skills/analyse-documentaire`** : Ne nomme AUCUN outil MCP directement. Exprime des besoins d'aptitude abstraits `GREFFE`, `TEXTE` et `INSCRIPTION`, en déléguant la recherche juridique et la vérification de citations à `recherche-juridique` et les délais à `calendrier-procedural`.
+- **`skills/deontologie-professionnelle`** : Ne nomme AUCUN outil MCP directement ; délègue le droit substantiel et procédural hors déontologie à `recherche-juridique` et les délais à `calendrier-procedural`.
+- **Configuration** : Câblé dans `.mcp.json` et `gemini-extension.json` sous `jurisprudence` (`https://jurisprudence.poirierlavoie.ca/mcp`) avec la variable d'environnement `MCP_JURISPRUDENCE_SECRET`.
+
+### Surfaces de synchronisation du plugin cadre (`pratique-civile-quebecoise`)
+Toute évolution des outils, schémas, noms ou transport de `MCP-Jurisprudence` exige la mise à jour synchronisée des surfaces du plugin cadre :
+1. **Manifestes clients** : `.mcp.json`, `mcp_config.json`, `gemini-extension.json`, `.claude-plugin/plugin.json`, `plugin.json`.
+2. **Définitions manuelles des compétences (`skills/`)** : notamment `skills/recherche-juridique`, `skills/redaction-juridique`, `skills/calendrier-procedural`.
+3. **Scripts de synchronisation et de contrôle** :
+   - `scripts/regenerer_cache_mcp.py --apply`
+   - `scripts/synchroniser_plugin_gemini.py --apply`
+   - `python verifier.py`
+   - `python verifier_tout.py --mode mock` / `python verifier_tout.py --mode live`
+
+### Dépendances croisées et limites de responsabilité
+- **Dépendance envers `MCP-Socle-Juridique`** : Consomme `@poirierlavoie/socle-juridique#v0.6.0` en `devDependencies` pour le transport MCP Streamable HTTP révision `2026-07-28`, l'enveloppe JSON-RPC 2.0, l'authentification SHA-256 à temps constant (`timingSafeEqual`) et la fiche SEP-2127 (`/mcp/server-card`). Zéro dépendance d'exécution (`dependencies: {}`).
+- **Jumeau de `MCP-Legislation`** : Partage la même identité visuelle et typographique sur sa page publique `GET /` (police Georgia, variables CSS `--f`, `--m`, `--b`, `--a`, `--bg`, `--card`). Législation traite le droit codifié verbatim ; Jurisprudence traite les décisions et métadonnées CanLII.
+- **Transfert historique du 2026-11-14 vers `pratique-civile-outils`** : Les 3 outils québécois hors ligne (`greffe_parse_court_file_number`, `palais_list`, `palais_get`), les tables statiques du MJQ (`src/qc/`), `lieux.ts`, `sources-officielles/` et le parseur de dossier ont été transférés à `pratique-civile-outils` (v0.2.0). Ce dépôt se consacre désormais exclusivement aux métadonnées CanLII et à l'analyseur de citations.
+
+### Contrat de vérité et Invariant D4
+- **Sortie textuelle pure Markdown (`content[0].text`)** : ZÉRO `structuredContent`, ZÉRO `outputSchema`. Les avertissements légaux, statuts d'appariement et réserves statutaires (`GARDE_*`) doivent demeurer indissociables du corps de la réponse pour contraindre le modèle à les lire.
+- **Refus HTTP 401** : Tout appel non authentifié est refusé en `401 Unauthorized` avec l'en-tête `WWW-Authenticate: Bearer` (déclenche la découverte d'authentification client).
+
+### Architecture logicielle
 
 Worker TypeScript sans cadriciel, **zéro dépendance d'exécution** (D2), base D1 `canlii`,
 transport Streamable HTTP en **mode JSON sans état** (D3). Config : `wrangler.jsonc`.
@@ -151,7 +210,7 @@ lecteur suivant de ce qu'il a compris du reste.
 ```bash
 npx wrangler types && npx tsc --noEmit     # toujours avant commit
 npx biome check .                          # --write pour corriger
-npx vitest run                             # 532 tests, sans réseau ni clef
+npx vitest run                             # 344 tests, sans réseau ni clef
 npx wrangler dev                           # exige .dev.vars
 npx wrangler deploy --dry-run              # valide paquet + config, sans jeton
 npx wrangler d1 migrations apply canlii --local
@@ -391,16 +450,16 @@ qu'elle vaudra encore le jour où l'on voudra rouvrir la question (§12).
 - `CANLII_API_KEY` et `MCP_SHARED_SECRET` : posés par `wrangler secret put`, saisis par
   Jason lui-même. **Ne jamais les afficher, les lire en contexte, ni les écrire dans un
   fichier versionné.**
-- `MCP_SHARED_SECRET_ATHENA` : **facultatif**, même règle. Second porteur du point
+- `MCP_SHARED_SECRET_ATHENA` : **retiré le 2026-09-17**. Second porteur historique du point
   d'entrée, aux droits IDENTIQUES — il n'ouvre aucun outil de plus. Il a existé pour que
   le clavardage de Pallas Athéna et le connecteur claude.ai se révoquent SÉPARÉMENT
-  (§9.1, §19). **Depuis le 2026-09-02, ce porteur n'existe plus** : le clavardage a été
-  retiré du dépôt d'Athéna (commit `ef854733`). Le secret reste configuré et n'est pas à
-  retirer — il ne coûte rien, n'ouvre aucun droit de plus — mais **il n'a plus personne
-  pour signaler qu'on l'a cassé** : un correctif de la garde d'entrée ne s'éprouve plus
-  que par `test/rpc.test.ts` et un `curl` à la main, jamais par un second client vivant.
+  (§9.1, §19). Depuis le 2026-09-02, ce porteur n'avait plus de client actif (le clavardage
+  ayant été retiré du dépôt d'Athéna, commit `ef854733`) et a été formellement retiré de
+  Cloudflare le 2026-09-17 (`PORTE.nomsSecrets = ["MCP_SHARED_SECRET"]` dans `src/index.ts:124`).
+  Les appelants actifs en production sont le connecteur `claude.ai` et le greffon cadre
+  `pratique-civile-quebecoise` (sous Claude for Desktop / Anthropic et Google Gemini / Antigravity).
   L'authentification reste **fermée par défaut** : aucun secret configuré ⇒ tout est
-  refusé. Ne jamais journaliser lequel des deux a servi.
+  refusé. Ne jamais journaliser lequel des secrets a servi.
 - `.dev.vars` (dev), `mcp.url` (URL de prod avec secret), `*.token` : **gitignorés**.
   Parmi eux, **`cf.token` porte le jeton d'API Cloudflare, et c'est lui qui déploie
   réellement la production** (voir « Commandes ») : il se lit dans une variable
@@ -420,16 +479,10 @@ elle a purgé les 1 819 dates de décision au 1er janvier fabriquées par l'anci
 vivante : `0` ligne hors `lookup` porte une `decision_date`, et `cases` = `cases_fts` (parité
 à 457 311 entrées).
 
-**UN seul client aujourd'hui, et un porteur qui attend** (§19). Le connecteur claude.ai
-est le seul appelant vivant. Le clavardage de Pallas Athéna, second client de
-2026-08-27 à 2026-09-02, **a été retiré** du dépôt d'Athéna (commit `ef854733`) au
-passage à un compte Claude for Work : plus rien là-bas n'appelle ce connecteur.
-
-`MCP_SHARED_SECRET_ATHENA` **reste en place et n'est pas à retirer** — il ne coûte rien,
-n'ouvre aucun droit de plus, et l'authentification reste fermée par défaut. Ce qu'il faut
-savoir, en revanche : **il n'a plus de porteur**, donc plus personne pour signaler qu'on
-l'a cassé. Un correctif de la garde d'entrée ne peut plus être éprouvé de bout en bout par
-un second client réel ; seuls `test/rpc.test.ts` et un `curl` à la main le couvrent.
+**Clients actifs aujourd'hui** (§19) : Le connecteur est sollicité par le connecteur `claude.ai`
+ainsi que par le greffon cadre `pratique-civile-quebecoise` (sous Claude et Gemini). Le clavardage de
+Pallas Athéna, client de 2026-08-27 à 2026-09-02, a été retiré (commit `ef854733`) et le secret
+dédié `MCP_SHARED_SECRET_ATHENA` a été définitivement retiré le 2026-09-17 (`PORTE.nomsSecrets = ["MCP_SHARED_SECRET"]`).
 §19 est conservée, datée, plutôt qu'effacée : ce qu'elle démontre — qu'un second client
 n'a rien exigé du protocole — reste vrai, et vaudra pour le prochain.
 
