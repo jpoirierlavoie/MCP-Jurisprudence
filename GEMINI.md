@@ -69,20 +69,18 @@ Règles d'espace de travail pour **Google Antigravity** et **Gemini CLI** lors d
 
 ---
 
-## 3. Règle de propagation sur cinq surfaces — Obligatoire
+## 3. Évaluation d'impact obligatoire — Cinq surfaces locales (`README.md`, Page publique HTML) et inter-dépôts
 
-Aucune modification n'est terminée tant que ses répercussions n'ont pas été évaluées et incluses dans le **même** changement sur les cinq surfaces :
+Aucune modification n'est terminée tant que ses répercussions n'ont pas été **évaluées, incluses dans le même changement et explicitement rapportées** sur les six axes ci-dessous (« non touché » doit être vérifié et énoncé, jamais passé sous silence) :
 
-1. **Outils MCP** (`src/mcp/registry.ts`, `src/mcp/handlers/`, préfixe `jurisprudence_*`, annotations `readOnlyHint`/`openWorldHint`).
-2. **Descriptions et titres** (`registry.ts`, `INSTRUCTIONS`, `OUTILS_EN` dans `src/site.i18n.ts`).
-3. **Schémas d'entrée** (`validateArgs` de `@poirierlavoie/socle-juridique`, constantes de `src/mcp/defauts.ts` uniquement, `additionalProperties: false`, descriptions sur chaque paramètre).
-4. **Documentation et manifestes** (`README.md`, [`SPEC.md`](SPEC.md), [`CLAUDE.md`](CLAUDE.md), `plugin.json`, `mcp_config.json`, `gemini-extension.json`, `/mcp/server-card`, `test/doc.test.ts`).
-5. **Page publique** (`src/site.ts` + `src/site.i18n.ts`, §18) — le contenu **dérive** du registre et des tables vives, sans copie manuelle.
-
-*Sixième surface hors dépôt (`pratique-civile-quebecoise`) :* Le greffon cadre nomme les outils `jurisprudence_*` à la main ; toute modification impose la mise à jour synchronisée des surfaces du plugin :
-- Manifestes clients : `.mcp.json`, `mcp_config.json`, `gemini-extension.json`, `.claude-plugin/plugin.json`, `plugin.json`.
-- Compétences manuelles (`skills/`) : notamment `skills/recherche-juridique`, `skills/redaction-juridique`, `skills/calendrier-procedural`.
-- Scripts de synchronisation et de contrôle : `scripts/regenerer_cache_mcp.py --apply`, `scripts/synchroniser_plugin_gemini.py --apply`, `python verifier.py`, et `python verifier_tout.py --mode mock` / `--mode live`.
+| # | Axe d'impact | Où | Ce qu'il faut évaluer et maintenir synchronisé |
+|---|---|---|---|
+| 1 | **Outils MCP** | `src/mcp/registry.ts`, `src/mcp/handlers/` | préfixe `jurisprudence_*`, annotations `readOnlyHint`/`openWorldHint`, verdicts et gardes |
+| 2 | **Descriptions et titres** | `registry.ts`, `INSTRUCTIONS`, `OUTILS_EN` (`src/site.i18n.ts`) | la page HTML rend les descriptions verbatim ; `OUTILS_EN` doit rester une traduction réelle |
+| 3 | **Schémas d'entrée** | `validateArgs` (`@poirierlavoie/socle-juridique`), `src/mcp/defauts.ts` | `additionalProperties: false`, descriptions sur chaque paramètre, contraintes croisées répétées |
+| 4 | **`README.md`, gouvernance et manifestes** | `README.md`, [`SPEC.md`](SPEC.md), `SECURITY.md`, `LICENSE` (`CC-BY-NC-SA-4.0`), `package.json`, `plugin.json`, `mcp_config.json`, `gemini-extension.json`, `/mcp/server-card`, `CLAUDE.md`, `GEMINI.md`, `test/doc.test.ts` | ce que le dépôt annonce, ses recettes de connexion, sa licence et sa politique sécurité/confidentialité |
+| 5 | **Page publique HTML (`GET /`)** | `src/site.ts`, `src/site.i18n.ts`, §18 de `SPEC.md`, `test/site.test.ts` | le contenu **dérive** du registre et des tables vives ; liste blanche d'URLs stricte, zéro fuite de secret/CanLII API, section `#acces` et pied de page |
+| 6 | **Inter-dépôts (`Cross-repository`)** | **`pratique-civile-quebecoise`** (`.mcp.json`, `mcp_config.json`, `gemini-extension.json`, `.claude-plugin/*`, `plugin.json`, `skills/` dont `skills/recherche-juridique`, `regenerer_cache_mcp.py --apply`, `synchroniser_plugin_gemini.py --apply`, `verifier.py`, `verifier_tout.py`), **`MCP-Socle-Juridique`** (`#v0.6.0`), **`MCP-Legislation`** (jumeau HTML/CSS), **`pratique-civile-outils`** | répercussions sur les compétences qui nomment `jurisprudence_*` à la main, cohérence transport/auth et identité visuelle HTML/CSS partagée |
 
 ---
 

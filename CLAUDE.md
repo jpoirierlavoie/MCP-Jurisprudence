@@ -13,34 +13,38 @@ modification.
 
 ---
 
-## ⚠ RÈGLE DE PROPAGATION — obligatoire, sans exception
+## ⚠ ÉVALUATION D'IMPACT ET RÈGLE DE PROPAGATION — obligatoire, sans exception
 
 ```
 ╔═════════════════════════════════════════════════════════════════════════════╗
 ║ AUCUNE modification de ce depot n'est terminee tant que ses repercussions   ║
-║ n'ont pas ete EVALUEES sur les cinq surfaces ci-dessous, et INCLUSES dans   ║
-║ le MEME changement.                                                         ║
+║ n'ont pas ete EVALUEES et RAPPORTEES sur les six axes ci-dessous, et        ║
+║ INCLUSES dans le MEME changement :                                          ║
 ║                                                                             ║
-║   1. les OUTILS MCP (registre, gestionnaires, familles de prefixes)         ║
-║   2. leurs DESCRIPTIONS et leurs titres                                     ║
-║   3. leurs SCHEMAS d'entree                                                 ║
-║   4. README.md                                                              ║
-║   5. la PAGE PUBLIQUE (src/site.ts + src/site.i18n.ts) et §18               ║
+║   1. les OUTILS MCP (registre, gestionnaires, préfixe jurisprudence_*)      ║
+║   2. leurs DESCRIPTIONS et leurs titres (FR + EN)                           ║
+║   3. leurs SCHÉMAS d'entrée                                                 ║
+║   4. README.md, SPEC.md, SECURITY.md, LICENSE (CC-BY-NC-SA-4.0) & manifestes║
+║   5. la PAGE PUBLIQUE HTML (GET / — src/site.ts + src/site.i18n.ts) et §18  ║
+║   6. les IMPACTS INTER-DÉPÔTS (Cross-repository : pratique-civile-quebecoise║
+║      MCP-Socle-Juridique, MCP-Legislation, pratique-civile-outils)          ║
 ╚═════════════════════════════════════════════════════════════════════════════╝
 ```
 
-**Le motif.** Ces cinq surfaces décrivent la MÊME chose à cinq publics : le modèle, le
-praticien, le lecteur de la spécification, le visiteur de la page, et le prochain
-contributeur. Quand l'une prend du retard, elle ne tombe pas en panne — **elle continue
-de répondre, avec assurance, quelque chose de faux**. Un outil renommé dont le README
-garde l'ancien nom, un schéma resserré que la page annonce encore large, une réserve
+**Exigence de reddition de compte :** Avant de conclure une tâche, énoncer explicitement pour **chacun des six axes** (en particulier `README.md`, la page publique HTML `GET /` et l'impact inter-dépôts) s'il est touché et pourquoi (« non touché » doit être vérifié et affirmé, jamais omis).
+
+**Le motif.** Ces surfaces décrivent la MÊME chose à des publics complémentaires : le modèle, le
+praticien, le lecteur de la spécification, le visiteur de la page publique HTML, le prochain
+contributeur et les dépôts consommateurs. Quand l'une prend du retard, elle ne tombe pas en panne — **elle continue
+de répondre, avec assurance, quelque chose de faux**. Un outil renommé dont le `README.md`
+garde l'ancien nom, un schéma resserré que la page HTML annonce encore large, une réserve
 retirée du corps mais laissée en vitrine : aucun de ces défauts ne lève d'erreur. C'est
 exactement le mode de panne que §2 interdit, déplacé dans la documentation.
 
 **Le coût en jetons de cette vérification est ASSUMÉ et n'est pas un motif de l'abréger.**
-Relire quatre fichiers coûte moins qu'un praticien qui se fie à une description périmée.
+Relire ces surfaces coûte moins qu'un praticien qui se fie à une description périmée.
 
-**Une SIXIÈME surface a existé, elle n'existe plus — mais le raisonnement, lui, reste.**
+**Une surface hors dépôt a changé de forme le 2026-09-02 — mais la CATÉGORIE reste centrale.**
 Le clavardage interne de Pallas Athéna offrait les mêmes treize outils à son modèle depuis
 `athena/chat/worker_tools.py`, engendré depuis `tools/list` (§19). Il a été **retiré du
 dépôt d'Athéna le 2026-09-02** (commit `ef854733` : « le clavardage interne est retiré —
@@ -48,25 +52,27 @@ dépôt d'Athéna le 2026-09-02** (commit `ef854733` : « le clavardage interne 
 fichier ni son générateur n'existent plus : il n'y a rien à relancer, et il ne faut pas
 les chercher. *(Cette consigne a survécu trois semaines à son objet — d'où sa date.)*
 
-**Ce qui ne disparaît pas, c'est la CATÉGORIE.** Un nom d'outil qui vit hors de ce dépôt
+**L'impact inter-dépôts reste critique aujourd'hui.** Un nom d'outil qui vit hors de ce dépôt
 n'est vu dériver par aucune commande d'ici : l'échec n'apparaît qu'au prochain appel, sous
-la forme d'un « Outil inconnu » que l'usager lit comme une panne du connecteur. Une telle
-surface est vivante aujourd'hui — le plugin `pratique-civile-quebecoise` et la Compétence
-claude.ai de recherche juridique, qui nomment les outils. Son chemin n'est pas écrit ici :
-ce dépôt est public, et une arborescence personnelle n'y a pas sa place. Elle a dû être
-reprise à la main lors du renommage du 2026-09-16, et elle devra l'être à chaque suivant.
-**Le repérage est une recherche de chaîne dans les documents du praticien, pas une commande d'ici.**
+la forme d'un « Outil inconnu » que l'usager lit comme une panne du connecteur. Cette surface
+inter-dépôts recouvre principalement : le plugin `pratique-civile-quebecoise` et la Compétence
+claude.ai de recherche juridique (qui nomment les 10 outils `jurisprudence_*` à la main et
+déclarent le connecteur dans leurs manifestes), `MCP-Socle-Juridique` (`#v0.6.0`), le jumeau
+`MCP-Legislation` (identité visuelle CSS/HTML et complémentarité droit législatif ↔ jurisprudence)
+et `pratique-civile-outils` (frontière CanLII vs outils québécois hors ligne).
+**Le repérage hors dépôt se fait par vérification des manifestes et compétences du plugin cadre.**
 
 ### Table de propagation
 
 | Si vous touchez… | …vérifiez ET mettez à jour |
 |---|---|
-| **un outil** (ajout, retrait, renommage) | `src/mcp/registry.ts` · le gestionnaire dans `src/mcp/handlers/` · `OUTILS_EN` dans `src/site.i18n.ts` (parité testée **dans les deux sens**) · le tableau ET le compte de `README.md` §« Les dix outils » · §7 de la spécification · les compteurs de `test/garde.test.ts`, `test/rpc.test.ts` et `test/doc.test.ts` (ce dernier affirme `NOMS.length === 10` AVANT toute confrontation — c'est l'assertion qui l'empêche de réussir sur le vide — et porte en plus `EN_LETTRES`, par quoi il éprouve le compte écrit en toutes lettres du README) · la **liste triée des noms** dans `test/rpc.test.ts` · le préfixe `jurisprudence_` · la DESCRIPTION doit nommer sa source (`CanLII`), en français ET en anglais (c'est elle qui porte l'annonce depuis le 2026-09-16, et non plus le préfixe) · **hors dépôt, et aucune commande d'ici ne le voit** : la Compétence claude.ai de recherche juridique et le plugin `pratique-civile-quebecoise` |
-| **une description ou un titre** | la page les rend **verbatim** : relancer `test/site.test.ts` (formulations interdites) et `test/garde.test.ts` (sous-chaînes épinglées) · `OUTILS_EN` doit rester une TRADUCTION, jamais une copie |
-| **un `inputSchema`** | `validateArgs` (`@poirierlavoie/socle-juridique`) n'implémente qu'un SOUS-ENSEMBLE de JSON-Schema : ne pas déclarer ce qu'il ne sait pas imposer · **une contrainte que le GESTIONNAIRE impose et que le schéma ne sait pas dire (XOR, format, bornes croisées) s'écrit dans la `description`, et se RÉPÈTE sur chaque membre plutôt que de renvoyer à l'autre** (§8) · **toute valeur par défaut ou maximum vient de `src/mcp/defauts.ts`, jamais d'un nombre écrit à la main** · la page génère ses tableaux de schéma depuis le même objet · `additionalProperties: false` reste obligatoire · **tout paramètre porte une `description`** — `test/garde.test.ts` échoue sinon, et les schémas partagés du haut de `registry.ts` (`BASE_ID`, `CASE_ID`, `CITATION_REF`, `OFFSET`, `LANG`, `REFRESH`) existent pour qu'une même notion ne soit pas décrite deux fois en divergeant |
-| **une constante `GARDE_*`** | elle vit dans le corps des réponses **et** sur la page · `test/garde.test.ts` · ⚠ *corrigé le 2026-09-16* : cette case disait « `MARQUEUR_RECONCILIATION` est en plus une chaîne de COUPLAGE lue par `scripts/refresh-databases.mjs` ». C'est l'inverse — le script refuse de découper la sortie sur un marqueur et repère les écarts par leur FORME (`/^·\s+.+\s+->\s+\S+/`), parce qu'un marqueur recopié vivrait des deux côtés d'une frontière TypeScript/JavaScript qu'aucun compilateur ne vérifie, et rendrait un feu vert mensonger le jour où la formulation change. La chaîne de couplage RÉELLE est l'en-tête « base(s) au répertoire de CanLII » (`src/mcp/handlers/listDatabases.ts`), sur laquelle le script pose son garde-fou : la modifier sans le prévenir le fait sortir en code 2 — refus de statuer — plutôt que conclure de travers. C'est elle qu'il faut propager. · ⚠ *réparé le 2026-09-17* : cette case avait perdu ses barres obliques inverses et ses apostrophes en y entrant (heredoc sous Git Bash, invariant 7), si bien que la regex citée appariait « la lettre s » au lieu d'une espace. Elle est désormais LUE dans `scripts/refresh-databases.mjs` plutôt que retranscrite. |
-| **la page** | `test/site.test.ts` · §18 de la spécification · la section « Page publique » de `README.md` · le style reste **identique** à celui du connecteur jumeau (invariant 21) |
-| **version, identité ou manifestes** | `package.json` · `SERVER_INFO` et `PUBLIC_DESCRIPTION` (`src/mcp/registry.ts`) · `carteServeur()` (`/mcp/server-card`) · `plugin.json` · `mcp_config.json` · `gemini-extension.json` · `GEMINI.md` (< 24 000 octets) · vérifié par `test/doc.test.ts` |
+| **un outil** (ajout, retrait, renommage) | `src/mcp/registry.ts` · le gestionnaire dans `src/mcp/handlers/` · `OUTILS_EN` dans `src/site.i18n.ts` (parité testée **dans les deux sens**) · le tableau ET le compte de `README.md` §« Les dix outils » · §7 de `SPEC.md` · les compteurs de `test/garde.test.ts`, `test/rpc.test.ts` et `test/doc.test.ts` (ce dernier affirme `NOMS.length === 10` AVANT toute confrontation — et porte en plus `EN_LETTRES`, éprouvant le compte écrit en toutes lettres du `README.md`) · la **liste triée des noms** dans `test/rpc.test.ts` · le préfixe `jurisprudence_` · la DESCRIPTION doit nommer sa source (`CanLII`), en français ET en anglais · **inter-dépôts** : la Compétence claude.ai de recherche juridique et le plugin `pratique-civile-quebecoise` (`skills/`, manifestes, `scripts/regenerer_cache_mcp.py --apply`, `scripts/synchroniser_plugin_gemini.py --apply`, `verifier.py`, `verifier_tout.py`) |
+| **une description ou un titre** | la page publique HTML (`GET /`) les rend **verbatim** : relancer `test/site.test.ts` (formulations interdites) et `test/garde.test.ts` (sous-chaînes épinglées) · `OUTILS_EN` doit rester une TRADUCTION, jamais une copie |
+| **un `inputSchema`** | `validateArgs` (`@poirierlavoie/socle-juridique`) n'implémente qu'un SOUS-ENSEMBLE de JSON-Schema : ne pas déclarer ce qu'il ne sait pas imposer · **une contrainte que le GESTIONNAIRE impose et que le schéma ne sait pas dire (XOR, format, bornes croisées) s'écrit dans la `description`, et se RÉPÈTE sur chaque membre plutôt que de renvoyer à l'autre** (§8) · **toute valeur par défaut ou maximum vient de `src/mcp/defauts.ts`, jamais d'un nombre écrit à la main** · la page HTML (`GET /`) génère ses tableaux de schéma depuis le même objet · `additionalProperties: false` reste obligatoire · **tout paramètre porte une `description`** — `test/garde.test.ts` échoue sinon, et les schémas partagés du haut de `registry.ts` (`BASE_ID`, `CASE_ID`, `CITATION_REF`, `OFFSET`, `LANG`, `REFRESH`) existent pour qu'une même notion ne soit pas décrite deux fois en divergeant |
+| **une constante `GARDE_*`** | elle vit dans le corps des réponses **et** sur la page publique HTML (`GET /`) · `test/garde.test.ts` · ⚠ *corrigé le 2026-09-16* : la chaîne de couplage RÉELLE lue par `scripts/refresh-databases.mjs` est l'en-tête « base(s) au répertoire de CanLII » (`src/mcp/handlers/listDatabases.ts`), sur laquelle le script pose son garde-fou (sortie code 2 si modifiée). C'est elle qu'il faut propager. |
+| **la page publique HTML (`GET /`)** | `src/site.ts` · `src/site.i18n.ts` · `test/site.test.ts` (CSP, absence de CORS, liste blanche d'URLs) · §18 de `SPEC.md` · la section « Page publique » de `README.md` · le style reste **identique** à celui du connecteur jumeau `MCP-Legislation` et de `pratique-civile-outils` (invariant 21) |
+| **sécurité, confidentialité ou licence** | `SECURITY.md` (contact `jason@poirierlavoie.ca`, sécurité et confidentialité / privilège, porteurs et `search_log`) · `LICENSE` (`CC-BY-NC-SA-4.0` Partie A + Partie B CanLII) · `package.json` · `README.md` (§ Sécurité, confidentialité et licence) · `src/site.ts` + `src/site.i18n.ts` (`#acces`, sans casser `test/site.test.ts`) · cohérence inter-dépôts (`pratique-civile-quebecoise/SECURITY.md`, `MCP-Socle-Juridique`) |
+| **version, identité ou manifestes** | `package.json` · `SERVER_INFO` et `PUBLIC_DESCRIPTION` (`src/mcp/registry.ts`) · `carteServeur()` (`/mcp/server-card`) · `plugin.json` · `mcp_config.json` · `gemini-extension.json` · `GEMINI.md` (< 24 000 octets) · vérifié par `test/doc.test.ts` · resynchroniser `pratique-civile-quebecoise` |
 
 ### Comment vérifier
 

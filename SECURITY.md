@@ -1,186 +1,83 @@
-# Security Policy
+# Security, Privacy & Professional Secrecy Policy
 
-This repository holds the « MCP Jurisprudence » connector — Canadian case law and Québec
-court registries — a
-read-only Cloudflare Worker used by a practising Quebec lawyer to verify case-law
-citations. It handles no client data (see *Data handled* below), but it does hold a
-personal CanLII API key and a shared authentication secret — both as Cloudflare
-Worker secrets, never in this repository.
+> **English:** To report a **security vulnerability** OR a **privacy, confidentiality, or solicitor-client privilege / litigation privilege concern**, **do not open a public GitHub issue or pull request**. Email the maintainer directly:
+> **Jason Poirier Lavoie, Lawyer (Québec)** — `jason@poirierlavoie.ca` (acknowledgement within **72 hours**, coordinated disclosure).
+> **Never attach** privileged client documents, unredacted confidential client facts, or live secrets (`CANLII_API_KEY`, `MCP_SHARED_SECRET`) to an initial report; use synthetic examples first.
+>
+> **Français :** Pour signaler une **vulnérabilité de sécurité** OU un **enjeu de vie privée, de confidentialité ou de secret professionnel / privilège** (`art. 9` *Charte québécoise*, `art. 131` *Loi sur le Barreau*), **n'ouvrez jamais d'issue publique sur GitHub**. Écrivez directement à :
+> **Jason Poirier Lavoie, avocat (Québec)** — `jason@poirierlavoie.ca` (accusé de réception sous **72 heures**, divulgation coordonnée).
+> **Ne transmettez jamais** de documents clients privilégiés, de noms ou faits confidentiels non caviardés ni de secrets actifs dans un premier message.
 
-## Reporting a vulnerability
+This repository holds the **MCP Jurisprudence** connector — deterministic Canadian case-law and CanLII citation verification — a read-only Cloudflare Worker used by a practising Québec lawyer. It stores no client documents, but holds a personal CanLII API key and a shared authentication secret — both configured strictly as Cloudflare Worker secrets, never in this repository.
 
-If you discover a security issue, **do not open a public GitHub issue**. Email the
-maintainer directly:
+*(Note: Offline Québec court file parsing and MJQ courthouse/registry lookups — `greffe_*` and `palais_*` — moved on 2026-11-14 to the separate public stateless connector [`pratique-civile-outils`](https://github.com/jpoirierlavoie/pratique-civile-outils).)*
 
-**Contact:** Jason Poirier Lavoie — `jason@poirierlavoie.ca`
+---
+
+## Reporting a Vulnerability, Privacy, or Privilege Issue
 
 Please include:
-- A description of the vulnerability
-- Steps to reproduce (or a proof-of-concept)
+- Whether the issue involves **security** (authentication, CORS/DNS rebinding, input/header validation, secret leakage) or **privacy / confidentiality / legal privilege** (unintended data retention, query transmission to CanLII or logs, client-identifying leakage)
+- A clear description and minimal reproduction steps (using synthetic inputs only)
 - The potential impact you've identified
 - Any suggested mitigation, if you have one
 
-You'll get an initial acknowledgement within 72 hours. Coordinated disclosure is
-appreciated — please give a reasonable window to patch before publishing details.
+You will receive an initial acknowledgement within **72 hours**. Coordinated disclosure is appreciated — please allow a reasonable window to patch before publishing details.
+
+---
 
 ## Scope
 
 In scope:
 - The deployed Worker at `jurisprudence.poirierlavoie.ca`
-- Code in this repository
-- The MCP endpoint (`POST /mcp/<secret>`) and its authentication
-- The public page (`GET /`)
+- Code in this repository (`src/`, `migrations/`, `plugin.json`, `mcp_config.json`, `gemini-extension.json`)
+- The MCP endpoint (`POST /mcp` and `/mcp/<secret>`) and its authentication / CORS boundary
+- The public page (`GET /`) and public MCP Server Card (`GET /mcp/server-card`)
 
 Out of scope:
 - Social engineering of the maintainer or anyone else
-- Physical attacks
-- DoS / volumetric attacks
-- CanLII's own API, website or data — report those to CanLII
-- Issues in third-party dependencies that don't affect this project's specific
-  configuration (report those upstream). Note that this Worker ships with **zero
-  runtime dependencies**; everything in `package.json` is development-only and never
-  reaches the deployed bundle.
+- Physical or DoS / volumetric attacks
+- CanLII's own API, website, or data — report upstream issues directly to CanLII
+- Issues in development dependencies that do not reach the deployed bundle (this Worker ships with **zero runtime dependencies**; `package.json` contains `devDependencies` only)
 
-## Data handled
+---
 
-This connector is deliberately narrow. What leaves the infrastructure is **citations,
-court identifiers and dates** — no client names, no case facts, no documents.
+## Data Handled, Privacy & Privilege Considerations
 
-One tool (`jurisprudence_parse_citation`) makes **no outbound request at all**, and
-**writes nothing**. It parses neutral citations against local normalization rules only.
+This connector is deliberately narrow. What leaves the infrastructure is **citations, court/database identifiers, dates, and search queries** — no client documents and no full-text judgments.
 
-Quebec court file number parsing and courthouse / registry lookup tools (`greffe_*`,
-`palais_*`) were moved on 2026-11-14 to the separate public stateless connector
-`pratique-civile-outils`.
+- **Offline citation parser (`jurisprudence_parse_citation`):** Makes **no outbound network request** (`openWorldHint: false`) and **writes nothing**. It parses neutral citations against local normalization rules only.
+- **Party-name sensitivity (`jurisprudence_find_case`):** `jurisprudence_find_case` accepts **party names** (`openWorldHint: true`). If a searched name belongs to a party in an active, unpublished client matter, the query discloses a research interest to CanLII (a Canadian non-profit where name search is normal use, though not zero-disclosure) and writes the query string to the D1 `search_log` table. Treat `search_log` accordingly and avoid searching unredacted confidential client names where a neutral citation or keyword law search suffices.
+- **D1 retention (`cases`, `search_log`, `api_usage`):** Stores cached public CanLII metadata and telemetry (`search_log`, `api_usage` — which fail soft without failing tool calls). Write to `jason@poirierlavoie.ca` regarding any privacy/privilege concern or deletion request.
 
-One reservation, stated plainly because it is better known than discovered:
-`jurisprudence_find_case` accepts **party names**. If a name searched is that of a party to a
-live matter rather than a published decision, the query discloses a research interest
-to CanLII. The risk is low — CanLII is a Canadian non-profit and name-based case-law
-research is the site's normal use — but it is not nil.
+---
 
-The D1 database stores public case-law metadata plus a `search_log` table used to tune
-the citation parser. That log records the citation strings submitted, which for
-`jurisprudence_find_case` may include party names.
+## Authentication & Security Model
 
-## Authentication model
+- **Closed by default (`PORTE.nomsSecrets` in `src/index.ts`):** Controlled via `@poirierlavoie/socle-juridique` (`#v0.6.0`). Expects `MCP_SHARED_SECRET` (the legacy `MCP_SHARED_SECRET_ATHENA` secret was retired on 2026-09-17 after that client was removed). If `MCP_SHARED_SECRET` is unset, or if `MCP_ENABLED=false`, all `/mcp*` routes fail closed.
+- **Three equivalent bearer forms (no precedence):**
+  1. `Authorization: Bearer <secret>` on `POST /mcp` (preferred for CLI/desktop/backend clients — never puts the secret in URLs or edge request logs)
+  2. Query parameter `?key=<secret>` (supported for browser connector UIs such as claude.ai; note that URL-borne tokens can appear in Cloudflare edge URL logs, so never log `request.url` in Worker code)
+  3. Path segment `POST /mcp/<secret>` (trailing slash `/mcp/<secret>/` tolerated; malformed percent-encoding fails closed with `401` and **zero** log output because the segment is the presented secret)
+- **Constant-time comparison:** All presented candidates are hashed and compared against configured secrets via `crypto.subtle.timingSafeEqual` over SHA-256 digests (`apparie`), with no short-circuiting.
+- **Why refusals return `401` with `WWW-Authenticate: Bearer`:** Unlike `MCP-Legislation` (which returns `404`), keeping `401` distinguishes a rejected secret from the `MCP_ENABLED=false` kill switch (`404` on `/mcp*`, `/mcp/server-card`, and `/health`).
+- **DNS-rebinding & CORS defense:** Browser requests on `/mcp*` with an unrecognized `Origin` (outside `https://claude.ai`, `https://claude.com`, `https://gemini.google.com`, `https://aistudio.google.com`, and `ALLOWED_ORIGINS`) are rejected with `403` before rate limiting or authentication. Server-to-server requests without `Origin` pass to auth.
+- **Public documentation page (`GET /`) & Server Card (`GET /mcp/server-card`):**
+  - `GET /` is static/pure, serves `text/html; charset=utf-8`, carries **no CORS headers** (cannot be read cross-origin), enforces `Content-Security-Policy: default-src 'none' ... frame-ancestors 'none'`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, survives `MCP_ENABLED=false`, and is tested against secret or `api.canlii.org` / `api_key` leakage.
+  - `GET /mcp/server-card` publishes secret-free SEP-2127 discovery metadata when `MCP_ENABLED=true` (`404` when disabled).
+- **Rate limiting:** 60 requests per minute per `CF-Connecting-IP` via the Worker `ratelimits` binding (`debitAcceptable`), applied after CORS preflight and before auth. Fails open if the rate-limit binding is unavailable.
+- **Log hygiene:** `src/index.ts` strictly prohibits logging `request.url`, and every outbound CanLII URL passes through `redactUrl()` so `CANLII_API_KEY` never reaches logs or error messages (`test/garde.test.ts` / `test/tools.test.ts` verify zero API key leakage).
 
-The MCP endpoint is protected by a **256-bit shared secret**, accepted either as the
-last path segment (`POST /mcp/<secret>`) or as an `Authorization: Bearer` header,
-**with no precedence between the two**. Every bearer present on a request is tried;
-none masks another. Comparison is constant-time over SHA-256 digests, which also
-neutralises any length difference.
+---
 
-**Accepted spellings of the path bearer, and why the tolerance only ever widens**
-(fixed 2026-09-16). A trailing slash is tolerated — `/mcp/<secret>/` behaves exactly
-like `/mcp/<secret>` — because clients normalise the URL a user types. A malformed
-percent-escape (`/mcp/x%FF`) is **refused with `401`** rather than escaping as a `500`:
-`decodeURIComponent` throws, and the exception is swallowed **without any log line**,
-because the offending segment *is* the presented secret. The path is never trimmed or
-rewritten in place; extra candidates are *added*. The production secret is deliberately
-unknown to the code and to whoever edits it, and it may itself end in `/` (standard
-base64 produces those) or contain a `%`; an "obvious" trim would silently break a
-working deployment. The worst case of a redundant candidate is one SHA-256 digest
-computed for nothing. Widening is not opening: only *trailing* slashes are stripped, so
-no prefix of the secret is ever accepted — any value admitted this way already implies
-knowledge of the secret.
+## Reproducing the Test Suite
 
-**Why refusals stay `401` with `WWW-Authenticate: Bearer`.** An unauthenticated request
-is what pushes claude.ai into OAuth discovery — `.well-known/*`, then `POST /register`,
-then a dynamic-registration failure the connector does not recover from. The tempting
-conclusion is to change the status code; it is wrong. The twin connector (Législation
-du Québec) refuses with `404` and produced the *same* client error, so the status is not
-the trigger. And `404` here would make the kill switch (`MCP_ENABLED=false`, already
-`404` across `/mcp`) indistinguishable from a rejected secret. What had to be fixed was
-the *unwarranted refusal*, not its shape.
+The full suite runs offline against frozen fixtures — **no API key, no network, no Cloudflare account required**:
 
-What this protects is **the CanLII API key and its quota**, not confidential content —
-the metadata served is public. That proportionality is deliberate and documented in
-§9.4 of the specification, along with the migration path to OAuth 2.1 should the
-connector ever be shared.
-
-**Browser origins.** `claude.ai` is a browser application, so the endpoint answers CORS
-preflights and reflects `Access-Control-Allow-Origin`. Only an allow-listed origin is
-served — `https://claude.ai`, `https://claude.com`, plus anything added via the
-`ALLOWED_ORIGINS` variable. A browser `Origin` that is present but unrecognised is
-refused with `403` **before authentication is even attempted**, which is the
-DNS-rebinding defence the MCP specification requires. Requests with no `Origin` header
-at all (server-to-server) are unaffected.
-
-The preflight is answered *before* the secret is checked. That is deliberate and
-necessary: browsers send `OPTIONS` without credentials, so requiring the secret there
-would break every browser client while protecting nothing — a preflight discloses only
-what the server accepts.
-
-Known and accepted properties of this model:
-- The secret travels in the URL path, so it must never be logged. `src/index.ts`
-  carries an explicit prohibition on logging `request.url`, and every outbound URL is
-  passed through `redactUrl()`.
-- `GET /health` is unauthenticated and returns `200`. It confirms the service exists
-  and nothing else. Setting `MCP_ENABLED=false` returns `404` on every route,
-  `/health` included.
-- Rotating the secret is a single `wrangler secret put MCP_SHARED_SECRET` followed by
-  updating the connector URL; no redeployment of code is required.
-- **Two secrets are accepted, with identical rights, so that either can be revoked on
-  its own.** `MCP_SHARED_SECRET` is the claude.ai connector's; `MCP_SHARED_SECRET_ATHENA`
-  — optional — *belonged* to the Pallas Athéna chat, which called the same endpoint with
-  `Authorization: Bearer` (spec §19). **That chat was removed from its own repository on
-  2026-09-02, so the second secret now has no bearer.** It is kept because it costs
-  nothing and grants nothing extra, and the rule will hold for the next client — but no
-  live client would any longer signal that the header-borne form has been broken. The
-  second grants nothing extra: what D7 protects
-  is the CanLII API key and its quota, not a data perimeter. They are separate only so
-  that rotating or revoking one bearer does not take the other down with it. If neither
-  is configured, everything is refused — the check fails CLOSED — and both failures
-  return the same `401`; no response and no log line ever says which one matched.
-- A single request may carry several bearers — a stale `Authorization` header alongside
-  a correct URL, say. All of them are tried, as one `Promise.all` over the full
-  candidates × configured-secrets product: at most 20 SHA-256 digests, typically 2.
-  Nothing short-circuits, so neither the response time nor any log line reveals which
-  bearer or which secret matched.
-- `GET /` serves a public documentation page. It is static, accepts no input, calls
-  nothing and writes nothing. It never reads `MCP_SHARED_SECRET` — it documents the
-  endpoint's *shape*, `/mcp/<secret>`, and a test rejects any 32+ hex-character
-  string, any `Bearer`, and any mention of `api.canlii.org` or `api_key` in the body.
-  It carries **no CORS headers**, so no other origin can read it; and it is served
-  **outside** the `/mcp` guard block, so the DNS-rebinding origin check never applies
-  to it. That check must never be hoisted to global scope: doing so would refuse the
-  page to any visitor arriving from an external link.
-- The page is served **even when `MCP_ENABLED=false`**, unlike `/health`. That is a
-  deliberate exception: the kill switch protects the MCP surface — the API key and its
-  quota — whereas a documentation page exists to be read, carries no secret and no
-  live data, and is most wanted precisely when the connector is down.
-- Serving `text/html` makes this a document origin, so `/` alone carries
-  `Content-Security-Policy: default-src 'none'` (with `frame-ancestors 'none'`),
-  `X-Content-Type-Options: nosniff` and `Referrer-Policy`. Nothing is loaded from a
-  third party: no CDN, no font, no image, no analytics.
-
-**Rate limiting.** The endpoint is limited to **60 requests per minute per IP**, enforced
-inside the Worker via the `ratelimits` binding rather than by a zone WAF rule. Two
-properties are worth stating rather than leaving to be discovered:
-
-- The counter is **local to each Cloudflare location** and eventually consistent. A client
-  spread across points of presence gets 60/min *per location*. This protects against
-  runaway loops and request cost — it is not a defence against a distributed attacker.
-- It **fails open**: if the binding is missing or the call throws, the request proceeds.
-  That is deliberate, and the asymmetry is the point — authentication fails *closed* (with
-  no `MCP_SHARED_SECRET`, everything is refused), whereas rate limiting protects only
-  cost. Failing closed on an unavailable counter would take the connector down to protect
-  a bill.
-
-The limit is applied after the CORS preflight (a 429 on a preflight surfaces to a browser
-only as an opaque CORS failure) and *before* authentication, so a burst of badly
-authenticated requests stops costing anything.
-
-## Reproducing the test suite
-
-The full suite runs offline against frozen fixtures — **no API key, no network, no
-Cloudflare account required**:
-
-```bash
-npm ci && npx wrangler types && npx vitest run
+```powershell
+npm.cmd ci
+npx.cmd wrangler types
+npx.cmd tsc --noEmit
+npm.cmd run lint
+npm.cmd test
 ```
-
-A test asserting that the API key never appears in any log output, and a guard suite
-asserting that the connector's professional caveats never disappear from tool output,
-are both part of that run.

@@ -435,3 +435,8 @@ le quota.
 Spécification complète : [`SPEC.md`](SPEC.md).
 Connecteur jumeau pour le droit législatif québécois : « Législation du Québec »
 (`legislation.poirierlavoie.ca`).
+
+## Sécurité, confidentialité et licence
+
+- **Sécurité, vie privée et secret professionnel :** Consulter [`SECURITY.md`](SECURITY.md) pour signaler de façon privée et coordonnée toute vulnérabilité technique ou question de confidentialité / secret professionnel à Jason Poirier Lavoie (`jason@poirierlavoie.ca`), sans ouvrir d'issue publique ni transmettre de renseignements confidentiels de clients.
+- **Licence :** Le logiciel, les schémas et la documentation originale sont mis à disposition sous licence **Creative Commons Attribution - Pas d'Utilisation Commerciale - Partage dans les Mêmes Conditions 4.0 International (`CC-BY-NC-SA-4.0`)** (Partie A de [`LICENSE`](LICENSE)). Les métadonnées jurisprudentielles et législatives interrogées via l'API REST de CanLII demeurent régies par les conditions d'utilisation de CanLII (Partie B de [`LICENSE`](LICENSE)).

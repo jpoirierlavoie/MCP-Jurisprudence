@@ -553,7 +553,7 @@ ${biP(
       "https://jurisprudence.poirierlavoie.ca/mcp/server-card ; le dépôt inclut les manifestes " +
       "pour Google Antigravity (plugin.json, mcp_config.json) et Gemini CLI " +
       "(gemini-extension.json).",
-    "Le code est public et la suite de tests s'exécute sans clef d'API ni réseau.",
+    "Le code est public (licence CC BY-NC-SA 4.0) et la suite de tests s'exécute sans clef d'API ni réseau.",
   ],
   EN.acces,
 )}

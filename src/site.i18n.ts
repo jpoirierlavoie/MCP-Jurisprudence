@@ -135,7 +135,7 @@ export const EN = {
       "https://jurisprudence.poirierlavoie.ca/mcp/server-card; the repository ships manifests " +
       "for Google Antigravity (plugin.json, mcp_config.json) and Gemini CLI " +
       "(gemini-extension.json).",
-    "The code is public, and the test suite runs with no API key and no network.",
+    "The code is public (CC BY-NC-SA 4.0 licence), and the test suite runs with no API key and no network.",
   ],
 
   pied: [
