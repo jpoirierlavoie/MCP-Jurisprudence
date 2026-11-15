@@ -144,9 +144,36 @@ describe("§7.3 — jurisprudence_get_case", () => {
     expect(texte(r)).toContain("EXACTEMENT l'une des deux formes");
   });
 
-  it("refuse l'absence des deux formes", async () => {
+  it("refuse le mélange partiel citation + database_id ou case_id", async () => {
+    const r1 = await callTool(
+      "jurisprudence_get_case",
+      { citation: "2020 QCCA 495", database_id: "qcca" },
+      toolCtx(fakeClient({})),
+    );
+    expect(r1.isError).toBe(true);
+    expect(texte(r1)).toContain("EXACTEMENT l'une des deux formes");
+
+    const r2 = await callTool(
+      "jurisprudence_get_case",
+      { citation: "2020 QCCA 495", case_id: "2020qcca495" },
+      toolCtx(fakeClient({})),
+    );
+    expect(r2.isError).toBe(true);
+    expect(texte(r2)).toContain("EXACTEMENT l'une des deux formes");
+  });
+
+  it("refuse l'absence des deux formes ou un identifiant incomplet", async () => {
     const r = await callTool("jurisprudence_get_case", {}, toolCtx(fakeClient({})));
     expect(r.isError).toBe(true);
+    expect(texte(r)).toContain("EXACTEMENT l'une des deux formes");
+
+    const rOnlyDb = await callTool(
+      "jurisprudence_get_case",
+      { database_id: "csc-scc" },
+      toolCtx(fakeClient({})),
+    );
+    expect(rOnlyDb.isError).toBe(true);
+    expect(texte(rOnlyDb)).toContain("EXACTEMENT l'une des deux formes");
   });
 
   it("sert la fiche par identifiants et renvoie vers l'hyperlien pour le texte", async () => {
@@ -288,6 +315,53 @@ describe("§7.4 — jurisprudence_citator", () => {
     expect(r.isError).toBe(true);
     expect(texte(r)).toContain("n'est pas un argument reconnu");
   });
+
+  it("refuse les deux formes à la fois", async () => {
+    const r = await callTool(
+      "jurisprudence_citator",
+      {
+        citation: "2020 QCCA 495",
+        database_id: "qcca",
+        case_id: "2020qcca495",
+        rel: "citing",
+      },
+      toolCtx(fakeClient({})),
+    );
+    expect(r.isError).toBe(true);
+    expect(texte(r)).toContain("EXACTEMENT l'une des deux formes");
+  });
+
+  it("refuse le mélange partiel citation + database_id ou case_id", async () => {
+    const r1 = await callTool(
+      "jurisprudence_citator",
+      { citation: "2020 QCCA 495", database_id: "qcca", rel: "citing" },
+      toolCtx(fakeClient({})),
+    );
+    expect(r1.isError).toBe(true);
+    expect(texte(r1)).toContain("EXACTEMENT l'une des deux formes");
+
+    const r2 = await callTool(
+      "jurisprudence_citator",
+      { citation: "2020 QCCA 495", case_id: "2020qcca495", rel: "citing" },
+      toolCtx(fakeClient({})),
+    );
+    expect(r2.isError).toBe(true);
+    expect(texte(r2)).toContain("EXACTEMENT l'une des deux formes");
+  });
+
+  it("refuse l'absence des deux formes ou un identifiant incomplet", async () => {
+    const r = await callTool("jurisprudence_citator", { rel: "citing" }, toolCtx(fakeClient({})));
+    expect(r.isError).toBe(true);
+    expect(texte(r)).toContain("EXACTEMENT l'une des deux formes");
+
+    const rOnlyDb = await callTool(
+      "jurisprudence_citator",
+      { database_id: "qcca", rel: "citing" },
+      toolCtx(fakeClient({})),
+    );
+    expect(rOnlyDb.isError).toBe(true);
+    expect(texte(rOnlyDb)).toContain("EXACTEMENT l'une des deux formes");
+  });
 });
 
 describe("§7.5 — jurisprudence_subsequent_history", () => {
@@ -403,6 +477,52 @@ describe("§7.5 — jurisprudence_subsequent_history", () => {
     const out = texte(r);
     expect(out).toContain("Aucun indice");
     expect(out).toContain("ne signifie PAS que la décision n'a pas été portée en appel");
+  });
+
+  it("refuse les deux formes à la fois", async () => {
+    const r = await callTool(
+      "jurisprudence_subsequent_history",
+      {
+        citation: "2020 QCCA 495",
+        database_id: "qcca",
+        case_id: "2020qcca495",
+      },
+      toolCtx(fakeClient({})),
+    );
+    expect(r.isError).toBe(true);
+    expect(texte(r)).toContain("EXACTEMENT l'une des deux formes");
+  });
+
+  it("refuse le mélange partiel citation + database_id ou case_id", async () => {
+    const r1 = await callTool(
+      "jurisprudence_subsequent_history",
+      { citation: "2020 QCCA 495", database_id: "qcca" },
+      toolCtx(fakeClient({})),
+    );
+    expect(r1.isError).toBe(true);
+    expect(texte(r1)).toContain("EXACTEMENT l'une des deux formes");
+
+    const r2 = await callTool(
+      "jurisprudence_subsequent_history",
+      { citation: "2020 QCCA 495", case_id: "2020qcca495" },
+      toolCtx(fakeClient({})),
+    );
+    expect(r2.isError).toBe(true);
+    expect(texte(r2)).toContain("EXACTEMENT l'une des deux formes");
+  });
+
+  it("refuse l'absence des deux formes ou un identifiant incomplet", async () => {
+    const r = await callTool("jurisprudence_subsequent_history", {}, toolCtx(fakeClient({})));
+    expect(r.isError).toBe(true);
+    expect(texte(r)).toContain("EXACTEMENT l'une des deux formes");
+
+    const rOnlyDb = await callTool(
+      "jurisprudence_subsequent_history",
+      { database_id: "qcca" },
+      toolCtx(fakeClient({})),
+    );
+    expect(rOnlyDb.isError).toBe(true);
+    expect(texte(rOnlyDb)).toContain("EXACTEMENT l'une des deux formes");
   });
 });
 

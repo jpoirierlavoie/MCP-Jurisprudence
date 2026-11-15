@@ -28,8 +28,10 @@ export async function resoudreCible(
   const databaseId = (args.database_id as string | undefined)?.trim();
   const caseId = (args.case_id as string | undefined)?.trim();
 
-  const parIds = Boolean(databaseId && caseId);
-  if (parIds === Boolean(citation)) {
+  const anyId = Boolean(databaseId || caseId);
+  const bothIds = Boolean(databaseId && caseId);
+  const parCitation = Boolean(citation);
+  if ((parCitation && anyId) || (!parCitation && !bothIds)) {
     return {
       ok: false,
       message:
@@ -37,6 +39,8 @@ export async function resoudreCible(
         "« database_id » + « case_id ».",
     };
   }
+
+  const parIds = bothIds;
 
   if (parIds) {
     // L'intitulé n'est pas indispensable ici : s'il est en cache, on l'affiche ; sinon

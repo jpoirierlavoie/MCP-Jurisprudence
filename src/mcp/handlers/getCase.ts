@@ -34,14 +34,17 @@ export async function getCase(
   const refresh = args.refresh === true;
   const now = ctx.now ?? new Date();
 
-  const parIds = Boolean(databaseId && caseId);
+  const anyId = Boolean(databaseId || caseId);
+  const bothIds = Boolean(databaseId && caseId);
   const parCitation = Boolean(citation);
-  if (parIds === parCitation) {
+  if ((parCitation && anyId) || (!parCitation && !bothIds)) {
     return err(
       "Fournir EXACTEMENT l'une des deux formes : soit « citation », soit le couple " +
         "« database_id » + « case_id ».",
     );
   }
+
+  const parIds = bothIds;
 
   // ── Forme directe : database_id + case_id ────────────────────────────────
   if (parIds) {
