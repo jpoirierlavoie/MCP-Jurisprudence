@@ -57,7 +57,7 @@ n'est vu dériver par aucune commande d'ici : l'échec n'apparaît qu'au prochai
 la forme d'un « Outil inconnu » que l'usager lit comme une panne du connecteur. Cette surface
 inter-dépôts recouvre principalement : le plugin `pratique-civile-quebecoise` et la Compétence
 claude.ai de recherche juridique (qui nomment les 10 outils `jurisprudence_*` à la main et
-déclarent le connecteur dans leurs manifestes), `MCP-Socle-Juridique` (`#v0.6.0`), le jumeau
+déclarent le connecteur dans leurs manifestes), `MCP-Socle-Juridique` (`#v0.6.2`), le jumeau
 `MCP-Legislation` (identité visuelle CSS/HTML et complémentarité droit législatif ↔ jurisprudence)
 et `pratique-civile-outils` (frontière CanLII vs outils québécois hors ligne).
 **Le repérage hors dépôt se fait par vérification des manifestes et compétences du plugin cadre.**
@@ -124,7 +124,7 @@ commande ne sait réclamer**.
          └──────────┬──────────┘ └──────────┬──────────┘ └──────────────────────────┘
                     │                       │
                     └───────────┬───────────┘
-                                ▼ (dépendance de dev `#v0.6.0`, zéro runtime dep)
+                                ▼ (dépendance de dev `#v0.6.2`, zéro runtime dep)
                  ┌─────────────────────────────┐
                  │    MCP-Socle-Juridique      │
                  │  Transport JSON-RPC 2.0     │
@@ -153,7 +153,7 @@ Toute évolution des outils, schémas, noms ou transport de `MCP-Jurisprudence` 
    - `python verifier_tout.py --mode mock` / `python verifier_tout.py --mode live`
 
 ### Dépendances croisées et limites de responsabilité
-- **Dépendance envers `MCP-Socle-Juridique`** : Consomme `@poirierlavoie/socle-juridique#v0.6.0` en `devDependencies` pour le transport MCP Streamable HTTP révision `2026-07-28`, l'enveloppe JSON-RPC 2.0, l'authentification SHA-256 à temps constant (`timingSafeEqual`) et la fiche SEP-2127 (`/mcp/server-card`). Zéro dépendance d'exécution (`dependencies: {}`).
+- **Dépendance envers `MCP-Socle-Juridique`** : Consomme `@poirierlavoie/socle-juridique#v0.6.2` en `devDependencies` pour le transport MCP Streamable HTTP révision `2026-07-28`, l'enveloppe JSON-RPC 2.0, l'authentification SHA-256 à temps constant (`timingSafeEqual`) et la fiche SEP-2127 (`/mcp/server-card`). Zéro dépendance d'exécution (`dependencies: {}`).
 - **Jumeau de `MCP-Legislation`** : Partage la même identité visuelle et typographique sur sa page publique `GET /` (police Georgia, variables CSS `--f`, `--m`, `--b`, `--a`, `--bg`, `--card`). Législation traite le droit codifié verbatim ; Jurisprudence traite les décisions et métadonnées CanLII.
 - **Transfert historique du 2026-11-14 vers `pratique-civile-outils`** : Les 3 outils québécois hors ligne (`greffe_parse_court_file_number`, `palais_list`, `palais_get`), les tables statiques du MJQ (`src/qc/`), `lieux.ts`, `sources-officielles/` et le parseur de dossier ont été transférés à `pratique-civile-outils` (v0.2.0). Ce dépôt se consacre désormais exclusivement aux métadonnées CanLII et à l'analyseur de citations.
 

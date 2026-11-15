@@ -33,7 +33,7 @@ Règles d'espace de travail pour **Google Antigravity** et **Gemini CLI** lors d
          └──────────┬──────────┘ └──────────┬──────────┘ └──────────────────────────┘
                     │                       │
                     └───────────┬───────────┘
-                                ▼ (dépendance de dev `#v0.6.0`, zéro runtime dep)
+                                ▼ (dépendance de dev `#v0.6.2`, zéro runtime dep)
                  ┌─────────────────────────────┐
                  │    MCP-Socle-Juridique      │
                  │  Transport JSON-RPC 2.0     │
@@ -52,7 +52,7 @@ Règles d'espace de travail pour **Google Antigravity** et **Gemini CLI** lors d
 - **Configuration** : Connecté dans `.mcp.json` et `gemini-extension.json` via l'URL `https://jurisprudence.poirierlavoie.ca/mcp` avec `Authorization: Bearer ${MCP_JURISPRUDENCE_SECRET}`.
 
 ### Dépendances croisées inter-dépôts
-- **`MCP-Socle-Juridique`** : Intègre `@poirierlavoie/socle-juridique#v0.6.0` en `devDependencies` pour le transport MCP Streamable HTTP révision `2026-07-28`, l'enveloppe JSON-RPC 2.0, l'authentification SHA-256 à temps constant (`timingSafeEqual`) et la fiche SEP-2127 (`/mcp/server-card`). Zéro dépendance d'exécution (`dependencies: {}`).
+- **`MCP-Socle-Juridique`** : Intègre `@poirierlavoie/socle-juridique#v0.6.2` en `devDependencies` pour le transport MCP Streamable HTTP révision `2026-07-28`, l'enveloppe JSON-RPC 2.0, l'authentification SHA-256 à temps constant (`timingSafeEqual`) et la fiche SEP-2127 (`/mcp/server-card`). Zéro dépendance d'exécution (`dependencies: {}`).
 - **`MCP-Legislation`** : Connecteur jumeau partageant la même identité typographique (Georgia) et les mêmes variables CSS sur sa page d'accueil `GET /`.
 - **Transfert historique du 2026-11-14 vers `pratique-civile-outils`** : Les 3 outils québécois hors ligne (`greffe_parse_court_file_number`, `palais_list`, `palais_get`), les tables statiques du MJQ (`src/qc/`), `lieux.ts`, `sources-officielles/` et le parseur de dossier ont été transférés à `pratique-civile-outils`. Ce dépôt se consacre désormais exclusivement à CanLII et à l'analyseur de citations.
 
@@ -80,7 +80,7 @@ Aucune modification n'est terminée tant que ses répercussions n'ont pas été 
 | 3 | **Schémas d'entrée** | `validateArgs` (`@poirierlavoie/socle-juridique`), `src/mcp/defauts.ts` | `additionalProperties: false`, descriptions sur chaque paramètre, contraintes croisées répétées |
 | 4 | **`README.md`, gouvernance et manifestes** | `README.md`, [`SPEC.md`](SPEC.md), `SECURITY.md`, `LICENSE` (`CC-BY-NC-SA-4.0`), `package.json`, `plugin.json`, `mcp_config.json`, `gemini-extension.json`, `/mcp/server-card`, `CLAUDE.md`, `GEMINI.md`, `test/doc.test.ts` | ce que le dépôt annonce, ses recettes de connexion, sa licence et sa politique sécurité/confidentialité |
 | 5 | **Page publique HTML (`GET /`)** | `src/site.ts`, `src/site.i18n.ts`, §18 de `SPEC.md`, `test/site.test.ts` | le contenu **dérive** du registre et des tables vives ; liste blanche d'URLs stricte, zéro fuite de secret/CanLII API, section `#acces` et pied de page |
-| 6 | **Inter-dépôts (`Cross-repository`)** | **`pratique-civile-quebecoise`** (`.mcp.json`, `mcp_config.json`, `gemini-extension.json`, `.claude-plugin/*`, `plugin.json`, `skills/` dont `skills/recherche-juridique`, `regenerer_cache_mcp.py --apply`, `synchroniser_plugin_gemini.py --apply`, `verifier.py`, `verifier_tout.py`), **`MCP-Socle-Juridique`** (`#v0.6.0`), **`MCP-Legislation`** (jumeau HTML/CSS), **`pratique-civile-outils`** | répercussions sur les compétences qui nomment `jurisprudence_*` à la main, cohérence transport/auth et identité visuelle HTML/CSS partagée |
+| 6 | **Inter-dépôts (`Cross-repository`)** | **`pratique-civile-quebecoise`** (`.mcp.json`, `mcp_config.json`, `gemini-extension.json`, `.claude-plugin/*`, `plugin.json`, `skills/` dont `skills/recherche-juridique`, `regenerer_cache_mcp.py --apply`, `synchroniser_plugin_gemini.py --apply`, `verifier.py`, `verifier_tout.py`), **`MCP-Socle-Juridique`** (`#v0.6.2`), **`MCP-Legislation`** (jumeau HTML/CSS), **`pratique-civile-outils`** | répercussions sur les compétences qui nomment `jurisprudence_*` à la main, cohérence transport/auth et identité visuelle HTML/CSS partagée |
 
 ---
 

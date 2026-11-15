@@ -1,0 +1,29 @@
+name: "Proposition d'amélioration / Feature Request"
+description: "Proposer une amélioration fonctionnelle ou documentaire / Suggest an enhancement"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > ⚠️ **Confidentialité et secret professionnel / Privacy & Privilege Warning**
+        > **Ne jamais inclure** de faits ou pièces protégés par le secret professionnel ni de jetons actifs. Voir [`SECURITY.md`](../../blob/main/SECURITY.md) pour tout signalement confidentiel.
+  - type: textarea
+    id: need
+    attributes:
+      label: "Besoin et contexte / Need & Context"
+      description: "Quel besoin de pratique ou d'intégration justifie cet ajout ? (Utilisez uniquement des exemples synthétiques.)"
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: "Solution proposée / Proposed Solution"
+    validations:
+      required: true
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "Attestation de confidentialité / Confidentiality Confirmation"
+      options:
+        - label: "Je confirme que cette proposition ne contient aucune information confidentielle ou protégée par le secret professionnel, ni aucun jeton ou secret actif. / I confirm this request contains zero confidential or privileged client facts and zero live tokens or secrets."
+          required: true

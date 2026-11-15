@@ -54,7 +54,7 @@ This connector is deliberately narrow. What leaves the infrastructure is **citat
 
 ## Authentication & Security Model
 
-- **Closed by default (`PORTE.nomsSecrets` in `src/index.ts`):** Controlled via `@poirierlavoie/socle-juridique` (`#v0.6.0`). Expects `MCP_SHARED_SECRET` (the legacy `MCP_SHARED_SECRET_ATHENA` secret was retired on 2026-09-17 after that client was removed). If `MCP_SHARED_SECRET` is unset, or if `MCP_ENABLED=false`, all `/mcp*` routes fail closed.
+- **Closed by default (`PORTE.nomsSecrets` in `src/index.ts`):** Controlled via `@poirierlavoie/socle-juridique` (`#v0.6.2`). Expects `MCP_SHARED_SECRET` (the legacy `MCP_SHARED_SECRET_ATHENA` secret was retired on 2026-09-17 after that client was removed). If `MCP_SHARED_SECRET` is unset, or if `MCP_ENABLED=false`, all `/mcp*` routes fail closed.
 - **Three equivalent bearer forms (no precedence):**
   1. `Authorization: Bearer <secret>` on `POST /mcp` (preferred for CLI/desktop/backend clients — never puts the secret in URLs or edge request logs)
   2. Query parameter `?key=<secret>` (supported for browser connector UIs such as claude.ai; note that URL-borne tokens can appear in Cloudflare edge URL logs, so never log `request.url` in Worker code)
