@@ -12,11 +12,23 @@ updates:
       time: "06:00"
       timezone: "America/Montreal"
     open-pull-requests-limit: 5
+    assignees:
+      - "jpoirierlavoie"
     commit-message:
       prefix: "deps"
       include: "scope"
     labels:
       - "dependencies"
+    cooldown:
+      default-days: 7
+    ignore:
+      - dependency-name: "@poirierlavoie/socle-juridique"
+      - dependency-name: "vitest"
+        versions: [">= 5.0.0"]
+      - dependency-name: "@biomejs/biome"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
     groups:
       dev-minor-and-patch:
         update-types:
@@ -31,13 +43,20 @@ updates:
       time: "06:00"
       timezone: "America/Montreal"
     open-pull-requests-limit: 5
+    assignees:
+      - "jpoirierlavoie"
     commit-message:
       prefix: "ci"
       include: "scope"
     labels:
       - "dependencies"
       - "github-actions"
+    cooldown:
+      default-days: 7
     groups:
       github-actions:
         patterns:
           - "*"
+        update-types:
+          - "minor"
+          - "patch"
