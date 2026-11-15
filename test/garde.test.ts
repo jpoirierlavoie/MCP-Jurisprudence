@@ -863,6 +863,14 @@ describe("§5.3 — la clef d'API ne quitte jamais le processus", () => {
     expect(lien({ url: "https://notcanlii.ca/t/1vxsn" })).toBeNull();
     expect(lien({ url: "http://canlii.ca/t/1vxsn" })).toBeNull();
     expect(lien({ url: "javascript:alert(1)" })).toBeNull();
+    expect(lien({ url: "https://canlii.ca/t/1vxsn\n<https://evil.example/>" })).toBeNull();
+    expect(lien({ url: "https://canlii.ca/t/1vxsn\r<https://evil.example/>" })).toBeNull();
+    expect(lien({ url: "https://canlii.ca/t/1vxsn\thttps://evil.example/" })).toBeNull();
+    expect(lien({ url: "https://canlii.ca/t/1vxsn https://evil.example/" })).toBeNull();
+    expect(lien({ url: "https://canlii.ca/t/1vxsn\u0000" })).toBeNull();
+    expect(lien({ url: "https://canlii.ca/t/1vxsn\u007f" })).toBeNull();
+    expect(lien({ url: "https://user:pass@canlii.ca/t/1vxsn" })).toBeNull();
+    expect(lien({ url: "https://canlii.ca:8443/t/1vxsn" })).toBeNull();
     expect(lien({ url: "" })).toBeNull();
     expect(lien({ url: null })).toBeNull();
   });
