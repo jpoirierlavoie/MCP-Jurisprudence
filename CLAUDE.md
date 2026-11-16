@@ -2,7 +2,7 @@
 
 Connecteur MCP exposant la REST API de CanLII en lecture seule :
 `https://jurisprudence.poirierlavoie.ca/mcp/<secret>` *(les trois outils hors ligne `greffe_*`
-et `palais_*` ont été déplacés le 2026-11-14 vers `pratique-civile-outils`)*.
+et `palais_*` ont été déplacés le 2026-11-14 vers `MCP-Outils`)*.
 Propriétaire : Jason Poirier Lavoie (avocat, Québec). **C'est un outil juridique : un
 résultat faux rendu en silence est le pire défaut possible — refuser vaut toujours mieux
 que deviner.**
@@ -27,7 +27,7 @@ modification.
 ║   4. README.md, SPEC.md, SECURITY.md, LICENSE (CC-BY-NC-SA-4.0) & manifestes║
 ║   5. la PAGE PUBLIQUE HTML (GET / — src/site.ts + src/site.i18n.ts) et §18  ║
 ║   6. les IMPACTS INTER-DÉPÔTS (Cross-repository : pratique-civile-quebecoise║
-║      MCP-Socle-Juridique, MCP-Legislation, pratique-civile-outils)          ║
+║      MCP-Socle, MCP-Legislation, MCP-Outils)                                ║
 ╚═════════════════════════════════════════════════════════════════════════════╝
 ```
 
@@ -57,9 +57,9 @@ n'est vu dériver par aucune commande d'ici : l'échec n'apparaît qu'au prochai
 la forme d'un « Outil inconnu » que l'usager lit comme une panne du connecteur. Cette surface
 inter-dépôts recouvre principalement : le plugin `pratique-civile-quebecoise` et la Compétence
 claude.ai de recherche juridique (qui nomment les 10 outils `jurisprudence_*` à la main et
-déclarent le connecteur dans leurs manifestes), `MCP-Socle-Juridique` (`#v0.6.2`), le jumeau
+déclarent le connecteur dans leurs manifestes), `MCP-Socle` (`#v0.7.0`), le jumeau
 `MCP-Legislation` (identité visuelle CSS/HTML et complémentarité droit législatif ↔ jurisprudence)
-et `pratique-civile-outils` (frontière CanLII vs outils québécois hors ligne).
+et `MCP-Outils` (frontière CanLII vs outils québécois hors ligne).
 **Le repérage hors dépôt se fait par vérification des manifestes et compétences du plugin cadre.**
 
 ### Table de propagation
@@ -68,10 +68,10 @@ et `pratique-civile-outils` (frontière CanLII vs outils québécois hors ligne)
 |---|---|
 | **un outil** (ajout, retrait, renommage) | `src/mcp/registry.ts` · le gestionnaire dans `src/mcp/handlers/` · `OUTILS_EN` dans `src/site.i18n.ts` (parité testée **dans les deux sens**) · le tableau ET le compte de `README.md` §« Les dix outils » · §7 de `SPEC.md` · les compteurs de `test/garde.test.ts`, `test/rpc.test.ts` et `test/doc.test.ts` (ce dernier affirme `NOMS.length === 10` AVANT toute confrontation — et porte en plus `EN_LETTRES`, éprouvant le compte écrit en toutes lettres du `README.md`) · la **liste triée des noms** dans `test/rpc.test.ts` · le préfixe `jurisprudence_` · la DESCRIPTION doit nommer sa source (`CanLII`), en français ET en anglais · **inter-dépôts** : la Compétence claude.ai de recherche juridique et le plugin `pratique-civile-quebecoise` (`skills/`, manifestes, `scripts/regenerer_cache_mcp.py --apply`, `scripts/synchroniser_plugin_gemini.py --apply`, `verifier.py`, `verifier_tout.py`) |
 | **une description ou un titre** | la page publique HTML (`GET /`) les rend **verbatim** : relancer `test/site.test.ts` (formulations interdites) et `test/garde.test.ts` (sous-chaînes épinglées) · `OUTILS_EN` doit rester une TRADUCTION, jamais une copie |
-| **un `inputSchema`** | `validateArgs` (`@poirierlavoie/socle-juridique`) n'implémente qu'un SOUS-ENSEMBLE de JSON-Schema : ne pas déclarer ce qu'il ne sait pas imposer · **une contrainte que le GESTIONNAIRE impose et que le schéma ne sait pas dire (XOR, format, bornes croisées) s'écrit dans la `description`, et se RÉPÈTE sur chaque membre plutôt que de renvoyer à l'autre** (§8) · **toute valeur par défaut ou maximum vient de `src/mcp/defauts.ts`, jamais d'un nombre écrit à la main** · la page HTML (`GET /`) génère ses tableaux de schéma depuis le même objet · `additionalProperties: false` reste obligatoire · **tout paramètre porte une `description`** — `test/garde.test.ts` échoue sinon, et les schémas partagés du haut de `registry.ts` (`BASE_ID`, `CASE_ID`, `CITATION_REF`, `OFFSET`, `LANG`, `REFRESH`) existent pour qu'une même notion ne soit pas décrite deux fois en divergeant |
+| **un `inputSchema`** | `validateArgs` (`@poirierlavoie/mcp-socle`) n'implémente qu'un SOUS-ENSEMBLE de JSON-Schema : ne pas déclarer ce qu'il ne sait pas imposer · **une contrainte que le GESTIONNAIRE impose et que le schéma ne sait pas dire (XOR, format, bornes croisées) s'écrit dans la `description`, et se RÉPÈTE sur chaque membre plutôt que de renvoyer à l'autre** (§8) · **toute valeur par défaut ou maximum vient de `src/mcp/defauts.ts`, jamais d'un nombre écrit à la main** · la page HTML (`GET /`) génère ses tableaux de schéma depuis le même objet · `additionalProperties: false` reste obligatoire · **tout paramètre porte une `description`** — `test/garde.test.ts` échoue sinon, et les schémas partagés du haut de `registry.ts` (`BASE_ID`, `CASE_ID`, `CITATION_REF`, `OFFSET`, `LANG`, `REFRESH`) existent pour qu'une même notion ne soit pas décrite deux fois en divergeant |
 | **une constante `GARDE_*`** | elle vit dans le corps des réponses **et** sur la page publique HTML (`GET /`) · `test/garde.test.ts` · ⚠ *corrigé le 2026-09-16* : la chaîne de couplage RÉELLE lue par `scripts/refresh-databases.mjs` est l'en-tête « base(s) au répertoire de CanLII » (`src/mcp/handlers/listDatabases.ts`), sur laquelle le script pose son garde-fou (sortie code 2 si modifiée). C'est elle qu'il faut propager. |
-| **la page publique HTML (`GET /`)** | `src/site.ts` · `src/site.i18n.ts` · `test/site.test.ts` (CSP, absence de CORS, liste blanche d'URLs) · §18 de `SPEC.md` · la section « Page publique » de `README.md` · le style reste **identique** à celui du connecteur jumeau `MCP-Legislation` et de `pratique-civile-outils` (invariant 21) |
-| **sécurité, confidentialité ou licence** | `SECURITY.md` (contact `jason@poirierlavoie.ca`, sécurité et confidentialité / privilège, porteurs et `search_log`) · `LICENSE` (`CC-BY-NC-SA-4.0` Partie A + Partie B CanLII) · `package.json` · `README.md` (§ Sécurité, confidentialité et licence) · `src/site.ts` + `src/site.i18n.ts` (`#acces`, sans casser `test/site.test.ts`) · cohérence inter-dépôts (`pratique-civile-quebecoise/SECURITY.md`, `MCP-Socle-Juridique`) |
+| **la page publique HTML (`GET /`)** | `src/site.ts` · `src/site.i18n.ts` · `test/site.test.ts` (CSP, absence de CORS, liste blanche d'URLs) · §18 de `SPEC.md` · la section « Page publique » de `README.md` · le style reste **identique** à celui du connecteur jumeau `MCP-Legislation` et de `MCP-Outils` (invariant 21) |
+| **sécurité, confidentialité ou licence** | `SECURITY.md` (contact `jason@poirierlavoie.ca`, sécurité et confidentialité / privilège, porteurs et `search_log`) · `LICENSE` (`CC-BY-NC-SA-4.0` Partie A + Partie B CanLII) · `package.json` · `README.md` (§ Sécurité, confidentialité et licence) · `src/site.ts` + `src/site.i18n.ts` (`#acces`, sans casser `test/site.test.ts`) · cohérence inter-dépôts (`pratique-civile-quebecoise/SECURITY.md`, `MCP-Socle`) |
 | **version, identité ou manifestes** | `package.json` · `SERVER_INFO` et `PUBLIC_DESCRIPTION` (`src/mcp/registry.ts`) · `carteServeur()` (`/mcp/server-card`) · `plugin.json` · `mcp_config.json` · `gemini-extension.json` · `GEMINI.md` (< 24 000 octets) · vérifié par `test/doc.test.ts` · resynchroniser `pratique-civile-quebecoise` |
 
 ### Comment vérifier
@@ -113,20 +113,20 @@ commande ne sait réclamer**.
              │  calendrier-proc, redaction-juridique, déontologie     │
              └──────┬───────────────────────┬──────────────────┬──────┘
                     │                       │                  │
-   (10 outils `legislation_*`)    (10 outils `jurisprudence_*`) (6 outils `calendrier_*`,
-                    │                       │           `interets_*`, `greffe_*`, `palais_*`)
-                    ▼                       ▼                  ▼
+   (10 outils `legislation_*`)    (10 outils `jurisprudence_*`) (12 outils sur 5 familles :
+                    │                       │            `calcul`, `greffe`, `registre`,
+                    ▼                       ▼            `adresse`, `terminologie`)
          ┌─────────────────────┐ ┌─────────────────────┐ ┌──────────────────────────┐
-         │   MCP-Legislation   │ │  MCP-Jurisprudence  │ │  pratique-civile-outils  │
+         │   MCP-Legislation   │ │  MCP-Jurisprudence  │ │        MCP-Outils        │
          │  (Worker Cloudflare │ │ (Worker Cloudflare  │ │    (Worker Cloudflare    │
-         │  D1 + Vectorize +   │ │  D1 cache CanLII    │ │    public, sans état,    │
-         │    Workers AI)      │ │  authentifié Bearer │ │    zéro secret, Zod)     │
+         │  D1 + Vectorize +   │ │  D1 cache CanLII    │ │   public, zéro secret,   │
+         │    Workers AI)      │ │  authentifié Bearer │ │  3 D1 lecture seule, Zod)│
          └──────────┬──────────┘ └──────────┬──────────┘ └──────────────────────────┘
                     │                       │
                     └───────────┬───────────┘
-                                ▼ (dépendance de dev `#v0.6.2`, zéro runtime dep)
+                                ▼ (dépendance de dev `#v0.7.0`, zéro runtime dep)
                  ┌─────────────────────────────┐
-                 │    MCP-Socle-Juridique      │
+                 │          MCP-Socle          │
                  │  Transport JSON-RPC 2.0     │
                  │  Streamable HTTP sans état  │
                  │  Auth SHA-256 temps constant│
@@ -153,9 +153,9 @@ Toute évolution des outils, schémas, noms ou transport de `MCP-Jurisprudence` 
    - `python verifier_tout.py --mode mock` / `python verifier_tout.py --mode live`
 
 ### Dépendances croisées et limites de responsabilité
-- **Dépendance envers `MCP-Socle-Juridique`** : Consomme `@poirierlavoie/socle-juridique#v0.6.2` en `devDependencies` pour le transport MCP Streamable HTTP révision `2026-07-28`, l'enveloppe JSON-RPC 2.0, l'authentification SHA-256 à temps constant (`timingSafeEqual`) et la fiche SEP-2127 (`/mcp/server-card`). Zéro dépendance d'exécution (`dependencies: {}`).
+- **Dépendance envers `MCP-Socle`** : Consomme `@poirierlavoie/mcp-socle#v0.7.0` en `devDependencies` pour le transport MCP Streamable HTTP révision `2026-07-28`, l'enveloppe JSON-RPC 2.0, l'authentification SHA-256 à temps constant (`timingSafeEqual`) et la fiche SEP-2127 (`/mcp/server-card`). Zéro dépendance d'exécution (`dependencies: {}`).
 - **Jumeau de `MCP-Legislation`** : Partage la même identité visuelle et typographique sur sa page publique `GET /` (police Georgia, variables CSS `--f`, `--m`, `--b`, `--a`, `--bg`, `--card`). Législation traite le droit codifié verbatim ; Jurisprudence traite les décisions et métadonnées CanLII.
-- **Transfert historique du 2026-11-14 vers `pratique-civile-outils`** : Les 3 outils québécois hors ligne (`greffe_parse_court_file_number`, `palais_list`, `palais_get`), les tables statiques du MJQ (`src/qc/`), `lieux.ts`, `sources-officielles/` et le parseur de dossier ont été transférés à `pratique-civile-outils` (v0.2.0). Ce dépôt se consacre désormais exclusivement aux métadonnées CanLII et à l'analyseur de citations.
+- **Transfert historique du 2026-11-14 vers `MCP-Outils`** : Les 3 outils québécois hors ligne (`greffe_parse_court_file_number`, `palais_list`, `palais_get`), les tables statiques du MJQ (`src/qc/`), `lieux.ts`, `sources-officielles/` et le parseur de dossier ont été transférés à `MCP-Outils` (v0.2.0). Ce dépôt se consacre désormais exclusivement aux métadonnées CanLII et à l'analyseur de citations.
 
 ### Contrat de vérité et Invariant D4
 - **Sortie textuelle pure Markdown (`content[0].text`)** : ZÉRO `structuredContent`, ZÉRO `outputSchema`. Les avertissements légaux, statuts d'appariement et réserves statutaires (`GARDE_*`) doivent demeurer indissociables du corps de la réponse pour contraindre le modèle à les lire.
@@ -167,7 +167,7 @@ Worker TypeScript sans cadriciel, **zéro dépendance d'exécution** (D2), base 
 transport Streamable HTTP en **mode JSON sans état** (D3). Config : `wrangler.jsonc`.
 
 ```
-src/index.ts      routage, authentification à temps constant (§9.1), CORS, fiche SEP-2127 `/mcp/server-card`, coupe-circuit, cron (transport, JSON-RPC et validation via `@poirierlavoie/socle-juridique`)
+src/index.ts      routage, authentification à temps constant (§9.1), CORS, fiche SEP-2127 `/mcp/server-card`, coupe-circuit, cron (transport, JSON-RPC et validation via `@poirierlavoie/mcp-socle`)
 src/config.ts     lecture des `vars` : `flag()`, `entier()`. `wrangler types` les type en
                   LITTÉRAUX — `env.MCP_ENABLED === "true"` écrit en direct ne compile pas,
                   ou se réduit à une constante aux yeux du lecteur. Passer par ici.
@@ -297,7 +297,7 @@ refuse de conclure.
    `format: {enum:["texte","json"]}` dont la charge utile porte `avertissement` en champ
    **obligatoire**, de sorte que la réserve voyage à l'intérieur des données. Quatre
    conditions cumulatives, et le texte reste le défaut. Argument complet en commentaire
-   au-dessus de `ok()` dans `@poirierlavoie/socle-juridique` (`src/protocole/rpc.ts`) — le lire avant d'y toucher.
+   au-dessus de `ok()` dans `@poirierlavoie/mcp-socle` (`src/protocole/rpc.ts`) — le lire avant d'y toucher.
 5. **Ne jamais journaliser `request.url`** : le secret partagé est dans le chemin (§9.2).
    Aucune sortie d'outil ne contient d'URL `api.canlii.org` — elles portent la clef d'API.
 6. **La boucle d'auto-correction (§6.4) vit dans `src/store/lookup.ts`, en un seul
@@ -359,12 +359,12 @@ refuse de conclure.
     dans `INSTRUCTIONS` et sur la page — trois surfaces épinglées par un test **par langue**
     exigeant la présence de « CanLII ». `openWorldHint` vaut `false` sur
     `jurisprudence_parse_citation` (analyseur pur hors ligne) et `true` sur les neuf autres.
-17. *(Retiré le 2026-11-14, v0.3.0 — déplacé vers « pratique-civile-outils ».)* Les tables
+17. *(Retiré le 2026-11-14, v0.3.0 — déplacé vers « MCP-Outils ».)* Les tables
     `src/qc/`, `palais_list`, `palais_get`, `GARDE_PALAIS` et `GARDE_SANS_ADRESSE` relèvent
-    désormais de `pratique-civile-outils`.
-18. *(Retiré le 2026-11-14, v0.3.0 — déplacé vers « pratique-civile-outils ».)* `src/qc/lieux.ts`
+    désormais de `MCP-Outils`.
+18. *(Retiré le 2026-11-14, v0.3.0 — déplacé vers « MCP-Outils ».)* `src/qc/lieux.ts`
     et `sources-officielles/mjq-numeros-greffes-2026-07-22.html` ont suivi vers
-    `pratique-civile-outils`.
+    `MCP-Outils`.
 19. **La page publique DÉRIVE des données, elle ne les recopie pas (§18).** Outils,
     descriptions, schémas et annotations `openWorldHint` viennent de `listToolDescriptors()`.
     Une valeur recopiée deviendrait fausse **sans qu'aucun test n'échoue**.
@@ -373,9 +373,9 @@ refuse de conclure.
     « par cohérence », la page cesserait de répondre aux visiteurs venus d'ailleurs) ;
     et **aucun en-tête CORS**, sans quoi la page deviendrait un oracle. Elle survit au
     coupe-circuit : exception assumée, car elle ne porte ni secret ni donnée vivante.
-20. *(Retiré le 2026-11-14, v0.3.0 — déplacé vers « pratique-civile-outils ».)* Le parseur de
+20. *(Retiré le 2026-11-14, v0.3.0 — déplacé vers « MCP-Outils ».)* Le parseur de
     dossiers `src/qc/dossier.ts` et son jeu différentiel `test/fixtures/dossier-athena.json`
-    ont suivi vers `pratique-civile-outils`.
+    ont suivi vers `MCP-Outils`.
 21. **La page partage le style du connecteur JUMEAU, au caractère près.** Les deux jeux de
     variables, la police (`16px/1.6 Georgia`), les tailles de titres et la grille (barre
     latérale de 13rem, rupture à 78rem) sont repris de « Législation du Québec ». Les deux
@@ -523,6 +523,6 @@ porte complète, `npm run deploy` via `scripts/deployer.mjs`, puis vérification
 (`greffe_parse_court_file_number`, `palais_list`, `palais_get`), de `src/qc/`, de
 `sources-officielles/mjq-numeros-greffes-2026-07-22.html`, de `scripts/extraire-lieux-mjq.mjs`,
 des tests QC et des garde-fous `GARDE_PALAIS` / `GARDE_DOSSIER` / `GARDE_SANS_ADRESSE` /
-`SANS_PLUMITIF` vers le connecteur public non authentifié `pratique-civile-outils` (`0.2.0`) ;
+`SANS_PLUMITIF` vers le connecteur public non authentifié `MCP-Outils` (`0.2.0`) ;
 conservation de §17 et des invariants 17, 18 et 20 comme épitaphes datées afin de préserver la
 numérotation, et alignement du serveur sur les 10 outils `jurisprudence_*`.

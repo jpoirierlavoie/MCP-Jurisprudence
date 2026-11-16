@@ -8,7 +8,7 @@
  * Toutes au format AAAA-MM-JJ, bornes INCLUSIVES (annexe B).
  */
 
-import { err, ok, type ToolResult } from "@poirierlavoie/socle-juridique";
+import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
 import type { CaseListResponse, Lang } from "../../canlii/types";
 import { persisterBalayages } from "../../config";

@@ -22,7 +22,7 @@ updates:
     cooldown:
       default-days: 7
     ignore:
-      - dependency-name: "@poirierlavoie/socle-juridique"
+      - dependency-name: "@poirierlavoie/mcp-socle"
       - dependency-name: "vitest"
         versions: [">= 5.0.0"]
       - dependency-name: "@biomejs/biome"

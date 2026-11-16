@@ -152,7 +152,7 @@ export const EN = {
       "makes none — it only reports which identifiers a citation would allow one to build. Its MCP " +
       "annotations say so.",
     "The offline Québec court-file and courthouse utilities (greffe_*, palais_*) now live in " +
-      "the public unauthenticated connector « pratique-civile-outils ».",
+      "the public unauthenticated connector « MCP Outils ».",
   ],
 
   // ── Schémas ────────────────────────────────────────────────────────────────

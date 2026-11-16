@@ -19,7 +19,7 @@
  * Sans JavaScript, le FRANÇAIS s'affiche et tout le contenu reste lisible.
  */
 
-import type { JsonSchema } from "@poirierlavoie/socle-juridique";
+import type { JsonSchema } from "@poirierlavoie/mcp-socle";
 import { listToolDescriptors } from "./mcp/registry";
 import { EN, OUTILS_EN } from "./site.i18n";
 
@@ -451,7 +451,7 @@ ${biP(
       "une citation permettrait de construire. Ses annotations MCP le déclarent.",
     "Les outils hors ligne pour les numéros de dossier de cour et les palais de justice du " +
       "Québec (greffe_*, palais_*) relèvent désormais du connecteur public sans authentification " +
-      "« pratique-civile-outils ».",
+      "« MCP Outils ».",
   ],
   EN.familleCanliiTexte,
 )}

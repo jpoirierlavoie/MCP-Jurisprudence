@@ -22,20 +22,20 @@ Règles d'espace de travail pour **Google Antigravity** et **Gemini CLI** lors d
              │  calendrier-proc, redaction-juridique, déontologie     │
              └──────┬───────────────────────┬──────────────────┬──────┘
                     │                       │                  │
-   (10 outils `legislation_*`)    (10 outils `jurisprudence_*`) (6 outils `calendrier_*`,
-                    │                       │           `interets_*`, `greffe_*`, `palais_*`)
-                    ▼                       ▼                  ▼
+   (10 outils `legislation_*`)    (10 outils `jurisprudence_*`) (12 outils sur 5 familles :
+                    │                       │            `calcul`, `greffe`, `registre`,
+                    ▼                       ▼            `adresse`, `terminologie`)
          ┌─────────────────────┐ ┌─────────────────────┐ ┌──────────────────────────┐
-         │   MCP-Legislation   │ │  MCP-Jurisprudence  │ │  pratique-civile-outils  │
+         │   MCP-Legislation   │ │  MCP-Jurisprudence  │ │        MCP-Outils        │
          │  (Worker Cloudflare │ │ (Worker Cloudflare  │ │    (Worker Cloudflare    │
-         │  D1 + Vectorize +   │ │  D1 cache CanLII    │ │    public, sans état,    │
-         │    Workers AI)      │ │  authentifié Bearer │ │    zéro secret, Zod)     │
+         │  D1 + Vectorize +   │ │  D1 cache CanLII    │ │   public, zéro secret,   │
+         │    Workers AI)      │ │  authentifié Bearer │ │  3 D1 lecture seule, Zod)│
          └──────────┬──────────┘ └──────────┬──────────┘ └──────────────────────────┘
                     │                       │
                     └───────────┬───────────┘
-                                ▼ (dépendance de dev `#v0.6.2`, zéro runtime dep)
+                                ▼ (dépendance de dev `#v0.7.0`, zéro runtime dep)
                  ┌─────────────────────────────┐
-                 │    MCP-Socle-Juridique      │
+                 │          MCP-Socle          │
                  │  Transport JSON-RPC 2.0     │
                  │  Streamable HTTP sans état  │
                  │  Auth SHA-256 temps constant│
@@ -52,9 +52,9 @@ Règles d'espace de travail pour **Google Antigravity** et **Gemini CLI** lors d
 - **Configuration** : Connecté dans `.mcp.json` et `gemini-extension.json` via l'URL `https://jurisprudence.poirierlavoie.ca/mcp` avec `Authorization: Bearer ${MCP_JURISPRUDENCE_SECRET}`.
 
 ### Dépendances croisées inter-dépôts
-- **`MCP-Socle-Juridique`** : Intègre `@poirierlavoie/socle-juridique#v0.6.2` en `devDependencies` pour le transport MCP Streamable HTTP révision `2026-07-28`, l'enveloppe JSON-RPC 2.0, l'authentification SHA-256 à temps constant (`timingSafeEqual`) et la fiche SEP-2127 (`/mcp/server-card`). Zéro dépendance d'exécution (`dependencies: {}`).
+- **`MCP-Socle`** : Intègre `@poirierlavoie/mcp-socle#v0.7.0` en `devDependencies` pour le transport MCP Streamable HTTP révision `2026-07-28`, l'enveloppe JSON-RPC 2.0, l'authentification SHA-256 à temps constant (`timingSafeEqual`) et la fiche SEP-2127 (`/mcp/server-card`). Zéro dépendance d'exécution (`dependencies: {}`).
 - **`MCP-Legislation`** : Connecteur jumeau partageant la même identité typographique (Georgia) et les mêmes variables CSS sur sa page d'accueil `GET /`.
-- **Transfert historique du 2026-11-14 vers `pratique-civile-outils`** : Les 3 outils québécois hors ligne (`greffe_parse_court_file_number`, `palais_list`, `palais_get`), les tables statiques du MJQ (`src/qc/`), `lieux.ts`, `sources-officielles/` et le parseur de dossier ont été transférés à `pratique-civile-outils`. Ce dépôt se consacre désormais exclusivement à CanLII et à l'analyseur de citations.
+- **Transfert historique du 2026-11-14 vers `MCP-Outils`** : Les 3 outils québécois hors ligne (`greffe_parse_court_file_number`, `palais_list`, `palais_get`), les tables statiques du MJQ (`src/qc/`), `lieux.ts`, `sources-officielles/` et le parseur de dossier ont été transférés à `MCP-Outils`. Ce dépôt se consacre désormais exclusivement à CanLII et à l'analyseur de citations.
 
 ---
 
@@ -77,10 +77,10 @@ Aucune modification n'est terminée tant que ses répercussions n'ont pas été 
 |---|---|---|---|
 | 1 | **Outils MCP** | `src/mcp/registry.ts`, `src/mcp/handlers/` | préfixe `jurisprudence_*`, annotations `readOnlyHint`/`openWorldHint`, verdicts et gardes |
 | 2 | **Descriptions et titres** | `registry.ts`, `INSTRUCTIONS`, `OUTILS_EN` (`src/site.i18n.ts`) | la page HTML rend les descriptions verbatim ; `OUTILS_EN` doit rester une traduction réelle |
-| 3 | **Schémas d'entrée** | `validateArgs` (`@poirierlavoie/socle-juridique`), `src/mcp/defauts.ts` | `additionalProperties: false`, descriptions sur chaque paramètre, contraintes croisées répétées |
+| 3 | **Schémas d'entrée** | `validateArgs` (`@poirierlavoie/mcp-socle`), `src/mcp/defauts.ts` | `additionalProperties: false`, descriptions sur chaque paramètre, contraintes croisées répétées |
 | 4 | **`README.md`, gouvernance et manifestes** | `README.md`, [`SPEC.md`](SPEC.md), `SECURITY.md`, `LICENSE` (`CC-BY-NC-SA-4.0`), `package.json`, `plugin.json`, `mcp_config.json`, `gemini-extension.json`, `/mcp/server-card`, `CLAUDE.md`, `GEMINI.md`, `test/doc.test.ts` | ce que le dépôt annonce, ses recettes de connexion, sa licence et sa politique sécurité/confidentialité |
 | 5 | **Page publique HTML (`GET /`)** | `src/site.ts`, `src/site.i18n.ts`, §18 de `SPEC.md`, `test/site.test.ts` | le contenu **dérive** du registre et des tables vives ; liste blanche d'URLs stricte, zéro fuite de secret/CanLII API, section `#acces` et pied de page |
-| 6 | **Inter-dépôts (`Cross-repository`)** | **`pratique-civile-quebecoise`** (`.mcp.json`, `mcp_config.json`, `gemini-extension.json`, `.claude-plugin/*`, `plugin.json`, `skills/` dont `skills/recherche-juridique`, `regenerer_cache_mcp.py --apply`, `synchroniser_plugin_gemini.py --apply`, `verifier.py`, `verifier_tout.py`), **`MCP-Socle-Juridique`** (`#v0.6.2`), **`MCP-Legislation`** (jumeau HTML/CSS), **`pratique-civile-outils`** | répercussions sur les compétences qui nomment `jurisprudence_*` à la main, cohérence transport/auth et identité visuelle HTML/CSS partagée |
+| 6 | **Inter-dépôts (`Cross-repository`)** | **`pratique-civile-quebecoise`** (`.mcp.json`, `mcp_config.json`, `gemini-extension.json`, `.claude-plugin/*`, `plugin.json`, `skills/` dont `skills/recherche-juridique`, `regenerer_cache_mcp.py --apply`, `synchroniser_plugin_gemini.py --apply`, `verifier.py`, `verifier_tout.py`), **`MCP-Socle`** (`#v0.7.0`), **`MCP-Legislation`** (jumeau HTML/CSS), **`MCP-Outils`** | répercussions sur les compétences qui nomment `jurisprudence_*` à la main, cohérence transport/auth et identité visuelle HTML/CSS partagée |
 
 ---
 
@@ -102,10 +102,10 @@ Aucune modification n'est terminée tant que ses répercussions n'ont pas été 
 14. **Fins de ligne LF (`\n`)** obligatoires (`.gitattributes`).
 15. **§11 (`BACKFILL_ENABLED="false"`)** reste inerte par décision du praticien ; ne pas basculer le drapeau.
 16. **Préfixe `jurisprudence_*`, description nomme CanLII** ; `openWorldHint` vaut `false` sur `jurisprudence_parse_citation` (analyseur local sans réseau) et `true` sur les 9 autres.
-17. *(Déplacé le 2026-11-14)* Les tables `src/qc/` et les outils `greffe_*`/`palais_*` vivent dans `pratique-civile-outils`.
-18. *(Déplacé le 2026-11-14)* `lieux.ts` et `sources-officielles/` vivent dans `pratique-civile-outils`.
+17. *(Déplacé le 2026-11-14)* Les tables `src/qc/` et les outils `greffe_*`/`palais_*` vivent dans `MCP-Outils`.
+18. *(Déplacé le 2026-11-14)* `lieux.ts` et `sources-officielles/` vivent dans `MCP-Outils`.
 19. **Page publique (`/`) et `/mcp/server-card` DÉRIVENT** des données vives (`listToolDescriptors()`, `SERVER_INFO`, `VERSIONS`, `GARDE_*`) ; zéro copie manuelle. Route `/` = égalité stricte, survit au coupe-circuit (`MCP_ENABLED=false`).
-20. *(Déplacé le 2026-11-14)* Le parseur de dossiers de cour vit dans `pratique-civile-outils`.
+20. *(Déplacé le 2026-11-14)* Le parseur de dossiers de cour vit dans `MCP-Outils`.
 21. **Style de page identique au connecteur jumeau** (`MCP-Legislation`) : mêmes variables CSS.
 22. **Refus `/mcp` (`401`) déclenche la découverte OAuth des clients** : conserver les porteurs sans préséance (chemin `/mcp/<secret>`, `Authorization: Bearer`, `?key=`), aucun rognage de secret. Exception nommée `/mcp/server-card` (SEP-2127) : publique sans secret.
 

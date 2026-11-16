@@ -5,7 +5,7 @@
  * donc appliquée CÔTÉ WORKER, et la troncature est annoncée en toutes lettres.
  */
 
-import { err, ok, type ToolResult } from "@poirierlavoie/socle-juridique";
+import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
 import type { Lang, LegislationListResponse } from "../../canlii/types";
 import { fold } from "../../citation/normalize";

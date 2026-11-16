@@ -36,7 +36,7 @@ import {
   servirRequeteMcp,
   type ToolResult,
   tropDeRequetes,
-} from "@poirierlavoie/socle-juridique";
+} from "@poirierlavoie/mcp-socle";
 import { runScheduled } from "./backfill";
 import { createClient } from "./canlii/client";
 import { mcpActif } from "./config";

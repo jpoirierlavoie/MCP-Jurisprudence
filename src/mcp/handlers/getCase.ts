@@ -6,7 +6,7 @@
  * contrôlé ici.
  */
 
-import { err, ok, type ToolResult } from "@poirierlavoie/socle-juridique";
+import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { analyserErreur } from "../../canlii/client";
 import type { CaseMetadata, Lang } from "../../canlii/types";
 import { parseCitation, resolve } from "../../citation/parse";

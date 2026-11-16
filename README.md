@@ -22,7 +22,7 @@ texte d'une décision. La valeur du connecteur tient donc à trois usages :
 
 *(Note — 2026-11-14 : les trois outils hors ligne sur les numéros de dossier de cour et les
 palais de justice du Québec — `greffe_parse_court_file_number`, `palais_list`, `palais_get` —
-ont été déplacés vers le connecteur public sans authentification `pratique-civile-outils`, où ils
+ont été déplacés vers le connecteur public sans authentification [`MCP-Outils`](https://github.com/jpoirierlavoie/MCP-Outils), où ils
 ne requièrent aucun secret.)*
 
 ### ⚠ Source et portée des dix outils

@@ -9,7 +9,7 @@
  * SIGNALÉE dans la sortie. L'outil détecte, il ne corrige jamais de lui-même.
  */
 
-import { ok, type ToolResult } from "@poirierlavoie/socle-juridique";
+import { ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
 import type { Lang } from "../../canlii/types";
 import { nombreFr } from "../../format/fr";
