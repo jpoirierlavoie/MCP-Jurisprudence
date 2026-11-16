@@ -95,6 +95,17 @@ export function citationSure(brut: string): string {
   return assainie.length > 200 ? `${assainie.slice(0, 200)}…` : assainie;
 }
 
+/**
+ * Encode un champ externe non fiable (ex. intitulé ou référence issue du cache CanLII)
+ * comme littéral JSON borné sur une seule ligne, sans balises ni accents graves, afin
+ * qu'un modèle lecteur le traite comme donnée et non comme instruction.
+ */
+export function champDonneeSaine(brut: string, max = 200): string {
+  const propre = citationAssainie(brut).replace(/[`<>«»]/g, "'");
+  const bornee = propre.length > max ? `${propre.slice(0, max)}…` : propre;
+  return JSON.stringify(bornee);
+}
+
 interface Demande {
   citation: string;
   expected_title?: string;
@@ -169,18 +180,19 @@ export async function verifyCitations(
         if (candidats.length > 0) {
           lignes.push(
             "",
-            `Candidats de l'index local (${pluriel(candidats.length, "fiche", "fiches")}) :`,
+            `Candidats de l'index local (données brutes non vérifiées, ${pluriel(candidats.length, "fiche", "fiches")}) :`,
           );
           for (const c of candidats) {
-            lignes.push(
-              `  · ${c.title} — ${c.citation ?? c.neutral_cite ?? "—"} (${dateFr(c.decision_date)})`,
-            );
+            const titreLit = champDonneeSaine(c.title);
+            const refBrute = c.citation ?? c.neutral_cite;
+            const refLit = refBrute ? champDonneeSaine(refBrute) : "—";
+            lignes.push(`  · intitulé=${titreLit} — réf=${refLit} (${dateFr(c.decision_date)})`);
           }
           lignes.push("→ Confirmer avec find_case (balayage vif) puis verify_citations.");
         } else {
           lignes.push(
             "",
-            `→ Fournir les noms des parties et l'année à find_case (rien dans l'index local pour « ${d.expected_title} »).`,
+            "→ Fournir les noms des parties et l'année à find_case (aucune correspondance dans l'index local pour l'intitulé attendu).",
           );
         }
       } else {
