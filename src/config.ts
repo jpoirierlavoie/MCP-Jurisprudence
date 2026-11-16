@@ -15,7 +15,7 @@
  *   code correct dans les deux cas.
  */
 
-import { drapeau } from "@poirierlavoie/socle-juridique";
+import { drapeau } from "@poirierlavoie/mcp-socle";
 
 /** Lit un drapeau booléen. Absent ou illisible => la valeur par défaut. */
 export function flag(value: string | undefined, defaut = false): boolean {

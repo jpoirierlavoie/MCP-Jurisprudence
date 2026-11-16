@@ -7,7 +7,7 @@
  *   n'expose AUCUN paramètre `lang` : en exposer un serait mensonger.
  */
 
-import { err, ok, type ToolResult } from "@poirierlavoie/socle-juridique";
+import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
 import type { CitatorRel } from "../../canlii/types";
 import { nombreFr, pluriel, troncature } from "../../format/fr";

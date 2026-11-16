@@ -18,7 +18,7 @@
  *      praticien tranche, l'outil ne masque pas.
  */
 
-import { ok, type ToolResult } from "@poirierlavoie/socle-juridique";
+import { ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
 import type { Lang } from "../../canlii/types";
 import { compareTitles } from "../../citation/compare";

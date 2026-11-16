@@ -5,7 +5,7 @@
  * faire varier `env` (coupe-circuit, secret absent) d'un test à l'autre.
  */
 import { createExecutionContext, env, waitOnExecutionContext } from "cloudflare:test";
-import { type JsonSchema, parseMessage, validateArgs } from "@poirierlavoie/socle-juridique";
+import { type JsonSchema, parseMessage, validateArgs } from "@poirierlavoie/mcp-socle";
 import { describe, expect, it } from "vitest";
 import worker, { VERSIONS } from "../src/index";
 import { PUBLIC_DESCRIPTION, SERVER_INFO } from "../src/mcp/registry";

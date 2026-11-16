@@ -5,7 +5,7 @@
  * table `court_codes` et à expliquer un verdict NON CONSTRUCTIBLE.
  */
 
-import { ok, type ToolResult } from "@poirierlavoie/socle-juridique";
+import { ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { formLabel, parseCitation, resolve } from "../../citation/parse";
 import { DIAGNOSTIC_SEULEMENT } from "../../format/render";
 import { loadDirectory } from "../../store/databases";

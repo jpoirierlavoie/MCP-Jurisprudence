@@ -12,7 +12,7 @@
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 
-import { err, ok, type ToolResult } from "@poirierlavoie/socle-juridique";
+import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
 import { titleSimilarity } from "../../citation/compare";
 import { dateFr, pluriel } from "../../format/fr";

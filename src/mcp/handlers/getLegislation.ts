@@ -25,7 +25,7 @@
  *   affirmation déjà faite.
  */
 
-import { err, ok, type ToolResult } from "@poirierlavoie/socle-juridique";
+import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
 import type { Lang, LegislationMetadata } from "../../canlii/types";
 import { dateFr, nombreFr, ou } from "../../format/fr";

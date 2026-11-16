@@ -1024,7 +1024,7 @@ describe("§7 — les valeurs par défaut annoncées sont celles qui s'appliquen
 /**
  * §8 — CE QUE LE SCHÉMA NE SAIT PAS IMPOSER, LA DESCRIPTION LE DIT.
  *
- * `validateArgs` (`@poirierlavoie/socle-juridique`) n'implémente qu'un SOUS-ENSEMBLE de JSON-Schema : ni `pattern`,
+ * `validateArgs` (`@poirierlavoie/mcp-socle`) n'implémente qu'un SOUS-ENSEMBLE de JSON-Schema : ni `pattern`,
  * ni `oneOf`, ni aucune contrainte ENTRE champs — `validateValue(schema, value, nom)` ne
  * voit jamais le parent. Cinq outils imposent donc, dans leur GESTIONNAIRE, une règle
  * qu'un appel conforme au schéma peut enfreindre. Le modèle compose alors un appel

@@ -6,7 +6,7 @@
 **Auteur de la spéc. :** (préparé pour Jason Poirier Lavoie)
 **Cible :** nouveau dépôt autonome — Worker Cloudflare, D1, TypeScript
 **Modèle de référence :** le Worker `legislation` / base D1 `qclaw` (connecteur « Législation du Québec »)
-**Statut :** **livré et en production** sur `jurisprudence.poirierlavoie.ca` — dix outils `jurisprudence_*`, page publique bilingue *(amendé le 2026-11-14 en `0.3.0` : retrait de §17 vers « pratique-civile-outils » ; historiquement treize outils / 532 tests à l'origine)*. Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
+**Statut :** **livré et en production** sur `jurisprudence.poirierlavoie.ca` — dix outils `jurisprudence_*`, page publique bilingue *(amendé le 2026-11-14 en `0.3.0` : retrait de §17 vers « MCP-Outils » ; historiquement treize outils / 532 tests à l'origine)*. Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
 
 ---
 
@@ -39,7 +39,7 @@ Ces décisions sont prises. Ne pas les rouvrir sans instruction contraire ; les 
 | D5 | **D1 sert à la fois d'index et de cache**, pas de KV | Le compte ne possède aucun *namespace* KV ; `qclaw` fonctionne sur D1 seul. Les métadonnées d'une décision sont quasi immuables : un cache permanent est correct. |
 | D6 | **Le cache se remplit par l'usage** | Tout balayage effectué pour répondre à une requête est **persisté**. Le « miroir » n'est donc pas un téléchargement en masse, mais la sédimentation des appels déjà faits. Le moissonnage planifié (§11) reste facultatif et désactivé par défaut. |
 | D7 | **Authentification par secret partagé** dans le chemin *ou* l'en-tête `Authorization` | Ce qui est protégé n'est pas du contenu confidentiel — les métadonnées sont publiques — mais **la clef d'API et son quota**. Un secret de 256 bits sur TLS est proportionné. Chemin d'évolution vers OAuth 2.1 documenté en §9.4. |
-| D8 | **Nom d'hôte `jurisprudence.poirierlavoie.ca`**, Worker `jurisprudence`, base D1 `canlii`, préfixe d'outils `jurisprudence_` | **AMENDÉE le 2026-09-16.** Symétrie avec `legislation.poirierlavoie.ca` : ni le nom d'hôte ni le préfixe d'outil n'emploient plus la marque d'un tiers. *La rédaction en vigueur du 2026-07-15 au 2026-09-16 disait : « Le nom d'hôte évite d'employer la marque d'un tiers ; le préfixe d'outil la conserve, parce que la couverture et les verdicts dépendent de la collection de CanLII et que le modèle doit le savoir. » Elle est citée et non effacée, parce que sa prémisse était juste et que seule sa conclusion a changé.* Le modèle doit toujours savoir que la couverture et les verdicts dépendent de la collection de CanLII — mais **un préfixe ne sait pas porter une réserve** : il ne dit ni la couverture bornée, ni qu'une absence n'est pas une inexistence, ni que l'API ne rend que des métadonnées. Il en donnait l'illusion, et quatre descriptions sur dix s'en remettaient à lui au point de ne jamais écrire « CanLII » (six sur dix côté anglais). L'annonce a donc MIGRÉ vers des PHRASES — description de chaque outil, `INSTRUCTIONS`, page publique — que des tests épinglent dans les deux langues. La partition en deux familles qui préservait alors le préfixe (`jurisprudence_*` vs `greffe_*`/`palais_*`, §17.1) a pris fin le 2026-11-14 (v0.3.0) avec le transfert des outils hors ligne vers `pratique-civile-outils` ; les dix outils restants portent tous le préfixe `jurisprudence_`. |
+| D8 | **Nom d'hôte `jurisprudence.poirierlavoie.ca`**, Worker `jurisprudence`, base D1 `canlii`, préfixe d'outils `jurisprudence_` | **AMENDÉE le 2026-09-16.** Symétrie avec `legislation.poirierlavoie.ca` : ni le nom d'hôte ni le préfixe d'outil n'emploient plus la marque d'un tiers. *La rédaction en vigueur du 2026-07-15 au 2026-09-16 disait : « Le nom d'hôte évite d'employer la marque d'un tiers ; le préfixe d'outil la conserve, parce que la couverture et les verdicts dépendent de la collection de CanLII et que le modèle doit le savoir. » Elle est citée et non effacée, parce que sa prémisse était juste et que seule sa conclusion a changé.* Le modèle doit toujours savoir que la couverture et les verdicts dépendent de la collection de CanLII — mais **un préfixe ne sait pas porter une réserve** : il ne dit ni la couverture bornée, ni qu'une absence n'est pas une inexistence, ni que l'API ne rend que des métadonnées. Il en donnait l'illusion, et quatre descriptions sur dix s'en remettaient à lui au point de ne jamais écrire « CanLII » (six sur dix côté anglais). L'annonce a donc MIGRÉ vers des PHRASES — description de chaque outil, `INSTRUCTIONS`, page publique — que des tests épinglent dans les deux langues. La partition en deux familles qui préservait alors le préfixe (`jurisprudence_*` vs `greffe_*`/`palais_*`, §17.1) a pris fin le 2026-11-14 (v0.3.0) avec le transfert des outils hors ligne vers `MCP-Outils` ; les dix outils restants portent tous le préfixe `jurisprudence_`. |
 | D9 | **Outils composites**, pas des enveloppes 1:1 d'endpoints | Un outil `jurisprudence_verify_citations` qui analyse, construit, appelle, compare et rend un verdict fait en un aller-retour ce qui en exigerait quatre. C'est aussi la seule façon d'imposer la mise en garde au bon endroit. |
 | D10 | **Auto-correction du répertoire des tribunaux** | La correspondance code de citation → `databaseId` n'est documentée que pour `csc-scc`. Les identifiants fédéraux sont incertains. Le système apprend : sur échec, il essaie la variante linguistique et consigne celle qui a fonctionné (§6.4). |
 
@@ -105,7 +105,7 @@ claude.ai / Claude Code      (Athéna : client du 2026-08-27 au 2026-09-02, reti
 
 ### 3.2 Arborescence du dépôt
 
-*Relevée sur le dépôt (mise à jour du 2026-11-14 après le retrait de §17 vers « pratique-civile-outils »).*
+*Relevée sur le dépôt (mise à jour du 2026-11-14 après le retrait de §17 vers « MCP-Outils »).*
 
 ```
 .
@@ -586,7 +586,7 @@ Un **appariement partiel** produit le verdict `DISCORDANTE`, jamais `CONFIRMÉE`
 
 ## 7. Les dix outils `jurisprudence_*`
 
-*Le connecteur en compte **dix**, tous sous le préfixe `jurisprudence_`. Neuf interrogent la collection de CanLII ; `jurisprudence_parse_citation` n'appelle rien.* *(Note — 2026-11-14, `0.3.0` : les trois outils hors ligne `greffe_*` et `palais_*` anciennement décrits en §17 ont été déplacés vers « pratique-civile-outils ».)*
+*Le connecteur en compte **dix**, tous sous le préfixe `jurisprudence_`. Neuf interrogent la collection de CanLII ; `jurisprudence_parse_citation` n'appelle rien.* *(Note — 2026-11-14, `0.3.0` : les trois outils hors ligne `greffe_*` et `palais_*` anciennement décrits en §17 ont été déplacés vers « MCP-Outils ».)*
 
 *Préfixe renommé le 2026-09-16 : il s'écrivait `canlii_`. Les descriptions ci-dessous
 sont reproduites verbatim du registre et ont été amendées dans le même changement —
@@ -818,7 +818,7 @@ Le validateur ne connaît ni `pattern`, ni `oneOf`, ni aucune contrainte ENTRE c
 `validateValue(schema, value, nom)` ne voit jamais le parent. Plusieurs outils imposent donc dans
 leur GESTIONNAIRE une règle qu'un appel conforme au schéma peut enfreindre — le XOR
 `citation` / (`database_id` + `case_id`) pour `get_case`, `citator` et `subsequent_history`
-(ainsi que l'ex-outil `palais_get`, transféré en v0.3.0 vers `pratique-civile-outils`), le format `AAAA-MM-JJ` des huit filtres
+(ainsi que l'ex-outil `palais_get`, transféré en v0.3.0 vers `MCP-Outils`), le format `AAAA-MM-JJ` des huit filtres
 de dates, et les bornes d'année de `find_case`. Le modèle composait un appel valide et
 recevait un refus, sans avoir eu le moyen de le prévoir.
 
@@ -944,7 +944,7 @@ Quatre corollaires, tous testés. Le **pré-vol** `OPTIONS` est répondu **sans*
 - `observability: { enabled: true }` dans `wrangler.jsonc` ; consultation par `wrangler tail`.
 - **Une ligne `search_log` par invocation d'outil qui TOUCHE D1**, succès compris : un succès non consigné rend les échecs inexploitables faute de dénominateur. Les échecs (`result_count = 0`) sont indexés séparément.
 
-  **Un outil sur dix n'écrit rien, par construction et non par omission** (constaté le 2026-09-16 pour les quatre outils d'alors, mis à jour le 2026-11-14 en v0.3.0) : `jurisprudence_parse_citation` ne fait aucun appel sortant ni aucune lecture D1 (les trois ex-outils hors ligne `greffe_parse_court_file_number`, `palais_list` et `palais_get` ayant été transférés en v0.3.0 vers `pratique-civile-outils`). Son silence dans `search_log` ne se lit donc pas comme un défaut d'usage, et **on ne le corrige pas** : lui ouvrir D1 pour le compter échangerait une statistique contre la disponibilité qui est sa seule garantie.
+  **Un outil sur dix n'écrit rien, par construction et non par omission** (constaté le 2026-09-16 pour les quatre outils d'alors, mis à jour le 2026-11-14 en v0.3.0) : `jurisprudence_parse_citation` ne fait aucun appel sortant ni aucune lecture D1 (les trois ex-outils hors ligne `greffe_parse_court_file_number`, `palais_list` et `palais_get` ayant été transférés en v0.3.0 vers `MCP-Outils`). Son silence dans `search_log` ne se lit donc pas comme un défaut d'usage, et **on ne le corrige pas** : lui ouvrir D1 pour le compter échangerait une statistique contre la disponibilité qui est sa seule garantie.
 - **`api_usage`** incrémentée à chaque appel sortant (`calls`), erreur (`errors`) et `429` (`throttled`). Requête d'exploitation :
 
 ```sql
@@ -1104,12 +1104,12 @@ satisferait la première en retirant la garantie de §2 partout.
 4. `src/canlii/` — client étranglé et réessayé, types, erreurs, `redactUrl`.
 5. `src/store/` — accès D1 : fiches + FTS, répertoire + auto-correction, citateur avec TTL, télémétrie.
 6. `src/format/` — gabarits de sortie (Annexe A), formatage français des dates et des listes.
-7. *(Retiré en v0.3.0 — déplacé vers `pratique-civile-outils`)* `src/qc/` — ancien §17 : tables du Québec, analyseur de numéros de dossier et consultation en mémoire.
+7. *(Retiré en v0.3.0 — déplacé vers `MCP-Outils`)* `src/qc/` — ancien §17 : tables du Québec, analyseur de numéros de dossier et consultation en mémoire.
 8. `src/site.ts` + `src/site.i18n.ts` — §18 : la page publique bilingue, DÉRIVÉE des données vives.
 9. `src/backfill.ts` — §11, écrit et testé, **inerte** (invariant : la question est tranchée, pas ouverte).
 10. `migrations/0001_initial.sql`, `0002_seed_court_codes.sql`, `0003_reconcile_court_codes.sql`, `0004_rename_tool_prefix.sql` — la troisième consigne la réconciliation de §4.3 **avec sa preuve d'observation** ; la quatrième (2026-09-16, appliquée en production) rattrape la DONNÉE déjà écrite sous `canlii_*` (`search_log.tool`, `court_codes.note`) sans toucher au schéma : sans elle, la télémétrie de §10 serait coupée en deux séries à la date du renommage, dont aucune ne serait fausse et dont la somme ne serait faite nulle part.
-11. `scripts/` — `mcp-client.mjs` (recette), `refresh-databases.mjs` (réconciliation §4.3), `deployer.mjs` (§12 : `db:migrate:remote` PUIS `wrangler deploy`, refus d'un arbre de travail sale, `--var COMMIT:<sha>`) ; `extraire-lieux-mjq.mjs` a été déplacé vers `pratique-civile-outils` en v0.3.0.
-12. `test/` — matrice de l'analyseur, comparaison, vérification, client, transport, persistance, documentation, page publique, garde du contrat de vérité (les tests QC ont été déplacés vers `pratique-civile-outils` en v0.3.0).
+11. `scripts/` — `mcp-client.mjs` (recette), `refresh-databases.mjs` (réconciliation §4.3), `deployer.mjs` (§12 : `db:migrate:remote` PUIS `wrangler deploy`, refus d'un arbre de travail sale, `--var COMMIT:<sha>`) ; `extraire-lieux-mjq.mjs` a été déplacé vers `MCP-Outils` en v0.3.0.
+12. `test/` — matrice de l'analyseur, comparaison, vérification, client, transport, persistance, documentation, page publique, garde du contrat de vérité (les tests QC ont été déplacés vers `MCP-Outils` en v0.3.0).
 13. `.github/workflows/` — 7 workflows (`ci`, `deploy`, `verifier-deploiement`, `codeql`, `osv-scanner`, `trivy`, `scorecard`) + `dependabot.yml`, actions épinglées par SHA.
 14. `README.md` — mise en service, réserve de §9.5, et **reproduction in extenso du contrat de vérité de §2**.
 
@@ -1157,15 +1157,15 @@ question effacée se repose.*
 
 Le balayage vif de `jurisprudence_find_case` tombait sous la même cause (`resultCount = 5 000` par page). Vérifié en production le même jour sur la reproduction du rapport de test — `{title: "Godbout Longueuil", database_id: "csc-scc", year_from: 1995, year_to: 1998}` : 4 appels, 433 fiches parcourues, un candidat rendu **sans date** et disant pourquoi.
 
-**Ce qui reste réellement à faire, tout § confondus** *(relevé du 2026-09-16, mis à jour le 2026-11-14)* : le réglage de `CANLII_MIN_INTERVAL_MS` ci-dessus *(la parité de `SERVER_INFO.version` a été épinglée le 2026-11-13 dans `test/doc.test.ts`, le déploiement continu rétabli via `.github/workflows/deploy.yml` et `scripts/deployer.mjs` le 2026-11-14 — voir §12 — et l'extension des greffes et palais §17 déplacée vers « pratique-civile-outils » en `0.3.0`)*.
+**Ce qui reste réellement à faire, tout § confondus** *(relevé du 2026-09-16, mis à jour le 2026-11-14)* : le réglage de `CANLII_MIN_INTERVAL_MS` ci-dessus *(la parité de `SERVER_INFO.version` a été épinglée le 2026-11-13 dans `test/doc.test.ts`, le déploiement continu rétabli via `.github/workflows/deploy.yml` et `scripts/deployer.mjs` le 2026-11-14 — voir §12 — et l'extension des greffes et palais §17 déplacée vers « MCP-Outils » en `0.3.0`)*.
 
 ---
 
 ## 17. Extension — greffes et palais du Québec *(Retirée le 2026-11-14, v0.3.0)*
 
-*Retirée le 2026-11-14 (`0.3.0`) — déplacée vers le connecteur public hors ligne « pratique-civile-outils » (`0.2.0`).*
+*Retirée le 2026-11-14 (`0.3.0`) — déplacée vers le connecteur public hors ligne « MCP-Outils » (`0.2.0`).*
 
-Les trois outils hors ligne `greffe_parse_court_file_number`, `palais_list` et `palais_get`, leurs tables TypeScript (`src/qc/`), le relevé MJQ (`sources-officielles/mjq-numeros-greffes-2026-07-22.html`), son script d'extraction (`scripts/extraire-lieux-mjq.mjs`) et les tests dédiés (`test/qc.*.test.ts`, `test/fixtures/dossier-athena.json`) ne nécessitent ni clef CanLII ni authentification par secret partagé ; ils vivent désormais dans `pratique-civile-outils` avec leurs réserves d'intégrité (`GARDE_PALAIS`, `GARDE_SANS_ADRESSE`, `GARDE_DOSSIER`, `SANS_PLUMITIF`).
+Les trois outils hors ligne `greffe_parse_court_file_number`, `palais_list` et `palais_get`, leurs tables TypeScript (`src/qc/`), le relevé MJQ (`sources-officielles/mjq-numeros-greffes-2026-07-22.html`), son script d'extraction (`scripts/extraire-lieux-mjq.mjs`) et les tests dédiés (`test/qc.*.test.ts`, `test/fixtures/dossier-athena.json`) ne nécessitent ni clef CanLII ni authentification par secret partagé ; ils vivent désormais dans `MCP-Outils` avec leurs réserves d'intégrité (`GARDE_PALAIS`, `GARDE_SANS_ADRESSE`, `GARDE_DOSSIER`, `SANS_PLUMITIF`).
 
 Les numéros de sections §18, §19 et §20 ci-après restent inchangés afin de préserver les renvois internes du dépôt.
 
@@ -1177,7 +1177,7 @@ Les numéros de sections §18, §19 et §20 ci-après restent inchangés afin de
 
 ### 18.1 Ce que la page est, et ce qu'elle n'est pas
 
-Une page **statique, publique, bilingue** décrivant le connecteur : ses dix outils `jurisprudence_*`, leurs schémas et l'accès. Elle sert deux publics — qui n'a pas accès au connecteur, et qui l'utilise et veut relire le contrat — tout en renvoyant vers « pratique-civile-outils » pour les utilitaires hors ligne de greffes et palais déplacés le 2026-11-14.
+Une page **statique, publique, bilingue** décrivant le connecteur : ses dix outils `jurisprudence_*`, leurs schémas et l'accès. Elle sert deux publics — qui n'a pas accès au connecteur, et qui l'utilise et veut relire le contrat — tout en renvoyant vers « MCP-Outils » pour les utilitaires hors ligne de greffes et palais déplacés le 2026-11-14.
 
 Elle n'est **pas** une console, n'accepte aucune saisie, n'appelle rien et n'écrit rien.
 

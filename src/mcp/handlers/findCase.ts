@@ -10,7 +10,7 @@
  *   possible. La sortie le dit à chaque fois (GARDE_RECHERCHE).
  */
 
-import { err, ok, type ToolResult } from "@poirierlavoie/socle-juridique";
+import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
 import { CanliiBudgetError } from "../../canlii/errors";
 import type { CaseListResponse, Lang } from "../../canlii/types";

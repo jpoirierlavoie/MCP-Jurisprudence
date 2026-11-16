@@ -16,7 +16,7 @@
  * ║                                                                              ║
  * ║ NOTE HISTORIQUE (2026-11-14) : les trois outils hors ligne `greffe_*` et     ║
  * ║ `palais_*` ont été déplacés vers le connecteur public sans authentification  ║
- * ║ « pratique-civile-outils » (v0.2.0). Les dix outils restants portent         ║
+ * ║ « MCP Outils » (`MCP-Outils`, v0.2.0). Les dix outils restants portent       ║
  * ║ tous « CanLII » dans leur description en français et en anglais (épinglé     ║
  * ║ par test/garde.test.ts et test/site.test.ts).                                ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -39,12 +39,7 @@
  *     pour décider s'il RÉESSAIE.
  */
 
-import {
-  err,
-  type JsonSchema,
-  type ToolResult,
-  validateArgs,
-} from "@poirierlavoie/socle-juridique";
+import { err, type JsonSchema, type ToolResult, validateArgs } from "@poirierlavoie/mcp-socle";
 import type { CanliiClient } from "../canlii/client";
 import { LIMITES, OFFSET_DEFAUT, OFFSET_MAX } from "./defauts";
 import { browseCases } from "./handlers/browseCases";
@@ -230,7 +225,7 @@ export const INSTRUCTIONS =
   "existence. Pour analyser un numéro de dossier judiciaire québécois " +
   "(greffe_parse_court_file_number) ou consulter le répertoire des palais de justice et " +
   "greffes du Québec (palais_list, palais_get), employer le connecteur public hors ligne " +
-  "« pratique-civile-outils ».";
+  "« Outils ».";
 
 export const TOOLS: Record<string, ToolDescriptor> = {
   // ── 7.1 — l'outil pivot ────────────────────────────────────────────────────

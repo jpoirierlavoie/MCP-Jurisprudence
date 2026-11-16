@@ -10,7 +10,7 @@
 
 This repository holds the **MCP Jurisprudence** connector — deterministic Canadian case-law and CanLII citation verification — a read-only Cloudflare Worker used by a practising Québec lawyer. It stores no client documents, but holds a personal CanLII API key and a shared authentication secret — both configured strictly as Cloudflare Worker secrets, never in this repository.
 
-*(Note: Offline Québec court file parsing and MJQ courthouse/registry lookups — `greffe_*` and `palais_*` — moved on 2026-11-14 to the separate public stateless connector [`pratique-civile-outils`](https://github.com/jpoirierlavoie/pratique-civile-outils).)*
+*(Note: Offline Québec court file parsing and MJQ courthouse/registry lookups — `greffe_*` and `palais_*` — moved on 2026-11-14 to the separate public stateless connector [`MCP-Outils`](https://github.com/jpoirierlavoie/MCP-Outils).)*
 
 ---
 
@@ -54,7 +54,7 @@ This connector is deliberately narrow. What leaves the infrastructure is **citat
 
 ## Authentication & Security Model
 
-- **Closed by default (`PORTE.nomsSecrets` in `src/index.ts`):** Controlled via `@poirierlavoie/socle-juridique` (`#v0.6.2`). Expects `MCP_SHARED_SECRET` (the legacy `MCP_SHARED_SECRET_ATHENA` secret was retired on 2026-09-17 after that client was removed). If `MCP_SHARED_SECRET` is unset, or if `MCP_ENABLED=false`, all `/mcp*` routes fail closed.
+- **Closed by default (`PORTE.nomsSecrets` in `src/index.ts`):** Controlled via `@poirierlavoie/mcp-socle` (`#v0.7.0`). Expects `MCP_SHARED_SECRET` (the legacy `MCP_SHARED_SECRET_ATHENA` secret was retired on 2026-09-17 after that client was removed). If `MCP_SHARED_SECRET` is unset, or if `MCP_ENABLED=false`, all `/mcp*` routes fail closed.
 - **Three equivalent bearer forms (no precedence):**
   1. `Authorization: Bearer <secret>` on `POST /mcp` (preferred for CLI/desktop/backend clients — never puts the secret in URLs or edge request logs)
   2. Query parameter `?key=<secret>` (supported for browser connector UIs such as claude.ai; note that URL-borne tokens can appear in Cloudflare edge URL logs, so never log `request.url` in Worker code)
