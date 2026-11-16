@@ -1,6 +1,6 @@
 /**
  * Les neuf autres gestionnaires (spécification §7.2 à §7.10), sur réponses figées.
- * `jurisprudence_verify_citations` a son propre fichier.
+ * `verify_citations` a son propre fichier.
  */
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -15,26 +15,22 @@ beforeEach(async () => {
   await resetDb();
 });
 
-describe("§7.10 — jurisprudence_parse_citation", () => {
+describe("§7.10 — parse_citation", () => {
   it("n'appelle rien, rend les identifiants et renvoie vers verify_citations", async () => {
     const client = fakeClient({});
-    const r = await callTool(
-      "jurisprudence_parse_citation",
-      { citation: "2020 QCCA 495" },
-      toolCtx(client),
-    );
+    const r = await callTool("parse_citation", { citation: "2020 QCCA 495" }, toolCtx(client));
     const out = texte(r);
     expect(client.chemins).toHaveLength(0);
     expect(out).toContain("aucun appel à CanLII");
     expect(out).toContain("database_id : qcca");
     expect(out).toContain("case_id     : 2020qcca495");
-    expect(out).toContain("jurisprudence_verify_citations");
+    expect(out).toContain("verify_citations");
   });
 
   it("annonce « oui » pour une correspondance réconciliée", async () => {
     // Depuis la migration 0003, QCCA est confirmé par observation.
     const r = await callTool(
-      "jurisprudence_parse_citation",
+      "parse_citation",
       { citation: "2020 QCCA 495" },
       toolCtx(fakeClient({})),
     );
@@ -48,7 +44,7 @@ describe("§7.10 — jurisprudence_parse_citation", () => {
     // Le rang « probable » n'est pas décoratif : il commande la suite (on tente
     // l'appel, on consigne le résultat). Il faut donc qu'il subsiste après 0003.
     const r = await callTool(
-      "jurisprudence_parse_citation",
+      "parse_citation",
       { citation: "2020 XXQQ 12" },
       toolCtx(fakeClient({})),
     );
@@ -59,7 +55,7 @@ describe("§7.10 — jurisprudence_parse_citation", () => {
 
   it("expose les formes parallèles d'une citation doctrinale", async () => {
     const r = await callTool(
-      "jurisprudence_parse_citation",
+      "parse_citation",
       { citation: "Dunsmuir c. Nouveau-Brunswick, [2008] 1 RCS 190, 2008 CSC 9 (CanLII)" },
       toolCtx(fakeClient({})),
     );
@@ -70,13 +66,13 @@ describe("§7.10 — jurisprudence_parse_citation", () => {
   });
 });
 
-describe("§7.7 — jurisprudence_list_databases", () => {
+describe("§7.7 — list_databases", () => {
   it("rafraîchit en deux appels et signale la réconciliation requise (§4.3)", async () => {
     const client = fakeClient({
       "caseBrowse/fr/": caseDatabases,
       "legislationBrowse/fr/": legislationDatabases,
     });
-    const r = await callTool("jurisprudence_list_databases", { refresh: true }, toolCtx(client));
+    const r = await callTool("list_databases", { refresh: true }, toolCtx(client));
     const out = texte(r);
     expect(client.chemins).toEqual(["caseBrowse/fr/", "legislationBrowse/fr/"]);
     expect(out).toContain("Cour d'appel du Québec");
@@ -103,9 +99,7 @@ describe("§7.7 — jurisprudence_list_databases", () => {
       "caseBrowse/fr/": caseDatabases,
       "legislationBrowse/fr/": legislationDatabases,
     });
-    const out = texte(
-      await callTool("jurisprudence_list_databases", { refresh: true }, toolCtx(client)),
-    );
+    const out = texte(await callTool("list_databases", { refresh: true }, toolCtx(client)));
 
     expect(out).toContain("RÉCONCILIATION REQUISE");
     expect(out).toContain("ZZTEST -> zz-inexistante");
@@ -117,9 +111,9 @@ describe("§7.7 — jurisprudence_list_databases", () => {
       "legislationBrowse/fr/": legislationDatabases,
     });
     const ctx = toolCtx(client);
-    await callTool("jurisprudence_list_databases", { refresh: true }, ctx);
+    await callTool("list_databases", { refresh: true }, ctx);
     const r = await callTool(
-      "jurisprudence_list_databases",
+      "list_databases",
       { kind: "case", jurisdiction: "qc", query: "quebec" },
       toolCtx(fakeClient({})),
     );
@@ -133,10 +127,10 @@ describe("§7.7 — jurisprudence_list_databases", () => {
   });
 });
 
-describe("§7.3 — jurisprudence_get_case", () => {
+describe("§7.3 — get_case", () => {
   it("refuse les deux formes à la fois", async () => {
     const r = await callTool(
-      "jurisprudence_get_case",
+      "get_case",
       { citation: "2008 CSC 9", database_id: "csc-scc", case_id: "2008scc9" },
       toolCtx(fakeClient({})),
     );
@@ -146,7 +140,7 @@ describe("§7.3 — jurisprudence_get_case", () => {
 
   it("refuse le mélange partiel citation + database_id ou case_id", async () => {
     const r1 = await callTool(
-      "jurisprudence_get_case",
+      "get_case",
       { citation: "2020 QCCA 495", database_id: "qcca" },
       toolCtx(fakeClient({})),
     );
@@ -154,7 +148,7 @@ describe("§7.3 — jurisprudence_get_case", () => {
     expect(texte(r1)).toContain("EXACTEMENT l'une des deux formes");
 
     const r2 = await callTool(
-      "jurisprudence_get_case",
+      "get_case",
       { citation: "2020 QCCA 495", case_id: "2020qcca495" },
       toolCtx(fakeClient({})),
     );
@@ -163,15 +157,11 @@ describe("§7.3 — jurisprudence_get_case", () => {
   });
 
   it("refuse l'absence des deux formes ou un identifiant incomplet", async () => {
-    const r = await callTool("jurisprudence_get_case", {}, toolCtx(fakeClient({})));
+    const r = await callTool("get_case", {}, toolCtx(fakeClient({})));
     expect(r.isError).toBe(true);
     expect(texte(r)).toContain("EXACTEMENT l'une des deux formes");
 
-    const rOnlyDb = await callTool(
-      "jurisprudence_get_case",
-      { database_id: "csc-scc" },
-      toolCtx(fakeClient({})),
-    );
+    const rOnlyDb = await callTool("get_case", { database_id: "csc-scc" }, toolCtx(fakeClient({})));
     expect(rOnlyDb.isError).toBe(true);
     expect(texte(rOnlyDb)).toContain("EXACTEMENT l'une des deux formes");
   });
@@ -179,7 +169,7 @@ describe("§7.3 — jurisprudence_get_case", () => {
   it("sert la fiche par identifiants et renvoie vers l'hyperlien pour le texte", async () => {
     const client = fakeClient({ "caseBrowse/fr/csc-scc/2008scc9/": dunsmuir });
     const r = await callTool(
-      "jurisprudence_get_case",
+      "get_case",
       { database_id: "csc-scc", case_id: "2008scc9" },
       toolCtx(client),
     );
@@ -204,7 +194,7 @@ describe("§7.3 — jurisprudence_get_case", () => {
 
     const client = fakeClient({ "caseBrowse/fr/csc-scc/2008scc9/": dunsmuir });
     const r = await callTool(
-      "jurisprudence_get_case",
+      "get_case",
       { database_id: "csc-scc", case_id: "2008scc9" },
       toolCtx(client),
     );
@@ -215,7 +205,7 @@ describe("§7.3 — jurisprudence_get_case", () => {
     // sert l'index local sans AUCUN appel sortant.
     const client2 = fakeClient({});
     const r2 = await callTool(
-      "jurisprudence_get_case",
+      "get_case",
       { database_id: "csc-scc", case_id: "2008scc9" },
       toolCtx(client2),
     );
@@ -225,16 +215,16 @@ describe("§7.3 — jurisprudence_get_case", () => {
 
   it("oriente vers find_case sur une citation non constructible", async () => {
     const r = await callTool(
-      "jurisprudence_get_case",
+      "get_case",
       { citation: "[1996] 3 R.C.S. 211" },
       toolCtx(fakeClient({})),
     );
     expect(r.isError).toBe(true);
-    expect(texte(r)).toContain("jurisprudence_find_case");
+    expect(texte(r)).toContain("find_case");
   });
 });
 
-describe("§7.4 — jurisprudence_citator", () => {
+describe("§7.4 — citator", () => {
   it("emploie « en » dans le chemin même en français (annexe B)", async () => {
     const client = fakeClient({
       "caseCitator/en/csc-scc/2008scc9/citingCases": {
@@ -249,7 +239,7 @@ describe("§7.4 — jurisprudence_citator", () => {
       },
     });
     const r = await callTool(
-      "jurisprudence_citator",
+      "citator",
       { database_id: "csc-scc", case_id: "2008scc9", rel: "citing" },
       toolCtx(client),
     );
@@ -277,7 +267,7 @@ describe("§7.4 — jurisprudence_citator", () => {
       },
     });
     const r = await callTool(
-      "jurisprudence_citator",
+      "citator",
       { database_id: "qcca", case_id: "2005qcca304", rel: "legislation" },
       toolCtx(client),
     );
@@ -291,7 +281,7 @@ describe("§7.4 — jurisprudence_citator", () => {
       "caseCitator/en/qcca/2005qcca304/citedCases": { citedCases: [] },
     });
     const r1 = await callTool(
-      "jurisprudence_citator",
+      "citator",
       { database_id: "qcca", case_id: "2005qcca304", rel: "cited" },
       toolCtx(client),
     );
@@ -299,7 +289,7 @@ describe("§7.4 — jurisprudence_citator", () => {
 
     const client2 = fakeClient({});
     await callTool(
-      "jurisprudence_citator",
+      "citator",
       { database_id: "qcca", case_id: "2005qcca304", rel: "cited" },
       toolCtx(client2),
     );
@@ -308,7 +298,7 @@ describe("§7.4 — jurisprudence_citator", () => {
 
   it("n'expose AUCUN paramètre lang (le citateur n'accepte que « en »)", async () => {
     const r = await callTool(
-      "jurisprudence_citator",
+      "citator",
       { database_id: "qcca", case_id: "x", rel: "cited", lang: "fr" },
       toolCtx(fakeClient({})),
     );
@@ -318,7 +308,7 @@ describe("§7.4 — jurisprudence_citator", () => {
 
   it("refuse les deux formes à la fois", async () => {
     const r = await callTool(
-      "jurisprudence_citator",
+      "citator",
       {
         citation: "2020 QCCA 495",
         database_id: "qcca",
@@ -333,7 +323,7 @@ describe("§7.4 — jurisprudence_citator", () => {
 
   it("refuse le mélange partiel citation + database_id ou case_id", async () => {
     const r1 = await callTool(
-      "jurisprudence_citator",
+      "citator",
       { citation: "2020 QCCA 495", database_id: "qcca", rel: "citing" },
       toolCtx(fakeClient({})),
     );
@@ -341,7 +331,7 @@ describe("§7.4 — jurisprudence_citator", () => {
     expect(texte(r1)).toContain("EXACTEMENT l'une des deux formes");
 
     const r2 = await callTool(
-      "jurisprudence_citator",
+      "citator",
       { citation: "2020 QCCA 495", case_id: "2020qcca495", rel: "citing" },
       toolCtx(fakeClient({})),
     );
@@ -350,12 +340,12 @@ describe("§7.4 — jurisprudence_citator", () => {
   });
 
   it("refuse l'absence des deux formes ou un identifiant incomplet", async () => {
-    const r = await callTool("jurisprudence_citator", { rel: "citing" }, toolCtx(fakeClient({})));
+    const r = await callTool("citator", { rel: "citing" }, toolCtx(fakeClient({})));
     expect(r.isError).toBe(true);
     expect(texte(r)).toContain("EXACTEMENT l'une des deux formes");
 
     const rOnlyDb = await callTool(
-      "jurisprudence_citator",
+      "citator",
       { database_id: "qcca", rel: "citing" },
       toolCtx(fakeClient({})),
     );
@@ -364,7 +354,7 @@ describe("§7.4 — jurisprudence_citator", () => {
   });
 });
 
-describe("§7.5 — jurisprudence_subsequent_history", () => {
+describe("§7.5 — subsequent_history", () => {
   beforeEach(async () => {
     await seedDatabases();
     await env.DB.prepare(
@@ -399,7 +389,7 @@ describe("§7.5 — jurisprudence_subsequent_history", () => {
 
   it("retient la juridiction supérieure à intitulé proche, écarte le reste", async () => {
     const r = await callTool(
-      "jurisprudence_subsequent_history",
+      "subsequent_history",
       { database_id: "qccs", case_id: "2018qccs1234" },
       toolCtx(fakeClient(CITANTES)),
     );
@@ -411,7 +401,7 @@ describe("§7.5 — jurisprudence_subsequent_history", () => {
 
   it("porte la mise en garde EN TÊTE ET EN PIED, sans aucune affirmation", async () => {
     const r = await callTool(
-      "jurisprudence_subsequent_history",
+      "subsequent_history",
       { database_id: "qccs", case_id: "2018qccs1234" },
       toolCtx(fakeClient(CITANTES)),
     );
@@ -443,7 +433,7 @@ describe("§7.5 — jurisprudence_subsequent_history", () => {
     ).run();
     const out = texte(
       await callTool(
-        "jurisprudence_subsequent_history",
+        "subsequent_history",
         { database_id: "qccs", case_id: "2018qccs1234" },
         toolCtx(
           fakeClient({
@@ -470,7 +460,7 @@ describe("§7.5 — jurisprudence_subsequent_history", () => {
 
   it("une liste vide ne conclut PAS à l'absence d'appel", async () => {
     const r = await callTool(
-      "jurisprudence_subsequent_history",
+      "subsequent_history",
       { database_id: "qccs", case_id: "2018qccs1234" },
       toolCtx(fakeClient({ "caseCitator/en/qccs/2018qccs1234/citingCases": { citingCases: [] } })),
     );
@@ -481,7 +471,7 @@ describe("§7.5 — jurisprudence_subsequent_history", () => {
 
   it("refuse les deux formes à la fois", async () => {
     const r = await callTool(
-      "jurisprudence_subsequent_history",
+      "subsequent_history",
       {
         citation: "2020 QCCA 495",
         database_id: "qcca",
@@ -495,7 +485,7 @@ describe("§7.5 — jurisprudence_subsequent_history", () => {
 
   it("refuse le mélange partiel citation + database_id ou case_id", async () => {
     const r1 = await callTool(
-      "jurisprudence_subsequent_history",
+      "subsequent_history",
       { citation: "2020 QCCA 495", database_id: "qcca" },
       toolCtx(fakeClient({})),
     );
@@ -503,7 +493,7 @@ describe("§7.5 — jurisprudence_subsequent_history", () => {
     expect(texte(r1)).toContain("EXACTEMENT l'une des deux formes");
 
     const r2 = await callTool(
-      "jurisprudence_subsequent_history",
+      "subsequent_history",
       { citation: "2020 QCCA 495", case_id: "2020qcca495" },
       toolCtx(fakeClient({})),
     );
@@ -512,12 +502,12 @@ describe("§7.5 — jurisprudence_subsequent_history", () => {
   });
 
   it("refuse l'absence des deux formes ou un identifiant incomplet", async () => {
-    const r = await callTool("jurisprudence_subsequent_history", {}, toolCtx(fakeClient({})));
+    const r = await callTool("subsequent_history", {}, toolCtx(fakeClient({})));
     expect(r.isError).toBe(true);
     expect(texte(r)).toContain("EXACTEMENT l'une des deux formes");
 
     const rOnlyDb = await callTool(
-      "jurisprudence_subsequent_history",
+      "subsequent_history",
       { database_id: "qcca" },
       toolCtx(fakeClient({})),
     );
@@ -526,11 +516,11 @@ describe("§7.5 — jurisprudence_subsequent_history", () => {
   });
 });
 
-describe("§7.6 — jurisprudence_browse_cases", () => {
+describe("§7.6 — browse_cases", () => {
   it("refuse une date mal formée AVANT tout appel", async () => {
     const client = fakeClient({});
     const r = await callTool(
-      "jurisprudence_browse_cases",
+      "browse_cases",
       { database_id: "qcca", decision_date_after: "01-01-2020" },
       toolCtx(client),
     );
@@ -553,7 +543,7 @@ describe("§7.6 — jurisprudence_browse_cases", () => {
       },
     });
     const r = await callTool(
-      "jurisprudence_browse_cases",
+      "browse_cases",
       { database_id: "qcca", published_after: "2026-07-01" },
       toolCtx(client),
     );
@@ -571,16 +561,16 @@ describe("§7.6 — jurisprudence_browse_cases", () => {
         ],
       },
     });
-    await callTool("jurisprudence_browse_cases", { database_id: "qcca" }, toolCtx(client));
+    await callTool("browse_cases", { database_id: "qcca" }, toolCtx(client));
     const n = await env.DB.prepare("SELECT COUNT(*) AS n FROM cases").first<{ n: number }>();
     expect(n?.n).toBe(2);
   });
 });
 
-describe("§7.2 — jurisprudence_find_case", () => {
+describe("§7.2 — find_case", () => {
   it("refuse une fenêtre de plus de 3 ans sans tribunal (§7.2 point 4)", async () => {
     const r = await callTool(
-      "jurisprudence_find_case",
+      "find_case",
       { title: "Hydro-Québec", year_from: 1990, year_to: 2020 },
       toolCtx(fakeClient({})),
     );
@@ -609,7 +599,7 @@ describe("§7.2 — jurisprudence_find_case", () => {
     );
     const client = fakeClient({});
     const r = await callTool(
-      "jurisprudence_find_case",
+      "find_case",
       { title: "Hydro-Québec", database_id: "qcca", year_from: 2004, year_to: 2006 },
       toolCtx(client),
     );
@@ -640,7 +630,7 @@ describe("§7.2 — jurisprudence_find_case", () => {
       },
     });
     const r = await callTool(
-      "jurisprudence_find_case",
+      "find_case",
       { title: "Hydro-Québec", database_id: "qcca", year_from: 2005, year_to: 2005 },
       toolCtx(client),
     );
@@ -673,7 +663,7 @@ describe("§7.2 — jurisprudence_find_case", () => {
     });
     const out = texte(
       await callTool(
-        "jurisprudence_find_case",
+        "find_case",
         { title: "Hydro-Québec", database_id: "qcca", year_from: 2005, year_to: 2005 },
         toolCtx(client),
       ),
@@ -714,7 +704,7 @@ describe("§7.2 — jurisprudence_find_case", () => {
       },
     });
     await callTool(
-      "jurisprudence_find_case",
+      "find_case",
       { title: "Hydro-Québec", database_id: "qcca", year_from: 2005, year_to: 2005, live: true },
       toolCtx(client),
     );
@@ -729,7 +719,7 @@ describe("§7.2 — jurisprudence_find_case", () => {
   it("une absence de candidat n'établit pas l'inexistence", async () => {
     await seedDatabases();
     const r = await callTool(
-      "jurisprudence_find_case",
+      "find_case",
       { title: "Partie introuvable", database_id: "qcca", year_from: 2005, year_to: 2005 },
       toolCtx(fakeClient({ "caseBrowse/fr/qcca/": { cases: [] } })),
     );
@@ -760,7 +750,7 @@ describe("§7.8 et §7.9 — législation", () => {
       },
     });
     const r = await callTool(
-      "jurisprudence_browse_legislation",
+      "browse_legislation",
       { database_id: "qcs", query: "code civil" },
       toolCtx(client),
     );
@@ -774,7 +764,7 @@ describe("§7.8 et §7.9 — législation", () => {
   async function fiche(id: string, meta: Record<string, unknown>): Promise<string> {
     return texte(
       await callTool(
-        "jurisprudence_get_legislation",
+        "get_legislation",
         { database_id: "qcs", legislation_id: id },
         toolCtx(fakeClient({ [`legislationBrowse/fr/qcs/${id}/`]: meta })),
       ),
@@ -852,7 +842,7 @@ describe("§7.8 et §7.9 — législation", () => {
 
   it("get_legislation rend « oui » sur un booléen vrai et signale une valeur inconnue", async () => {
     const abroge = await callTool(
-      "jurisprudence_get_legislation",
+      "get_legislation",
       { database_id: "qcs", legislation_id: "x" },
       toolCtx(
         fakeClient({
@@ -863,7 +853,7 @@ describe("§7.8 et §7.9 — législation", () => {
     expect(texte(abroge)).toContain("Abrogé : oui");
 
     const bizarre = await callTool(
-      "jurisprudence_get_legislation",
+      "get_legislation",
       { database_id: "qcs", legislation_id: "y" },
       toolCtx(
         fakeClient({

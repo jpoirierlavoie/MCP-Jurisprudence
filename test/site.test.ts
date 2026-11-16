@@ -316,10 +316,10 @@ describe("§18 — le registre est la source, pas une copie", () => {
   const RESERVES_BILINGUES: Record<string, [RegExp, RegExp]> = {
     // Ajoutée le 2026-09-17 : les dates d'une fiche législative bornent la VERSION
     // servie par CanLII, jamais l'instrument.
-    jurisprudence_get_legislation: [/JAMAIS l'instrument/, /never the instrument/i],
+    get_legislation: [/JAMAIS l'instrument/, /never the instrument/i],
     // Ajoutée le 2026-09-17 : les deux comptes de la sortie ne mesurent pas le même
     // ensemble, et chaque phrase doit nommer le sien.
-    jurisprudence_list_databases: [/ENTIER/, /WHOLE directory/],
+    list_databases: [/ENTIER/, /WHOLE directory/],
   };
 
   it("une réserve SUBSTANTIELLE portée en français l'est aussi en anglais", () => {
@@ -336,8 +336,8 @@ describe("§18 — le registre est la source, pas une copie", () => {
     // — « état non livrable » — tant qu'elle n'est pas faite. Le français ne disait rien
     // de tel : l'anglais n'était donc pas une traduction mais une invention, ce qui est
     // précisément ce que `src/site.i18n.ts` interdit en tête de fichier.
-    expect(OUTILS_EN.jurisprudence_list_databases!.texte).not.toMatch(/\breconcil/i);
-    expect(OUTILS_EN.jurisprudence_list_databases!.texte).toMatch(/flagged/i);
+    expect(OUTILS_EN.list_databases!.texte).not.toMatch(/\breconcil/i);
+    expect(OUTILS_EN.list_databases!.texte).toMatch(/flagged/i);
   });
 });
 
@@ -420,12 +420,12 @@ describe("§18 / invariant 19 — la page dérive, et ses classes existent", () 
   it("le renvoi croisé get_case ↔ verify_citations tient dans les DEUX langues", async () => {
     // Le français vient du registre et ne peut pas dériver ; l'anglais est écrit à la
     // main dans OUTILS_EN, et c'est lui qui avait pris du retard.
-    const fr = TOOLS.jurisprudence_get_case!.description;
-    const frV = TOOLS.jurisprudence_verify_citations!.description;
-    expect(fr).toContain("jurisprudence_verify_citations");
-    expect(frV).toContain("jurisprudence_get_case");
-    expect(OUTILS_EN.jurisprudence_get_case!.texte).toContain("jurisprudence_verify_citations");
-    expect(OUTILS_EN.jurisprudence_verify_citations!.texte).toContain("jurisprudence_get_case");
+    const fr = TOOLS.get_case!.description;
+    const frV = TOOLS.verify_citations!.description;
+    expect(fr).toContain("verify_citations");
+    expect(frV).toContain("get_case");
+    expect(OUTILS_EN.get_case!.texte).toContain("verify_citations");
+    expect(OUTILS_EN.verify_citations!.texte).toContain("get_case");
   });
 
   it("chaque description de paramètre PARAÎT sur la page", async () => {

@@ -1,5 +1,5 @@
 /**
- * Registre des dix outils `jurisprudence_*` (spécification §7).
+ * Registre des dix outils MCP (spécification §7).
  *
  * ⚠ LES DESCRIPTIONS SONT REPRISES VERBATIM DE §7 ET NE DOIVENT PAS ÊTRE
  *   REFORMULÉES. Elles portent elles-mêmes leurs mises en garde : c'est le second
@@ -11,7 +11,7 @@
  * ║ PROVENANCE DANS LA DESCRIPTION (D8, amendée le 2026-09-16 ; §17 retiré le    ║
  * ║ 2026-11-14).                                                                 ║
  * ║                                                                              ║
- * ║   `jurisprudence_*`     la réponse se rapporte à la COLLECTION DE CANLII,    ║
+ * ║   serveur `juris`       la réponse se rapporte à la COLLECTION DE CANLII,    ║
  * ║   (10 outils)           et sa couverture comme ses verdicts en dépendent.      ║
  * ║                                                                              ║
  * ║ NOTE HISTORIQUE (2026-11-14) : les trois outils hors ligne `greffe_*` et     ║
@@ -25,7 +25,7 @@
  *   - nom d'outil en anglais, description ET sortie en français ;
  *   - `readOnlyHint: true` sur TOUS les outils : aucun n'écrit hors de son cache ;
  *   - `openWorldHint` N'EST PAS uniforme — vrai pour les NEUF qui interrogent CanLII
- *     (source de vérité distante), faux pour `jurisprudence_parse_citation` qui ne
+ *     (source de vérité distante), faux pour `parse_citation` qui ne
  *     fait aucun appel. Voir `DISTANT`/`LOCAL` et `SANS_APPEL` plus bas ;
  *   - tout paramètre déclaré porte une `description` ;
  *   - `additionalProperties: false` sur tous les schémas ;
@@ -70,7 +70,7 @@ export interface ToolDescriptor {
    *
    * C'est ce que le praticien lit dans l'invite d'AUTORISATION, au moment précis
    * où il décide de laisser l'outil s'exécuter. « Sorts ultérieurs — indice
-   * heuristique » y est plus utile que `jurisprudence_subsequent_history`, et la réserve
+   * heuristique » y est plus utile que `subsequent_history`, et la réserve
    * portée par le titre se lit AVANT l'appel plutôt qu'après.
    *
    * Un client qui ignore ce champ retombe sur `name` : rien ne casse.
@@ -87,7 +87,7 @@ export interface ToolDescriptor {
  * ⚠ `openWorldHint` N'EST PAS UNIFORME, et c'est le point (corrigé le 2026-09-16).
  *   Il annonce que la source de vérité est DISTANTE et peut changer sous les pieds de
  *   l'appelant. C'est vrai des neuf outils qui interrogent CanLII. Ce l'est FAUX de
- *   `jurisprudence_parse_citation`, qui lit un analyseur pur et le répertoire local sans
+ *   `parse_citation`, qui lit un analyseur pur et le répertoire local sans
  *   appeler CanLII : à version déployée égale, la même entrée rend la même sortie.
  *
  *   Le dire compte pour un client par programme : `openWorldHint: false` l'autorise à
@@ -100,7 +100,7 @@ const DISTANT = { readOnlyHint: true, openWorldHint: true } as const;
 const LOCAL = { readOnlyHint: true, openWorldHint: false } as const;
 
 /** Outil(s) dont la réponse ne dépend d'aucun appel sortant. */
-const SANS_APPEL = new Set(["jurisprudence_parse_citation"]);
+const SANS_APPEL = new Set(["parse_citation"]);
 
 const LANG: JsonSchema = {
   type: "string",
@@ -148,7 +148,7 @@ const BASE_ID: JsonSchema = {
   maxLength: 20,
   description:
     "Identifiant de base CanLII, p. ex. « qcca » (Cour d'appel du Québec) ou « csc-scc ». " +
-    "La liste exacte est rendue par jurisprudence_list_databases : la LIRE plutôt que la deviner, " +
+    "La liste exacte est rendue par list_databases : la LIRE plutôt que la deviner, " +
     "les identifiants fédéraux et administratifs ne suivent aucune règle prévisible.",
 };
 
@@ -158,7 +158,7 @@ const CASE_ID: JsonSchema = {
   maxLength: 60,
   description:
     "Identifiant CanLII de la décision DANS cette base, p. ex. « 2008csc9 ». Rendu par " +
-    "jurisprudence_verify_citations, jurisprudence_find_case et jurisprudence_browse_cases. " +
+    "verify_citations, find_case et browse_cases. " +
     "S'emploie AVEC database_id ; si l'on n'a que la citation neutre, renseigner « citation » à la place." +
     " ⚠ Fournir EXACTEMENT l'une des deux formes : soit « citation », soit le couple « database_id » + « case_id ». Les deux ensemble, ou aucune, sont REFUSÉS par l'outil — le schéma ne sait pas l'exprimer, lui seul le peut.",
 };
@@ -171,7 +171,7 @@ const CITATION_REF: JsonSchema = {
     "Citation neutre, p. ex. « 2008 CSC 9 » ou « 2020 QCCA 495 ». Voie la plus simple : elle " +
     "dispense de connaître database_id et case_id. Les recueils (R.C.S., R.J.Q., C.A.) et les " +
     "identifiants d'éditeur (J.E., REJB, EYB, AZ) ne sont PAS résolubles ici — passer par " +
-    "jurisprudence_find_case." +
+    "find_case." +
     " ⚠ Fournir EXACTEMENT l'une des deux formes : soit « citation », soit le couple « database_id » + « case_id ». Les deux ensemble, ou aucune, sont REFUSÉS par l'outil — le schéma ne sait pas l'exprimer, lui seul le peut.",
 };
 
@@ -194,7 +194,7 @@ export const SERVER_INFO = {
   // le jour où il devient le dernier endroit à dire l'inverse des douze autres.
   name: "mcp-jurisprudence",
   title: "MCP Jurisprudence",
-  version: "0.3.0",
+  version: "2.0.0",
 };
 
 /**
@@ -214,22 +214,22 @@ export const INSTRUCTIONS =
   "(aucun historique d'appel, aucun indicateur de traitement, aucun pourvoi pendant), " +
   "NI le contenu de son dispositif. Pour éprouver des citations tirées de la doctrine, " +
   "d'un moteur de recherche ou d'un texte rédigé par une IA, commencer par " +
-  "jurisprudence_verify_citations ; si la citation n'est pas constructible (recueils R.C.S. / " +
-  "R.J.Q. / C.A., identifiants J.E. / REJB / EYB / AZ), enchaîner avec jurisprudence_find_case. " +
+  "verify_citations ; si la citation n'est pas constructible (recueils R.C.S. / " +
+  "R.J.Q. / C.A., identifiants J.E. / REJB / EYB / AZ), enchaîner avec find_case. " +
   "Pour le TEXTE des lois et règlements du Québec, employer le connecteur « Législation " +
   "du Québec ». Les verdicts et la couverture dépendent de la collection de CanLII : " +
   "une absence n'est jamais une preuve d'inexistence. " +
   "C'est la description de chaque outil qui nomme sa source et ses limites. NEUF des dix " +
-  "outils jurisprudence_* interrogent CanLII ; le dixième, jurisprudence_parse_citation, " +
+  "outils interrogent CanLII ; le dixième, parse_citation, " +
   "n'appelle RIEN — il analyse une citation contre le répertoire local et ne confirme aucune " +
   "existence. Pour analyser un numéro de dossier judiciaire québécois " +
-  "(greffe_parse_court_file_number) ou consulter le répertoire des palais de justice et " +
+  "(greffe_parse_number) ou consulter le répertoire des palais de justice et " +
   "greffes du Québec (palais_list, palais_get), employer le connecteur public hors ligne " +
   "« Outils ».";
 
 export const TOOLS: Record<string, ToolDescriptor> = {
   // ── 7.1 — l'outil pivot ────────────────────────────────────────────────────
-  jurisprudence_verify_citations: {
+  verify_citations: {
     title: "Vérifier des citations",
     description:
       "Vérifie une ou plusieurs citations de jurisprudence contre la collection de CanLII. " +
@@ -246,8 +246,8 @@ export const TOOLS: Record<string, ToolDescriptor> = {
       "éprouver des références tirées de la doctrine, d'un moteur de recherche ou d'un texte " +
       "rédigé par une IA. Les citations de recueils (R.C.S., R.J.Q., C.A.) et les identifiants " +
       "d'éditeurs (J.E., REJB, EYB, AZ) ne sont pas résolubles directement : enchaîner avec " +
-      "jurisprudence_find_case. Pour la seule FICHE d'une décision déjà tenue pour juste, " +
-      "jurisprudence_get_case suffit et coûte moins.",
+      "find_case. Pour la seule FICHE d'une décision déjà tenue pour juste, " +
+      "get_case suffit et coûte moins.",
     inputSchema: {
       type: "object",
       properties: {
@@ -292,7 +292,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 
   // ── 7.2 ────────────────────────────────────────────────────────────────────
-  jurisprudence_find_case: {
+  find_case: {
     title: "Retrouver une décision par les parties",
     description:
       "Recherche une décision par les noms des parties ou un fragment d'intitulé, avec " +
@@ -314,7 +314,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
         database_id: {
           type: "string",
           maxLength: 20,
-          description: "Tribunal ciblé, p. ex. « qcca ». Voir jurisprudence_list_databases.",
+          description: "Tribunal ciblé, p. ex. « qcca ». Voir list_databases.",
         },
         year_from: {
           type: "integer",
@@ -357,7 +357,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 
   // ── 7.3 ────────────────────────────────────────────────────────────────────
-  jurisprudence_get_case: {
+  get_case: {
     title: "Fiche d'une décision",
     description:
       "Fiche CanLII d'une décision : intitulé, citation, date, numéro de dossier de cour, " +
@@ -366,7 +366,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
       "l'hyperlien. N'ÉPROUVE PAS la citation : aucun verdict, aucune comparaison d'intitulé, " +
       "aucun contrôle d'année — la fiche rendue est celle de la décision TROUVÉE, qui peut " +
       "n'être pas celle que l'on croyait citer. Pour savoir si une référence rencontrée " +
-      "ailleurs est juste, employer jurisprudence_verify_citations.",
+      "ailleurs est juste, employer verify_citations.",
     inputSchema: {
       type: "object",
       properties: {
@@ -382,7 +382,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 
   // ── 7.4 ────────────────────────────────────────────────────────────────────
-  jurisprudence_citator: {
+  citator: {
     title: "Citateur — listes brutes",
     description:
       "Citateur, sur la collection de CanLII : décisions citées PAR une décision (`cited`), " +
@@ -422,7 +422,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 
   // ── 7.5 ────────────────────────────────────────────────────────────────────
-  jurisprudence_subsequent_history: {
+  subsequent_history: {
     title: "Sorts ultérieurs — indice heuristique",
     description:
       "Indice heuristique de sorts ultérieurs : parmi les décisions DE LA COLLECTION DE " +
@@ -455,7 +455,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 
   // ── 7.6 ────────────────────────────────────────────────────────────────────
-  jurisprudence_browse_cases: {
+  browse_cases: {
     title: "Décisions d'un tribunal",
     description:
       "Liste les décisions d'un tribunal, les plus récemment diffusées en tête, avec filtres " +
@@ -492,7 +492,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 
   // ── 7.7 ────────────────────────────────────────────────────────────────────
-  jurisprudence_list_databases: {
+  list_databases: {
     title: "Répertoire des tribunaux et corpus",
     description:
       "Répertoire des bases de CanLII : cours et tribunaux (`kind='case'`) ou corpus " +
@@ -526,7 +526,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 
   // ── 7.8 ────────────────────────────────────────────────────────────────────
-  jurisprudence_browse_legislation: {
+  browse_legislation: {
     title: "Lois et règlements d'un corpus",
     description:
       "Liste les lois ou règlements d'une base législative DE CANLII (p. ex. « qcs » pour " +
@@ -552,7 +552,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 
   // ── 7.9 ────────────────────────────────────────────────────────────────────
-  jurisprudence_get_legislation: {
+  get_legislation: {
     title: "Fiche d'une loi ou d'un règlement",
     description:
       "Fiche CanLII d'une loi ou d'un règlement : citation, type, indicateur d'abrogation, " +
@@ -575,7 +575,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
           maxLength: 60,
           description:
             "Identifiant CanLII du texte DANS cette base, p. ex. « rlrq-c-c-25.01 ». Rendu par " +
-            "jurisprudence_browse_legislation : le LIRE plutôt que le composer.",
+            "browse_legislation : le LIRE plutôt que le composer.",
         },
         lang: LANG,
       },
@@ -586,7 +586,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 
   // ── 7.10 ───────────────────────────────────────────────────────────────────
-  jurisprudence_parse_citation: {
+  parse_citation: {
     title: "Analyser une citation (hors ligne)",
     description:
       "Analyse une citation SANS aucun appel : la réponse vient de l'analyseur local et du " +
@@ -595,7 +595,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
       "constructible, le database_id et le case_id qui en découlent. N'ÉTABLIT RIEN quant à " +
       "l'existence de la décision : « constructible » veut dire « bien formée », pas " +
       "« existante ». Outil de diagnostic ; pour éprouver réellement une référence, employer " +
-      "jurisprudence_verify_citations.",
+      "verify_citations.",
     inputSchema: {
       type: "object",
       properties: {

@@ -370,7 +370,7 @@ export async function searchLocal(
  * Liste les fiches d'un tribunal, les plus récentes en tête.
  *
  * ⚠ AUCUN OUTIL NE S'EN SERT AUJOURD'HUI, et le commentaire d'origine disait le
- *   contraire — « §7.6, servi du cache ». `jurisprudence_browse_cases` appelle CanLII
+ *   contraire — « §7.6, servi du cache ». `browse_cases` appelle CanLII
  *   à chaque fois et ne lit jamais cette table : il n'existe aucun chemin où un
  *   balayage soit servi depuis le cache. Corrigé le 2026-09-16.
  *

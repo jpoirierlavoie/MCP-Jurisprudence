@@ -1,5 +1,5 @@
 /**
- * `jurisprudence_find_case` (spécification §7.2, annexe A.2).
+ * `find_case` (spécification §7.2, annexe A.2).
  *
  * Index local d'abord, puis balayage vif. Tout ce qui est moissonné est PERSISTÉ
  * (décision D6) : c'est ainsi que l'index se construit — pas par téléchargement de
@@ -95,7 +95,7 @@ export async function findCase(
     if (!databaseId && etendue > FENETRE_MAX_SANS_TRIBUNAL) {
       return err(
         `Sans « database_id », la fenêtre de dates ne peut pas dépasser ${FENETRE_MAX_SANS_TRIBUNAL} ans ` +
-          `(demandée : ${etendue} ans, ${debut}→${fin}). Préciser le tribunal (voir jurisprudence_list_databases) ` +
+          `(demandée : ${etendue} ans, ${debut}→${fin}). Préciser le tribunal (voir list_databases) ` +
           "ou resserrer year_from / year_to.",
       );
     }
@@ -141,7 +141,7 @@ export async function findCase(
   const rendus = tous.slice(0, limit);
 
   await logSearch(ctx.db, {
-    tool: "jurisprudence_find_case",
+    tool: "find_case",
     query: titre,
     database_id: databaseId,
     lang,
@@ -237,7 +237,7 @@ export async function findCase(
     // viennent de fiches résolues, qui portent bien leur date.
     rendus.some((r) => !r.decision_date)
       ? "Un candidat rendu « — » n'a pas de date : les listes de CanLII n'en portent\n" +
-        "aucune. Pour la date exacte, employer jurisprudence_get_case."
+        "aucune. Pour la date exacte, employer get_case."
       : null,
     "",
     GARDE_RECHERCHE,

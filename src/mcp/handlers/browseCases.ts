@@ -1,5 +1,5 @@
 /**
- * `jurisprudence_browse_cases` (spécification §7.6).
+ * `browse_cases` (spécification §7.6).
  *
  * Trois familles de filtres de dates, qui ne mesurent PAS la même chose :
  *   - `decision_date_*` : la date de la décision ;
@@ -65,7 +65,7 @@ export async function browseCases(
     page = await ctx.client.get<CaseListResponse>(`caseBrowse/${lang}/${databaseId}/`, params);
   } catch (e) {
     await logSearch(ctx.db, {
-      tool: "jurisprudence_browse_cases",
+      tool: "browse_cases",
       query: appliques.join(", ") || "(sans filtre)",
       database_id: databaseId,
       lang,
@@ -92,7 +92,7 @@ export async function browseCases(
   if (persisterBalayages(ctx.env)) await upsertCases(ctx.db, lignes);
 
   await logSearch(ctx.db, {
-    tool: "jurisprudence_browse_cases",
+    tool: "browse_cases",
     query: appliques.join(", ") || "(sans filtre)",
     database_id: databaseId,
     lang,
@@ -109,7 +109,7 @@ export async function browseCases(
         "",
         ecartees > 0
           ? "Ce n'est PAS un constat d'absence : la cause est dans la LECTURE de la réponse,\npas dans la collection de CanLII."
-          : "Une liste vide n'établit pas l'absence de décisions : vérifier le database_id\n(jurisprudence_list_databases) et les bornes de dates, qui sont INCLUSIVES.",
+          : "Une liste vide n'établit pas l'absence de décisions : vérifier le database_id\n(list_databases) et les bornes de dates, qui sont INCLUSIVES.",
         filtreDiffusion ? `\n${GARDE_DIFFUSION}` : null,
       ]
         .filter((s): s is string => s !== null)

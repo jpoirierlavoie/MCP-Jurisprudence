@@ -151,7 +151,7 @@ describe("Manifestes Antigravity / Gemini et version — aucune dérive silencie
       expect(brut).not.toMatch(/[0-9a-f]{32,}/i);
     }
 
-    const agy = mcpConfig.mcpServers.jurisprudence;
+    const agy = mcpConfig.mcpServers.juris;
     expect(agy?.url).toBe("https://jurisprudence.poirierlavoie.ca/mcp");
     expect(agy?.headers?.Authorization).toBe(`Bearer $${"{MCP_JURISPRUDENCE_SECRET}"}`);
     expect(agy?.eager).toBeUndefined();
@@ -159,7 +159,7 @@ describe("Manifestes Antigravity / Gemini et version — aucune dérive silencie
 
     // Critiquement vide : évite d'injecter le GEMINI.md de développement dans les sessions utilisateur.
     expect(geminiExt.contextFileName).toEqual([]);
-    const gcli = geminiExt.mcpServers.jurisprudence;
+    const gcli = geminiExt.mcpServers.juris;
     expect(gcli?.httpUrl).toBe("https://jurisprudence.poirierlavoie.ca/mcp");
     expect(gcli?.headers?.Authorization).toBe(`Bearer $${"{MCP_JURISPRUDENCE_SECRET}"}`);
     expect(

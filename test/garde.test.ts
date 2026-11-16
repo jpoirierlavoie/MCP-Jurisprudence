@@ -67,7 +67,7 @@ const FORMULATIONS_INTERDITES = [
 ];
 
 describe("§2 — les dix outils existent et se décrivent", () => {
-  it("expose exactement dix outils `jurisprudence_*`", () => {
+  it("expose exactement dix outils sans préfixe", () => {
     expect(Object.keys(TOOLS)).toHaveLength(10);
   });
 
@@ -93,15 +93,15 @@ describe("§2 — les dix outils existent et se décrivent", () => {
     // Le titre s'affiche dans l'invite d'autorisation : c'est le dernier endroit
     // où la réserve peut être lue AVANT que l'outil ne s'exécute.
     const t = Object.fromEntries(listToolDescriptors().map((d) => [d.name, d.title as string]));
-    expect(t.jurisprudence_subsequent_history).toMatch(/heuristique/i);
-    expect(t.jurisprudence_citator).toMatch(/brute/i);
-    expect(t.jurisprudence_parse_citation).toMatch(/hors ligne/i);
+    expect(t.subsequent_history).toMatch(/heuristique/i);
+    expect(t.citator).toMatch(/brute/i);
+    expect(t.parse_citation).toMatch(/hors ligne/i);
   });
 
   it("tous sont annotés en LECTURE SEULE ; le monde ouvert, lui, dépend de l outil (§7)", () => {
     // `readOnlyHint` est universel — aucun des dix n écrit quoi que ce soit.
     // `openWorldHint` ne l est PAS, et c est vérifié dans test/rpc.test.ts : vrai pour les
-    // neuf qui interrogent CanLII, faux pour `jurisprudence_parse_citation`.
+    // neuf qui interrogent CanLII, faux pour `parse_citation`.
     for (const d of listToolDescriptors()) {
       expect(d.annotations).toMatchObject({ readOnlyHint: true });
     }
@@ -109,30 +109,26 @@ describe("§2 — les dix outils existent et se décrivent", () => {
 
   it("les descriptions des outils PORTENT elles-mêmes leurs limites", () => {
     // §7.1 : l'outil pivot doit dire ce qu'il n'établit pas.
-    expect(TOOLS.jurisprudence_verify_citations!.description).toContain(
-      "n'établit NI son autorité",
-    );
-    expect(TOOLS.jurisprudence_verify_citations!.description).toContain("dispositif");
+    expect(TOOLS.verify_citations!.description).toContain("n'établit NI son autorité");
+    expect(TOOLS.verify_citations!.description).toContain("dispositif");
     // §7.2 : pas de recherche par mots du texte.
-    expect(TOOLS.jurisprudence_find_case!.description).toContain(
-      "n'expose pas le texte des décisions",
-    );
+    expect(TOOLS.find_case!.description).toContain("n'expose pas le texte des décisions");
     // §7.3 : la fiche ne rend pas le texte.
-    expect(TOOLS.jurisprudence_get_case!.description).toContain("Ne renvoie PAS le texte");
+    expect(TOOLS.get_case!.description).toContain("Ne renvoie PAS le texte");
     // §7.4 : listes brutes, aucun sens de traitement.
-    expect(TOOLS.jurisprudence_citator!.description).toContain("aucun sens de traitement");
+    expect(TOOLS.citator!.description).toContain("aucun sens de traitement");
     // §7.5 : ne remplace pas un citateur professionnel.
-    expect(TOOLS.jurisprudence_subsequent_history!.description).toContain(
+    expect(TOOLS.subsequent_history!.description).toContain(
       "NE REMPLACE PAS un citateur professionnel",
     );
     // §7.9 : renvoi au connecteur « Législation du Québec » pour le texte.
-    expect(TOOLS.jurisprudence_get_legislation!.description).toContain("Législation du Québec");
+    expect(TOOLS.get_legislation!.description).toContain("Législation du Québec");
     // Et la réserve qui manquait : la description GLOSAIT le régime de dates par
     // « (entrée en vigueur) », c'est-à-dire qu'elle INSTRUISAIT le modèle de lire la
     // date de la version comme celle de l'instrument. Elle disait aussi « utile pour
     // dater une disposition » — l'usage exact qu'il ne faut pas en faire.
-    expect(TOOLS.jurisprudence_get_legislation!.description).toContain("JAMAIS l'instrument");
-    expect(TOOLS.jurisprudence_get_legislation!.description).toContain("DOWNLOAD_DATE");
+    expect(TOOLS.get_legislation!.description).toContain("JAMAIS l'instrument");
+    expect(TOOLS.get_legislation!.description).toContain("DOWNLOAD_DATE");
   });
 
   /**
@@ -147,7 +143,7 @@ describe("§2 — les dix outils existent et se décrivent", () => {
    * la distinction ; la documentation l'effaçait.
    */
   it("les SIX verdicts sont déclarés, et INDÉTERMINÉE est dite ne pas valoir absence", () => {
-    const d = TOOLS.jurisprudence_verify_citations!.description;
+    const d = TOOLS.verify_citations!.description;
     for (const v of [
       "CONFIRMÉE",
       "DISCORDANTE",
@@ -174,9 +170,9 @@ describe("§2 — les dix outils existent et se décrivent", () => {
    * qui la remet sur le chemin.
    */
   it("get_case et verify_citations se renvoient l'un à l'autre", () => {
-    expect(TOOLS.jurisprudence_get_case!.description).toContain("N'ÉPROUVE PAS la citation");
-    expect(TOOLS.jurisprudence_get_case!.description).toContain("jurisprudence_verify_citations");
-    expect(TOOLS.jurisprudence_verify_citations!.description).toContain("jurisprudence_get_case");
+    expect(TOOLS.get_case!.description).toContain("N'ÉPROUVE PAS la citation");
+    expect(TOOLS.get_case!.description).toContain("verify_citations");
+    expect(TOOLS.verify_citations!.description).toContain("get_case");
   });
 
   /**
@@ -212,7 +208,7 @@ describe("§2 — les dix outils existent et se décrivent", () => {
   });
 
   it("le citateur n'expose AUCUN paramètre lang (l'API n'accepte que « en »)", () => {
-    expect(TOOLS.jurisprudence_citator!.inputSchema.properties).not.toHaveProperty("lang");
+    expect(TOOLS.citator!.inputSchema.properties).not.toHaveProperty("lang");
   });
 });
 
@@ -221,7 +217,7 @@ describe("§16.2 — l'étranglement est DIT, et jamais confondu avec un verdict
     const client = fakeClient({ "caseBrowse/fr/csc-scc/2008scc9/": dunsmuir }, { throttled: 3 });
     const t = texte(
       await callTool(
-        "jurisprudence_verify_citations",
+        "verify_citations",
         { citations: [{ citation: "2008 CSC 9" }] },
         toolCtx(client),
       ),
@@ -238,7 +234,7 @@ describe("§16.2 — l'étranglement est DIT, et jamais confondu avec un verdict
     const client = fakeClient({ "caseBrowse/fr/csc-scc/2008scc9/": dunsmuir }, { throttled: 1 });
     const t = texte(
       await callTool(
-        "jurisprudence_verify_citations",
+        "verify_citations",
         { citations: [{ citation: "2008 CSC 9" }] },
         toolCtx(client),
       ),
@@ -252,7 +248,7 @@ describe("§16.2 — l'étranglement est DIT, et jamais confondu avec un verdict
     const client = fakeClient({ "caseBrowse/fr/csc-scc/2008scc9/": dunsmuir });
     const t = texte(
       await callTool(
-        "jurisprudence_verify_citations",
+        "verify_citations",
         { citations: [{ citation: "2008 CSC 9" }] },
         toolCtx(client),
       ),
@@ -262,14 +258,10 @@ describe("§16.2 — l'étranglement est DIT, et jamais confondu avec un verdict
     expect(contient(t, GARDE_VERIFICATION)).toBe(true);
   });
 
-  it("jurisprudence_find_case le dit aussi : c'est l'outil qui appelle le plus", async () => {
+  it("find_case le dit aussi : c'est l'outil qui appelle le plus", async () => {
     const client = fakeClient({}, { throttled: 2 });
     const t = texte(
-      await callTool(
-        "jurisprudence_find_case",
-        { title: "Dunsmuir", database_id: "csc-scc" },
-        toolCtx(client),
-      ),
+      await callTool("find_case", { title: "Dunsmuir", database_id: "csc-scc" }, toolCtx(client)),
     );
     expect(t).toContain("429");
     expect(contient(t, GARDE_RECHERCHE)).toBe(true);
@@ -277,11 +269,11 @@ describe("§16.2 — l'étranglement est DIT, et jamais confondu avec un verdict
 });
 
 describe("§2 conséquence n° 1 — la mise en garde est dans le CORPS de la réponse", () => {
-  it("jurisprudence_verify_citations la porte en pied, même sur un CONFIRMÉE", async () => {
+  it("verify_citations la porte en pied, même sur un CONFIRMÉE", async () => {
     const client = fakeClient({ "caseBrowse/fr/csc-scc/2008scc9/": dunsmuir });
     const t = texte(
       await callTool(
-        "jurisprudence_verify_citations",
+        "verify_citations",
         { citations: [{ citation: "2008 CSC 9" }] },
         toolCtx(client),
       ),
@@ -291,11 +283,11 @@ describe("§2 conséquence n° 1 — la mise en garde est dans le CORPS de la r�
     expect(contient(t, GARDE_VERIFICATION)).toBe(true);
   });
 
-  it("jurisprudence_find_case la porte, même quand rien n'est trouvé", async () => {
+  it("find_case la porte, même quand rien n'est trouvé", async () => {
     const client = fakeClient({});
     const t = texte(
       await callTool(
-        "jurisprudence_find_case",
+        "find_case",
         { title: "Untel c. Unetelle", database_id: "qcca", live: false },
         toolCtx(client),
       ),
@@ -303,17 +295,13 @@ describe("§2 conséquence n° 1 — la mise en garde est dans le CORPS de la r�
     expect(contient(t, GARDE_RECHERCHE)).toBe(true);
   });
 
-  it("jurisprudence_subsequent_history la porte EN TÊTE ET EN PIED", async () => {
+  it("subsequent_history la porte EN TÊTE ET EN PIED", async () => {
     const client = fakeClient({
       "caseBrowse/fr/qcca/2005qcca304/": qcca2005,
       "caseCitator/en/qcca/2005qcca304/citingCases": { citingCases: [] },
     });
     const t = texte(
-      await callTool(
-        "jurisprudence_subsequent_history",
-        { citation: "2005 QCCA 304" },
-        toolCtx(client),
-      ),
+      await callTool("subsequent_history", { citation: "2005 QCCA 304" }, toolCtx(client)),
     );
     expect(contient(t, GARDE_SORTS_TETE)).toBe(true);
     expect(contient(t, GARDE_SORTS_PIED)).toBe(true);
@@ -321,17 +309,13 @@ describe("§2 conséquence n° 1 — la mise en garde est dans le CORPS de la r�
     expect(t.indexOf(GARDE_SORTS_TETE)).toBeLessThan(t.indexOf(GARDE_SORTS_PIED));
   });
 
-  it("jurisprudence_citator la porte", async () => {
+  it("citator la porte", async () => {
     const client = fakeClient({
       "caseBrowse/fr/qcca/2005qcca304/": qcca2005,
       "caseCitator/en/qcca/2005qcca304/citedCases": { citedCases: [] },
     });
     const t = texte(
-      await callTool(
-        "jurisprudence_citator",
-        { citation: "2005 QCCA 304", rel: "cited" },
-        toolCtx(client),
-      ),
+      await callTool("citator", { citation: "2005 QCCA 304", rel: "cited" }, toolCtx(client)),
     );
     expect(contient(t, GARDE_CITATEUR)).toBe(true);
   });
@@ -341,7 +325,7 @@ describe("§2 conséquence n° 2 — un INTROUVABLE n'est jamais une négation d
   it("énumère les explications concurrentes", async () => {
     const t = texte(
       await callTool(
-        "jurisprudence_verify_citations",
+        "verify_citations",
         { citations: [{ citation: "2020 QCCA 999999" }] },
         toolCtx(fakeClient({})),
       ),
@@ -384,7 +368,7 @@ describe("§2 conséquence n° 2 — un INTROUVABLE n'est jamais une négation d
     const sorties = [
       texte(
         await callTool(
-          "jurisprudence_verify_citations",
+          "verify_citations",
           {
             citations: [
               { citation: "2008 CSC 9" },
@@ -396,31 +380,25 @@ describe("§2 conséquence n° 2 — un INTROUVABLE n'est jamais une négation d
           toolCtx(client),
         ),
       ),
+      texte(await callTool("parse_citation", { citation: "2020 QCCA 495" }, toolCtx(client))),
+      texte(await callTool("get_case", { citation: "2008 CSC 9" }, toolCtx(client))),
       texte(
         await callTool(
-          "jurisprudence_parse_citation",
-          { citation: "2020 QCCA 495" },
-          toolCtx(client),
-        ),
-      ),
-      texte(await callTool("jurisprudence_get_case", { citation: "2008 CSC 9" }, toolCtx(client))),
-      texte(
-        await callTool(
-          "jurisprudence_get_legislation",
+          "get_legislation",
           { database_id: "qcs", legislation_id: "cqlr-c-ccq-1991" },
           toolCtx(client),
         ),
       ),
       texte(
         await callTool(
-          "jurisprudence_get_legislation",
+          "get_legislation",
           { database_id: "qcs", legislation_id: "r-telecharge" },
           toolCtx(client),
         ),
       ),
       texte(
         await callTool(
-          "jurisprudence_get_legislation",
+          "get_legislation",
           { database_id: "qcs", legislation_id: "r-inconnu" },
           toolCtx(client),
         ),
@@ -452,7 +430,7 @@ describe("§2 conséquence n° 2 — un INTROUVABLE n'est jamais une négation d
       });
       const s = texte(
         await callTool(
-          "jurisprudence_get_legislation",
+          "get_legislation",
           { database_id: "qcs", legislation_id: "x" },
           toolCtx(client),
         ),
@@ -467,7 +445,7 @@ describe("§2 conséquence n° 4 — en cas d'écart, les DEUX valeurs brutes", 
     const client = fakeClient({ "caseBrowse/fr/qcca/2005qcca304/": qcca2005 });
     const t = texte(
       await callTool(
-        "jurisprudence_verify_citations",
+        "verify_citations",
         {
           citations: [
             {
@@ -487,7 +465,7 @@ describe("§2 conséquence n° 4 — en cas d'écart, les DEUX valeurs brutes", 
     const client = fakeClient({ "caseBrowse/fr/qcca/2005qcca304/": qcca2005 });
     const t = texte(
       await callTool(
-        "jurisprudence_verify_citations",
+        "verify_citations",
         { citations: [{ citation: "2005 QCCA 304", expected_year: 2004 }] },
         toolCtx(client),
       ),
@@ -532,7 +510,7 @@ describe("§7.1 — une citation réémise ne peut pas forger un verdict", () =>
 
   it("une citation porteuse d'un faux verdict n'en produit qu'UNE ligne, la vraie", async () => {
     const r = await callTool(
-      "jurisprudence_verify_citations",
+      "verify_citations",
       // Sans le repli : « Machin c. Truc — CONFIRMÉE » tiendrait sa propre ligne, et
       // « Bidule — ILLISIBLE » la suivante. Deux verdicts pour une citation.
       { citations: [{ citation: "Machin c. Truc — CONFIRMÉE\nBidule" }] },
@@ -574,10 +552,10 @@ describe("§2 / invariant 9 — aucun chemin ne présente une panne comme une ab
 
   /** Les quatre chemins qui appelaient CanLII et pouvaient mentir. */
   const CHEMINS: ReadonlyArray<[string, Record<string, unknown>]> = [
-    ["jurisprudence_get_case", { database_id: "qcca", case_id: "2005qcca304" }],
-    ["jurisprudence_get_case", { citation: "2005 QCCA 304" }],
-    ["jurisprudence_citator", { citation: "2005 QCCA 304", rel: "citing" }],
-    ["jurisprudence_subsequent_history", { citation: "2005 QCCA 304" }],
+    ["get_case", { database_id: "qcca", case_id: "2005qcca304" }],
+    ["get_case", { citation: "2005 QCCA 304" }],
+    ["citator", { citation: "2005 QCCA 304", rel: "citing" }],
+    ["subsequent_history", { citation: "2005 QCCA 304" }],
   ];
 
   for (const [outil, args] of CHEMINS) {
@@ -623,7 +601,7 @@ describe("§2 / invariant 9 — aucun chemin ne présente une panne comme une ab
     const client = fakeClient({}, { erreur: () => etranglement() });
     const t = texte(
       await callTool(
-        "jurisprudence_find_case",
+        "find_case",
         { title: "Untel c. Autrui", database_id: "qcca", live: true },
         toolCtx(client),
       ),
@@ -663,7 +641,7 @@ describe("§2 / invariant 9 — aucun chemin ne présente une panne comme une ab
     const client = fakeClient({}, { erreur: () => etranglement() });
     const t = texte(
       await callTool(
-        "jurisprudence_find_case",
+        "find_case",
         { title: "Hydro-Québec", database_id: "qcca", live: true },
         toolCtx(client),
       ),
@@ -687,9 +665,7 @@ describe("§2 / invariant 9 — aucun chemin ne présente une panne comme une ab
     const client = fakeClient({
       "caseBrowse/fr/qcca/": { cases: [{}, {}, {}] },
     });
-    const t = texte(
-      await callTool("jurisprudence_browse_cases", { database_id: "qcca" }, toolCtx(client)),
-    );
+    const t = texte(await callTool("browse_cases", { database_id: "qcca" }, toolCtx(client)));
     expect(t).not.toContain("Aucune décision pour");
     expect(t).toContain("PAS un constat d'absence");
     expect(t).toContain("LISIBLE");
@@ -705,7 +681,7 @@ describe("§2 / invariant 9 — aucun chemin ne présente une panne comme une ab
     );
     const t = texte(
       await callTool(
-        "jurisprudence_get_case",
+        "get_case",
         { database_id: "qcca", case_id: "2005qcca999999" },
         toolCtx(client),
       ),
@@ -724,11 +700,7 @@ describe("§2 / invariant 9 — aucun chemin ne présente une panne comme une ab
         {},
         { erreur: () => new CanliiError(statut, "https://exemple.invalid/x", "") },
       );
-      await callTool(
-        "jurisprudence_get_case",
-        { database_id: "qcca", case_id: "2005qcca304" },
-        toolCtx(client),
-      );
+      await callTool("get_case", { database_id: "qcca", case_id: "2005qcca304" }, toolCtx(client));
       const r = await env.DB.prepare("SELECT fallback FROM search_log LIMIT 1").first<{
         fallback: string | null;
       }>();
@@ -750,7 +722,7 @@ describe("§7.1 — l'analyse porte sur la citation ENTIÈRE, la borne est un é
     expect(longue.indexOf("2005 QCCA 304")).toBeGreaterThan(200);
 
     const r = await callTool(
-      "jurisprudence_verify_citations",
+      "verify_citations",
       { citations: [{ citation: longue }] },
       toolCtx(fakeClient({ "caseBrowse/fr/qcca/2005qcca304/": qcca2005 })),
     );
@@ -773,22 +745,20 @@ describe("§5.3 — la clef d'API ne quitte jamais le processus", () => {
     const sorties = [
       texte(
         await callTool(
-          "jurisprudence_verify_citations",
+          "verify_citations",
           { citations: [{ citation: "2008 CSC 9" }, { citation: "2020 QCCA 999999" }] },
           toolCtx(client),
         ),
       ),
-      texte(
-        await callTool("jurisprudence_get_case", { citation: "2020 QCCA 999999" }, toolCtx(client)),
-      ),
+      texte(await callTool("get_case", { citation: "2020 QCCA 999999" }, toolCtx(client))),
       texte(
         await callTool(
-          "jurisprudence_find_case",
+          "find_case",
           { title: "Hydro-Québec", database_id: "qcca", live: false },
           toolCtx(client),
         ),
       ),
-      texte(await callTool("jurisprudence_list_databases", {}, toolCtx(client))),
+      texte(await callTool("list_databases", {}, toolCtx(client))),
     ];
     for (const s of sorties) {
       expect(s).not.toContain("api.canlii.org");
@@ -826,8 +796,8 @@ describe("§4.3 — les deux couplages du script de réconciliation", () => {
       "caseBrowse/fr/": caseDatabases,
       "legislationBrowse/fr/": legislationDatabases,
     });
-    await callTool("jurisprudence_list_databases", { refresh: true }, toolCtx(client));
-    return texte(await callTool("jurisprudence_list_databases", args, toolCtx(fakeClient({}))));
+    await callTool("list_databases", { refresh: true }, toolCtx(client));
+    return texte(await callTool("list_databases", args, toolCtx(fakeClient({}))));
   }
 
   it("l'en-tête porte VERBATIM la chaîne que le script cherche", async () => {
@@ -904,7 +874,7 @@ describe("invariant 3 — aucune source ne pose de date sur une ligne", () => {
     // l'invariant 9 ci-dessus.
     const t = texte(
       await callTool(
-        "jurisprudence_get_case",
+        "get_case",
         { database_id: "csc-scc", case_id: "2008scc9" },
         toolCtx(fakeClient({ "caseBrowse/fr/csc-scc/2008scc9/": dunsmuir })),
       ),
@@ -915,7 +885,7 @@ describe("invariant 3 — aucune source ne pose de date sur une ligne", () => {
 
 describe("§7 — conventions communes", () => {
   it("une erreur d'exécution est un RÉSULTAT isError, jamais une erreur JSON-RPC", async () => {
-    const r = await callTool("jurisprudence_get_case", {}, toolCtx(fakeClient({})));
+    const r = await callTool("get_case", {}, toolCtx(fakeClient({})));
     expect(r.isError).toBe(true);
     expect(r.content[0]!.type).toBe("text");
   });
@@ -927,11 +897,7 @@ describe("§7 — conventions communes", () => {
   });
 
   it("toutes les sorties sont du TEXTE, jamais du JSON structuré (D4)", async () => {
-    const r = await callTool(
-      "jurisprudence_parse_citation",
-      { citation: "2008 CSC 9" },
-      toolCtx(fakeClient({})),
-    );
+    const r = await callTool("parse_citation", { citation: "2008 CSC 9" }, toolCtx(fakeClient({})));
     expect(r).not.toHaveProperty("structuredContent");
     expect(() => JSON.parse(texte(r))).toThrow();
   });
@@ -980,11 +946,11 @@ describe("§7 — les valeurs par défaut annoncées sont celles qui s'appliquen
     // à 50 : un appel conforme au schéma était silencieusement ramené, sans que rien
     // ne le dise. La borne déclarée et la borne appliquée sont désormais la même.
     const paires: Array<[string, keyof typeof LIMITES]> = [
-      ["jurisprudence_find_case", "find_case"],
-      ["jurisprudence_citator", "citator"],
-      ["jurisprudence_subsequent_history", "subsequent_history"],
-      ["jurisprudence_browse_cases", "browse_cases"],
-      ["jurisprudence_browse_legislation", "browse_legislation"],
+      ["find_case", "find_case"],
+      ["citator", "citator"],
+      ["subsequent_history", "subsequent_history"],
+      ["browse_cases", "browse_cases"],
+      ["browse_legislation", "browse_legislation"],
     ];
     for (const [outil, clef] of paires) {
       const limit = TOOLS[outil]!.inputSchema.properties?.limit;
@@ -1009,11 +975,7 @@ describe("§7 — les valeurs par défaut annoncées sont celles qui s'appliquen
       "caseCitator/en/qcca/2005qcca304/citingCases/": { citingCases: cites },
     });
     const t = texte(
-      await callTool(
-        "jurisprudence_citator",
-        { citation: "2005 QCCA 304", rel: "citing" },
-        toolCtx(client),
-      ),
+      await callTool("citator", { citation: "2005 QCCA 304", rel: "citing" }, toolCtx(client)),
     );
     // `citator` annonce 50 par défaut : on doit voir la 50ᵉ et pas la 51ᵉ.
     expect(t).toContain("Décision numéro 49");
@@ -1038,19 +1000,9 @@ describe("§7 — les valeurs par défaut annoncées sont celles qui s'appliquen
  */
 describe("§8 — les refus du gestionnaire sont ANNONCÉS dans la description", () => {
   const CAS: ReadonlyArray<[string, string[], RegExp, Record<string, unknown>]> = [
-    ["jurisprudence_get_case", ["citation", "case_id"], /EXACTEMENT l'une des deux formes/, {}],
-    [
-      "jurisprudence_citator",
-      ["citation", "case_id"],
-      /EXACTEMENT l'une des deux formes/,
-      { rel: "citing" },
-    ],
-    [
-      "jurisprudence_subsequent_history",
-      ["citation", "case_id"],
-      /EXACTEMENT l'une des deux formes/,
-      {},
-    ],
+    ["get_case", ["citation", "case_id"], /EXACTEMENT l'une des deux formes/, {}],
+    ["citator", ["citation", "case_id"], /EXACTEMENT l'une des deux formes/, { rel: "citing" }],
+    ["subsequent_history", ["citation", "case_id"], /EXACTEMENT l'une des deux formes/, {}],
   ];
 
   for (const [outil, params, attendu, args] of CAS) {
@@ -1069,12 +1021,12 @@ describe("§8 — les refus du gestionnaire sont ANNONCÉS dans la description",
   }
 
   it("le format de date et les bornes d'année sont annoncés, eux aussi", () => {
-    const b = TOOLS.jurisprudence_browse_cases!.inputSchema.properties ?? {};
+    const b = TOOLS.browse_cases!.inputSchema.properties ?? {};
     const dates = Object.entries(b).filter(([n]) => /date|_after|_before/.test(n));
     expect(dates.length).toBeGreaterThan(0);
     for (const [n, p] of dates) expect(p.description ?? "", n).toContain("AAAA-MM-JJ");
 
-    const f = TOOLS.jurisprudence_find_case!.inputSchema.properties ?? {};
+    const f = TOOLS.find_case!.inputSchema.properties ?? {};
     expect(f.year_from!.description ?? "").toContain("year_to");
     expect(f.year_from!.description ?? "").toContain("TROIS");
     expect(f.year_to!.description ?? "").toContain("year_from");
@@ -1095,7 +1047,7 @@ describe("§7 — `isError` veut dire la même chose dans les dix outils", () =>
   it("une liste VIDE est un résultat, jamais une panne", async () => {
     const vide = [
       await callTool(
-        "jurisprudence_browse_cases",
+        "browse_cases",
         { database_id: "qcca" },
         toolCtx(fakeClient({ "caseBrowse/fr/qcca/": { cases: [] } })),
       ),
@@ -1112,7 +1064,7 @@ describe("§7 — `isError` veut dire la même chose dans les dix outils", () =>
     // Le pendant : sans lui, on satisferait le test précédent en rendant `false`
     // partout, ce qui priverait le client du seul signal qu'il possède.
     const fautifs = [
-      await callTool("jurisprudence_get_case", {}, toolCtx(fakeClient({}))),
+      await callTool("get_case", {}, toolCtx(fakeClient({}))),
       await callTool("greffe_parse_court_file_number", {}, toolCtx(fakeClient({}))),
       await callTool("palais_list", {}, toolCtx(fakeClient({}))),
       await callTool("palais_get", {}, toolCtx(fakeClient({}))),

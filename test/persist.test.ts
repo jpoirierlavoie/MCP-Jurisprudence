@@ -405,7 +405,7 @@ describe("répertoire et auto-correction", () => {
 describe("télémétrie : elle n'échoue jamais l'outil qu'elle observe", () => {
   it("consigne une ligne par invocation, verdict compris", async () => {
     await logSearch(db, {
-      tool: "jurisprudence_verify_citations",
+      tool: "verify_citations",
       query: "2008 CSC 9",
       result_count: 1,
       verdict: "CONFIRMÉE",
@@ -414,7 +414,7 @@ describe("télémétrie : elle n'échoue jamais l'outil qu'elle observe", () => 
       .prepare("SELECT tool, query, verdict, result_count FROM search_log")
       .first<{ tool: string; verdict: string; result_count: number }>();
     expect(r).toMatchObject({
-      tool: "jurisprudence_verify_citations",
+      tool: "verify_citations",
       verdict: "CONFIRMÉE",
       result_count: 1,
     });
@@ -469,5 +469,16 @@ describe("télémétrie : elle n'échoue jamais l'outil qu'elle observe", () => 
     ).resolves.toBeUndefined();
     await expect(flushUsage(casse, { calls: 1, errors: 0, throttled: 0 })).resolves.toBeUndefined();
     await expect(upsertCase(casse, row())).resolves.toBeUndefined();
+  });
+
+  it("normalise par déclencheur une insertion héritée `jurisprudence_*` dans search_log (migration 0006)", async () => {
+    await logSearch(db, {
+      tool: "jurisprudence_verify_citations",
+      query: "2008 CSC 9",
+      result_count: 1,
+      verdict: "CONFIRMÉE",
+    });
+    const r = await db.prepare("SELECT tool FROM search_log").first<{ tool: string }>();
+    expect(r?.tool).toBe("verify_citations");
   });
 });

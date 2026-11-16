@@ -409,9 +409,9 @@ function descripteurs(): Descripteur[] {
  * Le marqueur d'appel sortant, DÉRIVÉ de `openWorldHint`.
  *
  * ⚠ Formulation load-bearing. `openWorldHint: true` dit que la SOURCE DE VÉRITÉ est
- *   distante — PAS qu'un appel part à chaque invocation. `jurisprudence_get_case` sert
+ *   distante — PAS qu'un appel part à chaque invocation. `get_case` sert
  *   sa fiche depuis D1 sans aucun appel dès qu'une ligne fraîche existe, et
- *   `jurisprudence_list_databases` ne rafraîchit qu'au bout de sept jours. Écrire
+ *   `list_databases` ne rafraîchit qu'au bout de sept jours. Écrire
  *   « Appel sortant à CanLII » serait donc faux dans le cas le plus courant, et faux
  *   avec l'aplomb d'une valeur dérivée. On annonce la SOURCE, pas le trafic.
  */
@@ -447,7 +447,7 @@ ${biP(
   [
     "Dix outils dont la réponse se rapporte à la collection de CanLII — la couverture et les " +
       "verdicts en dépendent. NEUF font un appel sortant et sont soumis au quota de l'API ; " +
-      "jurisprudence_parse_citation, lui, n'appelle rien : il dit seulement quels identifiants " +
+      "parse_citation, lui, n'appelle rien : il dit seulement quels identifiants " +
       "une citation permettrait de construire. Ses annotations MCP le déclarent.",
     "Les outils hors ligne pour les numéros de dossier de cour et les palais de justice du " +
       "Québec (greffe_*, palais_*) relèvent désormais du connecteur public sans authentification " +

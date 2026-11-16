@@ -33,7 +33,7 @@ export interface OutilEn {
  *   vide en anglais, et une traduction orpheline survivrait à un outil supprimé.
  */
 export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
-  jurisprudence_verify_citations: {
+  verify_citations: {
     titre: "Verify citations",
     texte:
       "The pivot tool, answering from CanLII's collection. SIX verdicts, five of which state a " +
@@ -43,15 +43,15 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
       "do not read it as INTROUVABLE. A confirmed " +
       "verdict establishes existence and identity — never current authority, never the disposition. " +
       "For the RECORD alone of a decision already taken to be correctly cited, " +
-      "jurisprudence_get_case is enough and costs less.",
+      "get_case is enough and costs less.",
   },
-  jurisprudence_find_case: {
+  find_case: {
     titre: "Find a decision by party names",
     texte:
       "For citations that cannot be constructed — law reports, publisher identifiers. " +
       "Searches titles and keywords only: CanLII's API does not expose the text of decisions.",
   },
-  jurisprudence_get_case: {
+  get_case: {
     titre: "Decision record",
     texte:
       "The official record of one decision: style of cause, citation, date, court file number, " +
@@ -59,29 +59,29 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
       "NOT test the citation: no verdict, no comparison of the style of cause, no check on the " +
       "year — the record returned is that of the decision FOUND, which may not be the one you " +
       "believed you were citing. To find out whether a reference met elsewhere is sound, use " +
-      "jurisprudence_verify_citations instead.",
+      "verify_citations instead.",
   },
-  jurisprudence_citator: {
+  citator: {
     titre: "Citator — raw lists",
     texte:
       "What a decision cites, what cites it, and the provisions it cites, as recorded by " +
       "CanLII. Raw lists carrying NO treatment sense: nothing here says followed, " +
       "distinguished or overruled, and their reach is only as wide as CanLII's collection.",
   },
-  jurisprudence_subsequent_history: {
+  subsequent_history: {
     titre: "Subsequent history — heuristic indication",
     texte:
       "A heuristic hint at what became of a decision, built from CanLII-held citing decisions " +
       "of higher courts. It is not a professional citator and does not replace one.",
   },
-  jurisprudence_browse_cases: {
+  browse_cases: {
     titre: "Decisions of a court",
     texte:
       "Browses one court's decisions as held by CanLII, with eight date filters across three " +
       "distinct axes: " +
       "decision date, publication date, and modification date.",
   },
-  jurisprudence_list_databases: {
+  list_databases: {
     titre: "Directory of courts and corpora",
     texte:
       "The directory of CanLII databases — courts and legislative corpora — refreshed weekly " +
@@ -90,11 +90,11 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
       "step. The two counts measure different sets and say so: a refresh reports the WHOLE " +
       "directory, while the list below it counts only the rows the filters kept.",
   },
-  jurisprudence_browse_legislation: {
+  browse_legislation: {
     titre: "Statutes and regulations of a corpus",
     texte: "Lists the statutes and regulations of one CanLII legislative database.",
   },
-  jurisprudence_get_legislation: {
+  get_legislation: {
     titre: "Statute or regulation record",
     texte:
       "CanLII's record for one instrument: citation, type, repeal indicator, and the dates of " +
@@ -104,7 +104,7 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
       "and glossed, because its values do not mean the same thing. For the TEXT of Québec " +
       "statutes, use the « Législation du Québec » connector instead.",
   },
-  jurisprudence_parse_citation: {
+  parse_citation: {
     titre: "Parse a citation (offline)",
     texte:
       "Diagnostic only, with no call to CanLII: reports the form recognised and, where the " +
@@ -148,7 +148,7 @@ export const EN = {
   familleCanlii: "Backed by CanLII",
   familleCanliiTexte: [
     "Ten tools whose answer relates to CanLII's collection — coverage and verdicts depend on it. " +
-      "NINE make an outbound call and are subject to the API's quota; jurisprudence_parse_citation " +
+      "NINE make an outbound call and are subject to the API's quota; parse_citation " +
       "makes none — it only reports which identifiers a citation would allow one to build. Its MCP " +
       "annotations say so.",
     "The offline Québec court-file and courthouse utilities (greffe_*, palais_*) now live in " +
