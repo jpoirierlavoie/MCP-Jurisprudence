@@ -1,6 +1,6 @@
 /**
- * Résolution de la décision de départ pour `jurisprudence_citator` et
- * `jurisprudence_subsequent_history` : soit une citation, soit database_id + case_id.
+ * Résolution de la décision de départ pour `citator` et
+ * `subsequent_history` : soit une citation, soit database_id + case_id.
  *
  * Extrait ici parce que les deux outils en ont besoin à l'identique, et parce que
  * l'un des deux enchaîne sur l'autre.
@@ -71,7 +71,7 @@ export async function resoudreCible(
   if (parsed.primary.kind !== "neutral" && parsed.primary.kind !== "canlii") {
     return {
       ok: false,
-      message: `${res.raison}\n→ Identifier d'abord la décision avec jurisprudence_find_case, puis rappeler cet outil avec database_id + case_id.`,
+      message: `${res.raison}\n→ Identifier d'abord la décision avec find_case, puis rappeler cet outil avec database_id + case_id.`,
     };
   }
 
@@ -87,8 +87,8 @@ export async function resoudreCible(
     // Un ÉCHEC n'est pas une ABSENCE, et les deux sortaient d'ici sous la même phrase.
     // `lookup.message` valait `null` sur le statut « erreur » (voir src/store/lookup.ts),
     // donc le `??` servait TOUJOURS le texte d'absence : un 429 ou une expiration
-    // ressortait en « Aucune fiche pour … » par jurisprudence_citator ET par
-    // jurisprudence_subsequent_history. Deux outils affirmaient une inexistence que
+    // ressortait en « Aucune fiche pour … » par citator ET par
+    // subsequent_history. Deux outils affirmaient une inexistence que
     // personne n'avait constatée. Invariant 9 ; corrigé le 2026-09-16.
     if (lookup.status === "erreur" || lookup.status === "budget") {
       return {
@@ -102,7 +102,7 @@ ${EXPLICATION_INDETERMINEE}`,
       message:
         lookup.message ??
         `Aucune fiche pour « ${citation} » (${res.databaseId} / ${res.caseId}). ` +
-          "Une absence n'établit pas l'inexistence : vérifier la citation avec jurisprudence_verify_citations.",
+          "Une absence n'établit pas l'inexistence : vérifier la citation avec verify_citations.",
     };
   }
 

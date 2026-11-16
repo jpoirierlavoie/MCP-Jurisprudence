@@ -1,5 +1,5 @@
 /**
- * `jurisprudence_get_case` (spécification §7.3).
+ * `get_case` (spécification §7.3).
  *
  * Accepte SOIT une citation, SOIT le couple database_id + case_id — exactement l'une
  * des deux formes, ce que le validateur de schéma ne sait pas exprimer et qui est donc
@@ -58,7 +58,7 @@ export async function getCase(
       // qu'un balayage ultérieur ne rétrograde pas — voir l'UPSERT).
       if (cache && cache.source === "lookup") {
         await logSearch(ctx.db, {
-          tool: "jurisprudence_get_case",
+          tool: "get_case",
           query: `${databaseId}/${caseId}`,
           database_id: databaseId,
           lang,
@@ -79,7 +79,7 @@ export async function getCase(
       );
       await upsertCase(ctx.db, row);
       await logSearch(ctx.db, {
-        tool: "jurisprudence_get_case",
+        tool: "get_case",
         query: `${databaseId}/${caseId}`,
         database_id: databaseId,
         lang,
@@ -96,7 +96,7 @@ export async function getCase(
       const d = analyserErreur(e);
       const absence = d.cause === "INTROUVABLE_404";
       await logSearch(ctx.db, {
-        tool: "jurisprudence_get_case",
+        tool: "get_case",
         query: `${databaseId}/${caseId}`,
         database_id: databaseId,
         lang,
@@ -123,14 +123,14 @@ export async function getCase(
 
   if (parsed.primary.kind !== "neutral" && parsed.primary.kind !== "canlii") {
     await logSearch(ctx.db, {
-      tool: "jurisprudence_get_case",
+      tool: "get_case",
       query: citation!,
       lang,
       result_count: 0,
       fallback: parsed.primary.kind,
     });
     return err(
-      `${res.raison}\n→ Fournir les noms des parties et l'année à jurisprudence_find_case, ou employer jurisprudence_parse_citation pour le détail de l'analyse.`,
+      `${res.raison}\n→ Fournir les noms des parties et l'année à find_case, ou employer parse_citation pour le détail de l'analyse.`,
     );
   }
 
@@ -144,7 +144,7 @@ export async function getCase(
       now,
     });
     await logSearch(ctx.db, {
-      tool: "jurisprudence_get_case",
+      tool: "get_case",
       query: citation!,
       database_id: res.databaseId,
       lang,

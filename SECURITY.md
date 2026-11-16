@@ -46,8 +46,8 @@ Out of scope:
 
 This connector is deliberately narrow. What leaves the infrastructure is **citations, court/database identifiers, dates, and search queries** — no client documents and no full-text judgments.
 
-- **Offline citation parser (`jurisprudence_parse_citation`):** Makes **no outbound network request** (`openWorldHint: false`) and **writes nothing**. It parses neutral citations against local normalization rules only.
-- **Party-name sensitivity (`jurisprudence_find_case`):** `jurisprudence_find_case` accepts **party names** (`openWorldHint: true`). If a searched name belongs to a party in an active, unpublished client matter, the query discloses a research interest to CanLII (a Canadian non-profit where name search is normal use, though not zero-disclosure) and writes the query string to the D1 `search_log` table. Treat `search_log` accordingly and avoid searching unredacted confidential client names where a neutral citation or keyword law search suffices.
+- **Offline citation parser (`parse_citation`):** Makes **no outbound network request** (`openWorldHint: false`) and **writes nothing**. It parses neutral citations against local normalization rules only.
+- **Party-name sensitivity (`find_case`):** `find_case` accepts **party names** (`openWorldHint: true`). If a searched name belongs to a party in an active, unpublished client matter, the query discloses a research interest to CanLII (a Canadian non-profit where name search is normal use, though not zero-disclosure) and writes the query string to the D1 `search_log` table. Treat `search_log` accordingly and avoid searching unredacted confidential client names where a neutral citation or keyword law search suffices.
 - **D1 retention (`cases`, `search_log`, `api_usage`):** Stores cached public CanLII metadata and telemetry (`search_log`, `api_usage` — which fail soft without failing tool calls). Write to `jason@poirierlavoie.ca` regarding any privacy/privilege concern or deletion request.
 
 ---

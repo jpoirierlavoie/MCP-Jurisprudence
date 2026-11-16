@@ -13,7 +13,7 @@
 1. **Code / schémas / tests du dépôt :**
 2. **`README.md`, `SECURITY.md`, `LICENSE` et manifestes :**
 3. **Page publique HTML (`GET /`) et `/mcp/server-card` (ce dépôt ou serveurs aval) :**
-4. **Impacts inter-dépôts (`pratique-civile-quebecoise`, `MCP-Socle`, `MCP-Legislation`, `MCP-Jurisprudence`, `MCP-Outils`) :**
+4. **Impacts inter-dépôts (`droit-civil-quebecois`, `MCP-Socle`, `MCP-Legislation`, `MCP-Jurisprudence`, `MCP-Outils`) :**
 
 ## Confidentialité et sécurité
 

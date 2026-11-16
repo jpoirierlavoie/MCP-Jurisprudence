@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "jurisprudence": {
+    "juris": {
       "url": "https://jurisprudence.poirierlavoie.ca/mcp",
       "headers": {
         "Authorization": "Bearer ${MCP_JURISPRUDENCE_SECRET}"

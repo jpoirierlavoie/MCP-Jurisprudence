@@ -1,5 +1,5 @@
 /**
- * `jurisprudence_list_databases` (spécification §7.7).
+ * `list_databases` (spécification §7.7).
  *
  * Sert le répertoire local si `refreshed_at` a moins de 7 jours ; sinon rafraîchit
  * (deux appels : `caseBrowse/{lang}/` et `legislationBrowse/{lang}/`).
@@ -70,7 +70,7 @@ export async function listDatabasesTool(
 
   const bases = await listDatabases(ctx.db, { kind, jurisdiction, query });
   await logSearch(ctx.db, {
-    tool: "jurisprudence_list_databases",
+    tool: "list_databases",
     query: [kind, jurisdiction, query].filter(Boolean).join(" ") || "(sans filtre)",
     lang,
     result_count: bases.length,

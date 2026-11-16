@@ -1,5 +1,5 @@
 /**
- * `jurisprudence_parse_citation` (spécification §7.10).
+ * `parse_citation` (spécification §7.10).
  *
  * AUCUN appel sortant, AUCUNE écriture. Outil de diagnostic : il sert à déboguer la
  * table `court_codes` et à expliquer un verdict NON CONSTRUCTIBLE.
@@ -44,7 +44,7 @@ export async function parseCitationTool(
     if (!res.databaseConnue && dir.knownDatabases.size > 0) {
       lignes.push(
         "⚠ Ce database_id ne figure PAS au répertoire local des bases de CanLII. " +
-          "Consulter jurisprudence_list_databases.",
+          "Consulter list_databases.",
       );
     }
   }

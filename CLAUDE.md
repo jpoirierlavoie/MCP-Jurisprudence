@@ -21,12 +21,12 @@ modification.
 ║ n'ont pas ete EVALUEES et RAPPORTEES sur les six axes ci-dessous, et        ║
 ║ INCLUSES dans le MEME changement :                                          ║
 ║                                                                             ║
-║   1. les OUTILS MCP (registre, gestionnaires, préfixe jurisprudence_*)      ║
+║   1. les OUTILS MCP (registre `juris`, gestionnaires, noms courts v2.0.0)    ║
 ║   2. leurs DESCRIPTIONS et leurs titres (FR + EN)                           ║
 ║   3. leurs SCHÉMAS d'entrée                                                 ║
 ║   4. README.md, SPEC.md, SECURITY.md, LICENSE (CC-BY-NC-SA-4.0) & manifestes║
 ║   5. la PAGE PUBLIQUE HTML (GET / — src/site.ts + src/site.i18n.ts) et §18  ║
-║   6. les IMPACTS INTER-DÉPÔTS (Cross-repository : pratique-civile-quebecoise║
+║   6. les IMPACTS INTER-DÉPÔTS (Cross-repository : droit-civil-quebecois,    ║
 ║      MCP-Socle, MCP-Legislation, MCP-Outils)                                ║
 ╚═════════════════════════════════════════════════════════════════════════════╝
 ```
@@ -55,9 +55,9 @@ les chercher. *(Cette consigne a survécu trois semaines à son objet — d'où 
 **L'impact inter-dépôts reste critique aujourd'hui.** Un nom d'outil qui vit hors de ce dépôt
 n'est vu dériver par aucune commande d'ici : l'échec n'apparaît qu'au prochain appel, sous
 la forme d'un « Outil inconnu » que l'usager lit comme une panne du connecteur. Cette surface
-inter-dépôts recouvre principalement : le plugin `pratique-civile-quebecoise` et la Compétence
-claude.ai de recherche juridique (qui nomment les 10 outils `jurisprudence_*` à la main et
-déclarent le connecteur dans leurs manifestes), `MCP-Socle` (`#v0.7.0`), le jumeau
+inter-dépôts recouvre principalement : le greffon `droit-civil-quebecois` (`v2.0.0`, qui nomme les
+10 outils sans préfixe sous la clé serveur `juris` dans `skills/` et déclare le connecteur dans ses
+manifestes), `MCP-Socle` (`#v0.7.0`), le jumeau
 `MCP-Legislation` (identité visuelle CSS/HTML et complémentarité droit législatif ↔ jurisprudence)
 et `MCP-Outils` (frontière CanLII vs outils québécois hors ligne).
 **Le repérage hors dépôt se fait par vérification des manifestes et compétences du plugin cadre.**
@@ -66,13 +66,13 @@ et `MCP-Outils` (frontière CanLII vs outils québécois hors ligne).
 
 | Si vous touchez… | …vérifiez ET mettez à jour |
 |---|---|
-| **un outil** (ajout, retrait, renommage) | `src/mcp/registry.ts` · le gestionnaire dans `src/mcp/handlers/` · `OUTILS_EN` dans `src/site.i18n.ts` (parité testée **dans les deux sens**) · le tableau ET le compte de `README.md` §« Les dix outils » · §7 de `SPEC.md` · les compteurs de `test/garde.test.ts`, `test/rpc.test.ts` et `test/doc.test.ts` (ce dernier affirme `NOMS.length === 10` AVANT toute confrontation — et porte en plus `EN_LETTRES`, éprouvant le compte écrit en toutes lettres du `README.md`) · la **liste triée des noms** dans `test/rpc.test.ts` · le préfixe `jurisprudence_` · la DESCRIPTION doit nommer sa source (`CanLII`), en français ET en anglais · **inter-dépôts** : la Compétence claude.ai de recherche juridique et le plugin `pratique-civile-quebecoise` (`skills/`, manifestes, `scripts/regenerer_cache_mcp.py --apply`, `scripts/synchroniser_plugin_gemini.py --apply`, `verifier.py`, `verifier_tout.py`) |
+| **un outil** (ajout, retrait, renommage) | `src/mcp/registry.ts` · le gestionnaire dans `src/mcp/handlers/` · `OUTILS_EN` dans `src/site.i18n.ts` (parité testée **dans les deux sens**) · le tableau ET le compte de `README.md` §« Les dix outils » · §7 de `SPEC.md` · les compteurs de `test/garde.test.ts`, `test/rpc.test.ts` et `test/doc.test.ts` (ce dernier affirme `NOMS.length === 10` AVANT toute confrontation — et porte en plus `EN_LETTRES`, éprouvant le compte écrit en toutes lettres du `README.md`) · la **liste triée des noms** dans `test/rpc.test.ts` · la DESCRIPTION doit nommer sa source (`CanLII`), en français ET en anglais · le budget d'identifiant composé (<= 64 car. sous `droit-civil-quebecois`) · **inter-dépôts** : le greffon `droit-civil-quebecois` (`skills/`, manifestes, `scripts/regenerer_cache_mcp.py --apply`, `scripts/synchroniser_plugin_gemini.py --apply`, `verifier.py`, `verifier_tout.py`) |
 | **une description ou un titre** | la page publique HTML (`GET /`) les rend **verbatim** : relancer `test/site.test.ts` (formulations interdites) et `test/garde.test.ts` (sous-chaînes épinglées) · `OUTILS_EN` doit rester une TRADUCTION, jamais une copie |
 | **un `inputSchema`** | `validateArgs` (`@poirierlavoie/mcp-socle`) n'implémente qu'un SOUS-ENSEMBLE de JSON-Schema : ne pas déclarer ce qu'il ne sait pas imposer · **une contrainte que le GESTIONNAIRE impose et que le schéma ne sait pas dire (XOR, format, bornes croisées) s'écrit dans la `description`, et se RÉPÈTE sur chaque membre plutôt que de renvoyer à l'autre** (§8) · **toute valeur par défaut ou maximum vient de `src/mcp/defauts.ts`, jamais d'un nombre écrit à la main** · la page HTML (`GET /`) génère ses tableaux de schéma depuis le même objet · `additionalProperties: false` reste obligatoire · **tout paramètre porte une `description`** — `test/garde.test.ts` échoue sinon, et les schémas partagés du haut de `registry.ts` (`BASE_ID`, `CASE_ID`, `CITATION_REF`, `OFFSET`, `LANG`, `REFRESH`) existent pour qu'une même notion ne soit pas décrite deux fois en divergeant |
 | **une constante `GARDE_*`** | elle vit dans le corps des réponses **et** sur la page publique HTML (`GET /`) · `test/garde.test.ts` · ⚠ *corrigé le 2026-09-16* : la chaîne de couplage RÉELLE lue par `scripts/refresh-databases.mjs` est l'en-tête « base(s) au répertoire de CanLII » (`src/mcp/handlers/listDatabases.ts`), sur laquelle le script pose son garde-fou (sortie code 2 si modifiée). C'est elle qu'il faut propager. |
 | **la page publique HTML (`GET /`)** | `src/site.ts` · `src/site.i18n.ts` · `test/site.test.ts` (CSP, absence de CORS, liste blanche d'URLs) · §18 de `SPEC.md` · la section « Page publique » de `README.md` · le style reste **identique** à celui du connecteur jumeau `MCP-Legislation` et de `MCP-Outils` (invariant 21) |
-| **sécurité, confidentialité ou licence** | `SECURITY.md` (contact `jason@poirierlavoie.ca`, sécurité et confidentialité / privilège, porteurs et `search_log`) · `LICENSE` (`CC-BY-NC-SA-4.0` Partie A + Partie B CanLII) · `package.json` · `README.md` (§ Sécurité, confidentialité et licence) · `src/site.ts` + `src/site.i18n.ts` (`#acces`, sans casser `test/site.test.ts`) · cohérence inter-dépôts (`pratique-civile-quebecoise/SECURITY.md`, `MCP-Socle`) |
-| **version, identité ou manifestes** | `package.json` · `SERVER_INFO` et `PUBLIC_DESCRIPTION` (`src/mcp/registry.ts`) · `carteServeur()` (`/mcp/server-card`) · `plugin.json` · `mcp_config.json` · `gemini-extension.json` · `GEMINI.md` (< 24 000 octets) · vérifié par `test/doc.test.ts` · resynchroniser `pratique-civile-quebecoise` |
+| **sécurité, confidentialité ou licence** | `SECURITY.md` (contact `jason@poirierlavoie.ca`, sécurité et confidentialité / privilège, porteurs et `search_log`) · `LICENSE` (`CC-BY-NC-SA-4.0` Partie A + Partie B CanLII) · `package.json` · `README.md` (§ Sécurité, confidentialité et licence) · `src/site.ts` + `src/site.i18n.ts` (`#acces`, sans casser `test/site.test.ts`) · cohérence inter-dépôts (`droit-civil-quebecois/SECURITY.md`, `MCP-Socle`) |
+| **version, identité ou manifestes** | `package.json` · `SERVER_INFO` et `PUBLIC_DESCRIPTION` (`src/mcp/registry.ts`) · `carteServeur()` (`/mcp/server-card`) · `plugin.json` · `mcp_config.json` · `gemini-extension.json` · `GEMINI.md` (< 24 000 octets) · vérifié par `test/doc.test.ts` · resynchroniser `droit-civil-quebecois` |
 
 ### Comment vérifier
 
@@ -104,18 +104,18 @@ commande ne sait réclamer**.
 
 ## Architecture et intégration dans le cadre global
 
-### Le cadre global à trois couches (`pratique-civile-quebecoise`)
+### Le cadre global à trois couches (`droit-civil-quebecois`)
 
 ```
              ┌────────────────────────────────────────────────────────┐
-             │       pratique-civile-quebecoise (Plugin Cadre)        │
-             │   5 compétences : recherche-juridique, analyse-doc,     │
-             │  calendrier-proc, redaction-juridique, déontologie     │
+             │      droit-civil-quebecois (Plugin Cadre v2.0.0)       │
+             │ 5 compétences : recherche-juridique, analyse-juridique,│
+             │ redaction-juridique, administration-litige, déontologie│
              └──────┬───────────────────────┬──────────────────┬──────┘
                     │                       │                  │
-   (10 outils `legislation_*`)    (10 outils `jurisprudence_*`) (12 outils sur 5 familles :
-                    │                       │            `calcul`, `greffe`, `registre`,
-                    ▼                       ▼            `adresse`, `terminologie`)
+        (serveur `lois`, 10)     (serveur `juris`, 10)  (serveur `outils`, 12)
+                    │                       │                  │
+                    ▼                       ▼                  ▼
          ┌─────────────────────┐ ┌─────────────────────┐ ┌──────────────────────────┐
          │   MCP-Legislation   │ │  MCP-Jurisprudence  │ │        MCP-Outils        │
          │  (Worker Cloudflare │ │ (Worker Cloudflare  │ │    (Worker Cloudflare    │
@@ -134,15 +134,14 @@ commande ne sait réclamer**.
                  └─────────────────────────────┘
 ```
 
-### Intégration avec le plugin et les compétences (`pratique-civile-quebecoise`)
-- **`skills/recherche-juridique`** : Consommateur principal des 10 outils `jurisprudence_*`. Vérifie les citations d'autorités (`jurisprudence_verify_citations`), résout une décision par intitulé et année (`jurisprudence_find_case`), explore les décisions qui la citent (`jurisprudence_citator` avec `en` dans le chemin), retrace l'historique d'appel (`jurisprudence_subsequent_history`), et consulte les répertoires de tribunaux (`jurisprudence_list_databases`). L'outil rappelle rigoureusement au modèle que CanLII ne livre que des métadonnées et jamais le texte intégral d'un jugement. Nomme également l'ensemble des 10 outils `legislation_*`, `greffe_parse_court_file_number`, `palais_list`, `palais_get` et `interets_compute_1619` (notamment dans `references/methode-sources.md`, `livrables.md`, `preliminaires.md`, `sources-doctrinales.md`), et mobilise les besoins d'aptitude `TEXTE`, `CALCUL`, `GREFFE`, `INSCRIPTION`.
-- **`skills/redaction-juridique`** : Consomme `legislation_get_article` (dont `lang="en"`), `legislation_search_text`, `calendrier_compute_deadlines` et `interets_compute_1619` (besoins `CALCUL`, `GREFFE`).
-- **`skills/calendrier-procedural`** : Consomme `calendrier_compute_deadlines` et `calendrier_list_holidays` (avec repli local `scripts/calcul_delai.py`, besoins `CALCUL`, `INSCRIPTION`, `TEXTE`). N'appelle aucun outil `jurisprudence_*` ni `legislation_*` directement.
-- **`skills/analyse-documentaire`** : Ne nomme AUCUN outil MCP directement. Exprime des besoins d'aptitude abstraits `GREFFE`, `TEXTE` et `INSCRIPTION`, en déléguant la recherche juridique et la vérification de citations à `recherche-juridique` et les délais à `calendrier-procedural`.
-- **`skills/deontologie-professionnelle`** : Ne nomme AUCUN outil MCP directement ; délègue le droit substantiel et procédural hors déontologie à `recherche-juridique` et les délais à `calendrier-procedural`.
-- **Configuration** : Câblé dans `.mcp.json` et `gemini-extension.json` sous `jurisprudence` (`https://jurisprudence.poirierlavoie.ca/mcp`) avec la variable d'environnement `MCP_JURISPRUDENCE_SECRET`.
+### Intégration avec le plugin et les compétences (`droit-civil-quebecois`)
+- **`skills/recherche-juridique`** : Consommateur principal des 10 outils du serveur `juris` (`verify_citations`, `find_case`, `get_case`, `citator` avec `en` dans le chemin, `subsequent_history`, `browse_cases`, `list_databases`, `browse_legislation`, `get_legislation`, `parse_citation`). Rappelle que CanLII ne livre que des métadonnées et jamais le texte intégral d'un jugement (lecture PDF requise au Palier 3). S'appuie également sur les 10 outils de `lois` et sur `outils`.
+- **`skills/redaction-juridique`** : Consomme `lois.get_article` (dont `lang="en"`), `lois.search_text`, `juris.verify_citations`, `outils.calendrier_deadlines`, `outils.interets_1619` et la famille `terminologie_*` / `termino_attestations`.
+- **`skills/administration-litige`** : Consomme `outils.calendrier_deadlines`, `outils.calendrier_holidays` (repli local `scripts/calcul_delai.py`), `outils.interets_1619` et `outils.greffe_parse_number`.
+- **`skills/analyse-juridique`** & **`skills/deontologie-et-pratique`** : Ne dupliquent aucun appel jurisprudentiel ; orientent au besoin vers les feuilles terminales ou connecteurs `lois`/`juris`/`outils` selon le noyau `SAFETY-KERNEL`.
+- **Configuration** : Câblé dans `.mcp.json`, `mcp_config.json` et `gemini-extension.json` sous la clé serveur **`juris`** (`https://jurisprudence.poirierlavoie.ca/mcp`) avec `Authorization: Bearer ${MCP_JURISPRUDENCE_SECRET}`.
 
-### Surfaces de synchronisation du plugin cadre (`pratique-civile-quebecoise`)
+### Surfaces de synchronisation du plugin cadre (`droit-civil-quebecois`)
 Toute évolution des outils, schémas, noms ou transport de `MCP-Jurisprudence` exige la mise à jour synchronisée des surfaces du plugin cadre :
 1. **Manifestes clients** : `.mcp.json`, `mcp_config.json`, `gemini-extension.json`, `.claude-plugin/plugin.json`, `plugin.json`.
 2. **Définitions manuelles des compétences (`skills/`)** : notamment `skills/recherche-juridique`, `skills/redaction-juridique`, `skills/calendrier-procedural`.
@@ -195,7 +194,7 @@ premier ménage. Une amorce qu'on ne distingue pas d'un résidu finit toujours p
 | Ce qui dort | Où | Ce qui l'attend |
 |---|---|---|
 | `src/backfill.ts` | tout le fichier | §11 — écrit, testé, **INERTE par décision** (invariant 15). Ne pas basculer `BACKFILL_ENABLED`. |
-| `listCases()` | `src/store/cases.ts` | Servir les balayages **depuis le cache** (§7.6). Aujourd'hui `jurisprudence_browse_cases` appelle CanLII à chaque fois et ne lit JAMAIS la table `cases` : il n'existe aucun chemin où un balayage soit servi du cache. Son **seul appelant est son test**. |
+| `listCases()` | `src/store/cases.ts` | Servir les balayages **depuis le cache** (§7.6). Aujourd'hui `browse_cases` appelle CanLII à chaque fois et ne lit JAMAIS la table `cases` : il n'existe aucun chemin où un balayage soit servi du cache. Son **seul appelant est son test**. |
 | `idx_cases_docket` | `migrations/0001_initial.sql` | Une recherche par **numéro de dossier de cour**, qu'aucun outil n'offre. L'index est donc entretenu à chaque écriture de fiche sans que rien ne l'interroge. |
 
 **La règle qui les gouverne : une amorce se DOCUMENTE, elle ne se déduit pas.** Le
@@ -272,14 +271,14 @@ refuse de conclure.
    test ; verrouillées dans `test/persist.test.ts` et `test/tools.test.ts`.)*
    *(c)* **la règle porte sur l'ÉCRITURE, pas sur la conversion.** *Ajouté le 2026-09-17,
    après l'avoir trouvée enfreinte.* `rowFromListItem` rendait bien `decision_date: null`,
-   et son test unitaire passait — c'est le GESTIONNAIRE de `jurisprudence_find_case` qui
+   et son test unitaire passait — c'est le GESTIONNAIRE de `find_case` qui
    reposait `${annee}-01-01` juste avant l'UPSERT. Un invariant vérifié une couche trop
    bas ne protège pas la couche qui l'enfreint. Et ce qui rendait le défaut GRAVE tient
    au `COALESCE` : il fait gagner la valeur NON NULLE, donc une date fabriquée
    n'appauvrit pas la fiche — elle **ÉCRASE la vraie**, sans rétrograder `source` (la
    règle (b) joue alors contre nous), et laisse une ligne corrompue pleinement éligible
-   à servir une vérification. `jurisprudence_verify_citations` l'attribuait ensuite « à
-   CanLII », et `jurisprudence_subsequent_history` écartait en silence un appel réel de
+   à servir une vérification. `verify_citations` l'attribuait ensuite « à
+   CanLII », et `subsequent_history` écartait en silence un appel réel de
    la même année. Ce qui se déduit d'une fenêtre de requête, c'est une ANNÉE — et une
    année n'est pas une date : elle vit dans `anneeInferee`, pour le filtrage et le
    classement, et ne s'affiche jamais. *(1 819 lignes en production ; purgées par
@@ -318,10 +317,10 @@ refuse de conclure.
    pour `verify_citations` et respecté là ; il ne l'était nulle part ailleurs. La racine
    tenait en un champ : `src/store/lookup.ts` rendait `message: null` sur le statut
    « erreur », et chaque appelant retombait donc sur SON texte d'absence par défaut. Un 429
-   ressortait en « Aucune fiche pour … » par `jurisprudence_citator` et
-   `jurisprudence_subsequent_history`, flanqué des explications d'ABSENCE par
-   `jurisprudence_get_case` (forme par identifiants), en « Aucun candidat » par
-   `jurisprudence_find_case`, et en « Aucune décision » par `jurisprudence_browse_cases`
+   ressortait en « Aucune fiche pour … » par `citator` et
+   `subsequent_history`, flanqué des explications d'ABSENCE par
+   `get_case` (forme par identifiants), en « Aucun candidat » par
+   `find_case`, et en « Aucune décision » par `browse_cases`
    quand les entrées rendues n'étaient pas lisibles. **Quatre symptômes, un défaut.**
    **Trois règles en découlent, et elles se tiennent :**
    *(a)* la CAUSE se nomme dans la sortie — « CanLII a étranglé les appels (429) », et non
@@ -343,7 +342,7 @@ refuse de conclure.
     20495 ») : ils ne contiennent aucun nom de partie, et deux décisions distinctes de la
     même série partagent tous leurs jetons alphabétiques.
 12. **Le citateur n'accepte que `en`** dans le chemin (annexe B). D'où l'absence de tout
-    paramètre `lang` sur `jurisprudence_citator` : en exposer un serait mensonger.
+    paramètre `lang` sur `citator` : en exposer un serait mensonger.
 13. **La télémétrie n'échoue jamais l'outil qu'elle observe** : table absente, écriture
     refusée — tout est avalé.
 14. **Les fins de ligne sont LF dans la copie de travail** (`.gitattributes`) : sinon Biome
@@ -353,12 +352,12 @@ refuse de conclure.
     quotidien déclaré. Ce n'est plus une question ouverte mais une décision du
     praticien : ne pas basculer le drapeau, même « pour essayer ». Le remplissage du
     cache par l'usage (D6) n'est pas concerné — c'est autre chose.
-16. **Le préfixe `jurisprudence_` identifie le connecteur ; c'est la DESCRIPTION qui nomme la source (§7).**
-    *Réécrit le 2026-09-16 ; amendé le 2026-11-14 au retrait de §17.* Un préfixe ne sait pas
+16. **Noms courts sans préfixe (v2.0.0, clé serveur `juris`) ; c'est la DESCRIPTION qui nomme la source (§7).**
+    *Réécrit le 2026-09-16 ; amendé le 2026-11-14 au retrait de §17 et en v2.0.0 au retrait du préfixe `jurisprudence_`.* Un préfixe ne sait pas
     porter une réserve : l'annonce vit dans la **description** de chacun des dix outils,
     dans `INSTRUCTIONS` et sur la page — trois surfaces épinglées par un test **par langue**
     exigeant la présence de « CanLII ». `openWorldHint` vaut `false` sur
-    `jurisprudence_parse_citation` (analyseur pur hors ligne) et `true` sur les neuf autres.
+    `parse_citation` (analyseur pur hors ligne) et `true` sur les neuf autres.
 17. *(Retiré le 2026-11-14, v0.3.0 — déplacé vers « MCP-Outils ».)* Les tables
     `src/qc/`, `palais_list`, `palais_get`, `GARDE_PALAIS` et `GARDE_SANS_ADRESSE` relèvent
     désormais de `MCP-Outils`.
@@ -463,7 +462,7 @@ qu'elle vaudra encore le jour où l'on voudra rouvrir la question (§12).
   ayant été retiré du dépôt d'Athéna, commit `ef854733`) et a été formellement retiré de
   Cloudflare le 2026-09-17 (`PORTE.nomsSecrets = ["MCP_SHARED_SECRET"]` dans `src/index.ts:124`).
   Les appelants actifs en production sont le connecteur `claude.ai` et le greffon cadre
-  `pratique-civile-quebecoise` (sous Claude for Desktop / Anthropic et Google Gemini / Antigravity).
+  `droit-civil-quebecois` (anciennement `pratique-civile-quebecoise`, sous Claude for Desktop / Anthropic et Google Gemini / Antigravity).
   L'authentification reste **fermée par défaut** : aucun secret configuré ⇒ tout est
   refusé. Ne jamais journaliser lequel des secrets a servi.
 - `.dev.vars` (dev), `mcp.url` (URL de prod avec secret), `*.token` : **gitignorés**.
@@ -477,7 +476,7 @@ qu'elle vaudra encore le jour où l'on voudra rouvrir la question (§12).
 
 ## État
 
-**Livré et en production** sur `jurisprudence.poirierlavoie.ca`, suite de tests exécutable sans réseau ni clef. Dix outils `jurisprudence_*` — neuf adossés à la REST API de CanLII et un analyseur hors ligne (`jurisprudence_parse_citation`) — plus une page publique bilingue sur la même origine (§18). `/health` annonce le commit dont la version en ligne est issue (§8, §12.1), et le déploiement sur `main` est automatisé via `.github/workflows/deploy.yml` (`npm run deploy`, `environment: production`) *(rétabli le 2026-11-14 après le retrait manuel du 2026-09-16, §12)*. `migrations/0004_rename_tool_prefix.sql` est **appliquée en production** : `search_log.tool` et `court_codes.note` portent les noms d'aujourd'hui, et aucune ligne ne subsiste sous un ancien nom — l'historique de §10 n'est donc pas coupé en deux à la date du renommage.
+**Livré et en production** sur `jurisprudence.poirierlavoie.ca`, suite de tests exécutable sans réseau ni clef. Dix outils exposés sans préfixe (`v2.0.0`, sous la clé serveur `juris`) — neuf adossés à la REST API de CanLII et un analyseur hors ligne (`parse_citation`) — plus une page publique bilingue sur la même origine (§18). `/health` annonce le commit dont la version en ligne est issue (§8, §12.1), et le déploiement sur `main` est automatisé via `.github/workflows/deploy.yml` (`npm run deploy`, `environment: production`) *(rétabli le 2026-11-14 après le retrait manuel du 2026-09-16, §12)*. `migrations/0004_rename_tool_prefix.sql` a normalisé l'historique `canlii_*` → `jurisprudence_*`, et `migrations/0006_drop_tool_prefix.sql` (`v2.0.0`) retire le préfixe `jurisprudence_` dans `search_log.tool` et `court_codes.note` afin de préserver la continuité de la série historique (§10).
 
 `migrations/0005_purge_dates_fabriquees.sql` est **appliquée en production** *(2026-09-17)* :
 elle a purgé les 1 819 dates de décision au 1er janvier fabriquées par l'ancien balayage vif
@@ -486,7 +485,7 @@ vivante : `0` ligne hors `lookup` porte une `decision_date`, et `cases` = `cases
 à 457 311 entrées).
 
 **Clients actifs aujourd'hui** (§19) : Le connecteur est sollicité par le connecteur `claude.ai`
-ainsi que par le greffon cadre `pratique-civile-quebecoise` (sous Claude et Gemini). Le clavardage de
+ainsi que par le greffon cadre `droit-civil-quebecois` (v2.0.0, sous Claude et Gemini). Le clavardage de
 Pallas Athéna, client de 2026-08-27 à 2026-09-02, a été retiré (commit `ef854733`) et le secret
 dédié `MCP_SHARED_SECRET_ATHENA` a été définitivement retiré le 2026-09-17 (`PORTE.nomsSecrets = ["MCP_SHARED_SECRET"]`).
 §19 est conservée, datée, plutôt qu'effacée : ce qu'elle démontre — qu'un second client
@@ -526,3 +525,9 @@ des tests QC et des garde-fous `GARDE_PALAIS` / `GARDE_DOSSIER` / `GARDE_SANS_AD
 `SANS_PLUMITIF` vers le connecteur public non authentifié `MCP-Outils` (`0.2.0`) ;
 conservation de §17 et des invariants 17, 18 et 20 comme épitaphes datées afin de préserver la
 numérotation, et alignement du serveur sur les 10 outils `jurisprudence_*`.
+
+*(v2.0.0)* Retrait du préfixe `jurisprudence_` sur les 10 outils (`verify_citations` …
+`parse_citation`), passage de la clé serveur à `juris` dans `mcp_config.json` /
+`gemini-extension.json`, ajout de `migrations/0006_drop_tool_prefix.sql` (`search_log.tool`,
+`court_codes.note`), et alignement sur le greffon cadre `droit-civil-quebecois` `v2.0.0`
+(plafond `<= 64` caractères sur les identifiants MCP composés).

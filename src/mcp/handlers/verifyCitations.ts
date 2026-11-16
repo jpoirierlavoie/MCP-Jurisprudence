@@ -1,5 +1,5 @@
 /**
- * `jurisprudence_verify_citations` — L'OUTIL PIVOT (spécification §7.1, annexe A.1).
+ * `verify_citations` — L'OUTIL PIVOT (spécification §7.1, annexe A.1).
  *
  * SIX verdicts. CINQ portent un constat : CONFIRMÉE · DISCORDANTE · INTROUVABLE ·
  * NON CONSTRUCTIBLE · ILLISIBLE. Le sixième, INDÉTERMINÉE, dit qu'AUCUN constat n'a pu
@@ -138,11 +138,11 @@ export async function verifyCitations(
           `${citation} — ILLISIBLE`,
           "Aucune forme de citation reconnue (ni citation neutre, ni citation attribuée",
           "par CanLII, ni recueil, ni identifiant d'éditeur).",
-          "→ Fournir la citation neutre, ou les noms des parties et l'année à jurisprudence_find_case.",
+          "→ Fournir la citation neutre, ou les noms des parties et l'année à find_case.",
         ].join("\n"),
       );
       journal.push({
-        tool: "jurisprudence_verify_citations",
+        tool: "verify_citations",
         query: citation,
         lang,
         result_count: 0,
@@ -176,21 +176,19 @@ export async function verifyCitations(
               `  · ${c.title} — ${c.citation ?? c.neutral_cite ?? "—"} (${dateFr(c.decision_date)})`,
             );
           }
-          lignes.push(
-            "→ Confirmer avec jurisprudence_find_case (balayage vif) puis jurisprudence_verify_citations.",
-          );
+          lignes.push("→ Confirmer avec find_case (balayage vif) puis verify_citations.");
         } else {
           lignes.push(
             "",
-            `→ Fournir les noms des parties et l'année à jurisprudence_find_case (rien dans l'index local pour « ${d.expected_title} »).`,
+            `→ Fournir les noms des parties et l'année à find_case (rien dans l'index local pour « ${d.expected_title} »).`,
           );
         }
       } else {
-        lignes.push("→ Fournir les noms des parties et l'année à jurisprudence_find_case.");
+        lignes.push("→ Fournir les noms des parties et l'année à find_case.");
       }
       blocs.push(lignes.join("\n"));
       journal.push({
-        tool: "jurisprudence_verify_citations",
+        tool: "verify_citations",
         query: citation,
         lang,
         result_count: 0,
@@ -215,7 +213,7 @@ export async function verifyCitations(
     } catch (e) {
       blocs.push(`${citation} — INDÉTERMINÉE\n${describeError(e)}`);
       journal.push({
-        tool: "jurisprudence_verify_citations",
+        tool: "verify_citations",
         query: citation,
         lang,
         result_count: 0,
@@ -231,7 +229,7 @@ export async function verifyCitations(
         `${citation} — INDÉTERMINÉE\nBudget d'appels épuisé : cette citation n'a pas pu être vérifiée.`,
       );
       journal.push({
-        tool: "jurisprudence_verify_citations",
+        tool: "verify_citations",
         query: citation,
         lang,
         result_count: 0,
@@ -248,7 +246,7 @@ export async function verifyCitations(
         `${citation} — INDÉTERMINÉE\nCanLII n'a pas pu être interrogé. ${EXPLICATION_INDETERMINEE}`,
       );
       journal.push({
-        tool: "jurisprudence_verify_citations",
+        tool: "verify_citations",
         query: citation,
         lang,
         result_count: 0,
@@ -265,7 +263,7 @@ export async function verifyCitations(
           .join("\n"),
       );
       journal.push({
-        tool: "jurisprudence_verify_citations",
+        tool: "verify_citations",
         query: citation,
         lang,
         result_count: 0,
@@ -285,7 +283,7 @@ export async function verifyCitations(
         ].join("\n"),
       );
       journal.push({
-        tool: "jurisprudence_verify_citations",
+        tool: "verify_citations",
         query: citation,
         lang,
         result_count: 0,
@@ -302,7 +300,7 @@ export async function verifyCitations(
     const verdict: Verdict = ecarts.length === 0 ? "CONFIRMÉE" : "DISCORDANTE";
     blocs.push(rendreFiche(citation, verdict, row, ecarts, parsed.parallel.map(formLabel)));
     journal.push({
-      tool: "jurisprudence_verify_citations",
+      tool: "verify_citations",
       query: citation,
       lang,
       result_count: 1,

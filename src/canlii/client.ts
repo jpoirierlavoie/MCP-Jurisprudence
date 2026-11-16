@@ -354,11 +354,11 @@ class Client implements CanliiClient {
    *   plus du JSON, `safeJson` rendait `undefined`, et une réponse parfaitement valide de
    *   CanLII ressortait en « CanLII a renvoyé une erreur 200 ».
    *
-   *   Mesuré en production le 2026-09-17 : `jurisprudence_browse_legislation` passait sur
+   *   Mesuré en production le 2026-09-17 : `browse_legislation` passait sur
    *   `cac` (2 textes), `ykh` (213) et `qch` (298), et échouait sur `peh`, `nus`, `qcs` et
    *   `car`. Le point d'accès `legislationBrowse` ne pagine pas : le gestionnaire ne
    *   pouvait donc pas réduire la demande, et `#attemptWithHalving` ne pouvait pas tirer.
-   *   `jurisprudence_find_case` échouait de même sur toute page de balayage fournie
+   *   `find_case` échouait de même sur toute page de balayage fournie
    *   (`PAGE = 5000`), ce qui faisait voisiner « erreur 200 » et une note de 429.
    *
    *   Et la coupe ne protégeait même pas la mémoire : `response.text()` matérialise le
@@ -511,7 +511,7 @@ const PHRASE_HORS_PLAFOND =
  * `TOO_LONG` — RÉÉCRITE le 2026-09-17.
  *
  * L'ancienne disait « même après réduction de la pagination. Restreindre la fenêtre de
- * dates. » : faux sur `jurisprudence_browse_legislation`, qui n'envoie aucun
+ * dates. » : faux sur `browse_legislation`, qui n'envoie aucun
  * `resultCount` — le rattrapage n'y tire jamais — et qui n'a aucune fenêtre de dates.
  */
 const PHRASE_TOO_LONG =

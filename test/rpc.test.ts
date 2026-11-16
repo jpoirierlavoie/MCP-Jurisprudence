@@ -755,14 +755,14 @@ describe("§8 — méthodes JSON-RPC", () => {
     const outils = body.result.tools;
     expect(outils).toHaveLength(10);
     for (const t of outils) {
-      expect(t.name).toMatch(/^jurisprudence_/);
+      expect(t.name).not.toMatch(/^(?:jurisprudence|canlii)_/);
       expect(t.description.length).toBeGreaterThan(80);
       // `openWorldHint` n est PAS uniforme : vrai pour les neuf outils qui interrogent
-      // CanLII, faux pour `jurisprudence_parse_citation` qui n appelle rien. Annoncer
+      // CanLII, faux pour `parse_citation` qui n appelle rien. Annoncer
       // « monde ouvert » sur un outil purement local interdirait sans raison a un client
       // de mettre en cache ; l inverse ferait croire a une réponse stable la ou la
       // couverture de CanLII évolue.
-      const sansAppel = t.name === "jurisprudence_parse_citation";
+      const sansAppel = t.name === "parse_citation";
       expect(t.annotations, t.name).toEqual({
         readOnlyHint: true,
         openWorldHint: !sansAppel,
@@ -772,28 +772,36 @@ describe("§8 — méthodes JSON-RPC", () => {
     }
     expect(outils.map((t) => t.name).sort()).toEqual(
       [
-        "jurisprudence_browse_cases",
-        "jurisprudence_browse_legislation",
-        "jurisprudence_citator",
-        "jurisprudence_find_case",
-        "jurisprudence_get_case",
-        "jurisprudence_get_legislation",
-        "jurisprudence_list_databases",
-        "jurisprudence_parse_citation",
-        "jurisprudence_subsequent_history",
-        "jurisprudence_verify_citations",
+        "browse_cases",
+        "browse_legislation",
+        "citator",
+        "find_case",
+        "get_case",
+        "get_legislation",
+        "list_databases",
+        "parse_citation",
+        "subsequent_history",
+        "verify_citations",
       ].sort(),
     );
   });
 
-  it("tous les outils portent `jurisprudence_` et les trois outils déplacés sont rejetés sans repli", async () => {
+  it("tous les outils sont sans préfixe et les outils retirés ou déplacés sont rejetés sans repli", async () => {
     const listRes = await appeler(rpc("tools/list"));
     const listBody = (await listRes.json()) as { result: { tools: Array<{ name: string }> } };
     const noms = listBody.result.tools.map((t) => t.name);
     expect(noms).toHaveLength(10);
-    expect(noms.every((n) => n.startsWith("jurisprudence_"))).toBe(true);
+    expect(noms.every((n) => !n.startsWith("jurisprudence_") && !n.startsWith("canlii_"))).toBe(
+      true,
+    );
 
-    for (const retire of ["greffe_parse_court_file_number", "palais_list", "palais_get"]) {
+    for (const retire of [
+      "greffe_parse_court_file_number",
+      "palais_list",
+      "palais_get",
+      "jurisprudence_verify_citations",
+      "jurisprudence_parse_citation",
+    ]) {
       const res = await appeler(rpc("tools/call", { name: retire, arguments: {} }));
       const body = (await res.json()) as {
         result: { isError: boolean; content: [{ text: string }] };
@@ -822,7 +830,7 @@ describe("§8 — méthodes JSON-RPC", () => {
 
   it("des arguments invalides rendent isError, PAS une erreur JSON-RPC (§8)", async () => {
     const res = await appeler(
-      rpc("tools/call", { name: "jurisprudence_parse_citation", arguments: { citation: 42 } }),
+      rpc("tools/call", { name: "parse_citation", arguments: { citation: 42 } }),
     );
     const body = (await res.json()) as {
       result: { isError: boolean; content: [{ text: string }] };
@@ -834,7 +842,7 @@ describe("§8 — méthodes JSON-RPC", () => {
   it("un argument non déclaré est refusé (additionalProperties: false)", async () => {
     const res = await appeler(
       rpc("tools/call", {
-        name: "jurisprudence_parse_citation",
+        name: "parse_citation",
         arguments: { citation: "2020 QCCA 495", inconnu: true },
       }),
     );
@@ -869,7 +877,7 @@ describe("§8 — méthodes JSON-RPC", () => {
   it("n'émet PAS structuredContent (symétrie avec qclaw, D4)", async () => {
     const res = await appeler(
       rpc("tools/call", {
-        name: "jurisprudence_parse_citation",
+        name: "parse_citation",
         arguments: { citation: "2020 QCCA 495" },
       }),
     );

@@ -21,32 +21,30 @@ texte d'une décision. La valeur du connecteur tient donc à trois usages :
    d'en tirer le texte par un autre moyen.
 
 *(Note — 2026-11-14 : les trois outils hors ligne sur les numéros de dossier de cour et les
-palais de justice du Québec — `greffe_parse_court_file_number`, `palais_list`, `palais_get` —
+palais de justice du Québec — aujourd'hui `greffe_parse_number`, `palais_list`, `palais_get` —
 ont été déplacés vers le connecteur public sans authentification [`MCP-Outils`](https://github.com/jpoirierlavoie/MCP-Outils), où ils
 ne requièrent aucun secret.)*
 
 ### ⚠ Source et portée des dix outils
 
-Tous les outils portent le préfixe `jurisprudence_` :
+Les dix outils sont exposés **sans préfixe** (`v2.0.0`, sous la clé serveur `juris` dans [`droit-civil-quebecois`](https://github.com/jpoirierlavoie/droit-civil-quebecois)) et portent leur provenance dans leur **description** :
 
-| Préfixe | Source | Appels sortants |
+| Portée | Source | Appels sortants |
 |---|---|---|
-| `jurisprudence_` (10) | la collection de **CanLII** — couverture et verdicts en dépendent | oui (9), **sauf** `jurisprudence_parse_citation` (1) |
+| `verify_citations` … `get_legislation` (9) | la collection de **CanLII** — couverture et verdicts en dépendent | oui (`openWorldHint: true`) |
+| `parse_citation` (1) | analyseur local et répertoire compilé — concerne les identifiants **CanLII**, **aucun appel** | non (`openWorldHint: false`) |
 
-**Neuf outils sur dix appellent CanLII, pas dix.** `jurisprudence_parse_citation` porte le
-préfixe parce que sa réponse concerne la collection de CanLII — il dit quels identifiants une
-citation permettrait d'y construire — mais il ne l'interroge jamais : c'est un analyseur pur.
-Cette nuance n'est pas seulement écrite ici, elle est **lisible par machine** :
-`jurisprudence_parse_citation` porte `openWorldHint: false` dans ses annotations MCP, les neuf
-autres `openWorldHint: true`. Un hôte qui restreint les outils « monde ouvert » peut donc le
-distinguer sans lire une ligne de prose.
+**Neuf outils sur dix appellent CanLII, pas dix.** `parse_citation` indique quels identifiants une
+citation permettrait de construire dans CanLII, mais il ne l'interroge jamais : c'est un analyseur pur.
+Cette nuance est **lisible par machine** : `parse_citation` porte `openWorldHint: false` dans ses
+annotations MCP, les neuf autres `openWorldHint: true`. Un hôte qui restreint les outils « monde
+ouvert » peut donc le distinguer sans lire une ligne de prose.
 
-**Le préfixe ne NOMME pas la source à lui seul** — il s'écrivait `canlii_` jusqu'au 2026-09-16
-(D8 amendée) : un préfixe ne sait pas porter une réserve, il n'en donne que l'illusion, et
-quatre descriptions sur dix s'en remettaient à lui au point de ne jamais écrire « CanLII ».
-L'annonce vit désormais dans la **description de chaque outil**, dans les instructions du
-serveur et sur la page publique — trois surfaces qui sont des phrases, et que des tests
-épinglent dans les deux langues.
+**Le nom d'outil ne porte pas la mise en garde à lui seul** — les noms ont évolué de `canlii_*`
+à `jurisprudence_*` le 2026-09-16 (D8 amendée), puis vers des noms courts sans préfixe en `v2.0.0`
+afin d'alléger la budgétisation des clients MCP : un préfixe ne sait pas porter une réserve.
+L'annonce vit dans la **description de chaque outil**, dans les instructions du serveur (`INSTRUCTIONS`)
+et sur la page publique — trois surfaces qui sont des phrases, épinglées par test dans les deux langues.
 
 ---
 
@@ -80,7 +78,7 @@ serveur et sur la page publique — trois surfaces qui sont des phrases, et que 
 
 ### Conséquences imposées au code
 
-1. Toute sortie d'outil **heuristique** (`jurisprudence_find_case`, `jurisprudence_subsequent_history`)
+1. Toute sortie d'outil **heuristique** (`find_case`, `subsequent_history`)
    se termine par sa mise en garde, **dans le corps de la réponse** et non seulement dans
    la description de l'outil.
 2. Un verdict `INTROUVABLE` n'est **jamais** formulé comme « cette décision n'existe pas ».
@@ -105,16 +103,16 @@ n'est pas de l'ajuster pour qu'il passe : c'est de remettre la mise en garde.
 
 | Outil | Rôle |
 |---|---|
-| `jurisprudence_verify_citations` | **Pivot.** Verdict par citation : CONFIRMÉE · DISCORDANTE · INTROUVABLE · NON CONSTRUCTIBLE · ILLISIBLE — et **INDÉTERMINÉE**, qui dit qu’aucun constat n’a pu être fait (CanLII injoignable, étranglé, réponse inexploitable, ou budget épuisé) et ne vaut JAMAIS absence |
-| `jurisprudence_find_case` | Recherche par noms des parties ; index local puis balayage vif |
-| `jurisprudence_get_case` | Fiche officielle d'une décision |
-| `jurisprudence_citator` | Ce qu'une décision cite, ce qui la cite, les dispositions qu'elle cite |
-| `jurisprudence_subsequent_history` | **Indice heuristique** de sorts ultérieurs — ne remplace pas un citateur |
-| `jurisprudence_browse_cases` | Décisions d'un tribunal, avec les huit filtres de dates |
-| `jurisprudence_list_databases` | Répertoire des cours et corpus législatifs — l'en-tête nomme le filtre et dit sur quel ensemble il compte |
-| `jurisprudence_browse_legislation` | Lois et règlements d'une base législative |
-| `jurisprudence_get_legislation` | Fiche d'une loi : abrogation, découpage, et les dates de la VERSION servie — jamais celles de l'instrument |
-| `jurisprudence_parse_citation` | Analyse hors ligne d'une citation — **aucun appel** |
+| `verify_citations` | **Pivot.** Verdict par citation : CONFIRMÉE · DISCORDANTE · INTROUVABLE · NON CONSTRUCTIBLE · ILLISIBLE — et **INDÉTERMINÉE**, qui dit qu’aucun constat n’a pu être fait (CanLII injoignable, étranglé, réponse inexploitable, ou budget épuisé) et ne vaut JAMAIS absence |
+| `find_case` | Recherche par noms des parties ; index local puis balayage vif |
+| `get_case` | Fiche officielle d'une décision |
+| `citator` | Ce qu'une décision cite, ce qui la cite, les dispositions qu'elle cite |
+| `subsequent_history` | **Indice heuristique** de sorts ultérieurs — ne remplace pas un citateur |
+| `browse_cases` | Décisions d'un tribunal, avec les huit filtres de dates |
+| `list_databases` | Répertoire des cours et corpus législatifs — l'en-tête nomme le filtre et dit sur quel ensemble il compte |
+| `browse_legislation` | Lois et règlements d'une base législative |
+| `get_legislation` | Fiche d'une loi : abrogation, découpage, et les dates de la VERSION servie — jamais celles de l'instrument |
+| `parse_citation` | Analyse hors ligne d'une citation — **aucun appel** |
 
 Sorties en **texte français**, jamais en JSON (décision D4).
 
@@ -128,7 +126,7 @@ Ce connecteur est, sur ce plan, exceptionnellement propre : ce qui sort de l'inf
 ce sont des **citations, des identifiants de tribunaux et des dates**. Aucun nom de client,
 aucun fait de dossier, aucun document.
 
-**Une seule réserve** : `jurisprudence_find_case` prend des **noms de parties**. Si ce nom est celui
+**Une seule réserve** : `find_case` prend des **noms de parties**. Si ce nom est celui
 d'une partie à un dossier en cours plutôt que celui d'une décision publiée, la requête révèle
 à CanLII un intérêt de recherche. Le risque est faible — CanLII est un organisme sans but
 lucratif canadien, et la recherche jurisprudentielle nominative est l'usage normal du site —
@@ -252,12 +250,12 @@ dernière étape reste un geste humain.
 ### Recette manuelle (§14 étape 8)
 
 ```bash
-node scripts/mcp-client.mjs --remote tools/call jurisprudence_verify_citations \
+node scripts/mcp-client.mjs --remote tools/call verify_citations \
   '{"citations":[{"citation":"2008 CSC 9"},{"citation":"2020 QCCA 999999"},{"citation":"[1985] C.A. 105"}]}'
 ```
 
 Attendu : *Dunsmuir* CONFIRMÉE · `2020 QCCA 999999` INTROUVABLE (avec les explications
-concurrentes) · `[1985] C.A. 105` NON CONSTRUCTIBLE (avec renvoi à `jurisprudence_find_case`).
+concurrentes) · `[1985] C.A. 105` NON CONSTRUCTIBLE (avec renvoi à `find_case`).
 
 ### Déploiement — continu sur `main` via `.github/workflows/deploy.yml` *(rétabli le 2026-11-14)*
 
@@ -329,7 +327,7 @@ npm run deploy    # = migrations --remote PUIS wrangler deploy, arrêt au premie
 
 ```sql
 SELECT query, COUNT(*) n FROM search_log
-WHERE tool = 'jurisprudence_verify_citations' AND verdict IN ('ILLISIBLE','INTROUVABLE')
+WHERE tool = 'verify_citations' AND verdict IN ('ILLISIBLE','INTROUVABLE')
 GROUP BY query ORDER BY n DESC LIMIT 50;
 ```
 

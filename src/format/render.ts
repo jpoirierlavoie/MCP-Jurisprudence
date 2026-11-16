@@ -22,20 +22,20 @@ import { dateFr, joindre, motsCles, nombreFr, ou } from "./fr";
 
 // ── Mises en garde imposées (§2) ──────────────────────────────────────────────
 
-/** Pied de `jurisprudence_verify_citations` — annexe A.1, verbatim. */
+/** Pied de `verify_citations` — annexe A.1, verbatim. */
 export const GARDE_VERIFICATION =
   "Établit l'existence et l'identité, jamais l'autorité actuelle (aucun historique\n" +
   "d'appel, aucun indicateur de traitement) ni le contenu du dispositif.";
 
-/** Pied de `jurisprudence_find_case` — annexe A.2, verbatim. */
+/** Pied de `find_case` — annexe A.2, verbatim. */
 export const GARDE_RECHERCHE =
   "Recherche sur l'intitulé et les mots-clés uniquement — l'API de CanLII n'expose\n" +
   "pas le texte des décisions.";
 
-/** Tête de `jurisprudence_subsequent_history` — annexe A.3, verbatim. */
+/** Tête de `subsequent_history` — annexe A.3, verbatim. */
 export const GARDE_SORTS_TETE = "Sorts ultérieurs — INDICE HEURISTIQUE, à vérifier à la source.";
 
-/** Pied de `jurisprudence_subsequent_history` — annexe A.3, verbatim. */
+/** Pied de `subsequent_history` — annexe A.3, verbatim. */
 export const GARDE_SORTS_PIED =
   "Ce résultat n'indique NI le sens du traitement (confirmée, infirmée, distinguée),\n" +
   "NI les pourvois pendants, NI les refus de permission d'appeler. Ce n'est pas un\n" +
@@ -128,7 +128,7 @@ export const GARDE_VERSION_LEGISLATIVE =
   "datent ni son entrée en vigueur, ni son abrogation. Un texte en vigueur depuis des\n" +
   "décennies peut porter une date de début toute récente.";
 
-/** Rappel du délai de diffusion, employé par `jurisprudence_browse_cases` (§7.6). */
+/** Rappel du délai de diffusion, employé par `browse_cases` (§7.6). */
 export const GARDE_DIFFUSION =
   "La diffusion sur CanLII connaît un délai : prévoir un jeu de deux jours sur les\n" +
   "filtres de date de diffusion.";
@@ -191,30 +191,30 @@ export const EXPLICATION_INDETERMINEE =
  *   réserve est une décision éditoriale, donc de l'avocat (invariant 16).
  */
 
-/** `jurisprudence_browse_cases` — pied inconditionnel. */
+/** `browse_cases` — pied inconditionnel. */
 export const LISTES_SANS_FICHE =
   "Les listes de CanLII ne portent ni date de décision, ni numéro de dossier, ni\n" +
-  "hyperlien : pour la fiche complète d'une décision, employer jurisprudence_get_case.";
+  "hyperlien : pour la fiche complète d'une décision, employer get_case.";
 
-/** `jurisprudence_get_case` — servie avec toute fiche. */
+/** `get_case` — servie avec toute fiche. */
 export const TEXTE_NON_EXPOSE =
   "Le TEXTE de la décision n'est pas exposé par l'API de CanLII : suivre l'hyperlien.";
 
-/** `jurisprudence_get_legislation` — pied. */
+/** `get_legislation` — pied. */
 export const LEGISLATION_METADONNEES =
   "Métadonnées seulement — l'API de CanLII ne rend pas le texte. Pour le TEXTE d'une\n" +
   "loi ou d'un règlement du Québec, employer le connecteur « Législation du Québec »,\n" +
   "qui rend le texte officiel verbatim.";
 
-/** `jurisprudence_browse_legislation` — pied. Texte VOISIN du précédent, et distinct. */
+/** `browse_legislation` — pied. Texte VOISIN du précédent, et distinct. */
 export const LEGISLATION_METADONNEES_LISTE =
   "Métadonnées seulement. Pour le TEXTE d'une loi ou d'un règlement du Québec,\n" +
   "employer le connecteur « Législation du Québec », qui rend le texte officiel verbatim.";
 
-/** `jurisprudence_parse_citation` — pied inconditionnel. */
+/** `parse_citation` — pied inconditionnel. */
 export const DIAGNOSTIC_SEULEMENT =
   "Outil de diagnostic : il n'établit RIEN sur l'existence de la décision. " +
-  "Pour l'éprouver réellement, utiliser jurisprudence_verify_citations.";
+  "Pour l'éprouver réellement, utiliser verify_citations.";
 
 // ── Rendu d'une fiche ─────────────────────────────────────────────────────────
 
