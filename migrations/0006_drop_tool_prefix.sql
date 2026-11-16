@@ -24,3 +24,18 @@ UPDATE search_log
 UPDATE court_codes
    SET note = replace(note, 'jurisprudence_', '')
  WHERE note GLOB '*jurisprudence_*';
+
+-- ── 3. Garde de transition pendant le déploiement (`deployer.mjs`) ───────────
+--
+-- `scripts/deployer.mjs` applique 0006 AVANT le déploiement du nouveau Worker : une
+-- invocation en vol de l'ancienne version (ou en cas d'échec puis de reprise du
+-- déploiement sans réexécution de 0006) pourrait encore insérer `jurisprudence_*`
+-- dans `search_log`. Ce déclencheur normalise ces insertions héritées au vol.
+CREATE TRIGGER IF NOT EXISTS search_log_drop_legacy_prefix
+AFTER INSERT ON search_log
+WHEN new.tool GLOB 'jurisprudence_*'
+BEGIN
+  UPDATE search_log
+     SET tool = substr(new.tool, 15)
+   WHERE id = new.id;
+END;

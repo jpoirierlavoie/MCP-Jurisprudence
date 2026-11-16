@@ -470,4 +470,15 @@ describe("télémétrie : elle n'échoue jamais l'outil qu'elle observe", () => 
     await expect(flushUsage(casse, { calls: 1, errors: 0, throttled: 0 })).resolves.toBeUndefined();
     await expect(upsertCase(casse, row())).resolves.toBeUndefined();
   });
+
+  it("normalise par déclencheur une insertion héritée `jurisprudence_*` dans search_log (migration 0006)", async () => {
+    await logSearch(db, {
+      tool: "jurisprudence_verify_citations",
+      query: "2008 CSC 9",
+      result_count: 1,
+      verdict: "CONFIRMÉE",
+    });
+    const r = await db.prepare("SELECT tool FROM search_log").first<{ tool: string }>();
+    expect(r?.tool).toBe("verify_citations");
+  });
 });
