@@ -7,11 +7,11 @@
 
 import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
+import { relancerSiInterruptionGouverne } from "../../canlii/errors";
 import type { Lang, LegislationListResponse } from "../../canlii/types";
 import { fold } from "../../citation/normalize";
 import { nombreFr, pluriel, troncature } from "../../format/fr";
 import { document, LEGISLATION_METADONNEES_LISTE } from "../../format/render";
-import { flushUsage, logSearch } from "../../store/telemetry";
 import { LIMITES } from "../defauts";
 import type { ToolContext } from "../registry";
 
@@ -25,7 +25,6 @@ export async function browseLegislation(
   const bornes = LIMITES.browse_legislation;
   const limit = Math.min(Math.max((args.limit as number) ?? bornes.defaut, 1), bornes.max);
   const offset = Math.max((args.offset as number) ?? 0, 0);
-  const now = ctx.now ?? new Date();
 
   let payload: LegislationListResponse;
   try {
@@ -33,17 +32,8 @@ export async function browseLegislation(
       `legislationBrowse/${lang}/${databaseId}/`,
     );
   } catch (e) {
-    await logSearch(ctx.db, {
-      tool: "browse_legislation",
-      query: query ?? "(sans filtre)",
-      database_id: databaseId,
-      lang,
-      result_count: 0,
-      fallback: "api_error",
-    });
+    relancerSiInterruptionGouverne(e);
     return err(describeError(e));
-  } finally {
-    await flushUsage(ctx.db, ctx.client.usage(), now);
   }
 
   let items = payload.legislations ?? [];
@@ -53,14 +43,6 @@ export async function browseLegislation(
       (i) => fold(i.title ?? "").includes(motif) || fold(i.citation ?? "").includes(motif),
     );
   }
-
-  await logSearch(ctx.db, {
-    tool: "browse_legislation",
-    query: query ?? "(sans filtre)",
-    database_id: databaseId,
-    lang,
-    result_count: items.length,
-  });
 
   if (items.length === 0) {
     return ok(

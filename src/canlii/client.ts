@@ -571,7 +571,8 @@ export function analyserErreur(err: unknown): ErreurDecrite {
       case 403:
         return {
           cause: "AUTHENTIFICATION_REFUSEE",
-          phrase: "CanLII a refusé la clef d'API (401/403). Vérifier le secret CANLII_API_KEY.",
+          phrase:
+            "CanLII a refusé la clef d'API (401/403). Mettre à jour la clef dans https://acces.poirierlavoie.ca/moi ou vérifier l'en-tête X-Clef-CanLII.",
         };
       case 404:
         return {

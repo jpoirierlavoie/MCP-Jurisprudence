@@ -127,15 +127,21 @@ export const EN = {
   ],
 
   acces: [
-    "A private instance, run by a Québec lawyer for their own practice. The endpoint has " +
-      "the form https://jurisprudence.poirierlavoie.ca/mcp/<secret> or " +
-      "https://jurisprudence.poirierlavoie.ca/mcp (by authorization header) — the secret " +
-      "appears nowhere on this page, and never will.",
-    "A public MCP Server Card (SEP-2127) without secrets is published at " +
-      "https://jurisprudence.poirierlavoie.ca/mcp/server-card; the repository ships manifests " +
-      "for Google Antigravity (plugin.json, mcp_config.json) and Gemini CLI " +
+    "This connector is reserved for members in good standing of the Barreau du Québec under a " +
+      "strict bring-your-own CanLII API key policy (encrypted vault or X-Clef-CanLII header, " +
+      "enforced before reading the shared cache). Two mounts coexist: " +
+      "https://jurisprudence.poirierlavoie.ca/mcp/<secret> or https://jurisprudence.poirierlavoie.ca/mcp " +
+      "(by authorization header, empty 404 on refusal) and https://jurisprudence.poirierlavoie.ca/mcp/oauth " +
+      "(OAuth 2.1 PKCE S256 via acces.poirierlavoie.ca). Access requests and self-service management: " +
+      "acces.poirierlavoie.ca/demande and acces.poirierlavoie.ca/moi.",
+    "No query text or searched citation is ever logged (Cloudflare invocation logs disabled, zero " +
+      "runtime writes to search_log). A public MCP Server Card (SEP-2127) without secrets is " +
+      "published at https://jurisprudence.poirierlavoie.ca/mcp/server-card; the repository ships " +
+      "manifests for Google Antigravity (plugin.json, mcp_config.json) and Gemini CLI " +
       "(gemini-extension.json).",
-    "The code is public (CC BY-NC-SA 4.0 licence), and the test suite runs with no API key and no network.",
+    "The code is public under the CC BY-NC-SA 4.0 licence with a Companion Professional Legal " +
+      "Practice Grant for members in good standing of the Barreau du Québec (see LICENSE), and " +
+      "the test suite runs with no API key and no network.",
   ],
 
   pied: [

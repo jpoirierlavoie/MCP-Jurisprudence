@@ -690,24 +690,109 @@ describe("§2 / invariant 9 — aucun chemin ne présente une panne comme une ab
     expect(t).not.toContain("PAS un constat d'absence");
   });
 
-  it("la télémétrie ne confond plus un 404 avec une panne", async () => {
-    // `fallback` valait « api_error » dans les DEUX cas : un dépouillement de §10
-    // comptait une absence constatée comme une panne, et réciproquement.
-    const lu = async (statut: number) => {
+  it("la télémétrie sans contenu (DB_IDENTITE) ne confond jamais un 404 avec une panne et n'écrit rien dans search_log (G9)", async () => {
+    const { createExecutionContext, waitOnExecutionContext } = await import("cloudflare:test");
+    const { empreinte, frapperJeton, queueJeton, scellerCoffre } = await import(
+      "@poirierlavoie/mcp-socle"
+    );
+    const { default: workerJuris } = await import("../src/index");
+    const maitre = "m".repeat(40);
+
+    const lu = async (statut: number, suffixe: string) => {
       await resetDb();
       await seedDatabases();
-      const client = fakeClient(
-        {},
-        { erreur: () => new CanliiError(statut, "https://exemple.invalid/x", "") },
+      await env.DB_IDENTITE.exec(
+        "DELETE FROM evenement_technique;\nDELETE FROM compteur_jour;\nDELETE FROM coffre_clef;\nDELETE FROM jeton;\nDELETE FROM titulaire;",
       );
-      await callTool("get_case", { database_id: "qcca", case_id: "2005qcca304" }, toolCtx(client));
-      const r = await env.DB.prepare("SELECT fallback FROM search_log LIMIT 1").first<{
-        fallback: string | null;
+      const jeton = frapperJeton();
+      const maintenant = "2026-11-18T12:00:00.000Z";
+      const titulaireId = `tit_${suffixe}`;
+      await env.DB_IDENTITE.prepare(
+        `INSERT INTO titulaire (id, cree_le, etat, nom, numero_barreau_tmp, section, courriel, attestation_le, attestation_ver, cgu_ver, hybride_permis)
+         VALUES (?1, ?2, 'actif', 'Me Garde', ?3, 'Montréal', ?4, ?2, 'v1', 'v1', 1)`.replace(
+          "numero_barreau_tmp",
+          "numero_membre",
+        ),
+      )
+        .bind(titulaireId, maintenant, `8800-${suffixe}`, `${suffixe}@exemple.qc.ca`)
+        .run();
+      await env.DB_IDENTITE.prepare(
+        `INSERT INTO jeton (id, titulaire_id, empreinte, queue, libelle, portee, emis_le)
+         VALUES (?1, ?2, ?3, ?4, 'test', 'jurisprudence', ?5)`,
+      )
+        .bind(`jet_${suffixe}`, titulaireId, await empreinte(jeton), queueJeton(jeton), maintenant)
+        .run();
+      const scelle = await scellerCoffre("clef-canlii-test-garde-1234567890", {
+        titulaireId,
+        usage: "canlii",
+        version: 1,
+        maitre,
+      });
+      await env.DB_IDENTITE.prepare(
+        `INSERT INTO coffre_clef (titulaire_id, usage, version, iv, chiffre, repere, empreinte_clef, pose_le, etat)
+         VALUES (?1, 'canlii', ?2, ?3, ?4, ?5, ?6, ?7, 'valide')`,
+      )
+        .bind(
+          titulaireId,
+          scelle.version,
+          scelle.iv,
+          scelle.chiffre,
+          scelle.repere,
+          scelle.empreinteClef,
+          maintenant,
+        )
+        .run();
+
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = (async () =>
+        new Response("", {
+          status: statut,
+          headers: statut === 429 ? { "Retry-After": "0" } : undefined,
+        })) as typeof fetch;
+      try {
+        const ctx = createExecutionContext();
+        await workerJuris.fetch(
+          new Request("https://jurisprudence.poirierlavoie.ca/mcp", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${jeton}`,
+              "MCP-Protocol-Version": "2025-06-18",
+            },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              id: 1,
+              method: "tools/call",
+              params: {
+                name: "get_case",
+                arguments: { database_id: "qcca", case_id: "2005qcca304" },
+              },
+            }),
+          }),
+          {
+            ...env,
+            COFFRE_MAITRE_V1: maitre,
+            CANLII_MIN_INTERVAL_MS: "0",
+          } as unknown as Env,
+          ctx,
+        );
+        await waitOnExecutionContext(ctx);
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+
+      const nLog = await env.DB.prepare("SELECT COUNT(*) AS n FROM search_log").first<{
+        n: number;
       }>();
-      return r?.fallback ?? null;
+      expect(nLog?.n).toBe(0);
+      const evt = await env.DB_IDENTITE.prepare(
+        "SELECT issue, code FROM evenement_technique LIMIT 1",
+      ).first<{ issue: string; code: string | null }>();
+      return evt;
     };
-    expect(await lu(404)).toBe("not_found");
-    expect(await lu(429)).toBe("api_error");
+
+    expect(await lu(404, "404")).toEqual({ issue: "introuvable", code: null });
+    expect(await lu(429, "429")).toEqual({ issue: "erreur_amont", code: "AMONT_ERREUR" });
   });
 });
 

@@ -15,7 +15,7 @@
 
 import type { CanliiClient } from "../canlii/client";
 import { analyserErreur } from "../canlii/client";
-import { CanliiBudgetError, CanliiError } from "../canlii/errors";
+import { CanliiBudgetError, CanliiError, relancerSiInterruptionGouverne } from "../canlii/errors";
 import type { CaseMetadata, Lang } from "../canlii/types";
 import type { Directory, NeutralForm, Resolution, ResolvableForm } from "../citation/parse";
 import { type CaseRow, getCachedAny, rowFromMetadata, upsertCase } from "./cases";
@@ -237,6 +237,7 @@ export async function lookupCase(
         message: null,
       };
     } catch (e) {
+      relancerSiInterruptionGouverne(e);
       if (e instanceof CanliiBudgetError) {
         return {
           status: "budget",

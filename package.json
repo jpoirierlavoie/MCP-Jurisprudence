@@ -13,6 +13,7 @@
     "type-check": "tsc --noEmit",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
+    "audit": "node scripts/verifier-audit.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "db:migrate:local": "wrangler d1 migrations apply canlii --local",
@@ -21,7 +22,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.6.7",
     "@cloudflare/vitest-pool-workers": "^0.23.0",
-    "@poirierlavoie/mcp-socle": "github:jpoirierlavoie/MCP-Socle#v0.7.0",
+    "@poirierlavoie/mcp-socle": "github:jpoirierlavoie/MCP-Socle#v0.8.0",
     "typescript": "^7.0.2",
     "vitest": "^4.1.12",
     "wrangler": "^4.162.0"

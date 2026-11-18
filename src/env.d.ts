@@ -39,6 +39,12 @@ interface WorkerSecrets {
    * Absent, le Worker se comporte exactement comme avant : un seul porteur admis.
    */
   MCP_SHARED_SECRET_ATHENA?: string;
+  /**
+   * Matériaux maîtres du coffre chiffré `DB_IDENTITE.coffre_clef` (`HKDF-SHA256` + `AES-256-GCM`,
+   * >= 32 caractères, posés par `wrangler secret put` — jamais dans `wrangler.jsonc`).
+   */
+  COFFRE_MAITRE_V1?: string;
+  COFFRE_MAITRE_V2?: string;
 }
 
 interface Env extends WorkerSecrets {}

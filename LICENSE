@@ -31,6 +31,42 @@ International License (CC BY-NC-SA 4.0).
 SPDX Identifier: CC-BY-NC-SA-4.0
 https://creativecommons.org/licenses/by-nc-sa/4.0/
 
+--------------------------------------------------------------------------------
+AUTORISATION COMPLÉMENTAIRE DE PRATIQUE PROFESSIONNELLE DU DROIT /
+COMPANION PROFESSIONAL LEGAL PRACTICE GRANT (CC BY-NC-SA 4.0, Section 7(b) & 6(c))
+--------------------------------------------------------------------------------
+
+FRANÇAIS — Conformément aux sections 6(c) et 7(b) de la licence CC BY-NC-SA 4.0,
+le concédant (Jason Poirier Lavoie, avocat) accorde à titre gratuit et séparé,
+sans modifier le code juridique Creative Commons ci-dessous, aux membres en
+règle inscrits au Tableau de l'Ordre du Barreau du Québec (ainsi qu'aux membres
+de leur cabinet agissant sous leur supervision professionnelle directe) le droit
+d'utiliser le présent logiciel et le connecteur MCP associé dans le cadre de
+leur exercice professionnel du droit, y compris au sein de mandats rémunérés
+pour leurs clients.
+
+Demeurent strictement interdits sans entente écrite distincte : toute revente,
+sous-licence payante, offre logicielle commerciale (« SaaS » ou « LegalTech »),
+encapsulation tarifée, redistribution contre rémunération ou mise à disposition
+commerciale à des tiers. Le logiciel et le service hébergé sont fournis
+« TELS QUELS », sans garantie, sans engagement de niveau de service (SLA), par
+un avocat plaideur en exercice ; le professionnel demeure seul responsable de la
+vérification indépendante des sources primaires et du respect de ses obligations
+déontologiques.
+
+ENGLISH — Pursuant to Sections 6(c) and 7(b) of CC BY-NC-SA 4.0, the Licensor
+(Jason Poirier Lavoie, Lawyer) separately and gratuitously grants, without
+modifying the Creative Commons Legal Code below, active members in good standing
+of the Barreau du Québec (and supervised members of their firm) permission to
+use this software and its associated MCP connector in the ordinary course of
+practising law, including within fee-bearing client mandates.
+
+Strictly prohibited without a separate written agreement: any commercial resale,
+paid sublicensing, commercial LegalTech or SaaS wrapping, fee-gated hosting, or
+commercial redistribution to third parties. Provided "AS IS", with zero SLA or
+warranty, by a practising litigator; each lawyer remains solely responsible for
+independent primary-source verification and professional ethical compliance.
+
 TEXTE JURIDIQUE OFFICIEL / LEGAL CODE (CC BY-NC-SA 4.0) :
 
 Attribution-NonCommercial-ShareAlike 4.0 International
@@ -480,13 +516,14 @@ provenant de l'API REST de CanLII (https://www.canlii.org), ni aux noms ou
 marques de tiers, et aucun droit d'auteur n'est revendiqué sur ces contenus.
 L'utilisation des services et métadonnées de CanLII demeure régie par les
 conditions d'utilisation de CanLII. La présente implémentation exige d'ailleurs
-une clef d'API personnelle fournie par CanLII à l'exploitant de l'instance.
+une clef d'API personnelle fournie par CanLII à chaque praticien utilisateur
+(coffre chiffré BYOK ou en-tête X-Clef-CanLII).
 
 Part A does NOT extend to case-law or legislative metadata obtained through the
 CanLII REST API (https://www.canlii.org), nor to third-party names or marks,
 and no copyright is claimed therein. Use of CanLII services and metadata remains
-governed by CanLII's Terms of Use. Running a live connected instance requires a
-personal CanLII API key obtained from CanLII.
+governed by CanLII's Terms of Use. Accessing CanLII-backed tools requires each
+practitioner's own personal CanLII API key obtained from CanLII.
 
 AUCUN CONSEIL JURIDIQUE / NO LEGAL ADVICE :
 Ce logiciel ne fournit aucun conseil juridique et n'atteste ni le texte

@@ -23,7 +23,6 @@ import type { CaseListResponse, Lang } from "./canlii/types";
 import { liste, moissonnageActif } from "./config";
 import { type CaseRow, rowFromListItem, upsertCases } from "./store/cases";
 import { directoryStale, refreshDatabases } from "./store/databases";
-import { flushUsage } from "./store/telemetry";
 
 /** Marge sous le plafond de 10 Mo (annexe B) : 5 000 et non le maximum de 10 000. */
 const PAGE = 5000;
@@ -85,8 +84,6 @@ export async function runScheduled(
       console.error("moissonnage en échec", { error: e instanceof Error ? e.name : "inconnu" });
     }
   }
-
-  await flushUsage(env.DB, client.usage(), now);
 }
 
 /**

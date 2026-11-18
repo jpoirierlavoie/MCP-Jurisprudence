@@ -27,10 +27,10 @@
 
 import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
+import { relancerSiInterruptionGouverne } from "../../canlii/errors";
 import type { Lang, LegislationMetadata } from "../../canlii/types";
 import { dateFr, nombreFr, ou } from "../../format/fr";
 import { GARDE_VERSION_LEGISLATIVE, LEGISLATION_METADONNEES, lien } from "../../format/render";
-import { flushUsage, logSearch } from "../../store/telemetry";
 import type { ToolContext } from "../registry";
 
 /** `repealed` arrive tantôt en booléen, tantôt en chaîne selon les corpus. */
@@ -94,7 +94,6 @@ export async function getLegislation(
   const databaseId = String(args.database_id ?? "").trim();
   const legislationId = String(args.legislation_id ?? "").trim();
   const lang = (args.lang as Lang) ?? "fr";
-  const now = ctx.now ?? new Date();
 
   let meta: LegislationMetadata;
   try {
@@ -102,26 +101,9 @@ export async function getLegislation(
       `legislationBrowse/${lang}/${databaseId}/${legislationId}/`,
     );
   } catch (e) {
-    await logSearch(ctx.db, {
-      tool: "get_legislation",
-      query: `${databaseId}/${legislationId}`,
-      database_id: databaseId,
-      lang,
-      result_count: 0,
-      fallback: "api_error",
-    });
+    relancerSiInterruptionGouverne(e);
     return err(describeError(e));
-  } finally {
-    await flushUsage(ctx.db, ctx.client.usage(), now);
   }
-
-  await logSearch(ctx.db, {
-    tool: "get_legislation",
-    query: `${databaseId}/${legislationId}`,
-    database_id: databaseId,
-    lang,
-    result_count: 1,
-  });
 
   const parties = Array.isArray(meta.content) ? meta.content.length : 0;
   const url = lien({ url: meta.url ?? null });

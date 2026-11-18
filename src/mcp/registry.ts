@@ -96,11 +96,21 @@ export interface ToolDescriptor {
  *   grave : annoncer « monde fermé » sur un outil qui appelle CanLII ferait croire à une
  *   réponse stable là où la couverture évolue.
  */
-const DISTANT = { readOnlyHint: true, openWorldHint: true } as const;
-const LOCAL = { readOnlyHint: true, openWorldHint: false } as const;
+const DISTANT = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: true,
+} as const;
+const LOCAL = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: false,
+} as const;
 
-/** Outil(s) dont la réponse ne dépend d'aucun appel sortant. */
-const SANS_APPEL = new Set(["parse_citation"]);
+/** Outil(s) dont la réponse ne dépend d'aucun appel sortant ni du cache CanLII. */
+export const SANS_APPEL = new Set(["parse_citation"]);
 
 const LANG: JsonSchema = {
   type: "string",

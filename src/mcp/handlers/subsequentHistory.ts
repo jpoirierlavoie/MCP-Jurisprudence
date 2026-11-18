@@ -14,6 +14,7 @@
 
 import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
+import { relancerSiInterruptionGouverne } from "../../canlii/errors";
 import { titleSimilarity } from "../../citation/compare";
 import { dateFr, pluriel } from "../../format/fr";
 import { document, GARDE_SORTS_PIED, GARDE_SORTS_TETE } from "../../format/render";
@@ -25,7 +26,6 @@ import {
   getCachedEdges,
   replaceEdges,
 } from "../../store/citator";
-import { flushUsage, logSearch } from "../../store/telemetry";
 import { LIMITES } from "../defauts";
 import type { ToolContext } from "../registry";
 import { resoudreCible } from "./cible";
@@ -70,16 +70,8 @@ export async function subsequentHistory(
       await replaceEdges(ctx.db, databaseId, caseId, "citing", aretes, now);
     }
   } catch (e) {
-    await logSearch(ctx.db, {
-      tool: "subsequent_history",
-      query: `${databaseId}/${caseId}`,
-      database_id: databaseId,
-      result_count: 0,
-      fallback: "api_error",
-    });
+    relancerSiInterruptionGouverne(e);
     return err(describeError(e));
-  } finally {
-    await flushUsage(ctx.db, ctx.client.usage(), now);
   }
 
   const rangs = superieures(databaseId);
@@ -110,14 +102,6 @@ export async function subsequentHistory(
 
   candidats.sort((x, y) => (x.date ?? "9999").localeCompare(y.date ?? "9999"));
   const rendus = candidats.slice(0, limit);
-
-  await logSearch(ctx.db, {
-    tool: "subsequent_history",
-    query: `${databaseId}/${caseId}`,
-    database_id: databaseId,
-    result_count: rendus.length,
-    fallback: "heuristique",
-  });
 
   const depart = `Départ : ${titre ?? `${databaseId} / ${caseId}`}${date ? ` (${dateFr(date)})` : ""}`;
 

@@ -1,533 +1,118 @@
-# CLAUDE.md — MCP Jurisprudence
+# mcp-jurisprudence — Vérification déterministe de jurisprudence canadienne (CanLII)
 
-Connecteur MCP exposant la REST API de CanLII en lecture seule :
-`https://jurisprudence.poirierlavoie.ca/mcp/<secret>` *(les trois outils hors ligne `greffe_*`
-et `palais_*` ont été déplacés le 2026-11-14 vers `MCP-Outils`)*.
-Propriétaire : Jason Poirier Lavoie (avocat, Québec). **C'est un outil juridique : un
-résultat faux rendu en silence est le pire défaut possible — refuser vaut toujours mieux
-que deviner.**
+Directives de développement, contrat de vérité et invariants anti-dérive pour **`mcp-jurisprudence`** (`https://jurisprudence.poirierlavoie.ca/mcp` et `/mcp/oauth`), gouvernant à l'identique Claude et Google Antigravity / Gemini CLI (`CLAUDE.md` et `GEMINI.md` doivent rester identiques octet pour octet et sous **24 000 octets** UTF-8 LF sans BOM ; `gemini-extension.json` déclare `"contextFileName": []` afin de ne jamais injecter ces consignes dans les sessions des usagers finaux).
 
-La spécification qui fait foi est [`SPEC.md`](SPEC.md), versionnée à la
-racine. Ses §1 (décisions arrêtées) et §2 (contrat de vérité) se lisent **avant** toute
-modification.
+Propriétaire : Jason Poirier Lavoie (avocat, Québec). La spécification qui fait foi est [`SPEC.md`](SPEC.md), complétée en Phase 3 par `MCP-Socle/SPEC-SOCLE-COMMUN.md`. **C'est un outil juridique : un résultat faux rendu en silence est le pire défaut possible — refuser vaut toujours mieux que deviner.**
 
 ---
 
-## ⚠ ÉVALUATION D'IMPACT ET RÈGLE DE PROPAGATION — obligatoire, sans exception
+## ⚠ ÉVALUATION D'IMPACT ET RÈGLE DE PROPAGATION (obligatoire, sans exception)
 
-```
-╔═════════════════════════════════════════════════════════════════════════════╗
-║ AUCUNE modification de ce depot n'est terminee tant que ses repercussions   ║
-║ n'ont pas ete EVALUEES et RAPPORTEES sur les six axes ci-dessous, et        ║
-║ INCLUSES dans le MEME changement :                                          ║
-║                                                                             ║
-║   1. les OUTILS MCP (registre `juris`, gestionnaires, noms courts v2.0.0)    ║
-║   2. leurs DESCRIPTIONS et leurs titres (FR + EN)                           ║
-║   3. leurs SCHÉMAS d'entrée                                                 ║
-║   4. README.md, SPEC.md, SECURITY.md, LICENSE (CC-BY-NC-SA-4.0) & manifestes║
-║   5. la PAGE PUBLIQUE HTML (GET / — src/site.ts + src/site.i18n.ts) et §18  ║
-║   6. les IMPACTS INTER-DÉPÔTS (Cross-repository : droit-civil-quebecois,    ║
-║      MCP-Socle, MCP-Legislation, MCP-Outils)                                ║
-╚═════════════════════════════════════════════════════════════════════════════╝
-```
+**Aucune tâche touchant ce dépôt n'est terminée tant que ses répercussions n'ont pas été évaluées, incluses dans le MÊME changement et explicitement rapportées sur chacun des six axes ci-dessous** (« non touché » vérifié et affirmé, jamais omis — le coût en jetons n'est jamais un motif de l'abréger) :
 
-**Exigence de reddition de compte :** Avant de conclure une tâche, énoncer explicitement pour **chacun des six axes** (en particulier `README.md`, la page publique HTML `GET /` et l'impact inter-dépôts) s'il est touché et pourquoi (« non touché » doit être vérifié et affirmé, jamais omis).
-
-**Le motif.** Ces surfaces décrivent la MÊME chose à des publics complémentaires : le modèle, le
-praticien, le lecteur de la spécification, le visiteur de la page publique HTML, le prochain
-contributeur et les dépôts consommateurs. Quand l'une prend du retard, elle ne tombe pas en panne — **elle continue
-de répondre, avec assurance, quelque chose de faux**. Un outil renommé dont le `README.md`
-garde l'ancien nom, un schéma resserré que la page HTML annonce encore large, une réserve
-retirée du corps mais laissée en vitrine : aucun de ces défauts ne lève d'erreur. C'est
-exactement le mode de panne que §2 interdit, déplacé dans la documentation.
-
-**Le coût en jetons de cette vérification est ASSUMÉ et n'est pas un motif de l'abréger.**
-Relire ces surfaces coûte moins qu'un praticien qui se fie à une description périmée.
-
-**Une surface hors dépôt a changé de forme le 2026-09-02 — mais la CATÉGORIE reste centrale.**
-Le clavardage interne de Pallas Athéna offrait les mêmes treize outils à son modèle depuis
-`athena/chat/worker_tools.py`, engendré depuis `tools/list` (§19). Il a été **retiré du
-dépôt d'Athéna le 2026-09-02** (commit `ef854733` : « le clavardage interne est retiré —
-87 fichiers, 22 592 lignes »), au passage du cabinet à un compte Claude for Work. Ni le
-fichier ni son générateur n'existent plus : il n'y a rien à relancer, et il ne faut pas
-les chercher. *(Cette consigne a survécu trois semaines à son objet — d'où sa date.)*
-
-**L'impact inter-dépôts reste critique aujourd'hui.** Un nom d'outil qui vit hors de ce dépôt
-n'est vu dériver par aucune commande d'ici : l'échec n'apparaît qu'au prochain appel, sous
-la forme d'un « Outil inconnu » que l'usager lit comme une panne du connecteur. Cette surface
-inter-dépôts recouvre principalement : le greffon `droit-civil-quebecois` (`v2.0.0`, qui nomme les
-10 outils sans préfixe sous la clé serveur `juris` dans `skills/` et déclare le connecteur dans ses
-manifestes), `MCP-Socle` (`#v0.7.0`), le jumeau
-`MCP-Legislation` (identité visuelle CSS/HTML et complémentarité droit législatif ↔ jurisprudence)
-et `MCP-Outils` (frontière CanLII vs outils québécois hors ligne).
-**Le repérage hors dépôt se fait par vérification des manifestes et compétences du plugin cadre.**
-
-### Table de propagation
-
-| Si vous touchez… | …vérifiez ET mettez à jour |
-|---|---|
-| **un outil** (ajout, retrait, renommage) | `src/mcp/registry.ts` · le gestionnaire dans `src/mcp/handlers/` · `OUTILS_EN` dans `src/site.i18n.ts` (parité testée **dans les deux sens**) · le tableau ET le compte de `README.md` §« Les dix outils » · §7 de `SPEC.md` · les compteurs de `test/garde.test.ts`, `test/rpc.test.ts` et `test/doc.test.ts` (ce dernier affirme `NOMS.length === 10` AVANT toute confrontation — et porte en plus `EN_LETTRES`, éprouvant le compte écrit en toutes lettres du `README.md`) · la **liste triée des noms** dans `test/rpc.test.ts` · la DESCRIPTION doit nommer sa source (`CanLII`), en français ET en anglais · le budget d'identifiant composé (<= 64 car. sous `droit-civil-quebecois`) · **inter-dépôts** : le greffon `droit-civil-quebecois` (`skills/`, manifestes, `scripts/regenerer_cache_mcp.py --apply`, `scripts/synchroniser_plugin_gemini.py --apply`, `verifier.py`, `verifier_tout.py`) |
-| **une description ou un titre** | la page publique HTML (`GET /`) les rend **verbatim** : relancer `test/site.test.ts` (formulations interdites) et `test/garde.test.ts` (sous-chaînes épinglées) · `OUTILS_EN` doit rester une TRADUCTION, jamais une copie |
-| **un `inputSchema`** | `validateArgs` (`@poirierlavoie/mcp-socle`) n'implémente qu'un SOUS-ENSEMBLE de JSON-Schema : ne pas déclarer ce qu'il ne sait pas imposer · **une contrainte que le GESTIONNAIRE impose et que le schéma ne sait pas dire (XOR, format, bornes croisées) s'écrit dans la `description`, et se RÉPÈTE sur chaque membre plutôt que de renvoyer à l'autre** (§8) · **toute valeur par défaut ou maximum vient de `src/mcp/defauts.ts`, jamais d'un nombre écrit à la main** · la page HTML (`GET /`) génère ses tableaux de schéma depuis le même objet · `additionalProperties: false` reste obligatoire · **tout paramètre porte une `description`** — `test/garde.test.ts` échoue sinon, et les schémas partagés du haut de `registry.ts` (`BASE_ID`, `CASE_ID`, `CITATION_REF`, `OFFSET`, `LANG`, `REFRESH`) existent pour qu'une même notion ne soit pas décrite deux fois en divergeant |
-| **une constante `GARDE_*`** | elle vit dans le corps des réponses **et** sur la page publique HTML (`GET /`) · `test/garde.test.ts` · ⚠ *corrigé le 2026-09-16* : la chaîne de couplage RÉELLE lue par `scripts/refresh-databases.mjs` est l'en-tête « base(s) au répertoire de CanLII » (`src/mcp/handlers/listDatabases.ts`), sur laquelle le script pose son garde-fou (sortie code 2 si modifiée). C'est elle qu'il faut propager. |
-| **la page publique HTML (`GET /`)** | `src/site.ts` · `src/site.i18n.ts` · `test/site.test.ts` (CSP, absence de CORS, liste blanche d'URLs) · §18 de `SPEC.md` · la section « Page publique » de `README.md` · le style reste **identique** à celui du connecteur jumeau `MCP-Legislation` et de `MCP-Outils` (invariant 21) |
-| **sécurité, confidentialité ou licence** | `SECURITY.md` (contact `jason@poirierlavoie.ca`, sécurité et confidentialité / privilège, porteurs et `search_log`) · `LICENSE` (`CC-BY-NC-SA-4.0` Partie A + Partie B CanLII) · `package.json` · `README.md` (§ Sécurité, confidentialité et licence) · `src/site.ts` + `src/site.i18n.ts` (`#acces`, sans casser `test/site.test.ts`) · cohérence inter-dépôts (`droit-civil-quebecois/SECURITY.md`, `MCP-Socle`) |
-| **version, identité ou manifestes** | `package.json` · `SERVER_INFO` et `PUBLIC_DESCRIPTION` (`src/mcp/registry.ts`) · `carteServeur()` (`/mcp/server-card`) · `plugin.json` · `mcp_config.json` · `gemini-extension.json` · `GEMINI.md` (< 24 000 octets) · vérifié par `test/doc.test.ts` · resynchroniser `droit-civil-quebecois` |
-
-### Comment vérifier
-
-La porte habituelle ne suffit pas : elle attrape la dérive **testée**, pas la dérive
-**rédactionnelle**. Après elle, relire réellement les surfaces concernées.
-
-```bash
-npx wrangler types && npx tsc --noEmit && npx biome check . && npx vitest run
-```
-
-La confrontation registre ↔ README n'est plus une commande à copier : c'est
-`test/doc.test.ts`, et elle tourne dans `vitest run`. **Le motif du déplacement est écrit
-en tête de ce fichier, et il mérite d'être lu avant d'en écrire une autre du même
-genre.** La commande `diff` qu'elle remplace filtrait ses DEUX côtés par une liste de
-préfixes tenue à la main ; le 2026-09-16 les préfixes ont changé, les deux côtés se sont
-réduits au même sous-ensemble de trois outils, et elle aurait rendu 0 — « aucune dérive »,
-sans avoir regardé dix outils sur treize. **Une vérification dont aucun côté n'est non
-vide par construction ne vérifie pas.** Corriger la liste aurait rouvert le même trou au
-renommage suivant ; le test, lui, affirme d'abord que le registre compte dix outils
-(treize à l'origine avant le retrait de §17), puis confronte dans les deux sens, sans
-aucune liste de préfixes.
-
-La page, elle, ne peut pas dériver sur ce point : elle DÉRIVE du registre (invariant 19).
-C'est le README et la spécification qui prennent du retard, parce qu'ils sont écrits à la
-main — d'où la confrontation automatisée, **et la relecture des §7 et §18, qu'aucune
-commande ne sait réclamer**.
+| # | Axe | Éléments à inspecter et synchroniser |
+|---|---|---|
+| 1 | **Outils MCP (`juris`)** | `src/mcp/registry.ts` (10 outils sans préfixe : `verify_citations`, `find_case`, `get_case`, `citator`, `subsequent_history`, `browse_cases`, `list_databases`, `browse_legislation`, `get_legislation`, `parse_citation`), `src/mcp/handlers/*.ts`, `test/garde.test.ts`, `test/rpc.test.ts`, `test/doc.test.ts` (`NOMS.length === 10`, `EN_LETTRES`) |
+| 2 | **Descriptions et titres** | `src/mcp/registry.ts` (`title`, `description`, `INSTRUCTIONS`, `PUBLIC_DESCRIPTION`), `OUTILS_EN` dans `src/site.i18n.ts` (parité dans les deux sens, mention de `CanLII` en FR et EN), `GARDE_*` dans `src/format/render.ts` et chaîne de couplage `"base(s) au répertoire de CanLII"` dans `listDatabases.ts` (`scripts/refresh-databases.mjs`) |
+| 3 | **Schémas d'entrée** | `inputSchema` dans `src/mcp/registry.ts` (`additionalProperties: false`, zéro `x-mcp-header`, valeurs issues de `src/mcp/defauts.ts`, contraintes XOR/format/bornes croisées répétées sur chaque paramètre) |
+| 4 | **`README.md`, `SPEC.md`, sécurité, licence & manifestes** | `README.md` (`## Les dix outils`), `SPEC.md`, `SECURITY.md`, `LICENSE` (`CC-BY-NC-SA-4.0` Partie A + autorisation professionnelle Barreau du Québec + Partie B CanLII), `package.json`, `plugin.json`, `mcp_config.json`, `gemini-extension.json`, `/mcp/server-card`, `CLAUDE.md`, `GEMINI.md` |
+| 5 | **Page publique HTML (`GET /`)** | `src/site.ts` + `src/site.i18n.ts` (`test/site.test.ts` : CSP, absence de CORS, `/mcp/<secret>`, liste blanche stricte d'URLs `https://` : écrire `acces.poirierlavoie.ca` sans schéma dans la prose de la page, parité `data-l="fr"` = `data-l="en"`, style jumeau Georgia) |
+| 6 | **Inter-dépôts (`Cross-repository`)** | `droit-civil-quebecois` (`v2.0.2`, manifestes, `skills/`, `verifier.py`, `verifier_tout.py`), `MCP-Socle` (`v0.8.0`), `MCP-Acces` (`mcp-identite`), `MCP-Legislation` (jumeau HTML/CSS), `MCP-Outils` |
 
 ---
 
-## Architecture et intégration dans le cadre global
-
-### Le cadre global à trois couches (`droit-civil-quebecois`)
+## 1. Architecture et cadre global (`droit-civil-quebecois`)
 
 ```
              ┌────────────────────────────────────────────────────────┐
-             │      droit-civil-quebecois (Plugin Cadre v2.0.0)       │
-             │ 5 compétences : recherche-juridique, analyse-juridique,│
-             │ redaction-juridique, administration-litige, déontologie│
+             │      droit-civil-quebecois (Plugin Cadre v2.0.2)       │
+             │  5 routeurs SKILL.md · 17 feuilles · 2 scripts stdlib  │
              └──────┬───────────────────────┬──────────────────┬──────┘
                     │                       │                  │
-        (serveur `lois`, 10)     (serveur `juris`, 10)  (serveur `outils`, 12)
+        (serveur `lois`, 10 outils)  (serveur `juris`, 10)  (serveur `outils`, 12)
                     │                       │                  │
                     ▼                       ▼                  ▼
          ┌─────────────────────┐ ┌─────────────────────┐ ┌──────────────────────────┐
          │   MCP-Legislation   │ │  MCP-Jurisprudence  │ │        MCP-Outils        │
-         │  (Worker Cloudflare │ │ (Worker Cloudflare  │ │    (Worker Cloudflare    │
-         │  D1 + Vectorize +   │ │  D1 cache CanLII    │ │   public, zéro secret,   │
-         │    Workers AI)      │ │  authentifié Bearer │ │  3 D1 lecture seule, Zod)│
+         │  D1 `legislation` + │ │  D1 `canlii` + BYOK │ │   Worker public, D1 RO   │
+         │  `DB_IDENTITE` + AI │ │   `DB_IDENTITE`     │ │       zéro secret        │
          └──────────┬──────────┘ └──────────┬──────────┘ └──────────────────────────┘
-                    │                       │
                     └───────────┬───────────┘
-                                ▼ (dépendance de dev `#v0.7.0`, zéro runtime dep)
-                 ┌─────────────────────────────┐
-                 │          MCP-Socle          │
-                 │  Transport JSON-RPC 2.0     │
-                 │  Streamable HTTP sans état  │
-                 │  Auth SHA-256 temps constant│
-                 │  Zéro concept juridique     │
-                 └─────────────────────────────┘
+                                ▼ (`@poirierlavoie/mcp-socle` v0.8.0, zéro runtime dep)
+                 ┌──────────────────────────────────────────┐
+                 │  MCP-Socle + MCP-Acces (`mcp-identite`)  │
+                 │  Jetons individuels, coffre AES-256-GCM  │
+                 │  OAuth 2.1 PKCE S256, quotas UTC         │
+                 └──────────────────────────────────────────┘
 ```
 
-### Intégration avec le plugin et les compétences (`droit-civil-quebecois`)
-- **`skills/recherche-juridique`** : Consommateur principal des 10 outils du serveur `juris` (`verify_citations`, `find_case`, `get_case`, `citator` avec `en` dans le chemin, `subsequent_history`, `browse_cases`, `list_databases`, `browse_legislation`, `get_legislation`, `parse_citation`). Rappelle que CanLII ne livre que des métadonnées et jamais le texte intégral d'un jugement (lecture PDF requise au Palier 3). S'appuie également sur les 10 outils de `lois` et sur `outils`.
-- **`skills/redaction-juridique`** : Consomme `lois.get_article` (dont `lang="en"`), `lois.search_text`, `juris.verify_citations`, `outils.calendrier_deadlines`, `outils.interets_1619` et la famille `terminologie_*` / `termino_attestations`.
-- **`skills/administration-litige`** : Consomme `outils.calendrier_deadlines`, `outils.calendrier_holidays` (repli local `scripts/calcul_delai.py`), `outils.interets_1619` et `outils.greffe_parse_number`.
-- **`skills/analyse-juridique`** & **`skills/deontologie-et-pratique`** : Ne dupliquent aucun appel jurisprudentiel ; orientent au besoin vers les feuilles terminales ou connecteurs `lois`/`juris`/`outils` selon le noyau `SAFETY-KERNEL`.
-- **Configuration** : Câblé dans `.mcp.json`, `mcp_config.json` et `gemini-extension.json` sous la clé serveur **`juris`** (`https://jurisprudence.poirierlavoie.ca/mcp`) avec `Authorization: Bearer ${MCP_JURISPRUDENCE_SECRET}`.
+### Découpage interne (`src/`, zéro dépendance d'exécution)
+- `src/index.ts` — Double montage `/mcp` et `/mcp/oauth`, chaîne intergicielle en 12 étapes, garde BYOK `ouvrirCoffre` préalable au cache, quotas `local`/`sortant`, `carteServeur()`, `scheduled`.
+- `src/config.ts` — Lecture typée des `vars` (`mcpActif`, `moissonnageActif`, `persisterBalayages`, `entier`, `liste`).
+- `src/mcp/` — `defauts.ts` (`LIMITES`, `OFFSET_*`), `registry.ts` (10 descripteurs, annotations `readOnlyHint: true, destructiveHint: false, idempotentHint: true`, `openWorldHint: false` sur `parse_citation` seul), `handlers/` (+ `cible.ts`).
+- `src/citation/` — Analyseur pur hors ligne (`parse.ts`, `normalize.ts`, `compare.ts`).
+- `src/canlii/` — Client REST séquentiel étranglé (`600 ms`, doublement sur `429` jusqu'à `4 s`, plafond `40` appels/invocation, `12 Mo` max, `redactUrl()`).
+- `src/store/` — D1 `canlii` (`cases.ts` + FTS5, `databases.ts`, `citator.ts`, `lookup.ts`).
+- `src/format/` — Rendu texte français (`fr.ts`, `render.ts` — zéro `structuredContent`, zéro `outputSchema`, D4).
+- **Trois amorces documentées (ne pas supprimer par erreur) :** `src/backfill.ts` (inerte, `BACKFILL_ENABLED="false"`), `listCases()` dans `src/store/cases.ts` (seul appelant : son test), et `idx_cases_docket` dans `migrations/0001_initial.sql`.
 
-### Surfaces de synchronisation du plugin cadre (`droit-civil-quebecois`)
-Toute évolution des outils, schémas, noms ou transport de `MCP-Jurisprudence` exige la mise à jour synchronisée des surfaces du plugin cadre :
-1. **Manifestes clients** : `.mcp.json`, `mcp_config.json`, `gemini-extension.json`, `.claude-plugin/plugin.json`, `plugin.json`.
-2. **Définitions manuelles des compétences (`skills/`)** : notamment `skills/recherche-juridique`, `skills/redaction-juridique`, `skills/calendrier-procedural`.
-3. **Scripts de synchronisation et de contrôle** :
-   - `scripts/regenerer_cache_mcp.py --apply`
-   - `scripts/synchroniser_plugin_gemini.py --apply`
-   - `python verifier.py`
-   - `python verifier_tout.py --mode mock` / `python verifier_tout.py --mode live`
+---
 
-### Dépendances croisées et limites de responsabilité
-- **Dépendance envers `MCP-Socle`** : Consomme `@poirierlavoie/mcp-socle#v0.7.0` en `devDependencies` pour le transport MCP Streamable HTTP révision `2026-07-28`, l'enveloppe JSON-RPC 2.0, l'authentification SHA-256 à temps constant (`timingSafeEqual`) et la fiche SEP-2127 (`/mcp/server-card`). Zéro dépendance d'exécution (`dependencies: {}`).
-- **Jumeau de `MCP-Legislation`** : Partage la même identité visuelle et typographique sur sa page publique `GET /` (police Georgia, variables CSS `--f`, `--m`, `--b`, `--a`, `--bg`, `--card`). Législation traite le droit codifié verbatim ; Jurisprudence traite les décisions et métadonnées CanLII.
-- **Transfert historique du 2026-11-14 vers `MCP-Outils`** : Les 3 outils québécois hors ligne (`greffe_parse_court_file_number`, `palais_list`, `palais_get`), les tables statiques du MJQ (`src/qc/`), `lieux.ts`, `sources-officielles/` et le parseur de dossier ont été transférés à `MCP-Outils` (v0.2.0). Ce dépôt se consacre désormais exclusivement aux métadonnées CanLII et à l'analyseur de citations.
+## 2. Contrôle d'accès Phase 3, BYOK CanLII et confidentialité (`SPEC-SOCLE-COMMUN.md`)
 
-### Contrat de vérité et Invariant D4
-- **Sortie textuelle pure Markdown (`content[0].text`)** : ZÉRO `structuredContent`, ZÉRO `outputSchema`. Les avertissements légaux, statuts d'appariement et réserves statutaires (`GARDE_*`) doivent demeurer indissociables du corps de la réponse pour contraindre le modèle à les lire.
-- **Refus HTTP 401** : Tout appel non authentifié est refusé en `401 Unauthorized` avec l'en-tête `WWW-Authenticate: Bearer` (déclenche la découverte d'authentification client).
+1. **Double montage (`/mcp` et `/mcp/oauth`) et coupe-circuit (`MCP_ENABLED`) :**
+   - `MCP_ENABLED !== "true"` coupe `/mcp*`, `/.well-known/oauth-protected-resource/mcp/oauth` et `/health` en `404`, tout en laissant `GET /` accessible (`200`, `G22`).
+   - `/mcp` (`PORTE`, `segmentBorne: false`) accepte en parallèle les jetons individuels `DB_IDENTITE` (`portee` `'jurisprudence'` ou `'les_deux'`, état `actif`, `surveille` ou `limite`) et le secret partagé transitoire Phase 3a (`MCP_SHARED_SECRET`), sous `Authorization: Bearer <jeton>`, `?key=<jeton>` ou `/mcp/<secret>` (barre finale et barres internes tolérées). Tout refus sur `/mcp` renvoie désormais **uniformément `404` à corps vide sans `WWW-Authenticate`** (`S8`, `G7`, `G21`, `G23`). `/mcp/server-card` et `/mcp/oauth` sont interceptés avant `/mcp/<secret>`.
+   - `/mcp/oauth` (`PORTE_OAUTH`, `autoriserChemin: false`) accepte **exclusivement** `Authorization: Bearer <jeton>` (aucun `?key=`, aucun segment `/mcp/oauth/<x>`, aucun secret partagé de Worker) et répond `401` RFC 9728 pointant vers `GET /.well-known/oauth-protected-resource/mcp/oauth` (`https://acces.poirierlavoie.ca`), tandis que la racine `GET /.well-known/oauth-protected-resource` reste en `404`.
+   - Le contrôle de méthode `POST` (`405`) est exécuté **après** l'authentification sur `/mcp` comme sur `/mcp/oauth` (`G23`). Le pré-vol `OPTIONS` autorise l'en-tête `X-Clef-CanLII` et n'est jamais limité en débit (`G6`).
+2. **Garde stricte BYOK CanLII préalable au cache partagé (`S10`–`S12`, `S17`, `G8`, `G10`, `G38`) :**
+   - Pour tout `titulaire` sur les 9 outils adossés à CanLII (`!SANS_APPEL.has(nom)`), la clé est résolue via `ouvrirCoffre` (`X-Clef-CanLII` → `DB_IDENTITE.coffre_clef` `usage='canlii'`, secrets maîtres `COFFRE_MAITRE_V1`/`V2`) **avant** toute lecture de `cases`, `cases_fts` ou `citator_*`, avec **zéro retombée** sur `env.CANLII_API_KEY` (`G8`). Sans clé valide, l'outil renvoie HTTP `200` `isError: true` `[CLEF_ABSENTE]` ou `[CLEF_REFUSEE]` sans lire le cache.
+   - Si un appel sortant CanLII échoue en `401`/`403` avec la clé du coffre (`provenance === "coffre"`, et non sur une surcharge `X-Clef-CanLII`), `coffre_clef.etat` passe à `'refusee'` dans `ctx.waitUntil` et l'outil renvoie `[CLEF_REFUSEE]` vers `https://acces.poirierlavoie.ca/moi`.
+   - Aucun horodatage exact `fetched_at` n'est exposé dans la prose rendue (`G38`).
+3. **Débit à deux niveaux, quotas exacts `local`/`sortant` et zéro journal de contenu (`G9`, `G32`, `G34`, `G37`) :**
+   - Liaisons `ratelimits` distinctes (`1021..1025`) : `RL_PRE_AUTH_IP` (600/min), `RL_ECHEC_IP` (20/min), `RL_ECHECS_GLOBAL` (300/min) + `QuarantaineIpEchecs` contournée par tout jeton valide déjà reconnu (`G32`), puis `RL_TITULAIRE` (180/min) et `RL_TITULAIRE_LIMITE` (20/min).
+   - Quotas journaliers UTC vérifiés sur le nom d'outil du corps JSON-RPC : un appel servi à 100 % depuis le cache D1 ou hors ligne (`parse_citation`) compte en `local` (`callsMade() === 0`) ; tout appel émettant >= 1 requête CanLII compte en `sortant` (`callsMade() > 0`), et toute tentative d'appel sortant lorsque le quota `sortant` est épuisé est bloquée avant le réseau en renvoyant `[QUOTA_EPUISE]` tout en laissant réussir les purs succès de cache sous quota `local`.
+   - Aucune écriture d'exécution dans `search_log` ni `api_usage` ; `"observability": { "enabled": false, "logs": { "enabled": false, "invocation_logs": false } }` dans `wrangler.jsonc` (`G37`) ; seuls `compteur_jour` et `evenement_technique` (distinguant `"introuvable"` sur `404` de `"erreur_amont"` sur `429`/panne, purgés à 90 j) sont écrits via `ctx.waitUntil` dans `DB_IDENTITE`.
 
-### Architecture logicielle
+---
 
-Worker TypeScript sans cadriciel, **zéro dépendance d'exécution** (D2), base D1 `canlii`,
-transport Streamable HTTP en **mode JSON sans état** (D3). Config : `wrangler.jsonc`.
+## 3. Les 22 invariants critiques
 
-```
-src/index.ts      routage, authentification à temps constant (§9.1), CORS, fiche SEP-2127 `/mcp/server-card`, coupe-circuit, cron (transport, JSON-RPC et validation via `@poirierlavoie/mcp-socle`)
-src/config.ts     lecture des `vars` : `flag()`, `entier()`. `wrangler types` les type en
-                  LITTÉRAUX — `env.MCP_ENABLED === "true"` écrit en direct ne compile pas,
-                  ou se réduit à une constante aux yeux du lecteur. Passer par ici.
-src/mcp/          defauts.ts — LIMITES et OFFSET_*, en un seul exemplaire : la description
-                  que le modèle lit et le `??` du gestionnaire viennent d'ici, sinon ils
-                  divergent (ils l'ont fait, sur trois outils sur cinq)
-                  registry.ts (les 10 descripteurs, `SERVER_INFO`, `PUBLIC_DESCRIPTION`, `INSTRUCTIONS`) ·
-                  handlers/ (un par outil, plus `cible.ts` — la résolution de la décision
-                  de départ, partagée par le citateur et les sorts ultérieurs)
-src/citation/     analyseur PUR — parse, normalize, compare. AUCUNE E/S.
-src/canlii/       client sortant : étranglement, réessais, redactUrl
-src/store/        D1 : cases (+FTS) · databases (auto-correction) · citator · telemetry
-                  lookup.ts — la boucle d'auto-correction, en UN SEUL exemplaire
-src/format/       fr.ts (dates, listes) · render.ts (gabarits annexe A + mises en garde)
-src/site.ts       §18 — page publique GET /. site.i18n.ts : l'ANGLAIS seulement.
-src/backfill.ts   §11 — écrit, testé, INERTE
-```
+1. **`INSERT ... ON CONFLICT DO UPDATE`, jamais `INSERT OR REPLACE`** sur `cases` (préserve le `rowid` de `cases_fts` en *external content*).
+2. **Clé de cache = identifiant DEMANDÉ** (et non le `caseId` localisé retourné par CanLII).
+3. **`source` distingue `'lookup'` de `'sweep'` et ne se rétrograde jamais :** seule une ligne `'lookup'` sert une fiche ou une vérification ; un balayage ne persiste que 4 champs et ne fabrique **jamais** de date `${annee}-01-01` (`anneeInferee` sert uniquement au tri/filtre).
+4. **Mises en garde dans le CORPS des réponses (`GARDE_*`)**, zéro `structuredContent`, zéro `outputSchema` (`test/garde.test.ts` ne s'affaiblit jamais).
+5. **Ne jamais journaliser `request.url` ni exposer `api.canlii.org` / `api_key`** (`redactUrl()`).
+6. **Boucle unique d'auto-correction dans `src/store/lookup.ts`**.
+7. **Regex `NEUTRAL` insensible à la casse (`/i`)** avec double parade contre la capture de `"CanLII"` comme code de tribunal.
+8. **Tribunal absent du répertoire ⇒ `INTROUVABLE` sans appel sortant**.
+9. **Une panne réseau (`401`, `429`, timeout, budget, corps illisible) n'est JAMAIS une absence :** rend `INDÉTERMINÉE` (`EXPLICATION_INDETERMINEE`, en-tête `Recherche INTERROMPUE`), tandis que `EXPLICATIONS_INTROUVABLE` est réservée au seul constat `404`.
+10. **Appariement d'intitulé partiel ⇒ `DISCORDANTE`**, jamais `CONFIRMÉE`.
+11. **Intitulés anonymisés comparés par leur numéro** (*« Droit de la famille — 20495 »*).
+12. **Citateur CanLII figé sur le segment `/en/`** (aucun paramètre `lang` sur `citator`).
+13. **La télémétrie n'échoue jamais l'outil qu'elle observe** (`catch` silencieux dans `ctx.waitUntil`).
+14. **Fins de ligne LF partout** (`.gitattributes`).
+15. **Moissonnage de masse (§11) inerte par décision** (`BACKFILL_ENABLED="false"`, aucun cron quotidien).
+16. **10 outils sans préfixe sous clé `juris`**, chacun nommant `CanLII` en FR et EN (`openWorldHint: false` sur `parse_citation` uniquement).
+17. *(Retiré en v0.3.0 — transféré vers `MCP-Outils` : `palais_*`.)*
+18. *(Retiré en v0.3.0 — transféré vers `MCP-Outils` : `lieux.ts`.)*
+19. **La page publique (`GET /`) dérive de `listToolDescriptors()`**, hors du bloc `/mcp`, sans CORS, et survit à `MCP_ENABLED=false`.
+20. *(Retiré en v0.3.0 — transféré vers `MCP-Outils` : `dossier.ts`.)*
+21. **Identité visuelle jumelle avec `MCP-Legislation`** (`Georgia`, variables CSS clair/sombre identiques, zéro couleur en dur hors des deux jeux).
+22. **Refus `/mcp` uniforme en `404` vide sans `WWW-Authenticate` (Phase 3)** et OAuth 2.1 confiné sur `/mcp/oauth` (`401` RFC 9728) ; tolérance de tous les porteurs sur `/mcp` sans rognage destructif (`segmentBorne: false`, `%FF` géré sans `500`).
 
-### Écrit mais PAS EN SERVICE — trois amorces, et il faut les reconnaître
+---
 
-*Relevé le 2026-09-16. Un balayage du dépôt les a signalées comme du « code mort » ; elles
-ne le sont pas, mais rien ne le disait, et c'est ce silence qui les rendait supprimables au
-premier ménage. Une amorce qu'on ne distingue pas d'un résidu finit toujours par partir.*
+## 4. Secrets et commandes sûres
 
-| Ce qui dort | Où | Ce qui l'attend |
-|---|---|---|
-| `src/backfill.ts` | tout le fichier | §11 — écrit, testé, **INERTE par décision** (invariant 15). Ne pas basculer `BACKFILL_ENABLED`. |
-| `listCases()` | `src/store/cases.ts` | Servir les balayages **depuis le cache** (§7.6). Aujourd'hui `browse_cases` appelle CanLII à chaque fois et ne lit JAMAIS la table `cases` : il n'existe aucun chemin où un balayage soit servi du cache. Son **seul appelant est son test**. |
-| `idx_cases_docket` | `migrations/0001_initial.sql` | Une recherche par **numéro de dossier de cour**, qu'aucun outil n'offre. L'index est donc entretenu à chaque écriture de fiche sans que rien ne l'interroge. |
-
-**La règle qui les gouverne : une amorce se DOCUMENTE, elle ne se déduit pas.** Le
-commentaire de `listCases()` annonçait « §7.6, servi du cache » — c'était faux, et cette
-phrase aurait fait croire à un lecteur que le cache sert déjà les balayages. Corrigé le
-2026-09-16. Si l'une de ces trois est un jour mise en service, la ligne correspondante
-disparaît d'ici ; si l'on renonce, elle part **avec son code** — mais dans les deux cas
-délibérément, et non parce que quelqu'un a pris un `grep` sans appelant pour un verdict.
-
-⚠ **Le coût de les garder est connu, et il est petit** : quelques octets de bundle pour
-`backfill` et `listCases` (arbre mort, jamais exécuté), et pour l'index un surcoût à
-chaque écriture dans `cases` — insensible à l'échelle d'un cabinet. Ce n'est donc pas une
-question de performance mais de LISIBILITÉ : du code que rien n'appelle fait douter le
-lecteur suivant de ce qu'il a compris du reste.
-
-## Commandes
-
-```bash
-npx wrangler types && npx tsc --noEmit     # toujours avant commit
-npx biome check .                          # --write pour corriger
-npx vitest run                             # 344 tests, sans réseau ni clef
-npx wrangler dev                           # exige .dev.vars
-npx wrangler deploy --dry-run              # valide paquet + config, sans jeton
-npx wrangler d1 migrations apply canlii --local
-node scripts/mcp-client.mjs --local tools/list
-node scripts/refresh-databases.mjs --remote --sql   # réconciliation §4.3
-```
-
-**Déploiement — continu sur `main` via `.github/workflows/deploy.yml` *(rétabli le 2026-11-14)*, ou local via `npm run deploy`** (§12 ; l'interlude manuel du 2026-09-16 au 2026-11-14 est clos). **Les migrations passent d'abord, sans exception** — et c'est `npm run deploy` (`scripts/deployer.mjs`) qui le garantit des deux côtés : en CI (dans l'environnement GitHub `production` avec `CLOUDFLARE_API_TOKEN`, précédé de 4 contrôles préalables et d'une porte complète de tests, suivi d'une vérification de `/health` et `/mcp/server-card`) comme en repli local. Ne pas appeler `npx wrangler deploy` directement : c'est l'ordre inverse.
-
-Ce script fait trois choses qu'une ligne de `package.json` ne saurait faire : il **refuse
-un arbre sale** — le Worker annonce son commit sur `/health`, et déployer un arbre modifié
-ferait annoncer un commit qui ne décrit pas le code en ligne ; il **passe le commit** au
-déploiement (`--var COMMIT:<sha>`) ; et il marche **sous Windows**, où `$(git rev-parse)`
-dans un script npm ne s'évalue pas.
-
-**Le contrôle de dérive** (`.github/workflows/verifier-deploiement.yml`) compare chaque jour
-la version en ligne au dernier commit de `main`. Aucun secret, aucun jeton,
-`contents: read` : il REGARDE, il ne déploie rien et ne le peut pas. Un rouge y signifie
-« à déployer », jamais « cassé ».
-
-Le jeton d'API Cloudflare vit dans `cf.token` (gitignoré) : il se LIT dans une variable
-d'environnement, il ne s'affiche pas — un `cat` ou une capture de terminal le publient
-aussi sûrement qu'un commit.
+- **Interdiction absolue** de lire, afficher, copier ou commiter : `cf.token`, `*.token`, `mcp.url`, `.dev.vars`, `.env*`, `~/.gemini/config/*`, `CANLII_API_KEY`, `MCP_SHARED_SECRET`, `COFFRE_MAITRE_V*`.
+- **Interdiction absolue** d'exécuter `wrangler d1 delete` ou `wrangler deploy` seul (toujours `npm run deploy` / `scripts/deployer.mjs`, qui applique les migrations avant `wrangler deploy --var COMMIT:<sha>`).
 
 ```powershell
-$env:CLOUDFLARE_API_TOKEN = (Get-Content cf.token -Raw).Trim()
-npm run deploy
+npx.cmd wrangler types
+npx.cmd tsc --noEmit
+npx.cmd biome check .
+npm.cmd run audit
+npx.cmd vitest run
+npx.cmd wrangler deploy --dry-run
 ```
-
-Et non `npx wrangler deploy` : `scripts/deployer.mjs` refuse un arbre sale et passe
-`--var COMMIT:<sha>`, sans quoi `/health` annonce « inconnu » et le contrôle de dérive
-refuse de conclure.
-
-## Invariants critiques
-
-1. **`INSERT ... ON CONFLICT DO UPDATE`, JAMAIS `INSERT OR REPLACE`** sur `cases`. REPLACE
-   change le `rowid` et fait diverger l'index FTS5 en *external content* — **en silence**.
-2. **Une fiche est clée sur l'identifiant DEMANDÉ**, pas sur celui que CanLII renvoie.
-   L'API rend `caseId` sous la clef de SA langue : demander `2008scc9` renvoie
-   `{"fr": "2008csc9"}`. Clée sur la réponse, la fiche est rangée là où personne ne la
-   cherche : le cache ne sert jamais et chaque vérification rappelle l'API. *(Défaut réel,
-   trouvé par test.)*
-3. **`source` distingue une FICHE d'une ligne de balayage, et ne se rétrograde jamais.**
-   Un balayage (`browse`, `find`) persiste 4 champs : ni date, ni numéro de dossier, ni
-   hyperlien. Deux règles en découlent, et elles se tiennent :
-   *(a)* seule une ligne `source = 'lookup'` peut servir de fiche ou de vérification —
-   servir une ligne de balayage rendrait un document amputé étiqueté « index local », et
-   pire, ferait sauter en silence le contrôle de l'année faute de date ;
-   *(b)* l'UPSERT enregistre la MEILLEURE provenance atteinte, jamais la dernière — sinon
-   tout balayage recroisant une fiche déjà résolue la disqualifierait du cache et
-   rachèterait l'appel. Un suivi quotidien à fenêtres chevauchantes recroise TOUT : le
-   cache ne servirait jamais. *(Les deux moitiés sont des défauts réels, trouvés par
-   test ; verrouillées dans `test/persist.test.ts` et `test/tools.test.ts`.)*
-   *(c)* **la règle porte sur l'ÉCRITURE, pas sur la conversion.** *Ajouté le 2026-09-17,
-   après l'avoir trouvée enfreinte.* `rowFromListItem` rendait bien `decision_date: null`,
-   et son test unitaire passait — c'est le GESTIONNAIRE de `find_case` qui
-   reposait `${annee}-01-01` juste avant l'UPSERT. Un invariant vérifié une couche trop
-   bas ne protège pas la couche qui l'enfreint. Et ce qui rendait le défaut GRAVE tient
-   au `COALESCE` : il fait gagner la valeur NON NULLE, donc une date fabriquée
-   n'appauvrit pas la fiche — elle **ÉCRASE la vraie**, sans rétrograder `source` (la
-   règle (b) joue alors contre nous), et laisse une ligne corrompue pleinement éligible
-   à servir une vérification. `verify_citations` l'attribuait ensuite « à
-   CanLII », et `subsequent_history` écartait en silence un appel réel de
-   la même année. Ce qui se déduit d'une fenêtre de requête, c'est une ANNÉE — et une
-   année n'est pas une date : elle vit dans `anneeInferee`, pour le filtrage et le
-   classement, et ne s'affiche jamais. *(1 819 lignes en production ; purgées par
-   `migrations/0005`. Épinglé par un balayage structurel de `test/garde.test.ts` sur
-   TOUTES les sources, et par son pendant positif.)*
-4. **Les mises en garde de §2 vivent dans le CORPS des réponses**, pas seulement dans les
-   descriptions d'outils. `test/garde.test.ts` échoue si elles disparaissent. Un test de
-   garde qui échoue se **répare en remettant la garantie**, jamais en ajustant le test.
-   Corollaire : **pas de `structuredContent`, pas d'`outputSchema`** — un client qui reçoit
-   un objet typé laisse tomber la prose, et la réserve part avec elle SANS qu'aucun test
-   n'échoue. Réexaminé le 2026-07-23, maintenu. L'argument contraire est réel (un champ
-   `verdict` ne se lit pas de travers ; un consommateur par programme voudrait du typé)
-   mais le gain est marginal devant une perte silencieuse. **Si** un consommateur par
-   programme existe un jour, la réponse n'est PAS `structuredContent` : c'est un paramètre
-   `format: {enum:["texte","json"]}` dont la charge utile porte `avertissement` en champ
-   **obligatoire**, de sorte que la réserve voyage à l'intérieur des données. Quatre
-   conditions cumulatives, et le texte reste le défaut. Argument complet en commentaire
-   au-dessus de `ok()` dans `@poirierlavoie/mcp-socle` (`src/protocole/rpc.ts`) — le lire avant d'y toucher.
-5. **Ne jamais journaliser `request.url`** : le secret partagé est dans le chemin (§9.2).
-   Aucune sortie d'outil ne contient d'URL `api.canlii.org` — elles portent la clef d'API.
-6. **La boucle d'auto-correction (§6.4) vit dans `src/store/lookup.ts`, en un seul
-   exemplaire.** Deux implémentations d'une même heuristique d'apprentissage divergeraient,
-   et l'une enseignerait au répertoire ce que l'autre ignore. *(Une duplication a déjà été
-   supprimée pour ce motif.)*
-7. **`NEUTRAL` porte le drapeau `/i`** — sans lui, « 2020 qcca 495 » (exigé par §13) ne
-   s'analyse pas. Le drapeau fait alors capturer « CanLII » comme code de tribunal : deux
-   parades cumulatives (masquage des plages CanLII appariées d'abord, puis rejet explicite
-   du code `CANLII`). Retirer l'une rouvre le défaut ; les deux sont testées.
-8. **Un tribunal absent du répertoire ⇒ INTROUVABLE SANS appel sortant** (§6.4 point 3).
-   Un appel voué à l'échec coûte du quota et produirait un « introuvable » qui ferait croire
-   à l'absence de la décision.
-9. **Une panne réseau n'est PAS une absence.** Un 401, un 429 ou une expiration rendent
-   `INDÉTERMINÉE`, jamais `INTROUVABLE` : affirmer une absence qu'on n'a pas constatée est
-   exactement ce que §2 interdit. Seul un **404** justifie un rattrapage puis un INTROUVABLE.
-   *Étendu le 2026-09-16, après l'avoir trouvé enfreint sur SIX chemins.* Il était énoncé
-   pour `verify_citations` et respecté là ; il ne l'était nulle part ailleurs. La racine
-   tenait en un champ : `src/store/lookup.ts` rendait `message: null` sur le statut
-   « erreur », et chaque appelant retombait donc sur SON texte d'absence par défaut. Un 429
-   ressortait en « Aucune fiche pour … » par `citator` et
-   `subsequent_history`, flanqué des explications d'ABSENCE par
-   `get_case` (forme par identifiants), en « Aucun candidat » par
-   `find_case`, et en « Aucune décision » par `browse_cases`
-   quand les entrées rendues n'étaient pas lisibles. **Quatre symptômes, un défaut.**
-   **Trois règles en découlent, et elles se tiennent :**
-   *(a)* la CAUSE se nomme dans la sortie — « CanLII a étranglé les appels (429) », et non
-   « injoignable » : sans cela le lecteur ne sait pas s'il doit réessayer ou corriger sa
-   clef, et rien n'empêche le message de redevenir `null` sans qu'un test ne bouge ;
-   *(b)* une explication d'ABSENCE (`EXPLICATIONS_INTROUVABLE`) ne s'accole QU'À un 404 ;
-   son pendant `EXPLICATION_INDETERMINEE` couvre tout le reste, et les deux vivent en **un
-   seul exemplaire** dans `src/format/render.ts`, pour le motif de l'invariant 6 ;
-   *(c)* « ne pas avoir pu chercher » n'est pas « n'avoir rien trouvé » — un balayage
-   interrompu s'annonce INTERROMPU dès l'en-tête, et non par une note placée SOUS une
-   affirmation déjà faite.
-   ⚠ Le garde-fou est un **balayage structurel** dans `test/garde.test.ts`, et il porte son
-   PENDANT POSITIF : sur un 404, les explications d'absence doivent être LÀ. Sans cette
-   seconde moitié, on satisferait la première en retirant la garantie de §2 partout —
-   c'est-à-dire en détruisant ce qu'elle protège.
-10. **Un appariement d'intitulé PARTIEL vaut DISCORDANTE, jamais CONFIRMÉE** (§6.5). Mieux
-    vaut un faux signalement qu'une fausse assurance.
-11. **Les intitulés anonymisés se comparent par leur NUMÉRO** (« Droit de la famille —
-    20495 ») : ils ne contiennent aucun nom de partie, et deux décisions distinctes de la
-    même série partagent tous leurs jetons alphabétiques.
-12. **Le citateur n'accepte que `en`** dans le chemin (annexe B). D'où l'absence de tout
-    paramètre `lang` sur `citator` : en exposer un serait mensonger.
-13. **La télémétrie n'échoue jamais l'outil qu'elle observe** : table absente, écriture
-    refusée — tout est avalé.
-14. **Les fins de ligne sont LF dans la copie de travail** (`.gitattributes`) : sinon Biome
-    local (CRLF sous Windows) et la CI (Linux) divergent en permanence.
-15. **§11 est inerte et le reste : la question est TRANCHÉE (2026-07-23) — pas de
-    moissonnage de masse.** Deux verrous : `BACKFILL_ENABLED="false"` et aucun cron
-    quotidien déclaré. Ce n'est plus une question ouverte mais une décision du
-    praticien : ne pas basculer le drapeau, même « pour essayer ». Le remplissage du
-    cache par l'usage (D6) n'est pas concerné — c'est autre chose.
-16. **Noms courts sans préfixe (v2.0.0, clé serveur `juris`) ; c'est la DESCRIPTION qui nomme la source (§7).**
-    *Réécrit le 2026-09-16 ; amendé le 2026-11-14 au retrait de §17 et en v2.0.0 au retrait du préfixe `jurisprudence_`.* Un préfixe ne sait pas
-    porter une réserve : l'annonce vit dans la **description** de chacun des dix outils,
-    dans `INSTRUCTIONS` et sur la page — trois surfaces épinglées par un test **par langue**
-    exigeant la présence de « CanLII ». `openWorldHint` vaut `false` sur
-    `parse_citation` (analyseur pur hors ligne) et `true` sur les neuf autres.
-17. *(Retiré le 2026-11-14, v0.3.0 — déplacé vers « MCP-Outils ».)* Les tables
-    `src/qc/`, `palais_list`, `palais_get`, `GARDE_PALAIS` et `GARDE_SANS_ADRESSE` relèvent
-    désormais de `MCP-Outils`.
-18. *(Retiré le 2026-11-14, v0.3.0 — déplacé vers « MCP-Outils ».)* `src/qc/lieux.ts`
-    et `sources-officielles/mjq-numeros-greffes-2026-07-22.html` ont suivi vers
-    `MCP-Outils`.
-19. **La page publique DÉRIVE des données, elle ne les recopie pas (§18).** Outils,
-    descriptions, schémas et annotations `openWorldHint` viennent de `listToolDescriptors()`.
-    Une valeur recopiée deviendrait fausse **sans qu'aucun test n'échoue**.
-    Trois propriétés de sa route sont load-bearing : égalité stricte sur `/` ;
-    **délibérément hors du bloc `/mcp`** (n'y remontez JAMAIS le contrôle d'origine
-    « par cohérence », la page cesserait de répondre aux visiteurs venus d'ailleurs) ;
-    et **aucun en-tête CORS**, sans quoi la page deviendrait un oracle. Elle survit au
-    coupe-circuit : exception assumée, car elle ne porte ni secret ni donnée vivante.
-20. *(Retiré le 2026-11-14, v0.3.0 — déplacé vers « MCP-Outils ».)* Le parseur de
-    dossiers `src/qc/dossier.ts` et son jeu différentiel `test/fixtures/dossier-athena.json`
-    ont suivi vers `MCP-Outils`.
-21. **La page partage le style du connecteur JUMEAU, au caractère près.** Les deux jeux de
-    variables, la police (`16px/1.6 Georgia`), les tailles de titres et la grille (barre
-    latérale de 13rem, rupture à 78rem) sont repris de « Législation du Québec ». Les deux
-    sites appartiennent au même praticien et se consultent l'un après l'autre : une
-    divergence de teinte ou de police les ferait passer pour deux outils sans rapport.
-    Toute retouche ici se porte là-bas, et réciproquement. Deux gardes tiennent la
-    cohérence interne : **aucune couleur en dur** hors des deux jeux (une couleur figée ne
-    bascule pas et devient invisible dans l'un des thèmes), et les deux jeux déclarent
-    **exactement** les mêmes variables.
-22. **Un refus sur `/mcp` est une porte vers OAuth : il ne se donne jamais par accident
-    (§9.1).** Un `401` est lu par claude.ai comme « ressource OAuth protégée » : il
-    enchaîne sur `.well-known/*`, puis sur `POST /register`, et l'inscription dynamique
-    échoue — « Impossible de s'inscrire auprès du service de connexion » ; le connecteur
-    reste coincé là. Subi en production par le jumeau le 2026-07-23, corrigé ici le
-    2026-09-16. D'où trois propriétés de la garde, toutes testées : **tous les porteurs
-    présentés sont essayés** — un en-tête `Bearer` résiduel ne masque pas une URL
-    correcte, ni l'inverse ; **`/mcp/<secret>/` vaut `/mcp/<secret>`** ; **un chemin mal
-    encodé refuse en `401`**, il ne fait pas sortir le Worker en `500`. Et la règle qui
-    les gouverne : la tolérance ne fait qu'**ajouter** des candidats, elle n'en **rogne**
-    aucun. Le secret de production n'est connu ni du code ni de qui le modifie (voir
-    « Secrets »), il peut se terminer par `/` — base64 standard — ou porter un `%` : **on
-    ne resserre pas l'analyse d'un porteur contre une valeur qu'on s'interdit de lire.**
-    Corollaire : ne pas « borner à un seul segment par cohérence avec le jumeau » — lui
-    DOIT le faire, il remonte la requête sur son chemin de montage ; pas nous. Le statut
-    du refus reste `401` + `WWW-Authenticate: Bearer` : le jumeau refuse en `404` et a
-    reçu le MÊME message — le statut n'est donc pas le déclencheur — et un `404` rendrait
-    le coupe-circuit indiscernable d'un secret refusé.
-
-## Procédure sûre
-
-Coder → **propager (règle ci-dessus)** → `wrangler types` → `tsc --noEmit` →
-`biome check` → `vitest run` → `wrangler deploy --dry-run` → déployer.
-
-La propagation vient **avant** la porte technique, et non après : c'est la seule étape
-qu'aucune commande ne peut réclamer à votre place. **Les migrations D1 passent AVANT le
-déploiement** : l'ordre inverse met en ligne du code qui lit des colonnes inexistantes.
-
-⚠ *Amendé le 2026-09-16 : le déploiement automatique a été RETIRÉ.* Cette phrase attribuait
-l'ordre à un workflow — « **Les migrations D1 passent AVANT le déploiement**
-(`deploy.yml`) ». L'ordre est juste ; l'attribution était fausse et l'avait toujours été.
-`.github/workflows/deploy.yml` n'a **jamais réussi** — dix-neuf exécutions depuis le
-2026-07-23, dix-neuf échecs, tous à l'étape des migrations, l'étape de déploiement étant
-alors systématiquement sautée. Aucune version en production n'en est jamais sortie. Il a
-été **supprimé** plutôt que réparé (décision du praticien, motivée en §12).
-
-**L'ordre migrations → déploiement est tenu en un seul endroit : `npm run deploy`**
-(`scripts/deployer.mjs`), qui exécute `wrangler d1 migrations apply canlii --remote` PUIS
-`wrangler deploy --var COMMIT:<sha>` et s'arrête au premier échec. Le script valait
-auparavant `wrangler deploy` tout court — l'ordre inverse, disponible sous un nom
-rassurant. Le workflow `.github/workflows/deploy.yml` (rétabli le 2026-11-14 dans
-l'environnement GitHub `production`, actions épinglées par SHA, `harden-runner`, 4 contrôles
-préalables du jeton et de la D1 avant `npm ci`, puis vérification vivante de `/health` et
-`/mcp/server-card`) exécute lui aussi **`npm run deploy`**. Le déploiement reste jouable à
-la main en repli local via le même script.
-
-⚠ *Cause établie le 2026-09-16, et une fausse piste retirée le même jour.* Cette note a
-porté quelques heures « le jeton ouvre DEUX comptes Cloudflare et wrangler ne sait pas
-trancher ». **C'était faux, et l'erreur était de comptage** — la ligne d'en-tête du
-tableau de `wrangler whoami` prise pour une ligne de données ; le jeton n'en voit qu'UN.
-La cause est **confirmée à la source** : le journal du job dit `CLOUDFLARE_API_TOKEN:`
-suivi de rien, puis « In a non-interactive environment, it's necessary to set a
-CLOUDFLARE_API_TOKEN environment variable ». La variable était littéralement vide.
-
-⚠ *Corrigé le 2026-09-16 : ces journaux sont LISIBLES.* Cette note a d'abord affirmé
-qu'ils « exigent des droits d'administration » — vrai de l'API **anonyme**, qui rend
-403, mais faux pour le propriétaire du dépôt : `gh run view <id> --log` les rend
-intégralement. La cause avait donc été établie par un détour — l'audit de sortie de
-`harden-runner`, public, ne montrant aucun appel à `api.cloudflare.com` — là où la
-source directe était à portée de commande. **Avant de conclure qu'une trace est
-inaccessible, essayer `gh`.**
-Un correctif posé le même jour l'avait rendue lisible — quatre contrôles nommant la cause
-dans le titre de l'étape — et la toute première exécution l'a CONFIRMÉE : « CLOUDFLARE_API_TOKEN
-est VIDE dans ce job ». Le workflow a ensuite été retiré ; la cause est consignée ici parce
-qu'elle vaudra encore le jour où l'on voudra rouvrir la question (§12).
-
-## Secrets
-
-- `CANLII_API_KEY` et `MCP_SHARED_SECRET` : posés par `wrangler secret put`, saisis par
-  Jason lui-même. **Ne jamais les afficher, les lire en contexte, ni les écrire dans un
-  fichier versionné.**
-- `MCP_SHARED_SECRET_ATHENA` : **retiré le 2026-09-17**. Second porteur historique du point
-  d'entrée, aux droits IDENTIQUES — il n'ouvre aucun outil de plus. Il a existé pour que
-  le clavardage de Pallas Athéna et le connecteur claude.ai se révoquent SÉPARÉMENT
-  (§9.1, §19). Depuis le 2026-09-02, ce porteur n'avait plus de client actif (le clavardage
-  ayant été retiré du dépôt d'Athéna, commit `ef854733`) et a été formellement retiré de
-  Cloudflare le 2026-09-17 (`PORTE.nomsSecrets = ["MCP_SHARED_SECRET"]` dans `src/index.ts:124`).
-  Les appelants actifs en production sont le connecteur `claude.ai` et le greffon cadre
-  `droit-civil-quebecois` (anciennement `pratique-civile-quebecoise`, sous Claude for Desktop / Anthropic et Google Gemini / Antigravity).
-  L'authentification reste **fermée par défaut** : aucun secret configuré ⇒ tout est
-  refusé. Ne jamais journaliser lequel des secrets a servi.
-- `.dev.vars` (dev), `mcp.url` (URL de prod avec secret), `*.token` : **gitignorés**.
-  Parmi eux, **`cf.token` porte le jeton d'API Cloudflare, et c'est lui qui déploie
-  réellement la production** (voir « Commandes ») : il se lit dans une variable
-  d'environnement, jamais par un affichage — `cat`, `echo` ou une capture de terminal
-  le publient aussi sûrement qu'un commit. Même règle que les deux précédents : ne
-  jamais l'afficher, ne jamais le lire en contexte, ne jamais le versionner.
-- Commits signés, footer `Co-Authored-By:` adapté au modèle courant. Un commit par
-  sous-tâche.
-
-## État
-
-**Livré et en production** sur `jurisprudence.poirierlavoie.ca`, suite de tests exécutable sans réseau ni clef. Dix outils exposés sans préfixe (`v2.0.0`, sous la clé serveur `juris`) — neuf adossés à la REST API de CanLII et un analyseur hors ligne (`parse_citation`) — plus une page publique bilingue sur la même origine (§18). `/health` annonce le commit dont la version en ligne est issue (§8, §12.1), et le déploiement sur `main` est automatisé via `.github/workflows/deploy.yml` (`npm run deploy`, `environment: production`) *(rétabli le 2026-11-14 après le retrait manuel du 2026-09-16, §12)*. `migrations/0004_rename_tool_prefix.sql` a normalisé l'historique `canlii_*` → `jurisprudence_*`, et `migrations/0006_drop_tool_prefix.sql` (`v2.0.0`) retire le préfixe `jurisprudence_` dans `search_log.tool` et `court_codes.note` afin de préserver la continuité de la série historique (§10).
-
-`migrations/0005_purge_dates_fabriquees.sql` est **appliquée en production** *(2026-09-17)* :
-elle a purgé les 1 819 dates de décision au 1er janvier fabriquées par l'ancien balayage vif
-(sur 2 630 lignes `sweep` recensées avant purge, dont 811 sans date). Vérifiée sur la D1
-vivante : `0` ligne hors `lookup` porte une `decision_date`, et `cases` = `cases_fts` (parité
-à 457 311 entrées).
-
-**Clients actifs aujourd'hui** (§19) : Le connecteur est sollicité par le connecteur `claude.ai`
-ainsi que par le greffon cadre `droit-civil-quebecois` (v2.0.0, sous Claude et Gemini). Le clavardage de
-Pallas Athéna, client de 2026-08-27 à 2026-09-02, a été retiré (commit `ef854733`) et le secret
-dédié `MCP_SHARED_SECRET_ATHENA` a été définitivement retiré le 2026-09-17 (`PORTE.nomsSecrets = ["MCP_SHARED_SECRET"]`).
-§19 est conservée, datée, plutôt qu'effacée : ce qu'elle démontre — qu'un second client
-n'a rien exigé du protocole — reste vrai, et vaudra pour le prochain.
-
-La réconciliation du répertoire (§4.3) est **faite** contre l'API vivante : elle a
-démenti cinq hypothèses d'amorçage, consignées avec leur preuve d'observation dans
-`migrations/0003_reconcile_court_codes.sql` (`caf-fca`/`cf-fc` inexistants — les vraies
-bases sont `fca` et `fct` ; fragment français `cci` et non `tcc` ; le TAL a gardé le
-`databaseId` de la Régie du logement, `qcrdl`). Les tests de `test/persist.test.ts`
-verrouillent ces six correspondances : ils empêchent une réapplication de 0002 seule de
-ressusciter les hypothèses fausses sur une base neuve.
-
-Les lignes encore `verified = 0` ne sont pas un reliquat : elles sont **inertes par
-construction** (invariant 8 — un tribunal absent du répertoire rend INTROUVABLE sans
-appel sortant), et se confirmeront à l'usage par la boucle de §6.4.
-
-*(2026-11-13)* Ajout de la compatibilité et découvrabilité **Google Antigravity** (`plugin.json`,
-`mcp_config.json`, `assets/logo.svg`), **Gemini CLI** (`gemini-extension.json` avec
-`"contextFileName": []`), **Gemini web** (`https://gemini.google.com` et
-`https://aistudio.google.com` admises par défaut dans CORS, avec `Mcp-Method`, `Mcp-Name`,
-`Mcp-Session-Id` en pré-vol `2026-07-28`), fiche publique SEP-2127 (`GET /mcp/server-card`),
-et `GEMINI.md` (< 24 000 octets, synthèse d'espace de travail renvoyant à `CLAUDE.md` et
-`SPEC.md`). Parité des versions, descriptions et taille de `GEMINI.md` verrouillée par
-`test/doc.test.ts`.
-
-*(2026-11-14)* Rétablissement du déploiement continu sécurisé via `.github/workflows/deploy.yml`
-(`environment: production`, `CLOUDFLARE_API_TOKEN`, 4 contrôles préalables en lecture seule,
-porte complète, `npm run deploy` via `scripts/deployer.mjs`, puis vérification vivante sur
-`/health` et `/mcp/server-card`) ; alignement de l'URL canonique du dépôt sur `MCP-Jurisprudence`
-(`src/index.ts`, `src/site.ts`, `plugin.json`, `README.md`, vérifié par `test/doc.test.ts`).
-
-*(2026-11-14, v0.3.0)* Extraction et transfert des trois outils hors ligne du Québec
-(`greffe_parse_court_file_number`, `palais_list`, `palais_get`), de `src/qc/`, de
-`sources-officielles/mjq-numeros-greffes-2026-07-22.html`, de `scripts/extraire-lieux-mjq.mjs`,
-des tests QC et des garde-fous `GARDE_PALAIS` / `GARDE_DOSSIER` / `GARDE_SANS_ADRESSE` /
-`SANS_PLUMITIF` vers le connecteur public non authentifié `MCP-Outils` (`0.2.0`) ;
-conservation de §17 et des invariants 17, 18 et 20 comme épitaphes datées afin de préserver la
-numérotation, et alignement du serveur sur les 10 outils `jurisprudence_*`.
-
-*(v2.0.0)* Retrait du préfixe `jurisprudence_` sur les 10 outils (`verify_citations` …
-`parse_citation`), passage de la clé serveur à `juris` dans `mcp_config.json` /
-`gemini-extension.json`, ajout de `migrations/0006_drop_tool_prefix.sql` (`search_log.tool`,
-`court_codes.note`), et alignement sur le greffon cadre `droit-civil-quebecois` `v2.0.0`
-(plafond `<= 64` caractères sur les identifiants MCP composés).

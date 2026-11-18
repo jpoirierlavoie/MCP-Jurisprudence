@@ -1,54 +1,73 @@
 /**
- * Worker « MCP Jurisprudence » — routage, authentification,
- * coupe-circuit, et gestionnaire planifié (spécification §8, §9, §11).
+ * Worker « MCP Jurisprudence » — routage à double montage (`/mcp` et `/mcp/oauth`),
+ * identité partagée `DB_IDENTITE`, garde stricte BYOK CanLII préalable au cache D1,
+ * quotas journaliers et télémétrie sans contenu (`SPEC-SOCLE-COMMUN.md` §4–§7).
  *
- * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║ ⚠ NE JAMAIS JOURNALISER `request.url` (§9.2).                                ║
- * ║                                                                              ║
- * ║ Le secret partagé voyage dans le CHEMIN de l'URL (`POST /mcp/<secret>`),     ║
- * ║ parce que c'est la seule forme que tous les clients MCP savent produire.     ║
- * ║ Toute trace, tout `console.log`, tout message d'erreur qui reproduirait      ║
- * ║ l'URL entière publierait le secret dans `wrangler tail` et dans les journaux ║
- * ║ d'observabilité. On journalise la MÉTHODE, le NOM D'OUTIL et le STATUT —     ║
- * ║ jamais le chemin. C'est le prix de la simplicité du modèle D7, et il doit    ║
- * ║ figurer ici en toutes lettres pour que personne ne le paie par accident.     ║
- * ╚══════════════════════════════════════════════════════════════════════════════╝
+ * ⚠ NE JAMAIS JOURNALISER `request.url`, une clé CanLII ni le texte d'une citation
+ *   (`S13`, `S14`, `G9`, `G10`).
  */
 
 import {
-  apparie,
+  type AnneauMaitresCoffre,
+  type BinaireD1,
+  type ClasseOutil,
+  type CodeErreurTechnique,
   construireCarteServeur,
-  debitAcceptable,
+  construireRessourceProtegee,
+  creerDepotJetonsD1,
+  creerQuarantaineIpEchecs,
+  type EtatEntreeCoffre,
+  ecrireEvenementTechniqueD1,
+  enregistrerEchecAuth,
   err,
+  erreurQuotaEpuise,
+  formaterEvenementTechnique,
+  horodatageIsoUtc,
+  type InfoClient,
+  type IssueTechnique,
+  incrementerCompteurJourD1,
+  type JsonRpcMessage,
+  type LigneCoffre,
+  lireCompteursJourD1,
+  lireMeta,
   methodeNonPermise,
   origineAutorisee,
   origineInterdite,
   origineRefusee,
   originesAdmises,
+  ouvrirCoffre,
+  ouvrirPrincipal,
+  PORTEE_UNIVERSELLE,
   type Porte,
+  type Principal,
+  porteurEntete,
   porteursPresentes,
   preflight,
   refuser,
   repondreCarteServeur,
+  repondreRessourceProtegee,
   reponseSante,
   SERVER_CARD_SCHEMA,
-  secretsAdmis,
   servirRequeteMcp,
   type ToolResult,
   tropDeRequetes,
+  validateArgs,
+  verifierDebitPreAuth,
+  verifierDebitTitulaire,
+  verifierQuotaJour,
 } from "@poirierlavoie/mcp-socle";
 import { runScheduled } from "./backfill";
-import { createClient } from "./canlii/client";
+import { type CanliiClient, createClient } from "./canlii/client";
+import { CanliiError, InterruptionGouverneError } from "./canlii/errors";
 import { mcpActif } from "./config";
 import {
-  callTool,
   INSTRUCTIONS,
   listToolDescriptors,
   PUBLIC_DESCRIPTION,
+  SANS_APPEL,
   SERVER_INFO,
   TOOLS,
 } from "./mcp/registry";
-
 import { pagePubliqueHtml } from "./site";
 
 /** Versions du protocole servies. La plus élevée EN TÊTE (§8). */
@@ -56,34 +75,24 @@ export const VERSIONS = ["2026-07-28", "2025-11-25", "2025-06-18", "2025-03-26"]
 
 export { SERVER_CARD_SCHEMA };
 
-/** Une heure : le registre ne bouge qu'au déploiement. */
-const TTL_LISTE = 3_600_000;
+export const SERVICE_ID = "jurisprudence" as const;
+export const ORIGINE_PORTAIL_DEFAUT = "https://acces.poirierlavoie.ca";
+export const META_RESSOURCE_OAUTH_URL =
+  "https://jurisprudence.poirierlavoie.ca/.well-known/oauth-protected-resource/mcp/oauth";
+export const SCOPE_OAUTH = "jurisprudence les_deux";
 
-/**
- * Ce dépôt sert-il les clients antérieurs à `2025-06-18` ?
- *
- * OUI, et c'est COUPLÉ au fait que `2025-03-26` reste servie. La spécification n'ouvre que
- * deux branches pour une requête sans en-tête de version : la traiter comme `2025-03-26`
- * — permis seulement si l'on sert ces clients-là — ou la refuser, ce que S3 prescrit PARCE
- * QU'ELLE RETIRE `2025-03-26`.
- *
- * ⚠ NE PAS BASCULER CE DRAPEAU SANS RETIRER `2025-03-26` DE `VERSIONS`, ni l'inverse. Les
- *   deux vont ensemble. Les avoir découplés a fait rendre 400 à la veille mensuelle, qui
- *   n'envoie pas l'en-tête — deux fois dans la même journée, et la seconde fois pour ce
- *   motif-ci. Le retrait de `2025-03-26` attend de toute façon la mesure de `clientInfo`
- *   (phase 4) : c'est à ce moment-là que les deux basculeront, ensemble.
- *
- * Ce qu'on ne fait JAMAIS, dans les deux cas : promouvoir silencieusement l'absence
- * d'en-tête en `2025-06-18`. Ce serait inventer une troisième branche que personne
- * n'implémente en face.
- */
+const TTL_LISTE = 3_600_000;
 const SERT_AVANT_2025_06_18 = true;
+const MOTIF_OUTIL_SUR = /^[A-Za-z0-9_.:-]{1,80}$/;
+
+let quarantaine = creerQuarantaineIpEchecs();
+
+export function reinitialiserQuarantaineIpPourTests(): void {
+  quarantaine = creerQuarantaineIpEchecs();
+}
 
 /**
  * Fiche de découverte HTTP MCP (SEP-2127) — PURE, sans accès à `env` ni à aucun secret.
- *
- * Toutes les valeurs d'identité et de protocole dérivent de `SERVER_INFO`,
- * `PUBLIC_DESCRIPTION` et `VERSIONS` (invariant 19 : aucune copie littérale).
  */
 export function carteServeur() {
   return construireCarteServeur({
@@ -95,28 +104,30 @@ export function carteServeur() {
     repositoryUrl: "https://github.com/jpoirierlavoie/MCP-Jurisprudence",
     remoteUrl: "https://jurisprudence.poirierlavoie.ca/mcp",
     supportedProtocolVersions: VERSIONS,
-    authDescription: "Secret partagé de l'instance (« Bearer <secret> »).",
+    authDescription:
+      "Jeton individuel de titulaire (« Bearer <jeton> ») + clé API CanLII personnelle au coffre (ou en-tête X-Clef-CanLII), ou OAuth 2.1 sur /mcp/oauth via acces.poirierlavoie.ca.",
+  });
+}
+
+/**
+ * Métadonnées RFC 9728 propres au sous-chemin `/mcp/oauth` (la racine
+ * `/.well-known/oauth-protected-resource` demeure en 404 afin de préserver `/mcp`).
+ */
+export function ressourceProtegeeOAuth(originePortail?: string) {
+  const serveur = (originePortail ?? "").trim() || ORIGINE_PORTAIL_DEFAUT;
+  return construireRessourceProtegee({
+    resource: "https://jurisprudence.poirierlavoie.ca/mcp/oauth",
+    authorizationServers: [serveur],
+    scopesSupported: [PORTEE_UNIVERSELLE, SERVICE_ID],
+    resourceDocumentation: "https://jurisprudence.poirierlavoie.ca/",
   });
 }
 
 const nonTrouve = () => new Response("Not found", { status: 404 });
 
 /**
- * La porte d'accès, déclarée UNE fois et employée par le runtime comme par les tests.
- *
- * `queryKey` EST SERVI DEPUIS LE 2026-09-17, et c'est un ajout délibéré de surface. Motif :
- * `?key=` est la seule forme qui ait survécu au formulaire de connecteur de claude.ai
- * (mesuré en juillet 2026 sur le jumeau), de sorte que son absence rendait ce connecteur-ci
- * probablement inajoutable. Contrepartie assumée et connue : un jeton dans une URL voyage
- * dans les journaux d'arête, l'historique du navigateur et les captures d'écran — c'est
- * pourquoi il ne doit JAMAIS être journalisé ici (invariant 5).
- *
- * `segmentBorne` reste FAUX : le chemin n'est qu'un porteur, `/mcp*` est capté en entier et
- * rien n'est remonté sur un chemin de montage. Borner serait un rétrécissement sans
- * contrepartie — et si le secret contenait « / », `/mcp/a/b` l'authentifierait.
- *
- * `MCP_SHARED_SECRET_ATHENA` a été RETIRÉ de Cloudflare le 2026-09-17 : le clavardage de
- * Pallas Athéna n'existe plus depuis le 2026-09-02, et le secret n'avait donc plus d'appelant.
+ * Porte directe `/mcp` : jetons individuels `DB_IDENTITE` + secret partagé transitoire Phase 3a.
+ * Tout refus renvoie uniformément `404` à corps vide sans `WWW-Authenticate` (`S8`, `G7`, `G23`).
  */
 export const PORTE: Porte = {
   mount: "/mcp",
@@ -126,29 +137,23 @@ export const PORTE: Porte = {
 };
 
 /**
- * Page publique (§18).
- *
- * ⚠ AUCUN en-tête CORS, comme `/health`. Sans `Access-Control-Allow-Origin`, aucun
- *   script d'une autre origine ne peut LIRE cette réponse : la page ne peut pas
- *   servir d'oracle. En ajouter « pour faire comme le reste » serait une régression.
- *
- * Ces en-têtes de sécurité sont les PREMIERS du dépôt, et c'est normal : servir du
- * `text/html` fait de cette origine une origine de DOCUMENT, ce qu'elle n'était pas
- * tant que tout était du JSON consommé hors navigateur.
+ * Porte OAuth 2.1 `/mcp/oauth` : en-tête `Authorization: Bearer <jeton>` uniquement,
+ * aucun secret partagé de Worker, aucun `?key=`, aucun segment `/mcp/oauth/<x>`.
  */
+export const PORTE_OAUTH: Porte = {
+  mount: "/mcp/oauth",
+  nomsSecrets: [],
+  autoriserChemin: false,
+};
+
 function pagePublique(request: Request): Response {
   const headers: Record<string, string> = {
     "Content-Type": "text/html; charset=utf-8",
-    // Rien n'est chargé d'un tiers : le style et le script sont en ligne, il n'y a
-    // ni police distante, ni CDN, ni image.
     "Content-Security-Policy":
       "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; " +
       "img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
-    // Volontairement court, et SANS `s-maxage` long : le rendu ne coûte rien (des
-    // tables en mémoire), alors qu'un cache d'arête durable ferait survivre la page
-    // à son propre déploiement.
     "Cache-Control": "public, max-age=600",
   };
   const html = pagePubliqueHtml();
@@ -157,62 +162,147 @@ function pagePublique(request: Request): Response {
     : new Response(html, { status: 200, headers });
 }
 
+interface LigneCoffreBruteD1 {
+  titulaire_id: string;
+  version: number;
+  iv: BinaireD1;
+  chiffre: BinaireD1;
+  repere: string;
+  etat: EtatEntreeCoffre;
+}
+
+const SQL_LIRE_COFFRE_CANLII = `
+SELECT titulaire_id, version, iv, chiffre, repere, etat
+FROM coffre_clef
+WHERE titulaire_id = ?1 AND usage = 'canlii'
+LIMIT 1
+`.trim();
+
+const SQL_MARQUER_CLEF_REFUSEE = `
+UPDATE coffre_clef
+SET etat = 'refusee', eprouve_le = ?2
+WHERE titulaire_id = ?1 AND usage = 'canlii'
+`.trim();
+
+async function lireEntreeCoffreCanlii(
+  dbIdentite: D1Database,
+  titulaireId: string,
+): Promise<LigneCoffre | null> {
+  const ligne = await dbIdentite
+    .prepare(SQL_LIRE_COFFRE_CANLII)
+    .bind(titulaireId)
+    .first<LigneCoffreBruteD1>();
+  if (!ligne) return null;
+  return {
+    titulaireId: ligne.titulaire_id,
+    version: ligne.version,
+    iv: ligne.iv,
+    chiffre: ligne.chiffre,
+    repere: ligne.repere,
+    etat: ligne.etat,
+  };
+}
+
+function planifier(ctx: ExecutionContext, tache: Promise<unknown>): void {
+  ctx.waitUntil(tache.catch(() => {}));
+}
+
+function enregistrerEvenementTitulaire(
+  dbIdentite: D1Database,
+  ctx: ExecutionContext,
+  principal: Extract<Principal, { type: "titulaire" }>,
+  params: {
+    outil: string;
+    classe: ClasseOutil;
+    issue: IssueTechnique;
+    code?: CodeErreurTechnique;
+    ms?: number;
+    sortants?: number;
+    clientInfo?: InfoClient;
+  },
+): void {
+  const outilSur = MOTIF_OUTIL_SUR.test(params.outil) ? params.outil : "outil_inconnu";
+  planifier(
+    ctx,
+    ecrireEvenementTechniqueD1(
+      dbIdentite,
+      formaterEvenementTechnique({
+        titulaireId: principal.titulaireId,
+        jetonId: principal.jetonId,
+        service: SERVICE_ID,
+        outil: outilSur,
+        classe: params.classe,
+        issue: params.issue,
+        code: params.code,
+        ms: params.ms,
+        sortants: params.sortants,
+        clientInfo: params.clientInfo,
+      }),
+    ),
+  );
+}
+
+function classifierResultatJuris(
+  resultat: ToolResult,
+  signaux: { erreurAmont: boolean; echec404: boolean; succesSortants: number },
+): {
+  issue: IssueTechnique;
+  code?: CodeErreurTechnique;
+  estErreur: boolean;
+  estIntrouvable: boolean;
+} {
+  const texte = resultat.content[0]?.text ?? "";
+  if (signaux.erreurAmont) {
+    return {
+      issue: "erreur_amont",
+      code: "AMONT_ERREUR",
+      estErreur: true,
+      estIntrouvable: false,
+    };
+  }
+  if (resultat.isError) {
+    if (
+      (signaux.echec404 && signaux.succesSortants === 0) ||
+      /^Aucune fiche\b|^Le tribunal déduit\b/m.test(texte)
+    ) {
+      return {
+        issue: "introuvable",
+        estErreur: false,
+        estIntrouvable: true,
+      };
+    }
+    return {
+      issue: "erreur_usager",
+      code: "ARGUMENTS_INVALIDES",
+      estErreur: true,
+      estIntrouvable: false,
+    };
+  }
+  if (
+    / — INTROUVABLE$/m.test(texte) ||
+    /^Aucun candidat pour «|^Aucune décision pour |^Aucun texte pour /m.test(texte)
+  ) {
+    return {
+      issue: "introuvable",
+      estErreur: false,
+      estIntrouvable: true,
+    };
+  }
+  return {
+    issue: "ok",
+    estErreur: false,
+    estIntrouvable: false,
+  };
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const { pathname } = url;
+    const admises = originesAdmises(env.ALLOWED_ORIGINS as string | undefined);
+    const origin = origineAutorisee(request, admises);
 
-    // Coupe-circuit (§8) : « false » => 404 sur TOUTES les routes MCP, /health
-    // compris. Un /health qui répondrait encore révélerait que le service existe.
-    const actif = mcpActif(env);
-
-    // `/health` annonce le COMMIT dont la version en ligne est issue (§8, §12).
-    //
-    // ╔══════════════════════════════════════════════════════════════════════════════╗
-    // ║ POURQUOI UN POINT D'ENTRÉE PUBLIC DIT QUELLE VERSION TOURNE.                 ║
-    // ║                                                                              ║
-    // ║ Le déploiement est MANUEL depuis le 2026-09-16 (§12). Rien ne signale donc   ║
-    // ║ qu'un commit est poussé mais pas en ligne : l'écart se tient de mémoire, et  ║
-    // ║ un écart tenu de mémoire dure plus longtemps qu'on ne croit. Ce champ le     ║
-    // ║ rend MESURABLE par un tiers qui n'a aucun droit sur l'infrastructure — le    ║
-    // ║ contrôle de dérive compare cette valeur au dernier commit de `main`, sans    ║
-    // ║ jeton, en lecture seule. C'est l'inverse exact du compromis refusé en §12 :  ║
-    // ║ surveiller sans rien pouvoir écrire.                                         ║
-    // ║                                                                              ║
-    // ║ CE QUE CELA DIVULGUE, énoncé plutôt que passé sous silence : la version      ║
-    // ║ exacte qui tourne, donc si un correctif publié est déjà en ligne. Le dépôt   ║
-    // ║ est PUBLIC — tout le code l'est déjà, et la seule chose ajoutée est un       ║
-    // ║ horodatage de fait. Le gain est de rendre visible une dérive silencieuse ;   ║
-    // ║ la perte est de dater publiquement un retard de déploiement. L'arbitrage     ║
-    // ║ penche parce que le retard, lui, existe qu'on le publie ou non.              ║
-    // ║                                                                              ║
-    // ║ « inconnu » est un AVEU et non un remplissage : il dit que la version en     ║
-    // ║ ligne n'est pas passée par `npm run deploy`, donc qu'on ne sait PAS de quel  ║
-    // ║ commit elle sort. Le contrôle refuse alors de conclure — il ne suppose pas   ║
-    // ║ qu'elle est à jour. C'est la règle d'INDÉTERMINÉE de §2, appliquée au        ║
-    // ║ déploiement.                                                                 ║
-    // ╚══════════════════════════════════════════════════════════════════════════════╝
-    if (pathname === "/health") {
-      return reponseSante({ actif, commit: env.COMMIT as string | undefined });
-    }
-
-    // ── Page publique (§18) ──────────────────────────────────────────────────
-    //
-    // ⚠ ÉGALITÉ STRICTE, jamais `startsWith("/")` : le `nonTrouve()` final doit rester
-    //   la réponse de tout le reste, et c'est épinglé par un test.
-    //
-    // ⚠ DÉLIBÉRÉMENT HORS de la garde du bloc `/mcp` ci-dessous. Le contrôle
-    //   d'origine, la limitation de débit et l'authentification y vivent TOUS ; une
-    //   page publique doit répondre à n'importe quel navigateur, et ne doit donc pas
-    //   passer par `origineRefusee()`. Corollaire à ne pas oublier : ne JAMAIS
-    //   remonter ces contrôles en portée globale « par cohérence », ce qui casserait
-    //   la page pour tout visiteur arrivant par un lien d'un autre site.
-    //
-    // ⚠ ET DÉLIBÉRÉMENT AVANT le coupe-circuit. `MCP_ENABLED=false` protège la
-    //   SURFACE MCP — la clef d'API et son quota ; il n'y a rien à protéger ici. La
-    //   page ne porte ni secret ni donnée vivante : elle existe pour être lue, et
-    //   c'est précisément quand le connecteur est coupé qu'on veut pouvoir lire
-    //   pourquoi. Exception assumée au principe énoncé pour `/health`.
+    // Page publique servie AVANT le coupe-circuit, sans en-tête CORS (G22, §18).
     if (pathname === "/") {
       if (request.method !== "GET" && request.method !== "HEAD") {
         return new Response("Method not allowed", {
@@ -223,64 +313,114 @@ export default {
       return pagePublique(request);
     }
 
-    // ── Fiche de découverte SEP-2127 (`/mcp/server-card`) ─────────────────────
-    //
-    // Exception NOMMÉE et exacte avant la garde `/mcp*` : métadonnées publiques sans
-    // secret, lisibles par tout catalogue ou client MCP avant authentification, tout en
-    // respectant le coupe-circuit `MCP_ENABLED` (§8).
-    if (pathname === "/mcp/server-card") {
-      return actif ? repondreCarteServeur(request.method, carteServeur()) : nonTrouve();
-    }
+    const estMetaOAuth = pathname === "/.well-known/oauth-protected-resource/mcp/oauth";
+    const estMcpOAuth = pathname === "/mcp/oauth" || pathname.startsWith("/mcp/oauth/");
+    const estMcpDirect = !estMcpOAuth && (pathname === "/mcp" || pathname.startsWith("/mcp/"));
 
-    if (pathname === "/mcp" || pathname.startsWith("/mcp/")) {
-      if (!actif) return nonTrouve();
+    if (pathname === "/health" || estMetaOAuth || estMcpOAuth || estMcpDirect) {
+      // 1. Coupe-circuit global (`MCP_ENABLED !== "true"` => 404).
+      const actif = mcpActif(env);
+      if (!actif) return refuser("404", origin);
 
-      // Défense contre le ré-attachement DNS (spécification MCP) : une origine de
-      // NAVIGATEUR présente mais inconnue est refusée d'emblée. Une origine absente
-      // (serveur à serveur) passe — elle n'est pas soumise à la politique de même
-      // origine et ne peut donc pas être détournée de cette façon.
-      const admises = originesAdmises(env.ALLOWED_ORIGINS as string | undefined);
-      if (origineRefusee(request, admises)) return origineInterdite();
-      const origin = origineAutorisee(request, admises);
-
-      // Pré-vol CORS AVANT l'authentification : le navigateur l'émet sans en-tête
-      // d'authentification. L'exiger ici casserait le connecteur sans rien protéger.
-      if (request.method === "OPTIONS" && origin) return preflight(origin);
-
-      // Limitation de débit APRÈS le pré-vol, et avant tout le reste (§9.3).
-      //
-      // L'ordre est délibéré des deux côtés : un 429 sur un pré-vol casserait le
-      // connecteur de façon incompréhensible (le navigateur ne rapporte qu'un échec
-      // CORS), tandis que limiter AVANT le contrôle de méthode et l'authentification
-      // fait que même une rafale de requêtes mal formées ou mal authentifiées cesse
-      // de coûter — ce qui est précisément l'objet de la mesure.
-      const ip = request.headers.get("CF-Connecting-IP") ?? "sans-ip";
-      if (!(await debitAcceptable(env.RATE_LIMITER, ip))) return tropDeRequetes(60, origin);
-
-      // Aucun flux SSE, aucune session à supprimer : mode JSON sans état (D3).
-      if (request.method !== "POST") return methodeNonPermise(origin);
-
-      // Aucune garde `if (!presente)` : une liste VIDE — aucun porteur présenté — produit
-      // un produit cartésien vide, donc `some` faux, donc 401. Le défaut fermé vit
-      // tout entier dans `apparie`, des deux côtés du produit.
-      const presentes = porteursPresentes(request, url, PORTE);
-      const attendus = secretsAdmis(env as unknown as Record<string, unknown>, PORTE);
-      if (!(await apparie(presentes, attendus))) {
-        return refuser("401", origin);
+      if (pathname === "/health") {
+        return reponseSante({ actif: true, commit: env.COMMIT as string | undefined });
       }
 
-      return await servirRequeteMcp(request, {
+      if (estMetaOAuth) {
+        return repondreRessourceProtegee(
+          request.method,
+          ressourceProtegeeOAuth((env as { ORIGINE_PORTAIL?: string }).ORIGINE_PORTAIL),
+        );
+      }
+
+      // Fiche SEP-2127 interceptée AVANT `/mcp/<secret>`.
+      if (pathname === "/mcp/server-card") {
+        return repondreCarteServeur(request.method, carteServeur());
+      }
+
+      // 2. Défense DNS rebinding avant authentification (G6).
+      if (origineRefusee(request, admises)) return origineInterdite();
+
+      // 3. Pré-vol CORS jamais limité en débit, autorisant `X-Clef-CanLII` (G6).
+      if (request.method === "OPTIONS" && origin) {
+        return preflight(origin, ["X-Clef-CanLII"]);
+      }
+
+      const porte = estMcpOAuth ? PORTE_OAUTH : PORTE;
+      const refuserAcces = () =>
+        estMcpOAuth
+          ? refuser("401", origin, {
+              resourceMetadata: META_RESSOURCE_OAUTH_URL,
+              scope: SCOPE_OAUTH,
+            })
+          : refuser("404", origin);
+
+      // 4. Garde de débit pré-authentification par IP + quarantaine d'échecs (G32).
+      const ip = request.headers.get("CF-Connecting-IP") ?? "sans-ip";
+      const candidatsJetons = porteursPresentes(request, url, porte);
+      const preAuthOk = await verifierDebitPreAuth({
+        ip,
+        quarantaine,
+        limiteurRafaleIp: env.RL_PRE_AUTH_IP,
+        candidatsJetons,
+      });
+      if (!preAuthOk) {
+        return estMcpOAuth ? tropDeRequetes(60, origin) : refuser("404", origin);
+      }
+
+      // 5. Identité (`DB_IDENTITE` jetons individuels + secret partagé transitoire sur `/mcp`).
+      const depot = env.DB_IDENTITE ? creerDepotJetonsD1(env.DB_IDENTITE) : undefined;
+      const autorise = await ouvrirPrincipal(
+        request,
+        url,
+        env as unknown as Record<string, unknown>,
+        porte,
+        {
+          depot,
+          service: SERVICE_ID,
+          planifierArrierePlan: (tache) => ctx.waitUntil(tache),
+          surEmpreinteValide: (h) => quarantaine.marquerEmpreinteValide(h),
+        },
+      );
+      if (!autorise) {
+        await enregistrerEchecAuth({
+          ip,
+          quarantaine,
+          limiteurEchecIp: env.RL_ECHEC_IP,
+          limiteurEchecsGlobal: env.RL_ECHECS_GLOBAL,
+          candidatsJetons,
+        });
+        return refuserAcces();
+      }
+
+      // 6. Méthode HTTP jugée APRÈS l'authentification sur `/mcp` comme sur `/mcp/oauth` (G23).
+      if (request.method !== "POST") return methodeNonPermise(origin);
+
+      // 7. Débit par titulaire (`180/min` en régime `actif`, `20/min` en régime `limite`).
+      if (autorise.principal.type === "titulaire") {
+        const refusDebit = await verifierDebitTitulaire({
+          titulaireId: autorise.principal.titulaireId,
+          etat: autorise.principal.etat,
+          limiteurActif: env.RL_TITULAIRE,
+          limiteurLimite: env.RL_TITULAIRE_LIMITE,
+          origin,
+        });
+        if (refusDebit) return refusDebit;
+      }
+
+      // 8–12. Enveloppe MCP 64 Kio, quotas, garde BYOK préalable au cache et exécution.
+      return await servirRequeteMcp(autorise.requete, {
         versions: VERSIONS,
         capabilities: { tools: { listChanged: false } },
         serverInfo: SERVER_INFO,
         instructions: INSTRUCTIONS,
         descripteurs: listToolDescriptors,
-        appeler: (nom, args) => executerOutil(nom, args, env, ctx),
+        appeler: (nom, args, message) =>
+          executerOutil(nom, args, message, autorise.requete, autorise.principal, env, ctx),
         origin,
         sertAvant2025_06_18: SERT_AVANT_2025_06_18,
         ttlListeMs: TTL_LISTE,
         surErreur: (method, error) => {
-          // Journalisation SANS l'URL (§9.2) : méthode et nature de l'échec, rien d'autre.
           console.error("échec de répartition MCP", {
             method,
             error: error instanceof Error ? error.name : "inconnu",
@@ -292,44 +432,372 @@ export default {
     return nonTrouve();
   },
 
-  /**
-   * Cron hebdomadaire (lundi 06:17 UTC) : rafraîchit le répertoire des bases.
-   * Le moissonnage de masse (§11) n'est atteint que si BACKFILL_ENABLED === "true",
-   * ce qui n'est PAS le cas par défaut et ne doit pas l'être avant la détermination
-   * de §16.1 auprès de CanLII.
-   */
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(runScheduled(env));
   },
 };
 
 async function executerOutil(
-  nom: unknown,
-  args: unknown,
+  nomBrut: unknown,
+  argsBruts: unknown,
+  message: JsonRpcMessage | undefined,
+  requete: Request,
+  principal: Principal,
   env: Env,
   ctx: ExecutionContext,
 ): Promise<ToolResult> {
-  if (typeof nom !== "string" || !Object.hasOwn(TOOLS, nom)) {
-    // Outil inconnu : c'est une erreur d'EXÉCUTION rendue au modèle, pas une faute de
-    // protocole — le modèle doit pouvoir la lire et se corriger (§7, conventions).
+  const clientInfo = lireMeta(message?.params).clientInfo;
+  const nom = typeof nomBrut === "string" ? nomBrut : "";
+  const outil = Object.hasOwn(TOOLS, nom) ? TOOLS[nom] : undefined;
+
+  if (!outil) {
+    if (principal.type === "titulaire" && env.DB_IDENTITE) {
+      enregistrerEvenementTitulaire(env.DB_IDENTITE, ctx, principal, {
+        outil: "outil_inconnu",
+        classe: "local",
+        issue: "erreur_usager",
+        code: "OUTIL_INCONNU",
+        ms: 0,
+        clientInfo,
+      });
+    }
     return err(
-      `Outil inconnu : « ${String(nom).slice(0, 80)} ». Outils disponibles : ${Object.keys(TOOLS).join(", ")}.`,
+      `Outil inconnu : « ${String(nomBrut).slice(0, 80)} ». Outils disponibles : ${Object.keys(TOOLS).join(", ")}.`,
     );
   }
 
-  const objet = args ?? {};
+  const objet = argsBruts ?? {};
   if (typeof objet !== "object" || objet === null || Array.isArray(objet)) {
+    if (principal.type === "titulaire" && env.DB_IDENTITE) {
+      enregistrerEvenementTitulaire(env.DB_IDENTITE, ctx, principal, {
+        outil: nom,
+        classe: "local",
+        issue: "erreur_usager",
+        code: "ARGUMENTS_INVALIDES",
+        ms: 0,
+        clientInfo,
+      });
+    }
     return err("« arguments » doit être un objet.");
   }
 
-  const client = createClient(env);
+  const args = objet as Record<string, unknown>;
+  const fautes = validateArgs(outil.inputSchema, args);
+  if (fautes.length > 0) {
+    if (principal.type === "titulaire" && env.DB_IDENTITE) {
+      enregistrerEvenementTitulaire(env.DB_IDENTITE, ctx, principal, {
+        outil: nom,
+        classe: "local",
+        issue: "erreur_usager",
+        code: "ARGUMENTS_INVALIDES",
+        ms: 0,
+        clientInfo,
+      });
+    }
+    return err(`Arguments invalides pour ${nom} : ${fautes.join(" ")}`);
+  }
+
+  const estOutilHorsLigne = SANS_APPEL.has(nom);
+  const estToujoursSortant =
+    nom === "browse_cases" ||
+    nom === "browse_legislation" ||
+    nom === "get_legislation" ||
+    args.refresh === true ||
+    (nom === "find_case" && args.live === true);
+  const estJamaisSortant = estOutilHorsLigne || (nom === "find_case" && args.live === false);
+
+  // 8 & 10. Lecture des compteurs journaliers et contrôle de quota sur le nom d'outil du corps.
+  let verdictLocal: ReturnType<typeof verifierQuotaJour> | null = null;
+  let verdictSortant: ReturnType<typeof verifierQuotaJour> | null = null;
+
+  if (principal.type === "titulaire") {
+    if (!env.DB_IDENTITE) {
+      return err("Service d'identité temporairement indisponible.");
+    }
+    let compteurs: Awaited<ReturnType<typeof lireCompteursJourD1>>;
+    try {
+      compteurs = await lireCompteursJourD1(env.DB_IDENTITE, principal.titulaireId);
+    } catch {
+      return err("Service d'identité temporairement indisponible.");
+    }
+    verdictLocal = verifierQuotaJour(compteurs, "local", principal.etat);
+    verdictSortant = verifierQuotaJour(compteurs, "sortant", principal.etat);
+
+    if (estToujoursSortant && !verdictSortant.autorise) {
+      enregistrerEvenementTitulaire(env.DB_IDENTITE, ctx, principal, {
+        outil: nom,
+        classe: "sortant",
+        issue: "quota",
+        code: "QUOTA_EPUISE",
+        ms: 0,
+        clientInfo,
+      });
+      return erreurQuotaEpuise("sortant", verdictSortant.plafond);
+    }
+    if (estJamaisSortant && !verdictLocal.autorise) {
+      enregistrerEvenementTitulaire(env.DB_IDENTITE, ctx, principal, {
+        outil: nom,
+        classe: "local",
+        issue: "quota",
+        code: "QUOTA_EPUISE",
+        ms: 0,
+        clientInfo,
+      });
+      return erreurQuotaEpuise("local", verdictLocal.plafond);
+    }
+    if (!verdictLocal.autorise && !verdictSortant.autorise) {
+      enregistrerEvenementTitulaire(env.DB_IDENTITE, ctx, principal, {
+        outil: nom,
+        classe: "sortant",
+        issue: "quota",
+        code: "QUOTA_EPUISE",
+        ms: 0,
+        clientInfo,
+      });
+      return erreurQuotaEpuise("sortant", verdictSortant.plafond);
+    }
+  }
+
+  // 11. Garde stricte BYOK CanLII AVANT toute lecture du cache D1 `cases`/`citator_*` (G8, G10).
+  let baseClient: CanliiClient;
+  let provenanceClef: "entete" | "coffre" | "transitoire" | "aucune" = "aucune";
+
+  if (estOutilHorsLigne) {
+    baseClient = createClient(env, {}, { apiKey: "" });
+  } else if (principal.type === "titulaire") {
+    const dbIdentite = env.DB_IDENTITE!;
+    const surchargeEntete = porteurEntete(requete, "X-Clef-CanLII");
+    let entree: LigneCoffre | null = null;
+    if (!surchargeEntete) {
+      try {
+        entree = await lireEntreeCoffreCanlii(dbIdentite, principal.titulaireId);
+      } catch {
+        return err("Service d'identité temporairement indisponible.");
+      }
+    }
+    const maitres: AnneauMaitresCoffre = {
+      1: env.COFFRE_MAITRE_V1,
+      2: env.COFFRE_MAITRE_V2,
+    };
+    const ouverture = await ouvrirCoffre(
+      {
+        titulaireId: principal.titulaireId,
+        usage: "canlii",
+        entree,
+        maitres,
+        surchargeEntete,
+      },
+      (clair) => createClient(env, {}, { apiKey: clair }),
+    );
+    if (!ouverture.ok) {
+      const codeRefus: CodeErreurTechnique =
+        ouverture.motif === "ABSENTE" ? "CLEF_ABSENTE" : "CLEF_REFUSEE";
+      enregistrerEvenementTitulaire(dbIdentite, ctx, principal, {
+        outil: nom,
+        classe: "sortant",
+        issue: "refus",
+        code: codeRefus,
+        ms: 0,
+        clientInfo,
+      });
+      return ouverture.motif === "ABSENTE"
+        ? err(
+            "[CLEF_ABSENTE] Aucune clé API CanLII active n'est associée à ce compte. " +
+              "Déposez votre clé personnelle dans https://acces.poirierlavoie.ca/moi " +
+              "(ou transmettez l'en-tête X-Clef-CanLII).",
+          )
+        : err(
+            "[CLEF_REFUSEE] La clé API CanLII enregistrée pour ce compte a été refusée ou est invalide. " +
+              "Mettez votre clé à jour dans https://acces.poirierlavoie.ca/moi.",
+          );
+    }
+    baseClient = ouverture.client;
+    provenanceClef = ouverture.provenance;
+  } else {
+    // Phase 3a coexistence sur `/mcp` pour `secret_partage` uniquement (zéro retombée pour `titulaire`).
+    const surchargeEntete = porteurEntete(requete, "X-Clef-CanLII");
+    const clefTransitoire = surchargeEntete ?? (env.CANLII_API_KEY ?? "").trim();
+    if (!clefTransitoire) {
+      return err("[CLEF_ABSENTE] Aucune clé API CanLII n'est configurée pour cet appel.");
+    }
+    baseClient = createClient(env, {}, { apiKey: clefTransitoire });
+    provenanceClef = "transitoire";
+  }
+
+  const peutSortir = principal.type !== "titulaire" || Boolean(verdictSortant?.autorise);
+  let erreurAmont = false;
+  let echec404 = false;
+  let succesSortants = 0;
+
+  const client: CanliiClient = {
+    async get<T>(path: string, params?: Record<string, string | number>): Promise<T> {
+      if (!peutSortir) {
+        throw new InterruptionGouverneError("QUOTA_SORTANT_EPUISE");
+      }
+      try {
+        const reponse = await baseClient.get<T>(path, params);
+        succesSortants += 1;
+        return reponse;
+      } catch (e) {
+        if (e instanceof CanliiError) {
+          if (e.status === 401 || e.status === 403) {
+            if (principal.type === "titulaire") {
+              throw new InterruptionGouverneError("CLEF_REFUSEE_AMONT");
+            }
+            erreurAmont = true;
+          } else if (e.status === 404) {
+            echec404 = true;
+          } else {
+            erreurAmont = true;
+          }
+        } else {
+          erreurAmont = true;
+        }
+        throw e;
+      }
+    },
+    callsMade: () => baseClient.callsMade(),
+    remaining: () => baseClient.remaining(),
+    usage: () => baseClient.usage(),
+  };
+
+  // 12. Exécution de l'outil, révocation dynamique sur 401/403 et comptabilisation exacte local vs sortant.
   const debut = Date.now();
   try {
-    return await callTool(nom, objet as Record<string, unknown>, { env, db: env.DB, client, ctx });
+    const resultat = await outil.handler(args, { env, db: env.DB, client, ctx });
+    const ms = Date.now() - debut;
+    const sortants = baseClient.callsMade();
+
+    if (principal.type === "titulaire" && env.DB_IDENTITE) {
+      const dbIdentite = env.DB_IDENTITE;
+
+      if (sortants === 0 && verdictLocal && !verdictLocal.autorise) {
+        enregistrerEvenementTitulaire(dbIdentite, ctx, principal, {
+          outil: nom,
+          classe: "local",
+          issue: "quota",
+          code: "QUOTA_EPUISE",
+          ms,
+          sortants: 0,
+          clientInfo,
+        });
+        return erreurQuotaEpuise("local", verdictLocal.plafond);
+      }
+
+      const classeEffective: ClasseOutil = sortants > 0 ? "sortant" : "local";
+      const bilan = classifierResultatJuris(resultat, {
+        erreurAmont,
+        echec404,
+        succesSortants,
+      });
+      const evt = formaterEvenementTechnique({
+        titulaireId: principal.titulaireId,
+        jetonId: principal.jetonId,
+        service: SERVICE_ID,
+        outil: nom,
+        classe: classeEffective,
+        issue: bilan.issue,
+        code: bilan.code,
+        ms,
+        sortants,
+        clientInfo,
+      });
+      planifier(
+        ctx,
+        Promise.all([
+          incrementerCompteurJourD1(dbIdentite, {
+            titulaireId: principal.titulaireId,
+            classe: classeEffective,
+            estErreur: bilan.estErreur,
+            estIntrouvable: bilan.estIntrouvable,
+            sortants,
+          }),
+          ecrireEvenementTechniqueD1(dbIdentite, evt),
+        ]),
+      );
+    }
+
+    return resultat;
   } catch (e) {
+    const ms = Date.now() - debut;
+    const sortants = baseClient.callsMade();
+    if (
+      e instanceof InterruptionGouverneError &&
+      principal.type === "titulaire" &&
+      env.DB_IDENTITE
+    ) {
+      const dbIdentite = env.DB_IDENTITE;
+      if (e.motif === "QUOTA_SORTANT_EPUISE" && verdictSortant && !verdictSortant.autorise) {
+        enregistrerEvenementTitulaire(dbIdentite, ctx, principal, {
+          outil: nom,
+          classe: "sortant",
+          issue: "quota",
+          code: "QUOTA_EPUISE",
+          ms,
+          sortants: 0,
+          clientInfo,
+        });
+        return erreurQuotaEpuise("sortant", verdictSortant.plafond);
+      }
+      if (e.motif === "CLEF_REFUSEE_AMONT") {
+        if (provenanceClef === "coffre") {
+          planifier(
+            ctx,
+            dbIdentite
+              .prepare(SQL_MARQUER_CLEF_REFUSEE)
+              .bind(principal.titulaireId, horodatageIsoUtc())
+              .run(),
+          );
+        }
+        const evtRefus = formaterEvenementTechnique({
+          titulaireId: principal.titulaireId,
+          jetonId: principal.jetonId,
+          service: SERVICE_ID,
+          outil: nom,
+          classe: "sortant",
+          issue: "refus",
+          code: "CLEF_REFUSEE",
+          ms,
+          sortants,
+          clientInfo,
+        });
+        planifier(
+          ctx,
+          Promise.all([
+            incrementerCompteurJourD1(dbIdentite, {
+              titulaireId: principal.titulaireId,
+              classe: "sortant",
+              estErreur: true,
+              sortants,
+            }),
+            ecrireEvenementTechniqueD1(dbIdentite, evtRefus),
+          ]),
+        );
+        return provenanceClef === "coffre"
+          ? err(
+              "[CLEF_REFUSEE] CanLII a refusé la clé API enregistrée au coffre (HTTP 401/403). " +
+                "Mettez votre clé à jour dans https://acces.poirierlavoie.ca/moi.",
+            )
+          : err(
+              "[CLEF_REFUSEE] CanLII a refusé la clé API transmise dans l'en-tête X-Clef-CanLII (HTTP 401/403). " +
+                "Vérifiez cet en-tête ou gérez votre clé dans https://acces.poirierlavoie.ca/moi.",
+            );
+      }
+    }
+    if (principal.type === "titulaire" && env.DB_IDENTITE) {
+      enregistrerEvenementTitulaire(env.DB_IDENTITE, ctx, principal, {
+        outil: nom,
+        classe: sortants > 0 ? "sortant" : "local",
+        issue: "refus",
+        code: "ERREUR_INTERNE",
+        ms,
+        sortants,
+        clientInfo,
+      });
+    }
     console.error("échec d'exécution d'outil", {
       tool: nom,
-      ms: Date.now() - debut,
+      ms,
       error: e instanceof Error ? e.name : "inconnu",
     });
     return err(

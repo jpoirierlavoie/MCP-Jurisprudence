@@ -12,7 +12,7 @@
 
 import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
-import { CanliiBudgetError } from "../../canlii/errors";
+import { CanliiBudgetError, relancerSiInterruptionGouverne } from "../../canlii/errors";
 import type { CaseListResponse, Lang } from "../../canlii/types";
 import { compareTitles } from "../../citation/compare";
 import { persisterBalayages } from "../../config";
@@ -32,7 +32,6 @@ import {
   searchLocal,
   upsertCases,
 } from "../../store/cases";
-import { flushUsage, logSearch } from "../../store/telemetry";
 import { LIMITES } from "../defauts";
 import type { ToolContext } from "../registry";
 
@@ -108,6 +107,7 @@ export async function findCase(
       appels = r.appels;
       budgetEpuise = r.budgetEpuise;
     } catch (e) {
+      relancerSiInterruptionGouverne(e);
       balayageEchoue = true;
       // Les appels DÉJÀ FAITS ne s'effacent pas parce que le balayage a levé.
       // Sans cette ligne, `appels` reste à 0, et `provenance()` rend « aucun appel à
@@ -116,8 +116,6 @@ export async function findCase(
       // fait douter du reste. Trouvé en éprouvant le correctif, le 2026-09-16.
       appels = ctx.client.callsMade() - avantBalayage;
       noteBalayage = `Balayage interrompu — ${describeError(e)}`;
-    } finally {
-      await flushUsage(ctx.db, ctx.client.usage(), now);
     }
   }
 
@@ -139,16 +137,6 @@ export async function findCase(
       a.case_id.localeCompare(b.case_id),
   );
   const rendus = tous.slice(0, limit);
-
-  await logSearch(ctx.db, {
-    tool: "find_case",
-    query: titre,
-    database_id: databaseId,
-    lang,
-    result_count: rendus.length,
-    // Un balayage interrompu n'est pas un balayage vide : §10 les comptait ensemble.
-    fallback: live ? (balayageEchoue ? "api_error" : "sweep") : null,
-  });
 
   const prov = provenance({
     locales: locales.length,

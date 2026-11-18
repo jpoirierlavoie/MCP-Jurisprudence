@@ -9,6 +9,7 @@
 
 import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
+import { relancerSiInterruptionGouverne } from "../../canlii/errors";
 import type { CitatorRel } from "../../canlii/types";
 import { nombreFr, pluriel, troncature } from "../../format/fr";
 import { document, GARDE_CITATEUR } from "../../format/render";
@@ -19,7 +20,6 @@ import {
   getCachedEdges,
   replaceEdges,
 } from "../../store/citator";
-import { flushUsage, logSearch } from "../../store/telemetry";
 import { LIMITES } from "../defauts";
 import type { ToolContext } from "../registry";
 import { resoudreCible } from "./cible";
@@ -57,24 +57,9 @@ export async function citator(
       provenance = "CanLII";
     }
   } catch (e) {
-    await logSearch(ctx.db, {
-      tool: "citator",
-      query: `${databaseId}/${caseId} ${rel}`,
-      database_id: databaseId,
-      result_count: 0,
-      fallback: "api_error",
-    });
+    relancerSiInterruptionGouverne(e);
     return err(describeError(e));
-  } finally {
-    await flushUsage(ctx.db, ctx.client.usage(), now);
   }
-
-  await logSearch(ctx.db, {
-    tool: "citator",
-    query: `${databaseId}/${caseId} ${rel}`,
-    database_id: databaseId,
-    result_count: aretes.length,
-  });
 
   const page = aretes.slice(offset, offset + limit);
   const depart = `Départ : ${titre ?? `${databaseId} / ${caseId}`}`;
