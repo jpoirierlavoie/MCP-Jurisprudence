@@ -77,7 +77,7 @@
       "database_name": "mcp-identite",
       // Base D1 partagée du socle d'identité (jetons, coffre chiffré BYOK CanLII, quotas et événements).
       // L'UUID réel est substitué au déploiement Phase 5 après `wrangler d1 create mcp-identite`.
-      "database_id": "00000000-0000-0000-0000-000000000000"
+      "database_id": "ee4894cc-a779-466b-bc9b-ac157b354afc"
     }
   ],
 
