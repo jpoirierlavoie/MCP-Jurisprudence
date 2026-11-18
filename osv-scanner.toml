@@ -39,7 +39,3 @@
 #   scanner n'affiche que le nombre de vulnérabilités FILTRÉES. Le 2026-09-16, ce
 #   « Filtered 1 vulnerability » a été pris pour la totalité des constats, alors que
 #   le rapport en contenait SEPT non exemptées. Lire le SARIF, jamais le résumé.
-
-[[IgnoredVulns]]
-id = "GHSA-fc5q-39xc-vjpf"
-reason = "2026-11-18 : ReDoS sur extglobs répétés dans picomatch <= 4.0.7 (aucun correctif publié sur npm à ce jour, PR amont micromatch/picomatch#194 en attente) ; dépendance exclusivement de développement (vitest/vite/tinyglobby), absente de src/ et du bundle déployé (zéro dependencies), motifs glob statiques maîtrisés. À retirer dès publication de picomatch > 4.0.7."
