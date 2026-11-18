@@ -16,7 +16,11 @@
   // dans le chemin (D7) — une seconde origine publique serait une seconde fuite possible.
   "workers_dev": false,
 
-  "observability": { "enabled": true },
+  // Journaux d'invocation Cloudflare explicitement désactivés (SPEC-SOCLE-COMMUN.md §7.3, G37).
+  "observability": {
+    "enabled": false,
+    "logs": { "enabled": false, "invocation_logs": false }
+  },
   "cache": { "enabled": true },
 
   // Garde-fous d'exécution (forfait Workers PAYANT — confirmé avec Jason, 2026-07-23).
@@ -45,12 +49,17 @@
   //       protection contre l'emballement et le coût, pas contre un attaquant réparti ;
   //     - le compte est éventuellement cohérent, jamais exact au coup près.
   //   Pour ce connecteur mono-usager, les deux sont sans conséquence.
+  // Limitation de débit à deux niveaux DANS le Worker (SPEC-SOCLE-COMMUN.md §6.1, G34) :
+  // - pré-authentification par IP (`1021` à 600/min), échecs d'auth par IP (`1022` à 20/min)
+  //   et disjoncteur global d'échecs (`1023` à 300/min) ;
+  // - post-authentification par `titulaire_id` (`1024` à 180/min en état `actif`, `1025` à
+  //   20/min en état `limite`), isolée des `namespace_id` `1011..1015` de `MCP-Legislation`.
   "ratelimits": [
-    {
-      "name": "RATE_LIMITER",
-      "namespace_id": "1001",
-      "simple": { "limit": 60, "period": 60 }
-    }
+    { "name": "RL_PRE_AUTH_IP", "namespace_id": "1021", "simple": { "limit": 600, "period": 60 } },
+    { "name": "RL_ECHEC_IP", "namespace_id": "1022", "simple": { "limit": 20, "period": 60 } },
+    { "name": "RL_ECHECS_GLOBAL", "namespace_id": "1023", "simple": { "limit": 300, "period": 60 } },
+    { "name": "RL_TITULAIRE", "namespace_id": "1024", "simple": { "limit": 180, "period": 60 } },
+    { "name": "RL_TITULAIRE_LIMITE", "namespace_id": "1025", "simple": { "limit": 20, "period": 60 } }
   ],
 
   "d1_databases": [
@@ -62,6 +71,13 @@
       // rien de confidentiel n'y transite (spéc. §9.5).
       "database_id": "4025ee7d-90f2-4107-92ea-f8430403c6c5",
       "migrations_dir": "migrations"
+    },
+    {
+      "binding": "DB_IDENTITE",
+      "database_name": "mcp-identite",
+      // Base D1 partagée du socle d'identité (jetons, coffre chiffré BYOK CanLII, quotas et événements).
+      // L'UUID réel est substitué au déploiement Phase 5 après `wrangler d1 create mcp-identite`.
+      "database_id": "00000000-0000-0000-0000-000000000000"
     }
   ],
 
@@ -99,6 +115,8 @@
     // deux choses : ajouter un client web tiers, ou autoriser une origine de
     // développement. Toute origine de navigateur absente de la liste est refusée par un
     // 403 — c'est la défense contre le ré-attachement DNS exigée par la spécification MCP.
-    "ALLOWED_ORIGINS": ""
+    "ALLOWED_ORIGINS": "",
+    // Origine canonique du serveur d'autorisation OAuth 2.1 publiée dans RFC 9728 (/mcp/oauth).
+    "ORIGINE_PORTAIL": "https://acces.poirierlavoie.ca"
   }
 }

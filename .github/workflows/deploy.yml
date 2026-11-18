@@ -182,6 +182,9 @@ jobs:
       - name: Tests
         run: npx vitest run
 
+      - name: Audit des dépendances
+        run: npm run audit
+
       - name: Paquet de déploiement (à blanc)
         run: npx wrangler deploy --dry-run
 

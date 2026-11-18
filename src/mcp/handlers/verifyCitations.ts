@@ -20,6 +20,7 @@
 
 import { ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
+import { relancerSiInterruptionGouverne } from "../../canlii/errors";
 import type { Lang } from "../../canlii/types";
 import { compareTitles } from "../../citation/compare";
 import { formLabel, parseCitation, resolve } from "../../citation/parse";
@@ -35,7 +36,6 @@ import {
 import { type CaseRow, searchLocal } from "../../store/cases";
 import { loadDirectory } from "../../store/databases";
 import { lookupCase } from "../../store/lookup";
-import { flushUsage, logSearchBatch } from "../../store/telemetry";
 import type { ToolContext } from "../registry";
 
 type Verdict =
@@ -124,7 +124,6 @@ export async function verifyCitations(
   const connus = (code: string) => dir.courtCodes.has(code);
 
   const blocs: string[] = [];
-  const journal: Parameters<typeof logSearchBatch>[1] = [];
   let budgetEpuise = false;
 
   for (const d of demandes) {
@@ -152,13 +151,6 @@ export async function verifyCitations(
           "→ Fournir la citation neutre, ou les noms des parties et l'année à find_case.",
         ].join("\n"),
       );
-      journal.push({
-        tool: "verify_citations",
-        query: citation,
-        lang,
-        result_count: 0,
-        verdict: "ILLISIBLE",
-      });
       continue;
     }
 
@@ -199,14 +191,6 @@ export async function verifyCitations(
         lignes.push("→ Fournir les noms des parties et l'année à find_case.");
       }
       blocs.push(lignes.join("\n"));
-      journal.push({
-        tool: "verify_citations",
-        query: citation,
-        lang,
-        result_count: 0,
-        verdict: "NON CONSTRUCTIBLE",
-        fallback: parsed.primary.kind,
-      });
       continue;
     }
 
@@ -223,15 +207,8 @@ export async function verifyCitations(
         now,
       });
     } catch (e) {
+      relancerSiInterruptionGouverne(e);
       blocs.push(`${citation} — INDÉTERMINÉE\n${describeError(e)}`);
-      journal.push({
-        tool: "verify_citations",
-        query: citation,
-        lang,
-        result_count: 0,
-        verdict: "INDÉTERMINÉE",
-        fallback: "exception",
-      });
       continue;
     }
 
@@ -240,14 +217,6 @@ export async function verifyCitations(
       blocs.push(
         `${citation} — INDÉTERMINÉE\nBudget d'appels épuisé : cette citation n'a pas pu être vérifiée.`,
       );
-      journal.push({
-        tool: "verify_citations",
-        query: citation,
-        lang,
-        result_count: 0,
-        verdict: "INDÉTERMINÉE",
-        fallback: "budget",
-      });
       continue;
     }
 
@@ -257,14 +226,6 @@ export async function verifyCitations(
       blocs.push(
         `${citation} — INDÉTERMINÉE\nCanLII n'a pas pu être interrogé. ${EXPLICATION_INDETERMINEE}`,
       );
-      journal.push({
-        tool: "verify_citations",
-        query: citation,
-        lang,
-        result_count: 0,
-        verdict: "INDÉTERMINÉE",
-        fallback: lookup.fallback,
-      });
       continue;
     }
 
@@ -274,15 +235,6 @@ export async function verifyCitations(
           .filter(Boolean)
           .join("\n"),
       );
-      journal.push({
-        tool: "verify_citations",
-        query: citation,
-        lang,
-        result_count: 0,
-        verdict: "INTROUVABLE",
-        database_id: res.databaseId,
-        fallback: "unknown_court",
-      });
       continue;
     }
 
@@ -294,15 +246,6 @@ export async function verifyCitations(
           EXPLICATIONS_INTROUVABLE,
         ].join("\n"),
       );
-      journal.push({
-        tool: "verify_citations",
-        query: citation,
-        lang,
-        result_count: 0,
-        verdict: "INTROUVABLE",
-        database_id: res.databaseId,
-        fallback: lookup.fallback,
-      });
       continue;
     }
 
@@ -311,19 +254,7 @@ export async function verifyCitations(
     const ecarts = comparer(row, d);
     const verdict: Verdict = ecarts.length === 0 ? "CONFIRMÉE" : "DISCORDANTE";
     blocs.push(rendreFiche(citation, verdict, row, ecarts, parsed.parallel.map(formLabel)));
-    journal.push({
-      tool: "verify_citations",
-      query: citation,
-      lang,
-      result_count: 1,
-      verdict,
-      database_id: row.database_id,
-      fallback: lookup.fallback,
-    });
   }
-
-  await logSearchBatch(ctx.db, journal);
-  await flushUsage(ctx.db, ctx.client.usage(), now);
 
   const entete = `Vérification de ${pluriel(demandes.length, "citation", "citations")} — collection CanLII.`;
   const corps = blocs.map((b, i) => numeroter(i + 1, b)).join("\n\n");

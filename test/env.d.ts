@@ -18,3 +18,13 @@ declare module "*.svg?raw" {
   const content: string;
   export default content;
 }
+
+declare module "*.ts?raw" {
+  const content: string;
+  export default content;
+}
+
+declare module "*.jsonc?raw" {
+  const content: string;
+  export default content;
+}

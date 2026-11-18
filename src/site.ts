@@ -545,15 +545,21 @@ function acces(): string {
 ${h2("acces")}
 ${biP(
   [
-    "Instance privée, exploitée par un avocat du Québec pour sa propre pratique. Le point " +
-      "d'entrée a la forme https://jurisprudence.poirierlavoie.ca/mcp/<secret> ou " +
-      "https://jurisprudence.poirierlavoie.ca/mcp (par en-tête d'autorisation) — le secret " +
-      "n'apparaît nulle part sur cette page, et n'y apparaîtra jamais.",
-    "La fiche publique de découverte (SEP-2127) est publiée sans secret sur " +
-      "https://jurisprudence.poirierlavoie.ca/mcp/server-card ; le dépôt inclut les manifestes " +
-      "pour Google Antigravity (plugin.json, mcp_config.json) et Gemini CLI " +
+    "Ce connecteur est réservé aux membres en règle du Barreau du Québec, selon le principe de " +
+      "clé API CanLII personnelle fournie par chaque praticien (coffre chiffré ou en-tête " +
+      "X-Clef-CanLII, vérifié avant toute lecture du cache partagé). Deux montages coexistent : " +
+      "https://jurisprudence.poirierlavoie.ca/mcp/<secret> ou https://jurisprudence.poirierlavoie.ca/mcp " +
+      "(par en-tête d'autorisation, refus 404 sans corps) et https://jurisprudence.poirierlavoie.ca/mcp/oauth " +
+      "(OAuth 2.1 PKCE S256 via acces.poirierlavoie.ca). Demandes d'accès et gestion libre-service : " +
+      "acces.poirierlavoie.ca/demande et acces.poirierlavoie.ca/moi.",
+    "Aucun texte de requête ni citation cherchée n'est journalisé (journaux d'invocation Cloudflare " +
+      "désactivés, zéro écriture dans search_log). La fiche publique de découverte (SEP-2127) est " +
+      "publiée sans secret sur https://jurisprudence.poirierlavoie.ca/mcp/server-card ; le dépôt " +
+      "inclut les manifestes pour Google Antigravity (plugin.json, mcp_config.json) et Gemini CLI " +
       "(gemini-extension.json).",
-    "Le code est public (licence CC BY-NC-SA 4.0) et la suite de tests s'exécute sans clef d'API ni réseau.",
+    "Le code est public sous licence CC BY-NC-SA 4.0 assortie d'une autorisation complémentaire de " +
+      "pratique professionnelle du droit pour les membres en règle du Barreau du Québec (voir LICENSE), " +
+      "et la suite de tests s'exécute sans clef d'API ni réseau.",
   ],
   EN.acces,
 )}

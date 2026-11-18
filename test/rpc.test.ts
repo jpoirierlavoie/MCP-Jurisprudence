@@ -6,9 +6,13 @@
  */
 import { createExecutionContext, env, waitOnExecutionContext } from "cloudflare:test";
 import { type JsonSchema, parseMessage, validateArgs } from "@poirierlavoie/mcp-socle";
-import { describe, expect, it } from "vitest";
-import worker, { VERSIONS } from "../src/index";
+import { beforeEach, describe, expect, it } from "vitest";
+import worker, { reinitialiserQuarantaineIpPourTests, VERSIONS } from "../src/index";
 import { PUBLIC_DESCRIPTION, SERVER_INFO } from "../src/mcp/registry";
+
+beforeEach(() => {
+  reinitialiserQuarantaineIpPourTests();
+});
 
 const SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 /** Second porteur (§19) — le clavardage de Pallas Athéna. Droits identiques. */
@@ -111,20 +115,36 @@ describe("CORS — sans quoi claude.ai ne peut pas joindre le serveur", () => {
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe("https://claude.ai");
   });
 
-  it("un 401 porte aussi les en-têtes CORS, sinon l'erreur est illisible", async () => {
-    const ctx = createExecutionContext();
-    const res = await worker.fetch(
+  it("un refus 404 sur /mcp et un refus 401 sur /mcp/oauth portent aussi les en-têtes CORS", async () => {
+    const ctx404 = createExecutionContext();
+    const res404 = await worker.fetch(
       new Request("https://x/mcp/mauvais-secret", {
         method: "POST",
         headers: { "Content-Type": "application/json", Origin: "https://claude.ai" },
         body: JSON.stringify(rpc("ping")),
       }),
       envAvec(),
-      ctx,
+      ctx404,
     );
-    await waitOnExecutionContext(ctx);
-    expect(res.status).toBe(401);
-    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("https://claude.ai");
+    await waitOnExecutionContext(ctx404);
+    expect(res404.status).toBe(404);
+    expect(await res404.text()).toBe("");
+    expect(res404.headers.get("WWW-Authenticate")).toBeNull();
+    expect(res404.headers.get("Access-Control-Allow-Origin")).toBe("https://claude.ai");
+
+    const ctx401 = createExecutionContext();
+    const res401 = await worker.fetch(
+      new Request("https://x/mcp/oauth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Origin: "https://claude.ai" },
+        body: JSON.stringify(rpc("ping")),
+      }),
+      envAvec(),
+      ctx401,
+    );
+    await waitOnExecutionContext(ctx401);
+    expect(res401.status).toBe(401);
+    expect(res401.headers.get("Access-Control-Allow-Origin")).toBe("https://claude.ai");
   });
 
   it("REFUSE une origine de navigateur inconnue (ré-attachement DNS)", async () => {
@@ -342,32 +362,41 @@ describe("§9.3 — limitation de débit", () => {
     return { limit: async () => ({ success: ++vues <= n }) };
   };
 
-  it("répond 429 avec Retry-After une fois le seuil franchi", async () => {
-    const e = envAvec({ RATE_LIMITER: limiteur(1) });
-    const appel = async () => {
-      const ctx = createExecutionContext();
-      const r = await worker.fetch(
-        new Request(SECRET_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(rpc("ping")),
-        }),
-        e,
-        ctx,
-      );
-      await waitOnExecutionContext(ctx);
-      return r;
-    };
-    expect((await appel()).status).toBe(200);
-    const refus = await appel();
-    expect(refus.status).toBe(429);
-    expect(refus.headers.get("Retry-After")).toBe("60");
+  it("répond 429 avec Retry-After sur /mcp/oauth et 404 muet sur /mcp lorsque RL_PRE_AUTH_IP est franchi", async () => {
+    const eOAuth = envAvec({ RL_PRE_AUTH_IP: limiteur(0) });
+    const ctxOAuth = createExecutionContext();
+    const refusOAuth = await worker.fetch(
+      new Request("https://x/mcp/oauth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(rpc("ping")),
+      }),
+      eOAuth,
+      ctxOAuth,
+    );
+    await waitOnExecutionContext(ctxOAuth);
+    expect(refusOAuth.status).toBe(429);
+    expect(refusOAuth.headers.get("Retry-After")).toBe("60");
+
+    const eDirect = envAvec({ RL_PRE_AUTH_IP: limiteur(0) });
+    const ctxDirect = createExecutionContext();
+    const refusDirect = await worker.fetch(
+      new Request("https://x/mcp/inconnu", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(rpc("ping")),
+      }),
+      eDirect,
+      ctxDirect,
+    );
+    await waitOnExecutionContext(ctxDirect);
+    expect(refusDirect.status).toBe(404);
   });
 
   it("le PRÉ-VOL n'est JAMAIS limité", async () => {
     // Un 429 sur un pré-vol ne remonte au navigateur que comme un échec CORS
     // opaque : le connecteur casserait sans que le motif soit lisible nulle part.
-    const e = envAvec({ RATE_LIMITER: limiteur(0) });
+    const e = envAvec({ RL_PRE_AUTH_IP: limiteur(0) });
     const ctx = createExecutionContext();
     const res = await worker.fetch(
       new Request(SECRET_URL, {
@@ -381,20 +410,23 @@ describe("§9.3 — limitation de débit", () => {
     expect(res.status).toBe(204);
   });
 
-  it("limite AVANT l'authentification : une rafale mal authentifiée cesse de coûter", async () => {
-    const e = envAvec({ RATE_LIMITER: limiteur(0) });
+  it("limite AVANT l'authentification : une rafale mal authentifiée sur /mcp/oauth reçoit 429 avant D1", async () => {
+    const e = envAvec({ RL_PRE_AUTH_IP: limiteur(0) });
     const ctx = createExecutionContext();
     const res = await worker.fetch(
-      new Request("https://x/mcp/mauvais-secret", {
+      new Request("https://x/mcp/oauth", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer mauvais-jeton",
+        },
         body: JSON.stringify(rpc("ping")),
       }),
       e,
       ctx,
     );
     await waitOnExecutionContext(ctx);
-    expect(res.status).toBe(429); // et non 401 : on n'a même pas comparé le secret
+    expect(res.status).toBe(429); // et non 401 : coupé avant toute lecture D1
   });
 
   it("FAIL OPEN : binding absent ou en panne => la requête passe", async () => {
@@ -415,7 +447,7 @@ describe("§9.3 — limitation de débit", () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(rpc("ping")),
         }),
-        envAvec({ RATE_LIMITER: rl }),
+        envAvec({ RL_PRE_AUTH_IP: rl }),
         ctx,
       );
       await waitOnExecutionContext(ctx);
@@ -476,23 +508,24 @@ describe("§8 — routage", () => {
   });
 });
 
-describe("§9.1 — authentification", () => {
-  it("secret erroné => 401 avec WWW-Authenticate", async () => {
+describe("§9.1 — authentification (/mcp uniforme en 404 sans WWW-Authenticate, S8, G7, G23)", () => {
+  it("secret erroné sur /mcp => 404 à corps vide sans WWW-Authenticate", async () => {
     const res = await appeler(rpc("ping"), { secret: "mauvais-secret" });
-    expect(res.status).toBe(401);
-    expect(res.headers.get("WWW-Authenticate")).toBe("Bearer");
+    expect(res.status).toBe(404);
+    expect(await res.text()).toBe("");
+    expect(res.headers.get("WWW-Authenticate")).toBeNull();
   });
 
-  it("secret de longueur différente => 401, sans lever", async () => {
-    // Le passage par SHA-256 neutralise l'écart de longueur : `timingSafeEqual`
-    // lèverait sur des tampons de tailles différentes.
+  it("secret de longueur différente => 404, sans lever", async () => {
     const res = await appeler(rpc("ping"), { secret: "x" });
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(404);
   });
 
-  it("/mcp sans secret => 401", async () => {
+  it("/mcp sans secret => 404 (y compris en GET : méthode jugée après l'identité, G23)", async () => {
     const res = await appeler(rpc("ping"), { secret: null });
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(404);
+    const getAnon = await appeler(null, { secret: null, method: "GET" });
+    expect(getAnon.status).toBe(404);
   });
 
   it("accepte le secret par l'en-tête Authorization: Bearer", async () => {
@@ -504,35 +537,22 @@ describe("§9.1 — authentification", () => {
   });
 
   it("REFUSE TOUT quand aucun secret n'est configuré (défaut fermé)", async () => {
-    // Les DEUX secrets absents. Le second étant facultatif, la régression à craindre
-    // est « rien à comparer, donc on laisse passer » : c'est ce que ce test interdit.
     const sansSecret = {
       ...envAvec(),
       MCP_SHARED_SECRET: undefined,
       MCP_SHARED_SECRET_ATHENA: undefined,
     };
     const res = await appeler(rpc("ping"), { env: sansSecret as Env });
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(404);
   });
 
-  // ── Tolérance des FORMES de présentation (correctif du 2026-09-16) ───────
-  //
-  // Les trois défauts corrigés ici avaient le MÊME effet visible : un refus (401, et
-  // même un 500) sur une requête légitime. Or un refus sur /mcp n'est pas un refus
-  // ordinaire — claude.ai le lit comme « ressource OAuth protégée », enchaîne sur
-  // `.well-known/*` puis sur `POST /register`, et l'inscription dynamique échoue
-  // irrémédiablement. Constaté en production sur le connecteur jumeau le 2026-07-23.
-  // Ces tests existent pour que la tolérance ne se fasse pas « nettoyer ».
-
   it("la barre oblique finale ne refuse plus : /mcp/<secret>/ vaut /mcp/<secret>", async () => {
-    // Les clients normalisent l'URL saisie et y ajoutent « / ». Avant le correctif, le
-    // segment capturé était « <secret>/ » : 401 sur une URL parfaitement correcte.
     expect((await appeler(rpc("ping"), { secret: `${SECRET}/` })).status).toBe(200);
     expect((await appeler(rpc("ping"), { secret: `${SECRET}//` })).status).toBe(200);
   });
 
-  it("« /mcp/ » nu se comporte comme « /mcp » : 401 seul, 200 avec un en-tête valide", async () => {
-    expect((await appeler(rpc("ping"), { secret: "" })).status).toBe(401);
+  it("« /mcp/ » nu se comporte comme « /mcp » : 404 seul, 200 avec un en-tête valide", async () => {
+    expect((await appeler(rpc("ping"), { secret: "" })).status).toBe(404);
     const avecEntete = await appeler(rpc("ping"), {
       secret: "",
       headers: { Authorization: `Bearer ${SECRET}` },
@@ -540,19 +560,13 @@ describe("§9.1 — authentification", () => {
     expect(avecEntete.status).toBe(200);
   });
 
-  it("un chemin mal encodé REFUSE en 401 — il ne fait pas sortir le Worker en 500", async () => {
-    // `decodeURIComponent("bogus%FF")` lève une URIError. Nue, elle remontait hors du
-    // gestionnaire et Cloudflare rendait 500 — mesuré en direct sur la production. Un
-    // refus doit refuser. ⚠ Avant le correctif, ce cas ne rendait même pas de réponse :
-    // `worker.fetch()` REJETAIT.
+  it("un chemin mal encodé REFUSE en 404 — il ne fait pas sortir le Worker en 500", async () => {
     const res = await appeler(rpc("ping"), { secret: "bogus%FF" });
-    expect(res.status).toBe(401);
-    expect(res.headers.get("WWW-Authenticate")).toBe("Bearer");
+    expect(res.status).toBe(404);
+    expect(res.headers.get("WWW-Authenticate")).toBeNull();
   });
 
   it("un chemin mal encodé n'empêche pas un en-tête valide d'authentifier", async () => {
-    // Le décodage rend null ; le candidat BRUT reste essayé, et l'en-tête aussi. Un
-    // porteur illisible ne doit jamais empoisonner un porteur lisible.
     const res = await appeler(rpc("ping"), {
       secret: "bogus%FF",
       headers: { Authorization: `Bearer ${SECRET}` },
@@ -561,8 +575,6 @@ describe("§9.1 — authentification", () => {
   });
 
   it("un en-tête Bearer résiduel ne masque plus le secret du chemin", async () => {
-    // LE défaut du retour anticipé : tout en-tête non vide gagnait la course, et le
-    // chemin — correct — n'était jamais essayé. §9.1 énonce deux formes SANS préséance.
     const res = await appeler(rpc("ping"), {
       secret: SECRET,
       headers: { Authorization: "Bearer jeton-perime-et-residuel" },
@@ -571,8 +583,6 @@ describe("§9.1 — authentification", () => {
   });
 
   it("et réciproquement : un chemin erroné ne masque pas un en-tête valide", async () => {
-    // Le symétrique, épinglé exprès : « corriger » le défaut en donnant la préséance au
-    // CHEMIN au lieu de l'en-tête serait le même défaut retourné.
     const res = await appeler(rpc("ping"), {
       secret: "mauvais-secret",
       headers: { Authorization: `Bearer ${SECRET}` },
@@ -601,27 +611,20 @@ describe("§9.1 — authentification", () => {
       secret: "mauvais-secret",
       headers: { Authorization: "Bearer mauvais-aussi" },
     });
-    expect(res.status).toBe(401);
-    expect(res.headers.get("WWW-Authenticate")).toBe("Bearer");
+    expect(res.status).toBe(404);
+    expect(res.headers.get("WWW-Authenticate")).toBeNull();
   });
 
   it("un secret qui se TERMINE par « / » ouvre encore : on essaie, on ne rogne pas", async () => {
-    // Le risque neutralisé par la conception. Le secret de PRODUCTION n'est connu ni du
-    // code ni de qui le modifie, et l'alphabet base64 standard produit des « / ». Un
-    // rognage destructif casserait ICI une authentification qui fonctionne, en silence.
     const finitParSlash = "abcdef/";
     const e = envAvec({ MCP_SHARED_SECRET: finitParSlash });
     expect((await appeler(rpc("ping"), { secret: finitParSlash, env: e })).status).toBe(200);
   });
 
   it("la PROFONDEUR du chemin est conservée : un secret contenant « / » s'authentifie", async () => {
-    // On ne borne PAS à un seul segment, contrairement au jumeau — qui, lui, DOIT le
-    // faire parce qu'il remonte la requête sur son chemin de montage. Borner ici serait
-    // un rétrécissement contre une valeur qu'on s'interdit de lire.
     const avecSlash = "abc/def";
     const e = envAvec({ MCP_SHARED_SECRET: avecSlash });
     expect((await appeler(rpc("ping"), { secret: avecSlash, env: e })).status).toBe(200);
-    // Et sa forme échappée aussi, puisque le chemin est essayé décodé.
     expect((await appeler(rpc("ping"), { secret: "abc%2Fdef", env: e })).status).toBe(200);
   });
 
@@ -633,21 +636,10 @@ describe("§9.1 — authentification", () => {
     expect(res.status).toBe(200);
   });
 
-  // ── Second porteur (§19) ─────────────────────────────────────────────────
-  //
-  // Le clavardage de Pallas Athéna présente SON secret, aux droits identiques. Ce qui
-  // est vérifié ici n'est pas un privilège mais une INDÉPENDANCE : chacun ouvre, et
-  // retirer l'un laisse l'autre debout — sans quoi une rotation éteindrait les deux.
-
   it("un second nom de secret n'ouvre PLUS rien — MCP_SHARED_SECRET_ATHENA est retiré", async () => {
-    // REMPLACE le test « le second secret authentifie ». La garantie n'a pas été cassée,
-    // elle a été RETIRÉE : le clavardage de Pallas Athéna a disparu le 2026-09-02, le
-    // secret n'avait plus d'appelant, et il a été supprimé de Cloudflare le 2026-09-17.
-    // Ce qui est épinglé maintenant est l'inverse — poser ce nom ne rouvre rien, parce que
-    // la liste des noms admis est close et vit dans PORTE.
     const avecAncien = envAvec({ MCP_SHARED_SECRET_ATHENA: SECRET_ATHENA });
     const res = await appeler(rpc("ping"), { secret: SECRET_ATHENA, env: avecAncien });
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(404);
   });
 
   it("les deux porteurs coexistent : configurer le second n'invalide pas le premier", async () => {
@@ -657,12 +649,8 @@ describe("§9.1 — authentification", () => {
   });
 
   it("retirer l'unique secret ferme tout — le défaut fermé n'a pas de repli", async () => {
-    // REMPLACE le test de révocation séparée. Le MÉCANISME multi-secrets n'a pas disparu :
-    // il vit dans `apparie` du socle, et y est éprouvé (« retirer un secret laisse l'autre
-    // servir »). Ce dépôt n'en déclare plus qu'UN ; ce qui compte ici est donc qu'en le
-    // retirant on ferme, au lieu de retomber sur quoi que ce soit.
     const sansAucun = envAvec({ MCP_SHARED_SECRET: undefined });
-    expect((await appeler(rpc("ping"), { secret: SECRET, env: sansAucun })).status).toBe(401);
+    expect((await appeler(rpc("ping"), { secret: SECRET, env: sansAucun })).status).toBe(404);
     expect(
       (
         await appeler(rpc("ping"), {
@@ -671,14 +659,10 @@ describe("§9.1 — authentification", () => {
           env: sansAucun,
         })
       ).status,
-    ).toBe(401);
+    ).toBe(404);
   });
 
   it("le porteur ?key= est servi — la forme qui survit au formulaire de claude.ai", async () => {
-    // AJOUT du 2026-09-17. `?key=` est la seule forme qui ait survécu au formulaire de
-    // connecteur de claude.ai (mesuré en juillet 2026 sur le jumeau) : sans elle, ce
-    // connecteur-ci était probablement inajoutable. Surface ajoutée en connaissance de
-    // cause — un jeton dans une URL voyage dans les journaux d'arête et l'historique.
     const res = await appeler(rpc("ping"), { secret: null, query: { key: SECRET } });
     expect(res.status).toBe(200);
   });
@@ -686,8 +670,8 @@ describe("§9.1 — authentification", () => {
   it("deux secrets configurés n'admettent pas pour autant un troisième", async () => {
     const deux = envAvec({ MCP_SHARED_SECRET_ATHENA: SECRET_ATHENA });
     const res = await appeler(rpc("ping"), { secret: "mauvais-secret", env: deux });
-    expect(res.status).toBe(401);
-    expect(res.headers.get("WWW-Authenticate")).toBe("Bearer");
+    expect(res.status).toBe(404);
+    expect(res.headers.get("WWW-Authenticate")).toBeNull();
   });
 
   it("le secret bon passe", async () => {
@@ -765,6 +749,8 @@ describe("§8 — méthodes JSON-RPC", () => {
       const sansAppel = t.name === "parse_citation";
       expect(t.annotations, t.name).toEqual({
         readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
         openWorldHint: !sansAppel,
       });
       // §7, conventions : additionalProperties false sur TOUS les schémas.

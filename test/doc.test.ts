@@ -27,6 +27,7 @@
  */
 import { describe, expect, it } from "vitest";
 import logoSvg from "../assets/logo.svg?raw";
+import claudeMd from "../CLAUDE.md?raw";
 import geminiMd from "../GEMINI.md?raw";
 import geminiExtRaw from "../gemini-extension.json?raw";
 import mcpConfigRaw from "../mcp_config.json?raw";
@@ -35,6 +36,8 @@ import pluginRaw from "../plugin.json?raw";
 import readme from "../README.md?raw";
 import { carteServeur } from "../src/index";
 import { PUBLIC_DESCRIPTION, SERVER_INFO, TOOLS } from "../src/mcp/registry";
+import registryRaw from "../src/mcp/registry.ts?raw";
+import wranglerRaw from "../wrangler.jsonc?raw";
 
 const NOMS = Object.keys(TOOLS).sort();
 
@@ -175,11 +178,47 @@ describe("Manifestes Antigravity / Gemini et version — aucune dérive silencie
     expect(logoSvg).toContain('viewBox="0 0 128 128"');
   });
 
-  it("GEMINI.md reste strictement sous la limite de troncature Antigravity (24 000 octets UTF-8)", () => {
+  it("CLAUDE.md === GEMINI.md et reste sous la limite de troncature Antigravity (24 000 octets UTF-8, G2)", () => {
+    expect(geminiMd).toBe(claudeMd);
     const octets = new TextEncoder().encode(geminiMd).byteLength;
     expect(octets).toBeGreaterThan(1_000);
     expect(octets).toBeLessThan(24_000);
     expect(geminiMd).toContain("CLAUDE.md");
     expect(geminiMd).toContain("SPEC.md");
+  });
+
+  it("wrangler.jsonc désactive l'observabilité (G37), lie DB_IDENTITE et isole les namespace_id 1021..1025 (G34), et registry.ts bannit x-mcp-header (G19)", () => {
+    const sansComm = wranglerRaw
+      .split("\n")
+      .filter((l) => !/^\s*\/\//.test(l))
+      .join("\n");
+    const cfg = JSON.parse(sansComm) as {
+      observability?: unknown;
+      d1_databases?: Array<{ binding: string; database_name: string }>;
+      ratelimits?: Array<{
+        name: string;
+        namespace_id: string;
+        simple: { limit: number; period: number };
+      }>;
+    };
+    expect(cfg.observability).toEqual({
+      enabled: false,
+      logs: { enabled: false, invocation_logs: false },
+    });
+    expect(
+      cfg.d1_databases?.some(
+        (d) => d.binding === "DB_IDENTITE" && d.database_name === "mcp-identite",
+      ),
+    ).toBe(true);
+    expect(
+      cfg.ratelimits?.map((r) => [r.name, r.namespace_id, r.simple.limit, r.simple.period]),
+    ).toEqual([
+      ["RL_PRE_AUTH_IP", "1021", 600, 60],
+      ["RL_ECHEC_IP", "1022", 20, 60],
+      ["RL_ECHECS_GLOBAL", "1023", 300, 60],
+      ["RL_TITULAIRE", "1024", 180, 60],
+      ["RL_TITULAIRE_LIMITE", "1025", 20, 60],
+    ]);
+    expect(registryRaw).not.toContain("x-mcp-header");
   });
 });

@@ -330,20 +330,18 @@ describe("cache et persistance (§13)", () => {
     expect(client.chemins.length).toBe(1);
   });
 
-  it("consigne un verdict par citation dans search_log", async () => {
+  it("n'écrit plus aucune ligne dans search_log ni api_usage à l'exécution (Phase 3 — S13, S14, G9)", async () => {
     await verifier([{ citation: "2008 CSC 9" }, { citation: "J.E. 94-1234" }], {
       [CHEMIN_DUNSMUIR]: dunsmuir,
     });
-    const r = await env.DB.prepare(
-      "SELECT verdict FROM search_log WHERE tool = 'verify_citations' ORDER BY id",
-    ).all<{ verdict: string }>();
-    expect(r.results?.map((x) => x.verdict)).toEqual(["CONFIRMÉE", "NON CONSTRUCTIBLE"]);
-  });
-
-  it("comptabilise les appels dans api_usage", async () => {
-    await verifier([{ citation: "2008 CSC 9" }], { [CHEMIN_DUNSMUIR]: dunsmuir });
-    const r = await env.DB.prepare("SELECT calls FROM api_usage").first<{ calls: number }>();
-    expect(r?.calls).toBe(1);
+    const rLog = await env.DB.prepare("SELECT COUNT(*) AS n FROM search_log").first<{
+      n: number;
+    }>();
+    const rUsage = await env.DB.prepare("SELECT COUNT(*) AS n FROM api_usage").first<{
+      n: number;
+    }>();
+    expect(rLog?.n).toBe(0);
+    expect(rUsage?.n).toBe(0);
   });
 });
 

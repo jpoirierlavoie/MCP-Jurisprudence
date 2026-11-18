@@ -6,9 +6,9 @@ Serveur MCP autonome sur Cloudflare Workers, exposant la **REST API de CanLII** 
 de dix outils orientés **vérification de références** plutôt que d'enveloppes d'endpoints.
 
 - **Page publique** : <https://jurisprudence.poirierlavoie.ca/> — bilingue, trois thèmes
-- **Point d'entrée** : `https://jurisprudence.poirierlavoie.ca/mcp/<secret>`
-- **Worker** `jurisprudence` · **base D1** `canlii`
-- Propriétaire : Jason Poirier Lavoie (avocat, Québec)
+- **Points d'entrée MCP** : `https://jurisprudence.poirierlavoie.ca/mcp` (jeton direct, refus `404` vide) et `https://jurisprudence.poirierlavoie.ca/mcp/oauth` (OAuth 2.1 PKCE S256 via <https://acces.poirierlavoie.ca>)
+- **Worker** `jurisprudence` · **bases D1** `canlii` (cache partagé) + `mcp-identite` (`DB_IDENTITE`)
+- Propriétaire : Jason Poirier Lavoie (avocat, Québec) — accès réservé aux membres en règle du Barreau du Québec avec clé API CanLII personnelle (BYOK)
 
 L'API de CanLII est en **lecture seule** et ne renvoie que des **métadonnées** — jamais le
 texte d'une décision. La valeur du connecteur tient donc à trois usages :
@@ -295,9 +295,9 @@ npm run deploy    # = migrations --remote PUIS wrangler deploy, arrêt au premie
 
 ### Après le déploiement
 
-- Ajouter le connecteur dans `claude.ai` : URL
-  `https://jurisprudence.poirierlavoie.ca/mcp/<secret>`, nom
-  « MCP Jurisprudence ».
+- **Portail d'accès et OAuth 2.1** (<https://acces.poirierlavoie.ca/demande> et <https://acces.poirierlavoie.ca/moi>) :
+  chaque membre en règle du Barreau du Québec dépose sa clé API CanLII personnelle au coffre chiffré (`AES-256-GCM`, ou la fournit par en-tête `X-Clef-CanLII`) et obtient ses jetons individuels ou se connecte en OAuth 2.1 PKCE S256 sur `https://jurisprudence.poirierlavoie.ca/mcp/oauth` (métadonnées RFC 9728 sur `GET /.well-known/oauth-protected-resource/mcp/oauth`).
+- **Montage direct à jeton** : `https://jurisprudence.poirierlavoie.ca/mcp` + `Authorization: Bearer <jeton>` (ou `?key=<jeton>` / `/mcp/<secret>` en coexistence transitoire Phase 3a).
 - **Google Antigravity** (`plugin.json`, `mcp_config.json`, `assets/logo.svg` à la racine) :
   installer via `agy plugin install https://github.com/jpoirierlavoie/MCP-Jurisprudence.git`
   (ou copier les fichiers du greffon dans `~/.gemini/config/plugins/mcp-jurisprudence`),
@@ -310,26 +310,11 @@ npm run deploy    # = migrations --remote PUIS wrangler deploy, arrêt au premie
   `"contextFileName": []` afin que `GEMINI.md` (réservé au développement de ce dépôt) ne
   soit pas injecté dans les sessions d'usage général.
 - **Gemini web** : les origines `https://gemini.google.com` et `https://aistudio.google.com`
-  sont admises par défaut dans CORS (§9.6), aux côtés de `https://claude.ai` et
+  sont admises par défaut dans CORS (§9.6, incluant `X-Clef-CanLII`), aux côtés de `https://claude.ai` et
   `https://claude.com`.
 - **Découverte HTTP (SEP-2127)** : la fiche publique de connectivité est exposée sans secret
   sur `GET https://jurisprudence.poirierlavoie.ca/mcp/server-card` (`application/mcp-server-card+json`).
-- ~~Créer une règle de limitation de débit au tableau de bord~~ — **fait, mais autrement**
-  (2026-07-23). La limitation de débit de §9.3 est implémentée **dans le Worker**
-  (binding `ratelimits`, 60 requêtes/minute par IP), et non par une règle WAF de zone :
-  celle-ci dépend du forfait de la ZONE, indisponible ici malgré l'abonnement Pro. Le
-  résultat est meilleur — la règle est versionnée, relue et testée, et surtout elle vise
-  `/mcp` **sans avoir à écrire un motif de chemin** ; or ce chemin contient le secret, et
-  une expression WAF est visible au tableau de bord comme dans les journaux d'audit.
-  Aucune action manuelle n'est requise.
-- Après une semaine d'usage, dépouiller `search_log` et corriger l'analyseur sur les formes
-  réellement rencontrées :
-
-```sql
-SELECT query, COUNT(*) n FROM search_log
-WHERE tool = 'verify_citations' AND verdict IN ('ILLISIBLE','INTROUVABLE')
-GROUP BY query ORDER BY n DESC LIMIT 50;
-```
+- **Gouverne à deux étages et zéro journalisation de contenu** : cinq liaisons `ratelimits` dédiées (`1021..1025`, pré-auth IP + quarantaine d'échecs épargnant les jetons déjà validés + débit par `titulaire_id` à `180/min` `actif` / `20/min` `limite`), quotas journaliers UTC (`local` sur cache D1 / `parse_citation`, `sortant` sur appels CanLII), journaux d'invocation Cloudflare désactivés et zéro écriture dans `search_log` ni `api_usage` (seuls `compteur_jour` et `evenement_technique` sans contenu sont tenus dans `DB_IDENTITE`).
 
 ---
 
@@ -356,54 +341,12 @@ le quota.
 
 ## Sécurité
 
-- **La clef d'API ne quitte jamais le processus.** Toute URL journalisée passe par
-  `redactUrl()` ; aucune sortie d'outil ne contient d'URL `api.canlii.org`. Verrouillé par
-  test de non-régression.
-- **Ne jamais journaliser `request.url`** : le secret partagé voyage dans le chemin. On
-  journalise la méthode, le nom d'outil et le statut — jamais le chemin (§9.2).
-- Comparaison du secret **à temps constant**, sur les empreintes SHA-256 — ce qui neutralise
-  aussi l'écart de longueur.
-- **Deux secrets admis, aux droits identiques, révocables séparément** (§9.1, §19) :
-  `MCP_SHARED_SECRET` pour le connecteur claude.ai, `MCP_SHARED_SECRET_ATHENA` —
-  facultatif — pour un second porteur. Le second ne délimite aucun périmètre ; il
-  évite qu'une rotation éteigne deux clients à la fois. Aucun secret configuré ⇒
-  **tout est refusé** (fermé par défaut), et les deux échecs rendent le même `401`,
-  sans jamais dire lequel a servi.
-  ⚠ **Le second n'a plus de porteur depuis le 2026-09-02** : le clavardage de Pallas
-  Athéna, qui l'employait depuis le 2026-08-27, a été retiré de son dépôt (commit
-  `ef854733`). Le secret reste admis et n'est pas à retirer — il ne coûte rien et
-  n'ouvre aucun droit de plus —, mais **plus aucun client réel n'éprouve la forme par
-  en-tête** : ce trajet n'est plus couvert que par `test/rpc.test.ts` et par un `curl`
-  à la main, à refaire explicitement après toute retouche de la garde d'entrée. Cette
-  puce disait jusqu'au 2026-09-16 « il évite qu'une rotation ou une révocation éteigne
-  les deux clients à la fois » : vrai du 2026-08-27 au 2026-09-02, conservé parce qu'il
-  redeviendra vrai au prochain client.
-- **Tout ce qui est présenté est essayé, et rien n'est rogné** (§9.1, corrigé le
-  2026-09-16). L'en-tête `Authorization: Bearer` et le dernier segment du chemin sont deux
-  porteurs **sans préséance** : un en-tête résiduel ne masque plus une URL correcte, ni
-  l'inverse. `/mcp/<secret>/` vaut `/mcp/<secret>` — les clients normalisent l'URL saisie
-  et y ajoutent une barre. Un chemin mal encodé (`/mcp/x%FF`) **refuse en `401`** au lieu
-  de faire sortir le Worker en `500`. Les graphies sont **ajoutées**, jamais substituées :
-  un secret qui contiendrait lui-même une barre finale, un `%` ou une barre médiane
-  continue d'ouvrir. Élargir n'est pas ouvrir — aucun préfixe du secret n'est admis, et
-  c'est testé.
-- **Un refus n'est pas un refus ordinaire.** Un `401` sur `/mcp` est lu par claude.ai comme
-  « ressource OAuth protégée » : il enchaîne sur `.well-known/*`, puis sur `POST /register`,
-  et échoue sur « Impossible de s'inscrire auprès du service de connexion ». Le connecteur
-  jumeau l'a subi en production le 2026-07-23. Le statut reste néanmoins `401` +
-  `WWW-Authenticate: Bearer` : le jumeau refuse en `404` et a reçu le **même** message —
-  le statut n'est donc pas le déclencheur — et un `404` rendrait indiscernables le
-  coupe-circuit et le secret refusé. Ce qu'il fallait corriger, c'est le refus
-  **injustifié**, pas sa forme.
-  *(2026-11-13)* Antigravity (`mcp_config.json`) et Gemini CLI (`gemini-extension.json`)
-  emploient désormais la forme par en-tête `Authorization: Bearer <secret>` sur `POST /mcp`,
-  tandis que le Worker accepte par défaut les origines navigateur `gemini.google.com` et
-  `aistudio.google.com` (en plus de `claude.ai` et `claude.com`) ainsi que les en-têtes
-  MCP `2026-07-28` (`Mcp-Method`, `Mcp-Name`, `Mcp-Session-Id`) en pré-vol CORS.
-- `MCP_ENABLED=false` ⇒ **404 sur toutes les routes MCP**, `/health` et `/mcp/server-card` compris.
-- Chemin d'évolution vers OAuth 2.1 documenté en §9.4 de la spécification — **non
-  implémenté** : la complexité n'est pas justifiée par la valeur protégée, qui est la clef
-  d'API et son quota, non du contenu confidentiel.
+- **Garde stricte BYOK CanLII préalable au cache partagé (`G8`, `G10`)** : pour tout `titulaire`, les neuf outils adossés à CanLII résolvent la clé personnelle via `ouvrirCoffre` (`X-Clef-CanLII` → `DB_IDENTITE.coffre_clef` chiffré `HKDF-SHA256` + `AES-256-GCM`) **avant** toute lecture du cache D1 `cases`/`citator_*`, sans aucune retombée sur `env.CANLII_API_KEY`. Toute clé refusée en direct par CanLII (`401`/`403`) fait basculer l'entrée du coffre à `etat = 'refusee'` et renvoie `[CLEF_REFUSEE]`. Le texte clair ne quitte jamais la fermeture `ouvrirCoffre`, toute URL journalisée passe par `redactUrl()`, et aucun horodatage exact `fetched_at` n'est exposé au rendu (`G38`).
+- **Zéro journalisation de contenu et observabilité désactivée (`S13`, `S14`, `G9`, `G37`)** : aucune écriture n'est effectuée dans `search_log` ni `api_usage`, `request.url` n'est jamais journalisée, et `wrangler.jsonc` désactive explicitement les journaux d'invocation Cloudflare.
+- **Double montage étanche (`/mcp` et `/mcp/oauth`)** :
+  - `/mcp` accepte les jetons individuels `DB_IDENTITE` (`portee` `'jurisprudence'` ou `'les_deux'`) en coexistence transitoire Phase 3a avec `MCP_SHARED_SECRET`, sous `Authorization: Bearer <jeton>`, `?key=<jeton>` ou `/mcp/<secret>`. Tout appel non authentifié ou jeton invalide/hors portée reçoit **uniformément `404` à corps vide sans `WWW-Authenticate`** (`S8`, `G7`, `G23`) afin de prévenir toute découverte OAuth non sollicitée ; le contrôle de méthode `POST` (`405`) s'exécute **après** l'authentification.
+  - `/mcp/oauth` accepte uniquement `Authorization: Bearer <jeton>` et répond `401` RFC 9728 pointant vers `GET /.well-known/oauth-protected-resource/mcp/oauth` (`https://acces.poirierlavoie.ca`), tandis que la racine `/.well-known/oauth-protected-resource` reste en `404`.
+- `MCP_ENABLED=false` ⇒ **404 sur toutes les routes MCP**, `/health`, `/mcp/server-card` et `/.well-known/oauth-protected-resource/mcp/oauth` compris, tout en laissant la page publique `GET /` accessible (`200`).
 
 ---
 
@@ -436,5 +379,5 @@ Connecteur jumeau pour le droit législatif québécois : « Législation du Qu�
 
 ## Sécurité, confidentialité et licence
 
-- **Sécurité, vie privée et secret professionnel :** Consulter [`SECURITY.md`](SECURITY.md) pour signaler de façon privée et coordonnée toute vulnérabilité technique ou question de confidentialité / secret professionnel à Jason Poirier Lavoie (`jason@poirierlavoie.ca`), sans ouvrir d'issue publique ni transmettre de renseignements confidentiels de clients.
-- **Licence :** Le logiciel, les schémas et la documentation originale sont mis à disposition sous licence **Creative Commons Attribution - Pas d'Utilisation Commerciale - Partage dans les Mêmes Conditions 4.0 International (`CC-BY-NC-SA-4.0`)** (Partie A de [`LICENSE`](LICENSE)). Les métadonnées jurisprudentielles et législatives interrogées via l'API REST de CanLII demeurent régies par les conditions d'utilisation de CanLII (Partie B de [`LICENSE`](LICENSE)).
+- **Sécurité, vie privée et secret professionnel :** Aucun texte de requête ni citation n'est journalisé à l'exécution (journaux d'invocation Cloudflare désactivés, zéro écriture dans `search_log` et `api_usage`, télémétrie bornée à `compteur_jour` et `evenement_technique` sans contenu dans `DB_IDENTITE`). Consulter [`SECURITY.md`](SECURITY.md) pour signaler de façon privée et coordonnée toute vulnérabilité technique ou question de confidentialité / secret professionnel à Jason Poirier Lavoie (`jason@poirierlavoie.ca`), sans ouvrir d'issue publique ni transmettre de renseignements confidentiels de clients.
+- **Licence :** Le logiciel, les schémas et la documentation originale sont mis à disposition sous licence **Creative Commons Attribution - Pas d'Utilisation Commerciale - Partage dans les Mêmes Conditions 4.0 International (`CC-BY-NC-SA-4.0`)**, assortie d'une **Autorisation complémentaire de pratique professionnelle du droit** pour les membres en règle du Barreau du Québec (Partie A de [`LICENSE`](LICENSE)). Les métadonnées jurisprudentielles et législatives interrogées via l'API REST de CanLII demeurent régies par les conditions d'utilisation de CanLII (Partie B de [`LICENSE`](LICENSE)).

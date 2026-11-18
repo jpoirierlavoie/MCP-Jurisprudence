@@ -10,12 +10,12 @@
 
 import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
+import { relancerSiInterruptionGouverne } from "../../canlii/errors";
 import type { CaseListResponse, Lang } from "../../canlii/types";
 import { persisterBalayages } from "../../config";
 import { nombreFr, pluriel } from "../../format/fr";
 import { document, GARDE_DIFFUSION, LISTES_SANS_FICHE, ligneCandidat } from "../../format/render";
 import { type CaseRow, rowFromListItem, upsertCases } from "../../store/cases";
-import { flushUsage, logSearch } from "../../store/telemetry";
 import { LIMITES } from "../defauts";
 import type { ToolContext } from "../registry";
 
@@ -64,17 +64,8 @@ export async function browseCases(
   try {
     page = await ctx.client.get<CaseListResponse>(`caseBrowse/${lang}/${databaseId}/`, params);
   } catch (e) {
-    await logSearch(ctx.db, {
-      tool: "browse_cases",
-      query: appliques.join(", ") || "(sans filtre)",
-      database_id: databaseId,
-      lang,
-      result_count: 0,
-      fallback: "api_error",
-    });
+    relancerSiInterruptionGouverne(e);
     return err(describeError(e));
-  } finally {
-    await flushUsage(ctx.db, ctx.client.usage(), now);
   }
 
   const items = page.cases ?? [];
@@ -90,15 +81,6 @@ export async function browseCases(
 
   // D6 : ce qui a été moissonné pour répondre est persisté.
   if (persisterBalayages(ctx.env)) await upsertCases(ctx.db, lignes);
-
-  await logSearch(ctx.db, {
-    tool: "browse_cases",
-    query: appliques.join(", ") || "(sans filtre)",
-    database_id: databaseId,
-    lang,
-    result_count: lignes.length,
-    fallback: ecartees > 0 ? "unreadable_items" : null,
-  });
 
   if (lignes.length === 0) {
     return ok(

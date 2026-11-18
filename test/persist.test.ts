@@ -29,7 +29,7 @@ import {
   directoryStale,
   loadDirectory,
 } from "../src/store/databases";
-import { flushUsage, logSearch, logSearchBatch, utcDay } from "../src/store/telemetry";
+import { utcDay } from "../src/store/telemetry";
 
 const db = env.DB;
 
@@ -402,57 +402,12 @@ describe("répertoire et auto-correction", () => {
   });
 });
 
-describe("télémétrie : elle n'échoue jamais l'outil qu'elle observe", () => {
-  it("consigne une ligne par invocation, verdict compris", async () => {
-    await logSearch(db, {
-      tool: "verify_citations",
-      query: "2008 CSC 9",
-      result_count: 1,
-      verdict: "CONFIRMÉE",
-    });
-    const r = await db
-      .prepare("SELECT tool, query, verdict, result_count FROM search_log")
-      .first<{ tool: string; verdict: string; result_count: number }>();
-    expect(r).toMatchObject({
-      tool: "verify_citations",
-      verdict: "CONFIRMÉE",
-      result_count: 1,
-    });
+describe("télémétrie locale retirée à l'exécution et continuité des migrations historiques (Phase 3)", () => {
+  it("utcDay formate le jour UTC en YYYY-MM-DD", () => {
+    expect(utcDay(new Date("2026-07-23T18:00:00Z"))).toBe("2026-07-23");
   });
 
-  it("consigne un lot en un aller-retour", async () => {
-    await logSearchBatch(db, [
-      { tool: "t", query: "a", result_count: 0, verdict: "INTROUVABLE" },
-      { tool: "t", query: "b", result_count: 1, verdict: "CONFIRMÉE" },
-    ]);
-    const n = await db.prepare("SELECT COUNT(*) AS n FROM search_log").first<{ n: number }>();
-    expect(n?.n).toBe(2);
-  });
-
-  it("tronque une requête démesurée plutôt que de refuser d'écrire", async () => {
-    await logSearch(db, { tool: "t", query: "x".repeat(5000), result_count: 0 });
-    const r = await db.prepare("SELECT query FROM search_log").first<{ query: string }>();
-    expect(r!.query.length).toBe(400);
-  });
-
-  it("api_usage s'additionne par jour UTC", async () => {
-    const jour = new Date("2026-07-23T18:00:00Z");
-    await flushUsage(db, { calls: 3, errors: 1, throttled: 0 }, jour);
-    await flushUsage(db, { calls: 2, errors: 0, throttled: 1 }, jour);
-    const r = await db
-      .prepare("SELECT * FROM api_usage WHERE day = ?")
-      .bind(utcDay(jour))
-      .first<{ calls: number; errors: number; throttled: number }>();
-    expect(r).toMatchObject({ calls: 5, errors: 1, throttled: 1 });
-  });
-
-  it("n'écrit rien quand aucun appel n'a été fait", async () => {
-    await flushUsage(db, { calls: 0, errors: 0, throttled: 0 });
-    const n = await db.prepare("SELECT COUNT(*) AS n FROM api_usage").first<{ n: number }>();
-    expect(n?.n).toBe(0);
-  });
-
-  it("avale une erreur d'écriture sans la propager", async () => {
+  it("upsertCase avale une erreur d'écriture sans la propager", async () => {
     const casse = {
       prepare: () => {
         throw new Error("table absente");
@@ -461,23 +416,15 @@ describe("télémétrie : elle n'échoue jamais l'outil qu'elle observe", () => 
         throw new Error("table absente");
       },
     } as unknown as D1Database;
-    await expect(
-      logSearch(casse, { tool: "t", query: "q", result_count: 0 }),
-    ).resolves.toBeUndefined();
-    await expect(
-      logSearchBatch(casse, [{ tool: "t", query: "q", result_count: 0 }]),
-    ).resolves.toBeUndefined();
-    await expect(flushUsage(casse, { calls: 1, errors: 0, throttled: 0 })).resolves.toBeUndefined();
     await expect(upsertCase(casse, row())).resolves.toBeUndefined();
   });
 
-  it("normalise par déclencheur une insertion héritée `jurisprudence_*` dans search_log (migration 0006)", async () => {
-    await logSearch(db, {
-      tool: "jurisprudence_verify_citations",
-      query: "2008 CSC 9",
-      result_count: 1,
-      verdict: "CONFIRMÉE",
-    });
+  it("conserve le déclencheur SQL historique de normalisation `jurisprudence_*` (migration 0006)", async () => {
+    await db
+      .prepare(
+        "INSERT INTO search_log (tool, query, result_count, verdict) VALUES ('jurisprudence_verify_citations', '[ARCHIVE]', 1, 'CONFIRMÉE')",
+      )
+      .run();
     const r = await db.prepare("SELECT tool FROM search_log").first<{ tool: string }>();
     expect(r?.tool).toBe("verify_citations");
   });

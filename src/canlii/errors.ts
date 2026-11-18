@@ -80,3 +80,25 @@ export class CanliiTimeoutError extends Error {
     this.url = redactUrl(url);
   }
 }
+
+/**
+ * Interruption de gouverne levée par l'enveloppe d'exécution du Worker (`QUOTA_SORTANT_EPUISE`,
+ * `CLEF_REFUSEE_AMONT`). Ne doit jamais être avalée ni convertie en `INDÉTERMINÉE` par un
+ * gestionnaire d'outil : elle remonte directement au répartiteur afin d'avorter immédiatement
+ * le lot en cours sans émettre d'appels supplémentaires vers CanLII.
+ */
+export class InterruptionGouverneError extends Error {
+  readonly motif: "QUOTA_SORTANT_EPUISE" | "CLEF_REFUSEE_AMONT";
+
+  constructor(motif: "QUOTA_SORTANT_EPUISE" | "CLEF_REFUSEE_AMONT") {
+    super(motif);
+    this.name = "InterruptionGouverneError";
+    this.motif = motif;
+  }
+}
+
+export function relancerSiInterruptionGouverne(err: unknown): void {
+  if (err instanceof InterruptionGouverneError) {
+    throw err;
+  }
+}

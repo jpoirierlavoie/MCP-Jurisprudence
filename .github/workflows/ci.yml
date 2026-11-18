@@ -44,6 +44,9 @@ jobs:
       - name: Tests
         run: npx vitest run
 
+      - name: Audit des dépendances
+        run: npm run audit
+
       # Valide le paquet ET la configuration (bindings, limites, domaine) sans
       # rien déployer. Ne demande aucun jeton Cloudflare.
       - name: Paquet de déploiement (à blanc)
