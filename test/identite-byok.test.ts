@@ -794,4 +794,68 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
     expect(corpsPanne.result?.isError).toBe(true);
     expect(corpsPanne.result?.content[0]?.text).toContain("indisponible");
   });
+
+  it("échoue fermé [CLEF_REFUSEE] sur X-Clef-CanLII présent mais vide ou hors gabarit (> 512 car.) sans retomber sur le coffre ni CANLII_API_KEY", async () => {
+    await amorcerDunsmuirEnCache();
+    const jeton = await insererTitulaireEtJeton({
+      id: "tit_entete_invalide",
+      courriel: "entete-invalide@exemple.qc.ca",
+      clefCanlii: "clef-coffre-valide-ne-doit-pas-servir",
+    });
+
+    let appelsFetch = 0;
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () => {
+      appelsFetch += 1;
+      return new Response("{}", { status: 200 });
+    }) as typeof fetch;
+
+    try {
+      for (const mauvaisEntete of ["x".repeat(600), "   "]) {
+        const resTit = await postMcp(
+          "/mcp",
+          jeton,
+          {
+            jsonrpc: "2.0",
+            id: 1,
+            method: "tools/call",
+            params: { name: "get_case", arguments: { citation: "2008 CSC 9" } },
+          },
+          { headers: { "X-Clef-CanLII": mauvaisEntete } },
+        );
+        const corpsTit = (await resTit.json()) as {
+          result: { isError: boolean; content: Array<{ text: string }> };
+        };
+        expect(corpsTit.result.isError).toBe(true);
+        expect(corpsTit.result.content[0]?.text).toContain("[CLEF_REFUSEE]");
+        expect(corpsTit.result.content[0]?.text).toContain("X-Clef-CanLII");
+
+        const resPartage = await postMcp(
+          "/mcp",
+          "secret-transitoire-phase3a",
+          {
+            jsonrpc: "2.0",
+            id: 2,
+            method: "tools/call",
+            params: { name: "get_case", arguments: { citation: "2008 CSC 9" } },
+          },
+          { headers: { "X-Clef-CanLII": mauvaisEntete } },
+        );
+        const corpsPartage = (await resPartage.json()) as {
+          result: { isError: boolean; content: Array<{ text: string }> };
+        };
+        expect(corpsPartage.result.isError).toBe(true);
+        expect(corpsPartage.result.content[0]?.text).toContain("[CLEF_REFUSEE]");
+        expect(corpsPartage.result.content[0]?.text).toContain("X-Clef-CanLII");
+      }
+      expect(appelsFetch).toBe(0);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    const etat = await env.DB_IDENTITE.prepare(
+      "SELECT etat FROM coffre_clef WHERE titulaire_id = 'tit_entete_invalide' AND usage = 'canlii'",
+    ).first<{ etat: string }>();
+    expect(etat?.etat).toBe("valide");
+  });
 });
