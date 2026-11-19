@@ -30,6 +30,7 @@ import {
   type LigneCoffre,
   lireCompteursJourD1,
   lireMeta,
+  lirePorteurEntete,
   methodeNonPermise,
   origineAutorisee,
   origineInterdite,
@@ -40,7 +41,6 @@ import {
   PORTEE_UNIVERSELLE,
   type Porte,
   type Principal,
-  porteurEntete,
   porteursPresentes,
   preflight,
   refuser,
@@ -566,9 +566,9 @@ async function executerOutil(
     baseClient = createClient(env, {}, { apiKey: "" });
   } else if (principal.type === "titulaire") {
     const dbIdentite = env.DB_IDENTITE!;
-    const surchargeEntete = porteurEntete(requete, "X-Clef-CanLII");
+    const surchargeEntete = lirePorteurEntete(requete, "X-Clef-CanLII");
     let entree: LigneCoffre | null = null;
-    if (!surchargeEntete) {
+    if (surchargeEntete.etat === "absent") {
       try {
         entree = await lireEntreeCoffreCanlii(dbIdentite, principal.titulaireId);
       } catch {
@@ -600,23 +600,39 @@ async function executerOutil(
         ms: 0,
         clientInfo,
       });
-      return ouverture.motif === "ABSENTE"
-        ? err(
-            "[CLEF_ABSENTE] Aucune clé API CanLII active n'est associée à ce compte. " +
-              "Déposez votre clé personnelle dans https://acces.poirierlavoie.ca/moi " +
-              "(ou transmettez l'en-tête X-Clef-CanLII).",
-          )
-        : err(
-            "[CLEF_REFUSEE] La clé API CanLII enregistrée pour ce compte a été refusée ou est invalide. " +
-              "Mettez votre clé à jour dans https://acces.poirierlavoie.ca/moi.",
-          );
+      if (ouverture.motif === "ABSENTE") {
+        return err(
+          "[CLEF_ABSENTE] Aucune clé API CanLII active n'est associée à ce compte. " +
+            "Déposez votre clé personnelle dans https://acces.poirierlavoie.ca/moi " +
+            "(ou transmettez l'en-tête X-Clef-CanLII).",
+        );
+      }
+      if (surchargeEntete.etat === "invalide") {
+        return err(
+          "[CLEF_REFUSEE] La clé API CanLII fournie dans l'en-tête X-Clef-CanLII est invalide " +
+            "(vide ou trop longue). Corrigez ou retirez cet en-tête.",
+        );
+      }
+      return err(
+        "[CLEF_REFUSEE] La clé API CanLII enregistrée pour ce compte a été refusée ou est invalide. " +
+          "Mettez votre clé à jour dans https://acces.poirierlavoie.ca/moi.",
+      );
     }
     baseClient = ouverture.client;
     provenanceClef = ouverture.provenance;
   } else {
     // Phase 3a coexistence sur `/mcp` pour `secret_partage` uniquement (zéro retombée pour `titulaire`).
-    const surchargeEntete = porteurEntete(requete, "X-Clef-CanLII");
-    const clefTransitoire = surchargeEntete ?? (env.CANLII_API_KEY ?? "").trim();
+    const surchargeEntete = lirePorteurEntete(requete, "X-Clef-CanLII");
+    if (surchargeEntete.etat === "invalide") {
+      return err(
+        "[CLEF_REFUSEE] La clé API CanLII fournie dans l'en-tête X-Clef-CanLII est invalide " +
+          "(vide ou trop longue). Corrigez ou retirez cet en-tête.",
+      );
+    }
+    const clefTransitoire =
+      surchargeEntete.etat === "valide"
+        ? surchargeEntete.valeur
+        : (env.CANLII_API_KEY ?? "").trim();
     if (!clefTransitoire) {
       return err("[CLEF_ABSENTE] Aucune clé API CanLII n'est configurée pour cet appel.");
     }
