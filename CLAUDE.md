@@ -107,6 +107,7 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). La spécification qui fa
 
 - **Interdiction absolue** de lire, afficher, copier ou commiter : `cf.token`, `*.token`, `mcp.url`, `.dev.vars`, `.env*`, `~/.gemini/config/*`, `CANLII_API_KEY`, `MCP_SHARED_SECRET`, `COFFRE_MAITRE_V*`.
 - **Interdiction absolue** d'exécuter `wrangler d1 delete` ou `wrangler deploy` seul (toujours `npm run deploy` / `scripts/deployer.mjs`, qui applique les migrations avant `wrangler deploy --var COMMIT:<sha>`).
+- **Gouvernance Git (`main-pr-and-ci`) :** Le contournement administrateur du ruleset `main-pr-and-ci` est restreint à `pull_request` — **ne jamais pousser directement sur `main`** ; travailler sur une branche dédiée, ouvrir une Pull Request, attendre le passage des contrôles requis (`CI`, `CodeQL`, `OSV-Scanner`, `Trivy`), puis fusionner par *squash* (`gh pr merge --squash --delete-branch`).
 
 ```powershell
 npx.cmd wrangler types
