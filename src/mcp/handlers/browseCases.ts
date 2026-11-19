@@ -55,6 +55,11 @@ export async function browseCases(
     if (!DATE_ISO.test(s)) {
       return err(`« ${arg} » doit être une date au format AAAA-MM-JJ (reçu : « ${s} »).`);
     }
+    const [y, m, d] = s.split("-").map(Number);
+    const dt = new Date(Date.UTC(y!, m! - 1, d!));
+    if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m! - 1 || dt.getUTCDate() !== d) {
+      return err(`« ${arg} » n'est pas une date calendaire valide (reçu : « ${s} »).`);
+    }
     params[param] = s;
     appliques.push(`${arg}=${s}`);
     if (arg.startsWith("published_")) filtreDiffusion = true;

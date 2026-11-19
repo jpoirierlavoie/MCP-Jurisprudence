@@ -158,10 +158,18 @@ export async function subsequentHistory(
   }
 
   const restentEnAnglais = lang === "fr" && rendus.some((c) => !c.estLocalise);
+  const formatCite = (cite: string | null) => {
+    if (!cite || lang !== "fr") return cite;
+    const FED_FR: Record<string, string> = { SCC: "CSC", FCA: "CAF", FC: "CF", TCC: "CCI" };
+    return cite.replace(
+      /\b((?:1[89]\d{2}|20\d{2})\s+)(SCC|FCA|FC|TCC)(\s+\d+)\b/g,
+      (_, prefix: string, code: string, num: string) => `${prefix}${FED_FR[code] ?? code}${num}`,
+    );
+  };
   const blocs = rendus.map((c) => {
     const lignes = [c.titreAffiche ?? "(intitulé absent)"];
     lignes.push(
-      [c.arete.to_citation, c.date ? dateFr(c.date) : null, c.arete.to_database_id]
+      [formatCite(c.arete.to_citation), c.date ? dateFr(c.date) : null, c.arete.to_database_id]
         .filter(Boolean)
         .join(" · "),
     );

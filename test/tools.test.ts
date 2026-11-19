@@ -623,12 +623,13 @@ describe("§7.5 — subsequent_history", () => {
     );
     const outCross = texte(rCross);
     expect(outCross).toContain("Banque de Montréal c. Marcotte");
+    expect(outCross).toContain("2014 CSC 55 (CanLII)");
     expect(outCross).not.toContain("Note de langue :");
   });
 });
 
 describe("§7.6 — browse_cases", () => {
-  it("refuse une date mal formée AVANT tout appel", async () => {
+  it("refuse une date mal formée ou calendairement impossible AVANT tout appel", async () => {
     const client = fakeClient({});
     const r = await callTool(
       "browse_cases",
@@ -637,6 +638,15 @@ describe("§7.6 — browse_cases", () => {
     );
     expect(r.isError).toBe(true);
     expect(texte(r)).toContain("AAAA-MM-JJ");
+    expect(client.chemins).toHaveLength(0);
+
+    const rInvalidCal = await callTool(
+      "browse_cases",
+      { database_id: "qcca", decision_date_after: "2024-02-30" },
+      toolCtx(client),
+    );
+    expect(rInvalidCal.isError).toBe(true);
+    expect(texte(rInvalidCal)).toContain("calendaire valide");
     expect(client.chemins).toHaveLength(0);
   });
 
@@ -968,6 +978,45 @@ describe("§7.2 — find_case", () => {
     expect(out.indexOf("Banque de Montréal c. Marcotte")).toBeLessThan(
       out.indexOf("Banque Nationale c. Marcotte"),
     );
+  });
+
+  it("A-N3 : dédoublonne les couples bilingues fédéraux (2014csc55 ≡ 2014scc55)", async () => {
+    await seedDatabases();
+    await env.DB.prepare(
+      `INSERT INTO cases (
+         database_id, case_id, lang, title, title_norm, title_fr, title_en,
+         decision_date, source, fetched_at
+       ) VALUES (
+         'csc-scc', '2014csc55', 'fr',
+         'Banque de Montréal c. Marcotte', 'banque de montreal c marcotte',
+         'Banque de Montréal c. Marcotte', 'Bank of Montreal v. Marcotte',
+         '2014-09-19', 'lookup', '2026-07-23T00:00:00Z'
+       )`,
+    ).run();
+    const client = fakeClient({
+      "caseBrowse/fr/csc-scc/": {
+        cases: [
+          {
+            databaseId: "csc-scc",
+            caseId: { en: "2014scc55" },
+            title: "Bank of Montreal v. Marcotte",
+            citation: "2014 SCC 55 (CanLII)",
+          },
+        ],
+      },
+    });
+    const r = await callTool(
+      "find_case",
+      {
+        title: "Banque de Montréal c. Marcotte",
+        database_id: "csc-scc",
+        year_from: 2014,
+        year_to: 2014,
+      },
+      toolCtx(client),
+    );
+    const out = texte(r);
+    expect(out).toContain("1 candidat pour");
   });
 });
 

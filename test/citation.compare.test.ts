@@ -86,6 +86,18 @@ describe("§13 — matrice de comparaison d'intitulés", () => {
         .verdict,
     ).toBe("appariement");
   });
+
+  it("B-N3 : normalise St/Saint, Ste/Sainte, P.G./Procureur général, formes féminines/plurielles et Compagnie", () => {
+    expect(
+      compareTitles("P.G. du Québec c. Untel", "Procureure générale du Québec c. Untel").verdict,
+    ).toBe("appariement");
+    expect(compareTitles("Ville de St-Jérôme", "Ville de Saint-Jérôme").verdict).toBe(
+      "appariement",
+    );
+    expect(compareTitles("Compagnie Tremblay c. Gagnon", "Cie Tremblay c. Gagnon").verdict).toBe(
+      "appariement",
+    );
+  });
 });
 
 describe("similarité pour §7.5", () => {
