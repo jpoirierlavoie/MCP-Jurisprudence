@@ -129,8 +129,30 @@ export async function findCase(
   }
 
   // ── 3. Fusion et classement ──────────────────────────────────────────────
+  const FED_BI: Record<string, string> = {
+    scc: "csc",
+    csc: "csc",
+    fca: "caf",
+    caf: "caf",
+    fc: "cf",
+    cf: "cf",
+    tcc: "cci",
+    cci: "cci",
+  };
+  const dedupClef = (r: CaseRow) => {
+    const cid = r.case_id.toLowerCase();
+    const m = cid.match(/^(\d{4})([a-z]+)(\d+)$/);
+    const canon = m && FED_BI[m[2]!] ? `${m[1]}${FED_BI[m[2]!]}.${m[3]}` : cid;
+    return `${r.database_id.toLowerCase()}/${canon}`;
+  };
   const parClef = new Map<string, CaseRow>();
-  for (const r of [...locales, ...vives]) parClef.set(`${r.database_id}/${r.case_id}`, r);
+  for (const r of [...locales, ...vives]) {
+    const k = dedupClef(r);
+    const prev = parClef.get(k);
+    if (!prev || (!prev.decision_date && r.decision_date)) {
+      parClef.set(k, r);
+    }
+  }
   const tous = [...parClef.values()].sort((a, b) => {
     const cmpA = meilleurAppariementTitre(titre, a);
     const cmpB = meilleurAppariementTitre(titre, b);

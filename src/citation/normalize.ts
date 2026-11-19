@@ -59,6 +59,7 @@ const STOPWORDS = new Set([
   "corp",
   "corporation",
   "cie",
+  "compagnie",
   "co",
   "senc",
   "sencrl",
@@ -66,11 +67,32 @@ const STOPWORDS = new Set([
   "enr",
 ]);
 
+const TOKEN_CANON: Record<string, string> = {
+  st: "saint",
+  ste: "sainte",
+  procureure: "procureur",
+  procureurs: "procureur",
+  procureures: "procureur",
+  generale: "general",
+  generaux: "general",
+  generales: "general",
+  directrice: "directeur",
+  presidente: "president",
+  syndique: "syndic",
+  liquidatrice: "liquidateur",
+  curatrice: "curateur",
+  tutrice: "tuteur",
+};
+
 /** Découpe une chaîne pliée en jetons significatifs. */
 export function tokens(s: string): string[] {
-  return fold(s)
+  const expanded = s
+    .replace(/\bP\.\s*G\.(?=\s+(?:du|de|des|of|for|pour)\b|\s*[,)]|\s*$)/g, "Procureur général")
+    .replace(/\bA\.\s*G\.(?=\s+(?:of|for)\b|\s*[,)]|\s*$)/g, "Attorney General");
+  return fold(expanded)
     .split(" ")
-    .filter((t) => t.length > 0 && !STOPWORDS.has(t));
+    .filter((t) => t.length > 0 && !STOPWORDS.has(t))
+    .map((t) => TOKEN_CANON[t] ?? t);
 }
 
 /** Jetons significatifs, dédoublonnés, en ensemble. */

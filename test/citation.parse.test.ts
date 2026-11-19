@@ -281,4 +281,19 @@ describe("D1 & D21 — extraction d'intitulé de tête et formes concaténées",
     expect(canlii.parsed.primary.kind).toBe("canlii");
     expect(canlii.res.constructible).toBe("non");
   });
+
+  it("B-N5 & B-N14 : accepte l'espace omis avant le numéro et rejette le numéro 0", () => {
+    const glued = ids("2014 CSC55");
+    expect(glued.parsed.primary.kind).toBe("neutral");
+    expect(glued.db).toBe("csc-scc");
+    expect(glued.cid).toBe("2014scc55");
+
+    const zeroNeutral = ids("2020 QCCA 0");
+    expect(zeroNeutral.res.constructible).toBe("non");
+    expect(zeroNeutral.res.raison).toContain("strictement positif");
+
+    const zeroCanlii = ids("2020 CanLII 0 (QC CQ)");
+    expect(zeroCanlii.res.constructible).toBe("non");
+    expect(zeroCanlii.res.raison).toContain("strictement positif");
+  });
 });

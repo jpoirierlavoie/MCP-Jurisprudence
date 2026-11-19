@@ -182,7 +182,13 @@ export async function verifyCitations(
         const bornes = d.expected_year
           ? { yearFrom: d.expected_year - 1, yearTo: d.expected_year + 1 }
           : {};
-        const candidats = await searchLocal(ctx.db, titreRecherche, { ...bornes, limit: 5 });
+        const candidats = (await searchLocal(ctx.db, titreRecherche, { ...bornes, limit: 15 }))
+          .filter((c) =>
+            collectCaseTitles(c).some(
+              (t) => compareTitles(titreRecherche, t).verdict !== "discordance",
+            ),
+          )
+          .slice(0, 5);
         if (candidats.length > 0) {
           lignes.push(
             "",

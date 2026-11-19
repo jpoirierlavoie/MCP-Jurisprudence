@@ -93,7 +93,7 @@ const CANLII_NUE = /\b(1[89]\d{2}|20\d{2})\s*CanLII\s*(\d{1,7})\b/gi;
  *     2. le code « CANLII » est rejeté explicitement (voir `scanNeutral`).
  *   Retirer l'une ou l'autre rouvre le défaut ; les deux sont testées.
  */
-const NEUTRAL = /\b(1[89]\d{2}|20\d{2})\s+([A-Za-z]{2,8})\s+(\d{1,6})\b/g;
+const NEUTRAL = /\b(1[89]\d{2}|20\d{2})\s+([A-Za-z]{2,8})\s*(\d{1,6})\b/g;
 
 /** Identifiant CanLII collé sans espaces : `2008csc64`, `2020qcca495` (D21). */
 const NEUTRAL_CONCAT = /\b(1[89]\d{2}|20\d{2})([A-Za-z]{2,8})(\d{1,7})\b/g;
@@ -477,6 +477,16 @@ export function resolve(form: CitationForm | UnparsedForm, dir: Directory): Reso
       databaseId: null,
       caseId: null,
       raison: `Forme reconnue : identifiant d'éditeur (${form.scheme}, ${form.id}). L'API de CanLII ne résout pas les identifiants d'éditeurs.`,
+      databaseConnue: false,
+    };
+  }
+
+  if ((form.kind === "canlii" || form.kind === "neutral") && form.number <= 0) {
+    return {
+      constructible: "non",
+      databaseId: null,
+      caseId: null,
+      raison: `Numéro de décision invalide (${form.number}) : un numéro de décision doit être strictement positif.`,
       databaseConnue: false,
     };
   }

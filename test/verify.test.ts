@@ -529,4 +529,30 @@ describe("D1, D2, D21 & D23 — intitulé de tête, cache bilingue, années futu
     expect(t).toContain("CONFIRMÉE");
     expect(t).toContain("Mots-clés (index CanLII, non vérifiés) :");
   });
+
+  it("B-N12 : filtre les faux positifs FTS discordants du repli par nom dans verify_citations", async () => {
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO cases (database_id, case_id, lang, title, title_norm, keywords, citation, source, fetched_at)
+         VALUES ('qcca', '2014qcca10', 'fr', 'Dupont c. Tremblay', 'dupont c tremblay', 'dunsmuir nouveau brunswick', '2014 QCCA 10', 'lookup', '2026-07-23T00:00:00Z')`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO cases (database_id, case_id, lang, title, title_norm, keywords, citation, source, fetched_at)
+         VALUES ('csc-scc', '2008csc9', 'fr', 'Dunsmuir c. Nouveau-Brunswick', 'dunsmuir c nouveau brunswick', 'droit administratif', '2008 CSC 9', 'lookup', '2026-07-23T00:00:00Z')`,
+      ),
+    ]);
+    const r = texte(
+      await callTool(
+        "verify_citations",
+        {
+          citations: [
+            { citation: "[2008] 1 R.C.S. 190", expected_title: "Dunsmuir c. Nouveau-Brunswick" },
+          ],
+        },
+        toolCtx(fakeClient({})),
+      ),
+    );
+    expect(r).toContain("Dunsmuir c. Nouveau-Brunswick");
+    expect(r).not.toContain("Dupont c. Tremblay");
+  });
 });
