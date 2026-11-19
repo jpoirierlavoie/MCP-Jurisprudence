@@ -65,6 +65,8 @@ export interface ParseResult {
   primary: CitationForm | UnparsedForm;
   /** Les autres formes coexistantes (§6.1 : « mentionner les autres »). */
   parallel: CitationForm[];
+  /** Intitulé de cause éventuel précédant la citation dans la même chaîne (D1). */
+  inlineTitle: string | null;
 }
 
 // ── Expressions régulières de référence (§6.2) ────────────────────────────────
@@ -72,12 +74,13 @@ export interface ParseResult {
 /**
  * Citation attribuée par CanLII, AVEC son couple de codes entre parenthèses.
  * Appliquée EN PREMIER et ses plages masquées ensuite — voir NEUTRAL.
+ * Tolère la forme collée sans espaces (`2002canlii32322 (QC CQ)`).
  */
 const CANLII =
-  /\b(1[89]\d{2}|20\d{2})\s+CanLII\s+(\d{1,7})\s*\(\s*([A-Z]{2})\s+([A-Z]{1,6})\s*\)/gi;
+  /\b(1[89]\d{2}|20\d{2})\s*CanLII\s*(\d{1,7})\s*\(\s*([A-Z]{2})\s+([A-Z]{1,6})\s*\)/gi;
 
-/** Même forme, mais sans les parenthèses : le tribunal reste indéterminable. */
-const CANLII_NUE = /\b(1[89]\d{2}|20\d{2})\s+CanLII\s+(\d{1,7})\b/gi;
+/** Même forme, mais sans les parenthèses : le tribunal reste indéterminable (`1997canlii335`). */
+const CANLII_NUE = /\b(1[89]\d{2}|20\d{2})\s*CanLII\s*(\d{1,7})\b/gi;
 
 /**
  * Citation neutre : année + identifiant de tribunal + numéro d'ordre.
@@ -91,6 +94,9 @@ const CANLII_NUE = /\b(1[89]\d{2}|20\d{2})\s+CanLII\s+(\d{1,7})\b/gi;
  *   Retirer l'une ou l'autre rouvre le défaut ; les deux sont testées.
  */
 const NEUTRAL = /\b(1[89]\d{2}|20\d{2})\s+([A-Za-z]{2,8})\s+(\d{1,6})\b/g;
+
+/** Identifiant CanLII collé sans espaces : `2008csc64`, `2020qcca495` (D21). */
+const NEUTRAL_CONCAT = /\b(1[89]\d{2}|20\d{2})([A-Za-z]{2,8})(\d{1,7})\b/g;
 
 /** Recueils : [année] volume? sigle page. */
 const REPORTER =
@@ -156,11 +162,13 @@ interface Span {
 /** Remplace les plages déjà consommées par des espaces, pour ne pas les réapparier. */
 function mask(text: string, spans: Span[]): string {
   if (spans.length === 0) return text;
-  const chars = [...text];
+  let out = text;
   for (const { start, end } of spans) {
-    for (let i = start; i < end && i < chars.length; i++) chars[i] = " ";
+    const s = Math.max(0, start);
+    const e = Math.min(text.length, end);
+    if (e > s) out = `${out.slice(0, s)}${" ".repeat(e - s)}${out.slice(e)}`;
   }
-  return chars.join("");
+  return out;
 }
 
 function scanCanlii(text: string, spans: Span[]): CanliiForm[] {
@@ -220,20 +228,22 @@ function scanNeutral(
   isole: boolean,
 ): NeutralForm[] {
   const found: NeutralForm[] = [];
-  const reste = mask(text, spans);
-  NEUTRAL.lastIndex = 0;
-  for (const m of reste.matchAll(NEUTRAL)) {
-    const code = (m[2] ?? "").toUpperCase();
-    if (!connus(code) && !codePlausible(code, isole)) continue;
-    if (code === "CANLII") continue; // parade n° 2 — voir le commentaire de NEUTRAL
-    found.push({
-      kind: "neutral",
-      year: Number(m[1]),
-      code,
-      number: Number(m[3]),
-      raw: m[0].trim(),
-    });
-    spans.push({ start: m.index, end: m.index + m[0].length });
+  for (const regex of [NEUTRAL, NEUTRAL_CONCAT]) {
+    const reste = mask(text, spans);
+    regex.lastIndex = 0;
+    for (const m of reste.matchAll(regex)) {
+      const code = (m[2] ?? "").toUpperCase();
+      if (!connus(code) && !codePlausible(code, isole)) continue;
+      if (code === "CANLII") continue; // parade n° 2 — voir le commentaire de NEUTRAL
+      found.push({
+        kind: "neutral",
+        year: Number(m[1]),
+        code,
+        number: Number(m[3]),
+        raw: m[0].trim(),
+      });
+      spans.push({ start: m.index, end: m.index + m[0].length });
+    }
   }
   return found;
 }
@@ -269,6 +279,70 @@ function scanPublisher(text: string, spans: Span[]): PublisherForm[] {
     spans.push({ start: m.index, end: m.index + m[0].length });
   }
   return found;
+}
+
+// ── Extraction de l'intitulé de cause en préfixe (D1) ─────────────────────────
+
+const TRAILING_PUNCT = /[\s,;:—–\-[(«"]+$/u;
+const TRAILING_CONNECTOR =
+  /(?:^|[\s,;:[(«"—–-])(?:dans(?:\s+l['’](?:arrêt|arret|affaire|espèce|espece)|\s+la\s+décision|\s+le\s+jugement)?|in(?:\s+the\s+case\s+of)?|voir(?:\s+(?:aussi|notamment|également|egalement))?|see(?:\s+also)?|cf\.?|compare|comp\.?|selon|suivant|notamment|e\.g\.|p\.?\s*ex\.?)\s*$/i;
+const CLAUSE_INTRODUCER =
+  /^.+?[,;:]\s*(?:voir(?:\s+(?:aussi|notamment|également|egalement))?|see(?:\s+also)?|cf\.?|dans(?:\s+(?:l['’](?:arrêt|arret|jugement)|la\s+décision|le\s+jugement|l['’]affaire(?!\s+de\b)))?|in(?!\s+(?:re|the\s+matter)\b)|notamment|p\.?\s*ex\.?|e\.g\.)[\s,:]+(?=[A-ZÀ-ÖØ-Ý0-9])/i;
+const LEADING_INTRODUCER =
+  /^(?:voir(?:\s+(?:aussi|notamment|également|egalement))?|see(?:\s+also)?|cf\.?|compare|comp\.?|dans(?:\s+(?:l['’](?:arrêt|arret|jugement)|la\s+décision|le\s+jugement|l['’]affaire(?!\s+de\b))|(?!\s+l['’]affaire\s+de\b))|in(?!\s+(?:re|the\s+matter)\b)|notamment|p\.?\s*ex\.?|e\.g\.|l['’](?:arrêt|arret)|l['’]affaire(?!\s+de\b)|la\s+décision|le\s+jugement)\b[\s,:—–-]+/i;
+const PROSE_VERB_INTRO =
+  /^.*?\b(?:comme|tel|selon|suivant|notamment|parce|car|l['’]a|a\s+[a-zà-öø-ÿ]{2,}|est\s+|ont\s+|sont\s+|était|etait|fût|fut|held|was|were)\b.*?\b(?:dans(?:\s+l['’](?:arrêt|arret)|\s+la\s+décision|\s+le\s+jugement)?|in(?!\s+(?:re|the\s+matter)\b)|voir|see)\b[\s,:]+(?=[A-ZÀ-ÖØ-Ý0-9])/;
+
+const STYLE_ADVERSARIAL = /\S.*\s+(?:c\.|v\.|vs\.?|versus)\s+(?!supra\b|infra\b|à\s+d\.)\S/i;
+const STYLE_NOMME =
+  /^(?:in\s+re|re:?|in\s+the\s+matter\s+of|matter\s+of|ex\s+parte|(?:dans\s+)?l['’]affaire\s+(?:de|du|des|d['’])|succession(?:\s+(?:de|du|des|d['’]))?|estate\s+of|syndic(?:\s+(?:de|du|des|d['’]|à\s+la\s+faillite))?|faillite\s+(?:de|du|des|d['’])|proposition\s+(?:de|du|des|d['’])|bankruptcy\s+of|proposal\s+of|renvoi\s+(?:relatif|sur|concernant)|reference\s+re)\s+\S/i;
+const STYLE_ANONYMISE =
+  /^(?:droit\s+de\s+la\s+famille|protection\s+de\s+la\s+jeunesse|adoption)\s*(?:[—–-]\s*|\s+)[A-Z0-9]\S*/i;
+const STYLE_SUFFIXE = /\(\s*(?:(?:in\s+)?re|syndic(?:\s+de)?|faillite|succession)\s*\)$/i;
+
+function estStyleJuridique(s: string): boolean {
+  return (
+    STYLE_ADVERSARIAL.test(s) ||
+    STYLE_NOMME.test(s) ||
+    STYLE_ANONYMISE.test(s) ||
+    STYLE_SUFFIXE.test(s)
+  );
+}
+
+/**
+ * Extrait un intitulé de cause juridique qui précède la première forme de citation,
+ * en écartant la prose nue (« voir 2020 QCCA 495 », « il a payé 2020 QCCA 495 »).
+ */
+function extractInlineTitle(texte: string, firstSpanStart: number): string | null {
+  if (firstSpanStart <= 0) return null;
+  let prefix = texte.slice(0, firstSpanStart);
+
+  // 1. Retirer ponctuation et connecteurs de queue (, ; — - dans in voir see [ ().
+  for (;;) {
+    const avant = prefix;
+    prefix = prefix.replace(TRAILING_PUNCT, "");
+    prefix = prefix.replace(TRAILING_CONNECTOR, (m) => (/^[\s,;:[(«"—–-]/.test(m) ? m[0]! : ""));
+    prefix = prefix.replace(TRAILING_PUNCT, "").trim();
+    if (prefix === avant) break;
+  }
+  if (!prefix) return null;
+
+  // 2. Retirer les introducteurs de prose en tête (« Voir A c. B », « Comme l'a jugé … dans A c. B »).
+  const clauseMatch = CLAUSE_INTRODUCER.exec(prefix);
+  if (clauseMatch) {
+    prefix = prefix.slice(clauseMatch[0].length).trim();
+  } else {
+    const proseMatch = PROSE_VERB_INTRO.exec(prefix);
+    if (proseMatch) prefix = prefix.slice(proseMatch[0].length).trim();
+  }
+  for (;;) {
+    const suivant = prefix.replace(LEADING_INTRODUCER, "").trim();
+    if (suivant === prefix) break;
+    prefix = suivant;
+  }
+  if (!prefix) return null;
+
+  return estStyleJuridique(prefix) ? prefix : null;
 }
 
 /**
@@ -308,7 +382,7 @@ export function parseCitation(
 
   const toutes: CitationForm[] = [...canlii, ...neutral, ...reporter, ...publisher];
   if (toutes.length === 0) {
-    return { input, primary: { kind: "unparsed", raw: texte }, parallel: [] };
+    return { input, primary: { kind: "unparsed", raw: texte }, parallel: [], inlineTitle: null };
   }
 
   // §6.1 : « Si plusieurs formes coexistent, retenir la constructible ». Une forme
@@ -318,7 +392,9 @@ export function parseCitation(
   );
   const primary = constructibles[0] ?? toutes[0]!;
   const parallel = toutes.filter((f) => f !== primary);
-  return { input, primary, parallel };
+  const firstSpanStart = Math.min(...spans.map((s) => s.start));
+  const inlineTitle = extractInlineTitle(texte, firstSpanStart);
+  return { input, primary, parallel, inlineTitle };
 }
 
 // ── Résolution en databaseId / caseId (§6.3) ──────────────────────────────────

@@ -16,6 +16,7 @@ export async function parseCitationTool(
   ctx: ToolContext,
 ): Promise<ToolResult> {
   const citation = String(args.citation ?? "");
+  const now = ctx.now ?? new Date();
   const dir = await loadDirectory(ctx.db);
   const parsed = parseCitation(citation, (code) => dir.courtCodes.has(code));
   const res = resolve(parsed.primary, dir);
@@ -30,6 +31,9 @@ export async function parseCitationTool(
     unparsed: "non reconnue",
   };
   lignes.push(`Forme reconnue : ${FORMES[parsed.primary.kind] ?? parsed.primary.kind}.`);
+  if (parsed.inlineTitle) {
+    lignes.push(`Intitulé relevé : « ${parsed.inlineTitle} ».`);
+  }
 
   const ETIQUETTE: Record<string, string> = {
     oui: "oui (correspondance de répertoire confirmée)",
@@ -37,6 +41,17 @@ export async function parseCitationTool(
     non: "non",
   };
   lignes.push(`Constructible : ${ETIQUETTE[res.constructible]}.`);
+
+  if (
+    (parsed.primary.kind === "neutral" ||
+      parsed.primary.kind === "canlii" ||
+      parsed.primary.kind === "reporter") &&
+    parsed.primary.year > now.getUTCFullYear() + 1
+  ) {
+    lignes.push(
+      `⚠ Année future / invraisemblable (${parsed.primary.year}, année courante : ${now.getUTCFullYear()}).`,
+    );
+  }
 
   if (res.databaseId && res.caseId) {
     lignes.push(`database_id : ${res.databaseId}`);

@@ -460,4 +460,12 @@ describe("§18 / invariant 19 — la page dérive, et ses classes existent", () 
     const absentes = toutes.filter((d) => !clair.includes(d));
     expect(absentes).toEqual([]);
   });
+
+  it("D14 : renvoie vers les connecteurs « outils » et « lois » sans anciens libellés", async () => {
+    const html = await (await demander("/")).text();
+    expect(html).toContain("« outils »");
+    expect(html).toContain("« lois »");
+    expect(html).not.toContain("Législation du Québec");
+    expect(html).not.toContain("MCP Outils");
+  });
 });

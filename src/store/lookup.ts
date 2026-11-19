@@ -18,7 +18,15 @@ import { analyserErreur } from "../canlii/client";
 import { CanliiBudgetError, CanliiError, relancerSiInterruptionGouverne } from "../canlii/errors";
 import type { CaseMetadata, Lang } from "../canlii/types";
 import type { Directory, NeutralForm, Resolution, ResolvableForm } from "../citation/parse";
-import { type CaseRow, getCachedAny, rowFromMetadata, upsertCase } from "./cases";
+import {
+  type CaseRow,
+  getCachedCandidates,
+  getCachedCase,
+  hasLangCached,
+  projectCaseForLang,
+  rowFromMetadata,
+  upsertCase,
+} from "./cases";
 import { confirmCourtCode, confirmParenCode } from "./databases";
 
 /** Au plus DEUX tentatives supplémentaires par citation (§6.4), budget compris. */
@@ -133,6 +141,23 @@ export interface LookupOptions {
   now?: Date;
 }
 
+function mergeBilingualFields(base: CaseRow, candidates: CaseRow[]): CaseRow {
+  let out = base;
+  for (const cand of candidates) {
+    if (cand.source !== "lookup") continue;
+    out = {
+      ...out,
+      title_fr: out.title_fr ?? cand.title_fr,
+      title_en: out.title_en ?? cand.title_en,
+      url_fr: out.url_fr ?? cand.url_fr,
+      url_en: out.url_en ?? cand.url_en,
+      keywords_fr: out.keywords_fr ?? cand.keywords_fr,
+      keywords_en: out.keywords_en ?? cand.keywords_en,
+    };
+  }
+  return out;
+}
+
 /**
  * Résout une forme constructible en fiche.
  *
@@ -161,6 +186,11 @@ export async function lookupCase(
 
   const essais = candidats(form, res, dir);
 
+  const cacheCandidates = await getCachedCandidates(
+    db,
+    essais.map((c) => [c.databaseId, c.caseId] as const),
+  );
+
   // Cache (D5/D6) : les métadonnées d'une décision sont quasi immuables, le cache est
   // donc permanent. `refresh` est le seul moyen de le contourner.
   //
@@ -172,27 +202,17 @@ export async function lookupCase(
   //   CHAQUE appel, pour toujours : la vérification resterait correcte, mais le cache
   //   ne servirait jamais et chaque citation coûterait un appel à perpétuité.
   if (!opts.refresh) {
-    const cache = await getCachedAny(
-      db,
-      essais.map((c) => [c.databaseId, c.caseId] as const),
-    );
-    // ⚠ Une fiche issue d'un BALAYAGE ne suffit PAS à répondre à une vérification.
-    //
-    //   Une réponse de liste ne porte que quatre champs (annexe B) : ni date de
-    //   décision, ni numéro de dossier, ni mots-clés, ni hyperlien. Servir une telle
-    //   ligne depuis le cache aurait deux effets, dont le second est grave :
-    //     1. la fiche rendue serait appauvrie (date « — », aucun hyperlien) ;
-    //     2. surtout, `comparer()` n'effectue le contrôle d'ANNÉE que si
-    //        `decision_date` existe. Sur une ligne de balayage, ce contrôle serait
-    //        donc SILENCIEUSEMENT SAUTÉ : une citation dont l'année est fausse
-    //        ressortirait CONFIRMÉE alors qu'`expected_year` n'a jamais été comparée.
-    //   Une garantie qui disparaît sans bruit est exactement ce que §2 interdit.
-    //
-    //   On ne sert donc du cache que les fiches obtenues par RÉSOLUTION DIRECTE
-    //   (`source = 'lookup'`), seules complètes. Une ligne de balayage est conservée
-    //   pour l'INDEX de recherche — c'est son rôle — mais déclenche ici un appel.
-    if (cache && cache.source === "lookup") {
-      return { status: "trouvee", row: cache, provenance: "cache", fallback: null, message: null };
+    // ⚠ Une fiche issue d'un BALAYAGE ne suffit PAS à répondre à une vérification, et
+    //   une fiche mémorisée seulement dans l'autre langue ne répond pas sans appel (D2).
+    const cache = cacheCandidates.find((c) => c.source === "lookup" && hasLangCached(c, lang));
+    if (cache) {
+      return {
+        status: "trouvee",
+        row: projectCaseForLang(mergeBilingualFields(cache, cacheCandidates), lang),
+        provenance: "cache",
+        fallback: null,
+        message: null,
+      };
     }
   }
 
@@ -220,6 +240,7 @@ export async function lookupCase(
         { databaseId: c.databaseId, caseId: c.caseId },
         "lookup",
         now,
+        lang,
       );
       await upsertCase(db, row);
       // Apprentissage du répertoire (§6.4) : UNIQUEMENT sur un rattrapage réussi.
@@ -229,9 +250,11 @@ export async function lookupCase(
       // qu'on demande (voir rowFromMetadata), donc déplacer le fragment ferait
       // construire un identifiant qui ne correspond plus aux lignes déjà en cache.
       if (i > 0) await apprendre(db, form, c, meta, res);
+      const stored = (await getCachedCase(db, row.database_id, row.case_id)) ?? row;
+      const merged = mergeBilingualFields(stored, cacheCandidates);
       return {
         status: "trouvee",
-        row,
+        row: projectCaseForLang(merged, lang),
         provenance: "api",
         fallback: i === 0 ? null : c.voie,
         message: null,

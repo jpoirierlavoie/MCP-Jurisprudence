@@ -16,7 +16,7 @@
  * ║                                                                              ║
  * ║ NOTE HISTORIQUE (2026-11-14) : les trois outils hors ligne `greffe_*` et     ║
  * ║ `palais_*` ont été déplacés vers le connecteur public sans authentification  ║
- * ║ « MCP Outils » (`MCP-Outils`, v0.2.0). Les dix outils restants portent       ║
+ * ║ « outils » (`MCP-Outils`, v0.2.0). Les dix outils restants portent            ║
  * ║ tous « CanLII » dans leur description en français et en anglais (épinglé     ║
  * ║ par test/garde.test.ts et test/site.test.ts).                                ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -226,8 +226,8 @@ export const INSTRUCTIONS =
   "d'un moteur de recherche ou d'un texte rédigé par une IA, commencer par " +
   "verify_citations ; si la citation n'est pas constructible (recueils R.C.S. / " +
   "R.J.Q. / C.A., identifiants J.E. / REJB / EYB / AZ), enchaîner avec find_case. " +
-  "Pour le TEXTE des lois et règlements du Québec, employer le connecteur « Législation " +
-  "du Québec ». Les verdicts et la couverture dépendent de la collection de CanLII : " +
+  "Pour le TEXTE des lois et règlements du Québec, employer le connecteur « lois ». " +
+  "Les verdicts et la couverture dépendent de la collection de CanLII : " +
   "une absence n'est jamais une preuve d'inexistence. " +
   "C'est la description de chaque outil qui nomme sa source et ses limites. NEUF des dix " +
   "outils interrogent CanLII ; le dixième, parse_citation, " +
@@ -235,7 +235,7 @@ export const INSTRUCTIONS =
   "existence. Pour analyser un numéro de dossier judiciaire québécois " +
   "(greffe_parse_number) ou consulter le répertoire des palais de justice et " +
   "greffes du Québec (palais_list, palais_get), employer le connecteur public hors ligne " +
-  "« Outils ».";
+  "« outils ».";
 
 export const TOOLS: Record<string, ToolDescriptor> = {
   // ── 7.1 — l'outil pivot ────────────────────────────────────────────────────
@@ -279,7 +279,8 @@ export const TOOLS: Record<string, ToolDescriptor> = {
               expected_title: {
                 type: "string",
                 maxLength: 300,
-                description: "Intitulé annoncé par la source, s'il est connu.",
+                description:
+                  "Intitulé annoncé par la source, s'il est connu (un intitulé en tête de « citation » est aussi vérifié automatiquement).",
               },
               expected_year: {
                 type: "integer",
@@ -399,10 +400,11 @@ export const TOOLS: Record<string, ToolDescriptor> = {
       "décisions qui LA citent (`citing`), ou dispositions législatives qu'elle cite " +
       "(`legislation`). Les listes sont brutes : elles n'indiquent aucun sens de traitement " +
       "(suivi, distingué, infirmé), et leur exhaustivité est celle de la collection de " +
-      "CanLII. Pour les dispositions québécoises, enchaîner avec le connecteur " +
-      "« Législation du Québec » afin d'en lire le texte officiel.",
-    // Aucun paramètre `lang` : le chemin du citateur n'accepte que `en` (annexe B).
-    // En exposer un serait mensonger.
+      "CanLII. Pour les dispositions québécoises, enchaîner avec le connecteur « lois » " +
+      "afin d'en lire le texte officiel. L'API citateur de CanLII n'accepte que le chemin " +
+      "anglais (« caseCitator/en ») : avec « lang='fr' », les intitulés déjà présents en " +
+      "français dans le cache local sont substitués et ceux qui restent en anglais sont " +
+      "signalés.",
     inputSchema: {
       type: "object",
       properties: {
@@ -415,6 +417,15 @@ export const TOOLS: Record<string, ToolDescriptor> = {
           description:
             "« cited » : ce que la décision cite. « citing » : ce qui la cite. " +
             "« legislation » : les dispositions qu'elle cite.",
+        },
+        lang: {
+          type: "string",
+          enum: ["fr", "en"],
+          description:
+            "Langue d'affichage souhaitée (« fr » par défaut). L'API citateur de CanLII " +
+            "n'accepte que « caseCitator/en » : avec « fr », les intitulés français " +
+            "disponibles en cache local sont substitués et les intitulés restés en anglais " +
+            "sont signalés.",
         },
         limit: {
           type: "integer",
@@ -448,6 +459,14 @@ export const TOOLS: Record<string, ToolDescriptor> = {
         citation: CITATION_REF,
         database_id: BASE_ID,
         case_id: CASE_ID,
+        lang: {
+          type: "string",
+          enum: ["fr", "en"],
+          description:
+            "Langue d'affichage souhaitée (« fr » par défaut). S'appuie sur " +
+            "« caseCitator/en » et substitue les intitulés français présents en cache " +
+            "local lorsqu'ils existent.",
+        },
         limit: {
           type: "integer",
           minimum: 1,
@@ -574,7 +593,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
       "l'entrée en vigueur de la VERSION, « DOWNLOAD_DATE » le seul jour où CanLII a " +
       "téléchargé le texte. Utile pour vérifier une abrogation, PAS pour dater une " +
       "disposition. Pour le TEXTE d'une loi ou d'un règlement du Québec, utiliser le " +
-      "connecteur « Législation du Québec », qui rend le texte officiel verbatim.",
+      "connecteur « lois », qui rend le texte officiel verbatim.",
     inputSchema: {
       type: "object",
       properties: {

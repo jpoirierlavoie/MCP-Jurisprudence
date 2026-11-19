@@ -5,7 +5,7 @@
 **Destinataire :** Claude Code
 **Auteur de la spéc. :** (préparé pour Jason Poirier Lavoie)
 **Cible :** nouveau dépôt autonome — Worker Cloudflare, D1, TypeScript
-**Modèle de référence :** le Worker `legislation` / base D1 `qclaw` (connecteur « Législation du Québec »)
+**Modèle de référence :** le Worker `legislation` / base D1 `qclaw` (connecteur « lois »)
 **Statut :** **livré (`2.0.0`) et mis à niveau Phase 3 (`@poirierlavoie/mcp-socle` `0.8.2`)** sur `jurisprudence.poirierlavoie.ca` — dix outils sans préfixe (clé `juris` dans `droit-civil-quebecois` `v2.0.2`), identité partagée `DB_IDENTITE` (`mcp-identite`), double montage `/mcp` (`404` vide sans `WWW-Authenticate`) et `/mcp/oauth` (`401` RFC 9728 OAuth 2.1 PKCE S256 via `acces.poirierlavoie.ca`), garde stricte BYOK CanLII préalable au cache D1 (`ouvrirCoffre` / `lirePorteurEntete` `X-Clef-CanLII`), observabilité Cloudflare désactivée et zéro écriture dans `search_log` / `api_usage` *(voir `MCP-Socle/SPEC-SOCLE-COMMUN.md` pour l'amendement Phase 3 de D7, §8, §9, §10 et §18)*. Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
 
 ---
@@ -654,11 +654,11 @@ elle est écrite ici.
 **Algorithme, par citation :**
 
 1. **Assainir la citation reçue** (`citationSure`) : elle est RÉÉMISE en tête du bloc de sortie, sous la forme « <citation> — <VERDICT> ». Les blancs sont repliés sur une espace simple, les caractères de contrôle retirés, la longueur bornée à 200. Sans cela, un saut de ligne dans l'entrée insérerait une SECONDE ligne de cette même forme — un verdict forgé par le texte que l'outil sert précisément à mettre en doute. On replie plutôt qu'on refuse : une citation collée depuis un PDF porte souvent un retour à la ligne parasite, et la refuser transformerait une maladresse banale en échec.
-2. Analyser (§6). `unparsed` ⇒ `ILLISIBLE`. `reporter`/`publisher` ⇒ `NON CONSTRUCTIBLE` — et si `expected_title` est fourni, **enchaîner automatiquement** un `find_case` borné (± 1 an) et proposer les candidats.
-3. Cache `cases` (sauf `refresh`). Sinon `GET caseBrowse/{lang}/{db}/{caseId}/`, avec la boucle d'auto-correction (§6.4). Persister la fiche obtenue.
+2. Analyser (§6, D1, D21). `unparsed` ⇒ `ILLISIBLE`. `reporter`/`publisher` ou `canlii` sans parenthèses ⇒ `NON CONSTRUCTIBLE` — et si `expected_title` (ou l'intitulé relevé en tête de `citation`, `inlineTitle`) est fourni, **enchaîner automatiquement** un `find_case` borné (± 1 an) et proposer les candidats. Sur une forme résoluble dont l'année dépasse `annéeCourante + 1`, rendre `INTROUVABLE` sans appel sortant en signalant explicitement l'année future / invraisemblable (sans alléguer la diffusion récente).
+3. Cache bilingue `cases` (sauf `refresh`, seulement si la colonne de la langue demandée est non nulle ; migration `0007`). Sinon `GET caseBrowse/{lang}/{db}/{caseId}/`, avec la boucle d'auto-correction (§6.4). Persister la fiche obtenue sans écraser l'autre langue (`COALESCE`).
 4. **Toute issue qui n'est pas un constat ⇒ `INDÉTERMINÉE`**, et jamais `INTROUVABLE` : CanLII injoignable, `401`, `429`, expiration, budget d'appels du tour épuisé, et — *ajouté le 2026-09-17* — **réponse INEXPLOITABLE** : un `2xx` dont le corps n'est pas analysable, ou dont la lecture a été interrompue. Cette dernière est celle qu'on oublie, parce qu'elle arrive sous un statut de SUCCÈS : le connecteur a rendu « CanLII a renvoyé une erreur 200 » pendant tout le temps où elle n'avait pas de cause à elle. Le corps le dit en toutes lettres — « Ce n'est PAS un constat d'absence ». C'est l'invariant 9.
 5. `404` définitif ⇒ `INTROUVABLE`.
-6. Comparer : intitulé (§6.5), année de `decisionDate` contre `expected_year`. Concordance ⇒ `CONFIRMÉE` ; écart ⇒ `DISCORDANTE`, les deux valeurs affichées.
+6. Comparer : intitulé (§6.5) sur **à la fois** `expected_title` et `inlineTitle` contre tous les intitulés FR/EN mémorisés (avec au plus 1 repli vers l'autre langue sous budget avant de conclure `DISCORDANTE` ; si ce repli est interrompu par budget ou erreur sans écart d'année, rendre `INDÉTERMINÉE` plutôt que `DISCORDANTE`), plus l'année de `decisionDate` contre `expected_year`. Concordance ⇒ `CONFIRMÉE` ; écart ⇒ `DISCORDANTE`, les deux valeurs affichées.
    ⚠ **Un contrôle qui ne s'EXÉCUTE pas se DIT** (*2026-09-17*). Si `expected_year` est fourni et que la fiche ne porte AUCUNE date, la comparaison n'a pas lieu : elle doit alors produire un écart explicite — « l'année n'a PAS été vérifiée » — et donc `DISCORDANTE`. La condition portait jusqu'ici `expected_year && decision_date`, si bien que le contrôle **disparaissait sans un mot** et qu'une citation d'année fausse pouvait ressortir `CONFIRMÉE` sans avoir été comparée. C'est le mode de panne de §2 dans sa forme littérale : une incertitude connue transformée en assurance. Le verdict `DISCORDANTE` est délibéré (invariant 10) — mieux vaut un faux signalement qu'une fausse assurance.
 7. Consigner dans `search_log` (`tool`, `query`, `verdict`).
 
@@ -687,12 +687,12 @@ Gabarit de sortie : **Annexe A.1**.
 
 **Algorithme :**
 
-1. **Index local d'abord** : `cases_fts MATCH ?` filtré par `database_id` et par la fenêtre de dates. Résultats suffisants ⇒ renvoyer, en indiquant la provenance.
+1. **Validation de fenêtre d'abord, puis index local (D9)** : sans `database_id`, exiger une fenêtre d'au plus 3 ans **avant** de consulter l'index local ou de décider `live`. Interroger `cases_fts MATCH ?` filtré par `database_id` et par la fenêtre de dates, puis écarter le bruit pur de mots-clés et classer les résultats par concordance d'intitulé (`appariement` > `partiel`).
    ⚠ **La fenêtre s'applique à `decision_date` quand elle existe, et sinon à l'ANNÉE lue dans le préfixe du `caseId`** (*2026-09-17*). Une ligne moissonnée n'a pas de date ; le repli portait auparavant sur `neutral_cite`, qui n'existe pas avant 2000 — 1 634 des 1 819 lignes concernées en production n'en avaient aucune, et sortaient donc de **toute** recherche locale bornée par année. Le trou ne se voyait pas : une date fabriquée tenait le filtre en sous-main. L'année du préfixe est vraie, et elle est **éprouvée par différentiel** — 934 fiches sur 934 concordent avec la date rendue par CanLII, zéro divergence. Elle sert au filtrage et au classement (`anneeInferee`), **jamais au rendu** : une année n'est pas une date.
 2. **Balayage vif** si `live` (défaut : vrai lorsque l'index rend moins de trois candidats) : pour chaque année de la fenêtre, `GET caseBrowse/{lang}/{db}/?offset=0&resultCount=5000&decisionDateAfter=YYYY-01-01&decisionDateBefore=YYYY-12-31`, pagination par `offset` jusqu'à épuisement ou plafond de budget. `resultCount = 5000` et non le maximum de 10 000 : marge sous le plafond de 10 Mo.
 3. Filtrer côté Worker sur `title_norm` (§6.5). **Persister toutes les fiches moissonnées** si `PERSIST_SWEEPS` — c'est ainsi que l'index se construit (D6) — **les QUATRE champs que porte une liste, et pas un de plus**. Écriture par lots `db.batch()` de 100 énoncés.
    ⚠ **Aucune date n'est écrite, et aucune n'est rendue** (*2026-09-17*). La liste n'en porte pas (annexe B), et en déduire une de la fenêtre d'année inventerait le JOUR et le MOIS — l'année, elle, est vraie. Le gestionnaire l'a fait pendant des mois : Godbout c. Longueuil (Ville) ressortait au 1er janvier 1997 quand l'arrêt est du 31 octobre. Et la ligne étant persistée ainsi, le `COALESCE` de l'UPSERT faisait gagner la valeur non nulle : la date fabriquée **écrasait** la vraie date d'une fiche déjà résolue, sans rétrograder `source`. Ce qui se déduit d'une fenêtre, c'est une **année**, et une année n'est pas une date : voir `anneeInferee`, pour le filtrage et le classement, jamais pour le rendu.
-4. `database_id` absent : exiger une fenêtre de dates d'au plus 3 ans et balayer les bases québécoises usuelles (`qcca`, `qccs`, `qccq`) ; au-delà, refuser en demandant de préciser le tribunal.
+4. `database_id` absent : exiger une fenêtre de dates d'au plus 3 ans et balayer les bases québécoises usuelles (`csc-scc`, `qcca`, `qccs`, `qccq`) ; au-delà, refuser en demandant de préciser le tribunal.
 
 5. **Un balayage INTERROMPU s'annonce DANS L'EN-TÊTE**, que la liste rendue soit vide ou non. Il ne suffit pas d'une note en pied : une réserve placée sous « N candidats » corrige une affirmation déjà faite, ce que l'invariant 9(c) interdit. La ligne de troncature disparaît alors, et la note d'étranglement cesse d'affirmer que le résultat n'est « ni tronqué ni affaibli ». *La branche non vide ne le faisait pas avant le 2026-09-17.*
 
@@ -713,11 +713,11 @@ Paramètres : `citation` **ou** (`database_id` + `case_id`) ; `lang` ; `refresh`
 
 ### 7.4 `citator`
 
-> **Description :** « Citateur, sur la collection de CanLII : décisions citées PAR une décision (`cited`), décisions qui LA citent (`citing`), ou dispositions législatives qu'elle cite (`legislation`). Les listes sont brutes : elles n'indiquent aucun sens de traitement (suivi, distingué, infirmé), et leur exhaustivité est celle de la collection de CanLII. Pour les dispositions québécoises, enchaîner avec le connecteur « Législation du Québec » afin d'en lire le texte officiel. »
+> **Description :** « Citateur, sur la collection de CanLII : décisions citées PAR une décision (`cited`), décisions qui LA citent (`citing`), ou dispositions législatives qu'elle cite (`legislation`). Les listes sont brutes : elles n'indiquent aucun sens de traitement (suivi, distingué, infirmé), et leur exhaustivité est celle de la collection de CanLII. Pour les dispositions québécoises, enchaîner avec le connecteur « lois » afin d'en lire le texte officiel. L'API citateur de CanLII n'accepte que le chemin anglais (« caseCitator/en ») : avec « lang='fr' », les intitulés déjà présents en français dans le cache local sont substitués et ceux qui restent en anglais sont signalés. »
 
-Paramètres : `database_id`, `case_id` (ou `citation`), `rel` (`enum ["cited","citing","legislation"]`), `limit` (défaut et maximum : `LIMITES.citator`, §8), `offset`, `refresh`.
+Paramètres : `database_id`, `case_id` (ou `citation`), `rel` (`enum ["cited","citing","legislation"]`), `lang` (`enum ["fr","en"]`, défaut `"fr"`), `limit` (défaut et maximum : `LIMITES.citator`, §8), `offset`, `refresh`.
 
-> **Contrainte de l'API à coder en dur :** le chemin du citateur **n'accepte que `en`** comme segment de langue. Construire `caseCitator/en/{db}/{caseId}/{metadataType}` quel que soit le `lang` demandé, et rendre malgré tout la sortie en français. Ne pas exposer de paramètre `lang` sur cet outil.
+> **Contrainte de l'API et localisation par cache (D22) :** le chemin du citateur **n'accepte que `en`** comme segment de langue (`caseCitator/en/{db}/{caseId}/{metadataType}`). L'outil accepte `lang` (`"fr"` ou `"en"`), substitue les intitulés `title_fr` / `title_en` déjà présents dans le cache local `cases`, et signale explicitement `caseCitator/en` lorsque `lang="fr"` et que des intitulés restent ceux de l'API anglaise.
 
 Correspondance `rel` → `metadataType` : `cited` → `citedCases`, `citing` → `citingCases`, `legislation` → `citedLegislations`.
 
@@ -725,7 +725,9 @@ Correspondance `rel` → `metadataType` : `cited` → `citedCases`, `citing` →
 
 > **Description :** « Indice heuristique de sorts ultérieurs : parmi les décisions DE LA COLLECTION DE CANLII qui citent la décision de départ, retient celles qui émanent d'une juridiction supérieure et dont l'intitulé ressemble au sien. NE REMPLACE PAS un citateur professionnel : n'indique pas si la décision a été infirmée, confirmée ou distinguée, et ne détecte ni les pourvois pendants, ni les refus de permission d'appeler, ni les désistements. À vérifier systématiquement à la source. »
 
-Algorithme : `citing` ⇒ filtrer sur (a) `database_id` de rang supérieur selon la table de hiérarchie ci-dessous, (b) similarité d'intitulé ≥ 0,5 (§6.5), (c) `decisionDate` postérieure. Trier par date croissante.
+Paramètres : `database_id`, `case_id` (ou `citation`), `lang` (`enum ["fr","en"]`, défaut `"fr"`), `limit`, `refresh`.
+
+Algorithme : `citing` (`caseCitator/en`) ⇒ filtrer sur (a) `database_id` de rang supérieur selon la table de hiérarchie ci-dessous, (b) similarité d'intitulé ≥ 0,5 (§6.5) calculée sur toutes les variantes FR/EN connues, (c) `decisionDate` postérieure. Substituer les intitulés `title_fr` / `title_en` du cache local lorsqu'ils existent (et signaler `caseCitator/en` sinon), puis trier par date croissante.
 
 | Base de départ | Juridictions supérieures |
 |---|---|
@@ -760,7 +762,7 @@ Paramètres : `kind`, `jurisdiction`, `query` (recherche sur `name_norm`), `refr
 
 ### 7.9 `get_legislation`
 
-> **Description :** « Fiche CanLII d'une loi ou d'un règlement : citation, type, indicateur d'abrogation, découpage en parties, et les dates de la VERSION CONSOLIDÉE que CanLII sert. Ces dates bornent cette version, JAMAIS l'instrument : elles ne datent ni son entrée en vigueur ni son abrogation, et un texte en vigueur depuis des décennies peut porter une date de début toute récente. Le régime de dates de CanLII est rendu BRUT puis glosé, parce que ses valeurs ne disent pas la même chose : « ENTRY_INTO_FORCE » vise l'entrée en vigueur de la VERSION, « DOWNLOAD_DATE » le seul jour où CanLII a téléchargé le texte. Utile pour vérifier une abrogation, PAS pour dater une disposition. Pour le TEXTE d'une loi ou d'un règlement du Québec, utiliser le connecteur « Législation du Québec », qui rend le texte officiel verbatim. »
+> **Description :** « Fiche CanLII d'une loi ou d'un règlement : citation, type, indicateur d'abrogation, découpage en parties, et les dates de la VERSION CONSOLIDÉE que CanLII sert. Ces dates bornent cette version, JAMAIS l'instrument : elles ne datent ni son entrée en vigueur ni son abrogation, et un texte en vigueur depuis des décennies peut porter une date de début toute récente. Le régime de dates de CanLII est rendu BRUT puis glosé, parce que ses valeurs ne disent pas la même chose : « ENTRY_INTO_FORCE » vise l'entrée en vigueur de la VERSION, « DOWNLOAD_DATE » le seul jour où CanLII a téléchargé le texte. Utile pour vérifier une abrogation, PAS pour dater une disposition. Pour le TEXTE d'une loi ou d'un règlement du Québec, utiliser le connecteur « lois », qui rend le texte officiel verbatim. »
 
 Rendre `repealed` en français explicite (« Abrogé : oui / non »). **Ne JAMAIS rendre `dateScheme` brut et seul** : c'est un enum de CanLII documenté NULLE PART, dont deux valeurs sont observées — `ENTRY_INTO_FORCE` et `DOWNLOAD_DATE` — et elles ne disent pas la même chose. Le rendre BRUT entre guillemets **et** glosé d'une phrase par valeur connue ; pour toute autre valeur, « régime inconnu de ce connecteur ; n'en rien inférer » — c'est la règle d'`abroge()`, étendue. `startDate` et `endDate` se rendent en **UNE** fenêtre dont le SUJET est la version (« Version servie par CanLII : du … au … »), immédiatement suivie de `GARDE_VERSION_LEGISLATIVE`.
 
@@ -1312,7 +1314,7 @@ Vérification de 3 citation(s) — collection CanLII.
    Dunsmuir c. Nouveau-Brunswick
    [2008] 1 RCS 190, 2008 CSC 9 (CanLII) · csc-scc · 2008-03-07
    N° de dossier : 31459
-   Mots-clés : équité procédurale — raisonnabilité — arbitre — norme — contrôle judiciaire
+   Mots-clés (index CanLII, non vérifiés) : équité procédurale — raisonnabilité — arbitre — norme — contrôle judiciaire
    https://canlii.ca/t/1vxsn
 
 2. [1985] C.A. 105 — NON CONSTRUCTIBLE

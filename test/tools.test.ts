@@ -252,7 +252,7 @@ describe("§7.4 — citator", () => {
     expect(out.toLowerCase()).toContain("aucun sens de traitement");
   });
 
-  it("rend les dispositions citées et renvoie au connecteur Législation du Québec", async () => {
+  it("rend les dispositions citées et renvoie au connecteur « lois » (D14)", async () => {
     const client = fakeClient({
       "caseCitator/en/qcca/2005qcca304/citedLegislations": {
         citedLegislations: [
@@ -273,7 +273,8 @@ describe("§7.4 — citator", () => {
     );
     const out = texte(r);
     expect(out).toContain("Code civil du Québec");
-    expect(out).toContain("Législation du Québec");
+    expect(out).toContain("« lois »");
+    expect(out).toContain("caseCitator/en");
   });
 
   it("distingue « aucune » de « jamais demandé » et sert le cache ensuite", async () => {
@@ -296,14 +297,56 @@ describe("§7.4 — citator", () => {
     expect(client2.chemins).toHaveLength(0);
   });
 
-  it("n'expose AUCUN paramètre lang (le citateur n'accepte que « en »)", async () => {
-    const r = await callTool(
+  it("accepte lang='fr'|'en', substitue le cache local et divulgue caseCitator/en (D22)", async () => {
+    await env.DB.prepare(
+      `INSERT INTO cases (
+         database_id, case_id, lang, title, title_norm, title_fr, title_en, source, fetched_at
+       ) VALUES (
+         'csc-scc', '2008scc9', 'fr',
+         'Dunsmuir c. Nouveau-Brunswick', 'dunsmuir c nouveau brunswick',
+         'Dunsmuir c. Nouveau-Brunswick', 'Dunsmuir v. New Brunswick',
+         'lookup', '2026-07-23T00:00:00.000Z'
+       )`,
+    ).run();
+
+    const client = fakeClient({
+      "caseCitator/en/qcca/2005qcca304/citedCases": {
+        citedCases: [
+          {
+            databaseId: "csc-scc",
+            caseId: { en: "2008scc9" },
+            title: "Dunsmuir v. New Brunswick",
+            citation: "2008 SCC 9 (CanLII)",
+          },
+          {
+            databaseId: "qccs",
+            caseId: { en: "2004qccs1" },
+            title: "Other Decision Inc.",
+            citation: "2004 CanLII 1 (QC CS)",
+          },
+        ],
+      },
+    });
+    const rFr = await callTool(
       "citator",
-      { database_id: "qcca", case_id: "x", rel: "cited", lang: "fr" },
+      { database_id: "qcca", case_id: "2005qcca304", rel: "cited", lang: "fr" },
+      toolCtx(client),
+    );
+    const outFr = texte(rFr);
+    expect(rFr.isError).not.toBe(true);
+    expect(client.chemins[0]).toBe("caseCitator/en/qcca/2005qcca304/citedCases");
+    expect(outFr).toContain("Dunsmuir c. Nouveau-Brunswick");
+    expect(outFr).toContain("Other Decision Inc.");
+    expect(outFr).toContain("caseCitator/en");
+
+    const rEn = await callTool(
+      "citator",
+      { database_id: "qcca", case_id: "2005qcca304", rel: "cited", lang: "en" },
       toolCtx(fakeClient({})),
     );
-    expect(r.isError).toBe(true);
-    expect(texte(r)).toContain("n'est pas un argument reconnu");
+    const outEn = texte(rEn);
+    expect(outEn).toContain("Dunsmuir v. New Brunswick");
+    expect(outEn).not.toContain("Note de langue :");
   });
 
   it("refuse les deux formes à la fois", async () => {
@@ -513,6 +556,74 @@ describe("§7.5 — subsequent_history", () => {
     );
     expect(rOnlyDb.isError).toBe(true);
     expect(texte(rOnlyDb)).toContain("EXACTEMENT l'une des deux formes");
+  });
+
+  it("D22 : substitue l'intitulé français du cache et compare les intitulés FR/EN avant de filtrer", async () => {
+    await env.DB.prepare(
+      `INSERT INTO cases (
+         database_id, case_id, lang, title, title_norm, title_fr, title_en,
+         decision_date, source, fetched_at
+       ) VALUES (
+         'csc-scc', '2014csc55', 'fr',
+         'Banque de Montréal c. Marcotte', 'banque de montreal c marcotte',
+         'Banque de Montréal c. Marcotte', 'Bank of Montreal v. Marcotte',
+         '2014-09-19', 'lookup', '2026-07-23T00:00:00Z'
+       )`,
+    ).run();
+    const r = await callTool(
+      "subsequent_history",
+      { database_id: "qccs", case_id: "2018qccs1234", lang: "fr" },
+      toolCtx(
+        fakeClient({
+          "caseCitator/en/qccs/2018qccs1234/citingCases": {
+            citingCases: [
+              {
+                databaseId: "qcca",
+                caseId: { en: "2019qcca456" },
+                title: "Unetelle c. Untel",
+                citation: "2019 QCCA 456 (CanLII)",
+              },
+            ],
+          },
+        }),
+      ),
+    );
+    const out = texte(r);
+    expect(out).toContain("Unetelle c. Untel");
+    expect(out).toContain("caseCitator/en");
+
+    await env.DB.prepare(
+      `INSERT INTO cases (
+         database_id, case_id, lang, title, title_norm, title_fr, title_en,
+         decision_date, source, fetched_at
+       ) VALUES (
+         'qccs', '2012qccs1', 'fr',
+         'Marcotte c. Banque de Montréal', 'marcotte c banque de montreal',
+         'Marcotte c. Banque de Montréal', 'Marcotte v. Bank of Montreal',
+         '2012-01-01', 'lookup', '2026-07-23T00:00:00Z'
+       )`,
+    ).run();
+    const rCross = await callTool(
+      "subsequent_history",
+      { database_id: "qccs", case_id: "2012qccs1", lang: "fr" },
+      toolCtx(
+        fakeClient({
+          "caseCitator/en/qccs/2012qccs1/citingCases": {
+            citingCases: [
+              {
+                databaseId: "csc-scc",
+                caseId: { en: "2014csc55" },
+                title: "Bank of Montreal v. Marcotte",
+                citation: "2014 SCC 55 (CanLII)",
+              },
+            ],
+          },
+        }),
+      ),
+    );
+    const outCross = texte(rCross);
+    expect(outCross).toContain("Banque de Montréal c. Marcotte");
+    expect(outCross).not.toContain("Note de langue :");
   });
 });
 
@@ -725,6 +836,139 @@ describe("§7.2 — find_case", () => {
     );
     expect(texte(r)).toContain("n'établit pas l'inexistence");
   });
+
+  it("D9 : inclut csc-scc dans les bases québécoises usuelles sans database_id", async () => {
+    await seedDatabases();
+    const client = fakeClient({
+      "caseBrowse/fr/csc-scc/": {
+        cases: [
+          {
+            databaseId: "csc-scc",
+            caseId: { fr: "2014csc55" },
+            title: "Banque de Montréal c. Marcotte",
+            citation: "2014 CSC 55 (CanLII)",
+          },
+        ],
+      },
+      "caseBrowse/fr/qcca/": { cases: [] },
+      "caseBrowse/fr/qccs/": { cases: [] },
+      "caseBrowse/fr/qccq/": { cases: [] },
+    });
+    const r = await callTool(
+      "find_case",
+      { title: "Banque de Montréal c. Marcotte", year_from: 2014, year_to: 2014 },
+      toolCtx(client),
+    );
+    const out = texte(r);
+    expect(client.chemins[0]).toBe("caseBrowse/fr/csc-scc/");
+    expect(out).toContain("Banque de Montréal c. Marcotte");
+    expect(out).toContain("2014 CSC 55");
+  });
+
+  it("D9 : refuse une fenêtre > 3 ans sans tribunal même lorsque l'index local contient >= 3 lignes", async () => {
+    await seedDatabases();
+    const stmt = env.DB.prepare(
+      "INSERT INTO cases (database_id, case_id, title, title_norm, decision_date, source, fetched_at) VALUES (?,?,?,?,?,?,?)",
+    );
+    await env.DB.batch(
+      [1, 2, 3].map((i) =>
+        stmt.bind(
+          "qcca",
+          `2020qcca${i}`,
+          `Hydro-Québec c. Partie ${i}`,
+          `hydro quebec partie ${i}`,
+          "2020-05-01",
+          "lookup",
+          "2026-07-23T00:00:00Z",
+        ),
+      ),
+    );
+    const r = await callTool(
+      "find_case",
+      { title: "Hydro-Québec", year_from: 2010, year_to: 2020 },
+      toolCtx(fakeClient({})),
+    );
+    expect(r.isError).toBe(true);
+    expect(texte(r)).toContain("ne peut pas dépasser 3 ans");
+  });
+
+  it("D9 : écarte le bruit de mots-clés FTS et classe l'appariement d'intitulé avant les concordances partielles", async () => {
+    await seedDatabases();
+    const stmt = env.DB.prepare(
+      "INSERT INTO cases (database_id, case_id, title, title_norm, keywords, decision_date, source, fetched_at) VALUES (?,?,?,?,?,?,?,?)",
+    );
+    // 3 lignes dont SEULS les mots-clés contiennent « banque montreal marcotte »
+    await env.DB.batch([
+      stmt.bind(
+        "qcca",
+        "2014qcca1",
+        "Dupont c. Tremblay",
+        "dupont c tremblay",
+        "banque de montreal marcotte",
+        "2014-01-01",
+        "lookup",
+        "2026-07-23T00:00:00Z",
+      ),
+      stmt.bind(
+        "qcca",
+        "2014qcca2",
+        "Gagnon c. Leblanc",
+        "gagnon c leblanc",
+        "banque de montreal marcotte",
+        "2014-01-02",
+        "lookup",
+        "2026-07-23T00:00:00Z",
+      ),
+      stmt.bind(
+        "qcca",
+        "2014qcca3",
+        "Roy c. Pelletier",
+        "roy c pelletier",
+        "banque de montreal marcotte",
+        "2014-01-03",
+        "lookup",
+        "2026-07-23T00:00:00Z",
+      ),
+      // 1 appariement partiel dont les mots-clés complètent la conjonction FTS
+      stmt.bind(
+        "qccs",
+        "2014qccs4",
+        "Banque Nationale c. Marcotte",
+        "banque nationale c marcotte",
+        "cartes de credit montreal",
+        "2014-02-01",
+        "lookup",
+        "2026-07-23T00:00:00Z",
+      ),
+    ]);
+    const client = fakeClient({
+      "caseBrowse/fr/csc-scc/": {
+        cases: [
+          {
+            databaseId: "csc-scc",
+            caseId: { fr: "2014csc55" },
+            title: "Banque de Montréal c. Marcotte",
+            citation: "2014 CSC 55 (CanLII)",
+          },
+        ],
+      },
+    });
+    const r = await callTool(
+      "find_case",
+      { title: "Banque de Montréal c. Marcotte", year_from: 2014, year_to: 2014 },
+      toolCtx(client),
+    );
+    const out = texte(r);
+    // Le bruit de mots-clés ne doit PAS bloquer le balayage ni figurer dans la réponse.
+    expect(client.chemins).toContain("caseBrowse/fr/csc-scc/");
+    expect(out).not.toContain("Dupont c. Tremblay");
+    expect(out).not.toContain("Gagnon c. Leblanc");
+    expect(out).not.toContain("Roy c. Pelletier");
+    // L'appariement exact passe AVANT l'appariement partiel.
+    expect(out.indexOf("Banque de Montréal c. Marcotte")).toBeLessThan(
+      out.indexOf("Banque Nationale c. Marcotte"),
+    );
+  });
 });
 
 describe("§7.8 et §7.9 — législation", () => {
@@ -757,7 +1001,7 @@ describe("§7.8 et §7.9 — législation", () => {
     const out = texte(r);
     expect(out).toContain("Code civil du Québec");
     expect(out).not.toContain("Loi sur l'accès");
-    expect(out).toContain("Législation du Québec");
+    expect(out).toContain("« lois »");
   });
 
   /** Abrège les quatre appels de fiche législative qui suivent. */
@@ -796,7 +1040,7 @@ describe("§7.8 et §7.9 — législation", () => {
     expect(out).toContain("bornent la VERSION que CanLII sert, et non l'instrument");
     // La ligne qui rendait la lecture fausse possible ne doit PAS revenir.
     expect(out).not.toContain("Date de début :");
-    expect(out).toContain("Législation du Québec");
+    expect(out).toContain("« lois »");
   });
 
   it("DOWNLOAD_DATE ne se lit PAS comme ENTRY_INTO_FORCE", async () => {

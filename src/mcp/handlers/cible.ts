@@ -9,13 +9,20 @@
 import type { Lang } from "../../canlii/types";
 import { parseCitation, resolve } from "../../citation/parse";
 import { EXPLICATION_INDETERMINEE } from "../../format/render";
-import { getCachedCase } from "../../store/cases";
+import { collectCaseTitles, getCachedCase, projectCaseForLang } from "../../store/cases";
 import { loadDirectory } from "../../store/databases";
 import { lookupCase } from "../../store/lookup";
 import type { ToolContext } from "../registry";
 
 export type Cible =
-  | { ok: true; databaseId: string; caseId: string; titre: string | null; date: string | null }
+  | {
+      ok: true;
+      databaseId: string;
+      caseId: string;
+      titre: string | null;
+      titres: string[];
+      date: string | null;
+    }
   | { ok: false; message: string };
 
 export async function resoudreCible(
@@ -43,9 +50,10 @@ export async function resoudreCible(
   const parIds = bothIds;
 
   if (parIds) {
-    // L'intitulé n'est pas indispensable ici : s'il est en cache, on l'affiche ; sinon
-    // on travaille sur les identifiants seuls plutôt que de dépenser un appel.
+    // L'intitulé n'est pas indispensable ici : s'il est en cache, on le projette dans
+    // la langue demandée (D22) ; sinon on travaille sur les identifiants seuls.
     const cache = await getCachedCase(ctx.db, databaseId!, caseId!);
+    const projetee = cache ? projectCaseForLang(cache, lang) : null;
     return {
       ok: true,
       databaseId: databaseId!,
@@ -53,7 +61,8 @@ export async function resoudreCible(
       // L'INTITULÉ d'une ligne de balayage est celui que CanLII rend dans SA liste :
       // vrai, et utile au seuil de similarité. On le garde, quelle que soit la
       // provenance — le refuser dégraderait le classement sans rien gagner en vérité.
-      titre: cache?.title ?? null,
+      titre: projetee?.title ?? null,
+      titres: cache ? collectCaseTitles(cache) : [],
       // La DATE, non : invariant 3(a). Elle sert de borne de POSTÉRIORITÉ à
       // `subsequent_history`, et une ligne de balayage n'en a pas. `getCachedCase` ne
       // filtre pas sur `source`, là où `lookupCase` et `getCase` le font tous deux : la
@@ -111,6 +120,7 @@ ${EXPLICATION_INDETERMINEE}`,
     databaseId: lookup.row.database_id,
     caseId: lookup.row.case_id,
     titre: lookup.row.title,
+    titres: collectCaseTitles(lookup.row),
     date: lookup.row.decision_date,
   };
 }

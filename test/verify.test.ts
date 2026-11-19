@@ -361,3 +361,172 @@ describe("validation des arguments (§8)", () => {
     expect(r.isError).toBe(true);
   });
 });
+
+const MARCOTTE_FR = {
+  databaseId: "csc-scc",
+  caseId: { fr: "2014csc55", en: "2014scc55" },
+  title: "Banque de Montréal c. Marcotte",
+  citation: "[2014] 2 RCS 725, 2014 CSC 55 (CanLII)",
+  decisionDate: "2014-09-19",
+  docketNumber: "35009",
+  keywords: "banques — recours collectif — cartes de crédit",
+  url: "https://canlii.ca/t/gdw7t",
+  concatenatedId: "2014csc-scc55",
+};
+
+const MARCOTTE_EN = {
+  databaseId: "csc-scc",
+  caseId: { fr: "2014csc55", en: "2014scc55" },
+  title: "Bank of Montreal v. Marcotte",
+  citation: "[2014] 2 SCR 725, 2014 SCC 55 (CanLII)",
+  decisionDate: "2014-09-19",
+  docketNumber: "35009",
+  keywords: "banks — class actions — credit cards",
+  url: "https://canlii.ca/t/gdw7s",
+  concatenatedId: "2014csc-scc55",
+};
+
+describe("D1, D2, D21 & D23 — intitulé de tête, cache bilingue, années futures et mots-clés", () => {
+  it("D1 : intitulé faux en tête de citation rend DISCORDANTE même sans expected_title", async () => {
+    const { texte: t } = await verifier([{ citation: "Lambda c. Oméga, 2014 CSC 55" }], {
+      "caseBrowse/fr/csc-scc/2014csc55/": MARCOTTE_FR,
+      "caseBrowse/en/csc-scc/2014csc55/": MARCOTTE_EN,
+    });
+    expect(t).toContain("DISCORDANTE");
+    expect(t).toContain("Intitulé attendu : « Lambda c. Oméga »");
+    expect(t).toContain("Banque de Montréal c. Marcotte");
+  });
+
+  it("D1 : compare à la fois expected_title ET l'intitulé relevé en tête de citation", async () => {
+    const { texte: t } = await verifier(
+      [
+        {
+          citation: "Lambda c. Oméga, 2014 CSC 55",
+          expected_title: "Banque de Montréal c. Marcotte",
+        },
+      ],
+      {
+        "caseBrowse/fr/csc-scc/2014csc55/": MARCOTTE_FR,
+        "caseBrowse/en/csc-scc/2014csc55/": MARCOTTE_EN,
+      },
+    );
+    expect(t).toContain("DISCORDANTE");
+    expect(t).toContain("Intitulé (dans la citation) attendu : « Lambda c. Oméga »");
+  });
+
+  it("D2 : Bank of Montreal v. Marcotte, 2014 SCC 55 est CONFIRMÉE en lang='fr' ET lang='en' dans tous les états du cache", async () => {
+    const routes = {
+      "caseBrowse/fr/csc-scc/2014scc55/": MARCOTTE_FR,
+      "caseBrowse/en/csc-scc/2014scc55/": MARCOTTE_EN,
+    };
+
+    // 1. Cache froid en lang='fr' : appelle FR puis EN pour confirmer l'intitulé anglais.
+    const c1 = fakeClient(routes);
+    const r1 = texte(
+      await callTool(
+        "verify_citations",
+        { citations: [{ citation: "Bank of Montreal v. Marcotte, 2014 SCC 55" }], lang: "fr" },
+        toolCtx(c1),
+      ),
+    );
+    expect(r1).toContain("CONFIRMÉE");
+    expect(c1.chemins).toEqual([
+      "caseBrowse/fr/csc-scc/2014scc55/",
+      "caseBrowse/en/csc-scc/2014scc55/",
+    ]);
+
+    // 2. Cache déjà bilingue : lang='fr' ET lang='en' confirment avec ZERO appel sortant.
+    const c2 = fakeClient({});
+    const r2Fr = texte(
+      await callTool(
+        "verify_citations",
+        { citations: [{ citation: "Bank of Montreal v. Marcotte, 2014 SCC 55" }], lang: "fr" },
+        toolCtx(c2),
+      ),
+    );
+    const r2En = texte(
+      await callTool(
+        "verify_citations",
+        { citations: [{ citation: "Bank of Montreal v. Marcotte, 2014 SCC 55" }], lang: "en" },
+        toolCtx(c2),
+      ),
+    );
+    expect(r2Fr).toContain("CONFIRMÉE");
+    expect(r2En).toContain("CONFIRMÉE");
+    expect(c2.chemins).toEqual([]);
+
+    // 3. Cache FR-seulement au départ, puis vérification en lang='en'.
+    await resetDb();
+    await seedDatabases();
+    await callTool(
+      "verify_citations",
+      { citations: [{ citation: "2014 SCC 55" }], lang: "fr" },
+      toolCtx(fakeClient(routes)),
+    );
+    const c3 = fakeClient(routes);
+    const r3 = texte(
+      await callTool(
+        "verify_citations",
+        { citations: [{ citation: "Bank of Montreal v. Marcotte, 2014 SCC 55" }], lang: "fr" },
+        toolCtx(c3),
+      ),
+    );
+    expect(r3).toContain("CONFIRMÉE");
+    expect(c3.chemins).toEqual(["caseBrowse/en/csc-scc/2014scc55/"]);
+
+    // 4. Cache EN-seulement au départ, puis vérification FR avec intitulé FR.
+    await resetDb();
+    await seedDatabases();
+    await callTool(
+      "verify_citations",
+      { citations: [{ citation: "2014 SCC 55" }], lang: "en" },
+      toolCtx(fakeClient(routes)),
+    );
+    const c4 = fakeClient(routes);
+    const r4 = texte(
+      await callTool(
+        "verify_citations",
+        { citations: [{ citation: "Banque de Montréal c. Marcotte, 2014 SCC 55" }], lang: "en" },
+        toolCtx(c4),
+      ),
+    );
+    expect(r4).toContain("CONFIRMÉE");
+    expect(c4.chemins).toEqual(["caseBrowse/fr/csc-scc/2014scc55/"]);
+  });
+
+  it("D2 : respecte le budget si la seconde langue est bloquée par le plafond d'appels", async () => {
+    const client = fakeClient({ "caseBrowse/fr/csc-scc/2014scc55/": MARCOTTE_FR }, { maxCalls: 1 });
+    const r = texte(
+      await callTool(
+        "verify_citations",
+        { citations: [{ citation: "Bank of Montreal v. Marcotte, 2014 SCC 55" }], lang: "fr" },
+        toolCtx(client),
+      ),
+    );
+    expect(r).toContain("INDÉTERMINÉE");
+    expect(client.chemins).toEqual(["caseBrowse/fr/csc-scc/2014scc55/"]);
+  });
+
+  it("D21 : une année future ou invraisemblable (2099 QCCA 9999) signale l'année sans alléguer la « diffusion récente » ni appeler CanLII", async () => {
+    const client = fakeClient({});
+    const r = texte(
+      await callTool(
+        "verify_citations",
+        { citations: [{ citation: "2099 QCCA 9999" }] },
+        toolCtx(client),
+      ),
+    );
+    expect(client.chemins).toEqual([]);
+    expect(r).toContain("INTROUVABLE");
+    expect(r).toMatch(/future|invraisemblable/i);
+    expect(r).not.toContain("diffusion récente");
+  });
+
+  it("D21 & D23 : résout une forme brute concaténée et étiquette les mots-clés comme index CanLII non vérifiés", async () => {
+    const { texte: t } = await verifier([{ citation: "2005qcca304" }], {
+      [CHEMIN_HYDRO]: qcca2005,
+    });
+    expect(t).toContain("CONFIRMÉE");
+    expect(t).toContain("Mots-clés (index CanLII, non vérifiés) :");
+  });
+});

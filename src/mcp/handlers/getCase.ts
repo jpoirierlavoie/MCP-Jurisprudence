@@ -18,7 +18,13 @@ import {
   GARDE_VERIFICATION,
   TEXTE_NON_EXPOSE,
 } from "../../format/render";
-import { getCachedCase, rowFromMetadata, upsertCase } from "../../store/cases";
+import {
+  getCachedCase,
+  hasLangCached,
+  projectCaseForLang,
+  rowFromMetadata,
+  upsertCase,
+} from "../../store/cases";
 import { loadDirectory } from "../../store/databases";
 import { lookupCase } from "../../store/lookup";
 import type { ToolContext } from "../registry";
@@ -52,12 +58,9 @@ export async function getCase(
       const cache = await getCachedCase(ctx.db, databaseId!, caseId!);
       // Même barrière que dans lookupCase (src/store/lookup.ts) : une ligne de
       // balayage (4 champs — ni date, ni numéro de dossier, ni hyperlien) ne peut
-      // pas tenir lieu de fiche. La servir rendrait un document amputé étiqueté
-      // « index local », alors que l'outil promet la fiche complète. Elle force
-      // donc l'appel, dont la fiche pleine prend la place (source « lookup »,
-      // qu'un balayage ultérieur ne rétrograde pas — voir l'UPSERT).
-      if (cache && cache.source === "lookup") {
-        return ok(rendre(cache, "index local"));
+      // pas tenir lieu de fiche, et la langue demandée doit être en cache (D2).
+      if (cache && cache.source === "lookup" && hasLangCached(cache, lang)) {
+        return ok(rendre(projectCaseForLang(cache, lang), "index local"));
       }
     }
     try {
@@ -69,9 +72,11 @@ export async function getCase(
         { databaseId: databaseId!, caseId: caseId! },
         "lookup",
         now,
+        lang,
       );
       await upsertCase(ctx.db, row);
-      return ok(rendre(row, "CanLII"));
+      const stored = (await getCachedCase(ctx.db, databaseId!, caseId!)) ?? row;
+      return ok(rendre(projectCaseForLang(stored, lang), "CanLII"));
     } catch (e) {
       relancerSiInterruptionGouverne(e);
       // SEUL un 404 constate une absence. Ce `catch` attrapait aussi les 401, 429,

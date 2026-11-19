@@ -1,18 +1,22 @@
 /**
  * `citator` (spécification §7.4).
  *
- * ⚠ CONTRAINTE DE L'API CODÉE EN DUR : le chemin du citateur n'accepte QUE `en` comme
- *   segment de langue (annexe B). On construit `caseCitator/en/…` quelle que soit la
- *   langue et l'on rend malgré tout la sortie en français. C'est pourquoi cet outil
- *   n'expose AUCUN paramètre `lang` : en exposer un serait mensonger.
+ * ⚠ CONTRAINTE DE L'API CODÉE EN DUR : le chemin du citateur de CanLII n'accepte
+ *   QUE `en` comme segment de langue (`caseCitator/en/…`, annexe B).
+ *   Lorsqu'une langue d'affichage (`fr` par défaut, ou `en`) est demandée, on
+ *   projette la décision de départ et on substitue les intitulés `title_fr` /
+ *   `title_en` déjà présents dans le cache local `cases`. Lorsque `lang = "fr"` et
+ *   que des intitulés restent ceux retournés par `caseCitator/en`, une mention
+ *   explicite l'indique en pied de sortie (D22).
  */
 
 import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
 import { relancerSiInterruptionGouverne } from "../../canlii/errors";
-import type { CitatorRel } from "../../canlii/types";
+import type { CitatorRel, Lang } from "../../canlii/types";
 import { nombreFr, pluriel, troncature } from "../../format/fr";
 import { document, GARDE_CITATEUR } from "../../format/render";
+import { getCachedBatch, titleForLang } from "../../store/cases";
 import {
   type EdgeRow,
   edgeStale,
@@ -35,13 +39,14 @@ export async function citator(
   ctx: ToolContext,
 ): Promise<ToolResult> {
   const rel = args.rel as CitatorRel;
+  const lang: Lang = args.lang === "en" ? "en" : "fr";
   const bornes = LIMITES.citator;
   const limit = Math.min(Math.max((args.limit as number) ?? bornes.defaut, 1), bornes.max);
   const offset = Math.max((args.offset as number) ?? 0, 0);
   const refresh = args.refresh === true;
   const now = ctx.now ?? new Date();
 
-  const cible = await resoudreCible(args, ctx, now);
+  const cible = await resoudreCible(args, ctx, now, lang);
   if (!cible.ok) return err(cible.message);
   const { databaseId, caseId, titre } = cible;
 
@@ -79,7 +84,38 @@ export async function citator(
     );
   }
 
-  const blocs = page.map((e) => rendreArete(e, rel));
+  const couples =
+    rel === "legislation"
+      ? []
+      : page
+          .filter((e): e is EdgeRow & { to_database_id: string; to_case_id: string } =>
+            Boolean(e.to_database_id && e.to_case_id),
+          )
+          .map((e) => [e.to_database_id, e.to_case_id] as const);
+  const caches = couples.length > 0 ? await getCachedBatch(ctx.db, couples) : new Map();
+
+  let restentNonLocalises = false;
+  const blocs = page.map((e) => {
+    if (rel === "legislation") {
+      restentNonLocalises = true;
+      return rendreArete(e, rel, e.to_title);
+    }
+    const cache =
+      e.to_database_id && e.to_case_id
+        ? caches.get(`${e.to_database_id}/${e.to_case_id}`)
+        : undefined;
+    const titreCache = cache ? titleForLang(cache, lang) : null;
+    if (lang === "fr" && !titreCache) {
+      restentNonLocalises = true;
+    }
+    return rendreArete(e, rel, titreCache ?? e.to_title);
+  });
+
+  const noteLangue =
+    lang === "fr" && restentNonLocalises
+      ? "Note de langue : l'API citateur de CanLII n'accepte que le point de terminaison « caseCitator/en » — les intitulés absents en français du cache local restent tels que retournés par l'API anglaise."
+      : null;
+
   const tronque = troncature(offset + page.length, aretes.length);
   const entete = `${LIBELLE[rel]} — ${pluriel(aretes.length, "référence", "références")}.\n${depart}`;
   const pied = [
@@ -88,6 +124,7 @@ export async function citator(
     rel === "citing"
       ? "Liste rafraîchie au plus tous les 30 jours : elle croît indéfiniment."
       : "Ce qu'une décision cite est figé au jour de son prononcé : cette liste ne change plus.",
+    noteLangue,
     "",
     GARDE_CITATEUR,
   ]
@@ -97,8 +134,8 @@ export async function citator(
   return ok(document(entete, blocs, pied));
 }
 
-function rendreArete(e: EdgeRow, rel: CitatorRel): string {
-  const lignes = [e.to_title ?? "(intitulé absent)"];
+function rendreArete(e: EdgeRow, rel: CitatorRel, titreAffiche: string | null): string {
+  const lignes = [titreAffiche ?? "(intitulé absent)"];
   const ids =
     rel === "legislation"
       ? [e.to_database_id, e.to_legislation_id].filter(Boolean).join(" / ")
