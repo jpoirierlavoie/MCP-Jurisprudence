@@ -6,7 +6,7 @@
  * l'argument `refresh` des outils, jamais par un TTL.
  */
 
-import type { CaseListItem, CaseMetadata } from "../canlii/types";
+import type { CaseListItem, CaseMetadata, Lang } from "../canlii/types";
 import { flattenCaseId, fold, normalizeNeutral } from "../citation/normalize";
 import { parseCitation } from "../citation/parse";
 import { batchWrite } from "./databases";
@@ -18,12 +18,18 @@ export interface CaseRow {
   lang: string | null;
   title: string;
   title_norm: string;
+  title_fr: string | null;
+  title_en: string | null;
   citation: string | null;
   neutral_cite: string | null;
   docket_number: string | null;
   decision_date: string | null;
   keywords: string | null;
+  keywords_fr: string | null;
+  keywords_en: string | null;
   url: string | null;
+  url_fr: string | null;
+  url_en: string | null;
   concatenated_id: string | null;
   source: string;
   fetched_at: string;
@@ -49,9 +55,15 @@ export function rowFromMetadata(
   fallback: { databaseId: string; caseId: string },
   source: Source,
   now: Date = new Date(),
+  requestedLang?: Lang,
 ): CaseRow {
   const flat = flattenCaseId(meta.caseId);
   const title = (meta.title ?? "").trim() || "(intitulé absent)";
+  const langDetectee = flat?.lang ?? meta.language ?? null;
+  const effectiveLang: Lang | null =
+    requestedLang ?? (langDetectee === "en" ? "en" : langDetectee === "fr" ? "fr" : null);
+  const keywords = meta.keywords ?? null;
+  const url = meta.url ?? null;
   return {
     // ⚠ La ligne est clée par ce QUE L'ON A DEMANDÉ, pas par ce que CanLII renvoie.
     //
@@ -67,15 +79,21 @@ export function rowFromMetadata(
     //   `concatenated_id` porte la forme canonique — rien n'est perdu.
     database_id: fallback.databaseId || meta.databaseId || "",
     case_id: fallback.caseId || flat?.caseId || "",
-    lang: flat?.lang ?? meta.language ?? null,
+    lang: langDetectee ?? effectiveLang,
     title,
     title_norm: fold(title),
+    title_fr: effectiveLang === "fr" ? title : null,
+    title_en: effectiveLang === "en" ? title : null,
     citation: meta.citation ?? null,
     neutral_cite: extractNeutral(meta.citation),
     docket_number: meta.docketNumber ?? null,
     decision_date: meta.decisionDate ?? null,
-    keywords: meta.keywords ?? null,
-    url: meta.url ?? null,
+    keywords,
+    keywords_fr: effectiveLang === "fr" ? keywords : null,
+    keywords_en: effectiveLang === "en" ? keywords : null,
+    url,
+    url_fr: effectiveLang === "fr" ? url : null,
+    url_en: effectiveLang === "en" ? url : null,
     concatenated_id: meta.concatenatedId ?? null,
     source,
     fetched_at: now.toISOString(),
@@ -104,6 +122,8 @@ export function rowFromListItem(
     lang: flat.lang,
     title,
     title_norm: fold(title),
+    title_fr: null,
+    title_en: null,
     citation: item.citation ?? null,
     neutral_cite: neutral,
     docket_number: null,
@@ -119,11 +139,64 @@ export function rowFromListItem(
     //   précisément ce qui a permis au défaut de vivre. Corrigé le 2026-09-17.
     decision_date: null,
     keywords: null,
+    keywords_fr: null,
+    keywords_en: null,
     url: null,
+    url_fr: null,
+    url_en: null,
     concatenated_id: null,
     source,
     fetched_at: now.toISOString(),
   };
+}
+
+/** Indique si la version linguistique demandée a déjà été mémorisée pour cette fiche. */
+export function hasLangCached(row: CaseRow, lang: Lang): boolean {
+  return (lang === "en" ? row.title_en : row.title_fr) != null;
+}
+
+/**
+ * Projette une fiche bilingue vers la langue demandée (`title`, `url`, `keywords`),
+ * avec repli sur les colonnes stockées si CanLII n'offre qu'une seule langue.
+ */
+export function projectCaseForLang(row: CaseRow, lang: Lang): CaseRow {
+  if (lang === "en") {
+    const hasEn = row.title_en != null;
+    const title = hasEn ? row.title_en! : row.title;
+    return {
+      ...row,
+      title,
+      title_norm: fold(title),
+      url: hasEn ? (row.url_en ?? row.url) : row.url,
+      keywords: hasEn ? (row.keywords_en ?? null) : row.keywords,
+    };
+  }
+  const hasFr = row.title_fr != null;
+  const title = hasFr ? row.title_fr! : row.title;
+  return {
+    ...row,
+    title,
+    title_norm: fold(title),
+    url: hasFr ? (row.url_fr ?? row.url) : row.url,
+    keywords: hasFr ? (row.keywords_fr ?? null) : row.keywords,
+  };
+}
+
+/** Renvoie l'intitulé connu dans `lang` pour le citateur / sorts ultérieurs, sinon null. */
+export function titleForLang(row: CaseRow, lang: Lang): string | null {
+  if (lang === "en") {
+    return row.title_en ?? (row.lang === "en" ? row.title : null);
+  }
+  return row.title_fr ?? (row.lang === "fr" ? row.title : null);
+}
+
+/** Tous les intitulés distincts connus sur une fiche (`title`, `title_fr`, `title_en`). */
+export function collectCaseTitles(row: Pick<CaseRow, "title" | "title_fr" | "title_en">): string[] {
+  const vus = new Set<string>();
+  for (const t of [row.title, row.title_fr, row.title_en]) {
+    if (typeof t === "string" && t.trim().length > 0) vus.add(t);
+  }
+  return [...vus];
 }
 
 /**
@@ -135,8 +208,9 @@ export function rowFromListItem(
  *   l'index correctement sur ce chemin-ci, et sur celui-là seulement.
  *
  * COALESCE sur les champs riches : un BALAYAGE (liste, 4 champs) ne doit pas écraser
- * une fiche déjà obtenue par RÉSOLUTION DIRECTE (12 champs) en y remettant des NULL.
- * Le cas se produit dès qu'on vérifie une citation puis qu'on balaie son tribunal.
+ * une fiche déjà obtenue par RÉSOLUTION DIRECTE en y remettant des NULL, ni un appel
+ * en anglais effacer les colonnes françaises (`title_fr`, `url_fr`, `keywords_fr`) et
+ * réciproquement.
  *
  * ⚠ LE SENS INVERSE COMPTE AUTANT, et c'est pourquoi une ligne de balayage DOIT porter
  *   `decision_date = NULL`. COALESCE fait gagner `excluded` dès qu'il est NON NUL : une
@@ -154,19 +228,27 @@ export function rowFromListItem(
  * recroise TOUTES ses fiches à chaque passage : le cache ne servirait jamais.
  */
 const UPSERT = `
-INSERT INTO cases (database_id, case_id, lang, title, title_norm, citation, neutral_cite,
-                   docket_number, decision_date, keywords, url, concatenated_id, source, fetched_at)
-VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+INSERT INTO cases (database_id, case_id, lang, title, title_norm, title_fr, title_en,
+                   citation, neutral_cite, docket_number, decision_date,
+                   keywords, keywords_fr, keywords_en, url, url_fr, url_en,
+                   concatenated_id, source, fetched_at)
+VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 ON CONFLICT(database_id, case_id) DO UPDATE SET
   lang            = COALESCE(excluded.lang, cases.lang),
   title           = excluded.title,
   title_norm      = excluded.title_norm,
+  title_fr        = COALESCE(excluded.title_fr, cases.title_fr),
+  title_en        = COALESCE(excluded.title_en, cases.title_en),
   citation        = COALESCE(excluded.citation, cases.citation),
   neutral_cite    = COALESCE(excluded.neutral_cite, cases.neutral_cite),
   docket_number   = COALESCE(excluded.docket_number, cases.docket_number),
   decision_date   = COALESCE(excluded.decision_date, cases.decision_date),
   keywords        = COALESCE(excluded.keywords, cases.keywords),
+  keywords_fr     = COALESCE(excluded.keywords_fr, cases.keywords_fr),
+  keywords_en     = COALESCE(excluded.keywords_en, cases.keywords_en),
   url             = COALESCE(excluded.url, cases.url),
+  url_fr          = COALESCE(excluded.url_fr, cases.url_fr),
+  url_en          = COALESCE(excluded.url_en, cases.url_en),
   concatenated_id = COALESCE(excluded.concatenated_id, cases.concatenated_id),
   source          = CASE WHEN cases.source = 'lookup' THEN 'lookup' ELSE excluded.source END,
   fetched_at      = excluded.fetched_at`;
@@ -178,12 +260,18 @@ function bindRow(stmt: D1PreparedStatement, r: CaseRow): D1PreparedStatement {
     r.lang,
     r.title,
     r.title_norm,
+    r.title_fr,
+    r.title_en,
     r.citation,
     r.neutral_cite,
     r.docket_number,
     r.decision_date,
     r.keywords,
+    r.keywords_fr,
+    r.keywords_en,
     r.url,
+    r.url_fr,
+    r.url_en,
     r.concatenated_id,
     r.source,
     r.fetched_at,
@@ -227,25 +315,55 @@ export async function getCachedCase(
 }
 
 /**
- * Cherche la PREMIÈRE fiche en cache parmi plusieurs couples (database_id, case_id).
+ * Cherche TOUTES les fiches en cache parmi plusieurs couples (database_id, case_id).
  *
  * Nécessaire parce que CanLII classe ses fiches sous un caseId propre à la langue
  * (« 2008csc9 ») qui n'est pas toujours celui que l'analyseur construit
- * (« 2008scc9 ») : n'interroger que l'identifiant construit ferait manquer le cache
- * indéfiniment. Voir `lookupCase` (src/store/lookup.ts).
+ * (« 2008scc9 ») : retourner toutes les candidates permet à `lookupCase` de vérifier
+ * si la langue demandée existe déjà et de fusionner FR/EN sans manquer le cache.
  */
-export async function getCachedAny(
+export async function getCachedCandidates(
   db: D1Database,
   couples: ReadonlyArray<readonly [string, string]>,
-): Promise<CaseRow | null> {
-  if (couples.length === 0) return null;
+): Promise<CaseRow[]> {
+  if (couples.length === 0) return [];
   const clauses = couples.map(() => "(database_id = ? AND case_id = ?)").join(" OR ");
   const binds = couples.flat();
   const r = await db
-    .prepare(`SELECT * FROM cases WHERE ${clauses} LIMIT 1`)
+    .prepare(`SELECT * FROM cases WHERE ${clauses}`)
     .bind(...binds)
-    .first<CaseRow>();
-  return r ?? null;
+    .all<CaseRow>();
+  return r.results ?? [];
+}
+
+/** Lot de fiches par couples (database_id, case_id), découpé sous le plafond de paramètres D1. */
+export async function getCachedBatch(
+  db: D1Database,
+  couples: ReadonlyArray<readonly [string, string]>,
+): Promise<Map<string, CaseRow>> {
+  const parClef = new Map<string, CaseRow>();
+  if (couples.length === 0) return parClef;
+  const uniques: Array<readonly [string, string]> = [];
+  const vus = new Set<string>();
+  for (const [dbId, cId] of couples) {
+    const clef = `${dbId}/${cId}`;
+    if (vus.has(clef)) continue;
+    vus.add(clef);
+    uniques.push([dbId, cId]);
+  }
+  const PAR_LOT = 40;
+  for (let i = 0; i < uniques.length; i += PAR_LOT) {
+    const lot = uniques.slice(i, i + PAR_LOT);
+    const clauses = lot.map(() => "(database_id = ? AND case_id = ?)").join(" OR ");
+    const r = await db
+      .prepare(`SELECT * FROM cases WHERE ${clauses}`)
+      .bind(...lot.flat())
+      .all<CaseRow>();
+    for (const row of r.results ?? []) {
+      parClef.set(`${row.database_id}/${row.case_id}`, row);
+    }
+  }
+  return parClef;
 }
 
 /**
@@ -353,7 +471,7 @@ export async function searchLocal(
          -- SQLite trie NULL SOUS toute valeur : en DESC, les lignes sans date tombent
          -- donc naturellement en dernier, ce qui est l'ordre voulu. Pas de NULLS LAST —
          -- il ne changerait rien et laisserait croire que le défaut est risqué.
-         ORDER BY bm25(cases_fts), c.decision_date DESC
+         ORDER BY bm25(cases_fts, 10.0, 1.0, 0.0, 0.0), c.decision_date DESC
          LIMIT ?`,
       )
       .bind(...binds, limit)

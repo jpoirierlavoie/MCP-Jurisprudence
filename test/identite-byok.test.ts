@@ -104,14 +104,17 @@ async function amorcerDunsmuirEnCache(fetchedAt = "2026-07-23T14:35:59.987Z"): P
   await seedDatabases();
   await env.DB.prepare(
     `INSERT INTO cases (
-       database_id, case_id, lang, title, title_norm, citation, neutral_cite,
-       docket_number, decision_date, keywords, url, concatenated_id, source, fetched_at
+       database_id, case_id, lang, title, title_norm, title_fr, citation, neutral_cite,
+       docket_number, decision_date, keywords, keywords_fr, url, url_fr,
+       concatenated_id, source, fetched_at
      ) VALUES (
        'csc-scc', '2008csc9', 'fr',
        'Dunsmuir c. Nouveau-Brunswick', 'dunsmuir c nouveau brunswick',
+       'Dunsmuir c. Nouveau-Brunswick',
        '2008 CSC 9 (CanLII)', '2008 CSC 9',
-       '31459', '2008-03-07', 'contrôle judiciaire',
-       'https://canlii.ca/t/1vxsm', '2008csc9', 'lookup', ?1
+       '31459', '2008-03-07', 'contrôle judiciaire', 'contrôle judiciaire',
+       'https://canlii.ca/t/1vxsm', 'https://canlii.ca/t/1vxsm',
+       '2008csc9', 'lookup', ?1
      )`,
   )
     .bind(fetchedAt)

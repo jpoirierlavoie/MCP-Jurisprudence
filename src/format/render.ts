@@ -45,7 +45,7 @@ export const GARDE_SORTS_PIED =
 export const GARDE_CITATEUR =
   "Listes brutes : elles n'indiquent AUCUN sens de traitement (suivi, distingué,\n" +
   "infirmé). Pour les dispositions québécoises, enchaîner avec le connecteur\n" +
-  "« Législation du Québec » afin d'en lire le texte officiel.";
+  "« lois » afin d'en lire le texte officiel.";
 
 /**
  * Note d'ÉTRANGLEMENT — rendue seulement quand CanLII a effectivement refusé des
@@ -203,13 +203,13 @@ export const TEXTE_NON_EXPOSE =
 /** `get_legislation` — pied. */
 export const LEGISLATION_METADONNEES =
   "Métadonnées seulement — l'API de CanLII ne rend pas le texte. Pour le TEXTE d'une\n" +
-  "loi ou d'un règlement du Québec, employer le connecteur « Législation du Québec »,\n" +
+  "loi ou d'un règlement du Québec, employer le connecteur « lois »,\n" +
   "qui rend le texte officiel verbatim.";
 
 /** `browse_legislation` — pied. Texte VOISIN du précédent, et distinct. */
 export const LEGISLATION_METADONNEES_LISTE =
   "Métadonnées seulement. Pour le TEXTE d'une loi ou d'un règlement du Québec,\n" +
-  "employer le connecteur « Législation du Québec », qui rend le texte officiel verbatim.";
+  "employer le connecteur « lois », qui rend le texte officiel verbatim.";
 
 /** `parse_citation` — pied inconditionnel. */
 export const DIAGNOSTIC_SEULEMENT =
@@ -251,7 +251,7 @@ export function lien(row: { url: string | null }): string | null {
  *   Dunsmuir c. Nouveau-Brunswick
  *   [2008] 1 RCS 190, 2008 CSC 9 (CanLII) · csc-scc · 2008-03-07
  *   N° de dossier : 31459
- *   Mots-clés : équité procédurale — raisonnabilité — …
+ *   Mots-clés (index CanLII, non vérifiés) : équité procédurale — raisonnabilité — …
  *   https://canlii.ca/t/1vxsn
  */
 export function ficheDecision(row: CaseRow, options: { avecIds?: boolean } = {}): string {
@@ -266,7 +266,7 @@ export function ficheDecision(row: CaseRow, options: { avecIds?: boolean } = {})
   if (options.avecIds) lignes.push(`Identifiants : ${row.database_id} / ${row.case_id}`);
   if (row.docket_number) lignes.push(`N° de dossier : ${row.docket_number}`);
   const mc = motsCles(row.keywords);
-  if (mc) lignes.push(`Mots-clés : ${mc}`);
+  if (mc) lignes.push(`Mots-clés (index CanLII, non vérifiés) : ${mc}`);
   const l = lien(row);
   if (l) lignes.push(l);
   return lignes.join("\n");

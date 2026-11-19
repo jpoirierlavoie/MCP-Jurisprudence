@@ -225,5 +225,60 @@ describe("garde-fous de l'analyseur", () => {
     expect(parsed.primary.kind).toBe("neutral");
     expect(db).toBe("csc-scc");
     expect(parsed.parallel).toHaveLength(2);
+    expect(parsed.inlineTitle).toBeNull();
+  });
+});
+
+describe("D1 & D21 — extraction d'intitulé de tête et formes concaténées", () => {
+  it("extrait l'intitulé de tête dans les styles civils français et anglais courants", () => {
+    expect(ids("Banque de Montréal c. Marcotte, 2014 CSC 55").parsed.inlineTitle).toBe(
+      "Banque de Montréal c. Marcotte",
+    );
+    expect(ids("Bank of Montreal v. Marcotte, 2014 SCC 55").parsed.inlineTitle).toBe(
+      "Bank of Montreal v. Marcotte",
+    );
+    expect(ids("Re Thibault — 2020 QCCA 495").parsed.inlineTitle).toBe("Re Thibault");
+    expect(ids("Succession Tremblay c. Gagnon, 2021 QCCS 100").parsed.inlineTitle).toBe(
+      "Succession Tremblay c. Gagnon",
+    );
+    expect(ids("Syndic de Boisvert, 2019 QCCA 88").parsed.inlineTitle).toBe("Syndic de Boisvert");
+    expect(ids("Droit de la famille — 21100, 2021 QCCA 100").parsed.inlineTitle).toBe(
+      "Droit de la famille — 21100",
+    );
+    expect(ids("Protection de la jeunesse — 20123, 2020 QCCQ 456").parsed.inlineTitle).toBe(
+      "Protection de la jeunesse — 20123",
+    );
+  });
+
+  it("retire les introducteurs de prose et les connecteurs finals", () => {
+    expect(ids("voir Banque de Montréal c. Marcotte, dans 2014 CSC 55").parsed.inlineTitle).toBe(
+      "Banque de Montréal c. Marcotte",
+    );
+    expect(
+      ids("voir Bank of Montreal v. Marcotte, in [2014] 2 SCR 725, 2014 SCC 55").parsed.inlineTitle,
+    ).toBe("Bank of Montreal v. Marcotte");
+  });
+
+  it("n'extrait aucun intitulé sur de la simple prose ou une citation nue (pas de faux positifs)", () => {
+    expect(ids("voir 2020 QCCA 495").parsed.inlineTitle).toBeNull();
+    expect(ids("il a payé 2020 QCCA 495").parsed.inlineTitle).toBeNull();
+    expect(ids("Recours contre la décision dans 2020 QCCA 495").parsed.inlineTitle).toBeNull();
+    expect(ids("2020 QCCA 495").parsed.inlineTitle).toBeNull();
+  });
+
+  it("reconnaît les identifiants CanLII bruts concaténés (D21)", () => {
+    const scc = ids("2008csc64");
+    expect(scc.parsed.primary.kind).toBe("neutral");
+    expect(scc.db).toBe("csc-scc");
+    expect(scc.cid).toBe("2008scc64");
+
+    const qcca = ids("2020qcca495");
+    expect(qcca.parsed.primary.kind).toBe("neutral");
+    expect(qcca.db).toBe("qcca");
+    expect(qcca.cid).toBe("2020qcca495");
+
+    const canlii = ids("1997canlii335");
+    expect(canlii.parsed.primary.kind).toBe("canlii");
+    expect(canlii.res.constructible).toBe("non");
   });
 });

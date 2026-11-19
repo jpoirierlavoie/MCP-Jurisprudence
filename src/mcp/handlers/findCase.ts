@@ -14,7 +14,7 @@ import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
 import { CanliiBudgetError, relancerSiInterruptionGouverne } from "../../canlii/errors";
 import type { CaseListResponse, Lang } from "../../canlii/types";
-import { compareTitles } from "../../citation/compare";
+import { type CompareResult, compareTitles } from "../../citation/compare";
 import { persisterBalayages } from "../../config";
 import { pluriel, troncature } from "../../format/fr";
 import {
@@ -28,6 +28,8 @@ import {
 import {
   anneeInferee,
   type CaseRow,
+  collectCaseTitles,
+  projectCaseForLang,
   rowFromListItem,
   searchLocal,
   upsertCases,
@@ -35,8 +37,8 @@ import {
 import { LIMITES } from "../defauts";
 import type { ToolContext } from "../registry";
 
-/** Bases québécoises usuelles, balayées quand aucun tribunal n'est précisé (§7.2). */
-const BASES_QC_USUELLES = ["qcca", "qccs", "qccq"];
+/** Bases québécoises et Cour suprême usuelles, balayées quand aucun tribunal n'est précisé (§7.2, D9). */
+const BASES_QC_USUELLES = ["csc-scc", "qcca", "qccs", "qccq"];
 
 /** Fenêtre maximale sans tribunal précisé (§7.2 point 4). */
 const FENETRE_MAX_SANS_TRIBUNAL = 3;
@@ -66,13 +68,33 @@ export async function findCase(
     return err("« year_from » doit être antérieure ou égale à « year_to ».");
   }
 
+  // Sans tribunal précisé : contrôler la fenêtre de 3 ans AVANT de décider `live` (D9),
+  // faute de quoi >= 3 candidats en cache contourneraient silencieusement la borne.
+  const debut = yearFrom ?? (yearTo ? yearTo - FENETRE_MAX_SANS_TRIBUNAL + 1 : anneeCourante - 2);
+  const fin = yearTo ?? anneeCourante;
+  const etendue = fin - debut + 1;
+
+  if (!databaseId && etendue > FENETRE_MAX_SANS_TRIBUNAL) {
+    return err(
+      `Sans « database_id », la fenêtre de dates ne peut pas dépasser ${FENETRE_MAX_SANS_TRIBUNAL} ans ` +
+        `(demandée : ${etendue} ans, ${debut}→${fin}). Préciser le tribunal (voir list_databases) ` +
+        "ou resserrer year_from / year_to.",
+    );
+  }
+
   // ── 1. Index local ───────────────────────────────────────────────────────
-  const locales = await searchLocal(ctx.db, titre, {
+  // On écarte les correspondances purement par mots-clés (`discordance` sur l'intitulé)
+  // afin que des fiches bruyantes ne déclenchent ni faux arrêt de `live` ni éviction
+  // d'un intitulé exact (D9).
+  const localesBrutes = await searchLocal(ctx.db, titre, {
     databaseId,
     yearFrom,
     yearTo,
-    limit: limit * 2,
+    limit: Math.max(limit * 4, 50),
   });
+  const locales = localesBrutes
+    .filter((r) => meilleurAppariementTitre(titre, r).verdict !== "discordance")
+    .map((r) => projectCaseForLang(r, lang));
 
   // Défaut de `live` : vrai lorsque l'index rend moins de trois candidats (§7.2).
   const live = args.live === undefined ? locales.length < 3 : args.live === true;
@@ -85,20 +107,7 @@ export async function findCase(
   let balayageEchoue = false;
 
   if (live) {
-    // Sans tribunal précisé : fenêtre d'au plus 3 ans et bases québécoises usuelles.
     const bases = databaseId ? [databaseId] : BASES_QC_USUELLES;
-    const debut = yearFrom ?? (yearTo ? yearTo - FENETRE_MAX_SANS_TRIBUNAL + 1 : anneeCourante - 2);
-    const fin = yearTo ?? anneeCourante;
-    const etendue = fin - debut + 1;
-
-    if (!databaseId && etendue > FENETRE_MAX_SANS_TRIBUNAL) {
-      return err(
-        `Sans « database_id », la fenêtre de dates ne peut pas dépasser ${FENETRE_MAX_SANS_TRIBUNAL} ans ` +
-          `(demandée : ${etendue} ans, ${debut}→${fin}). Préciser le tribunal (voir list_databases) ` +
-          "ou resserrer year_from / year_to.",
-      );
-    }
-
     const avantBalayage = ctx.client.callsMade();
     try {
       const r = await balayer(ctx, bases, debut, fin, lang, titre, now);
@@ -122,9 +131,12 @@ export async function findCase(
   // ── 3. Fusion et classement ──────────────────────────────────────────────
   const parClef = new Map<string, CaseRow>();
   for (const r of [...locales, ...vives]) parClef.set(`${r.database_id}/${r.case_id}`, r);
-  const tous = [...parClef.values()].sort(
-    (a, b) =>
-      similarite(titre, b.title) - similarite(titre, a.title) ||
+  const tous = [...parClef.values()].sort((a, b) => {
+    const cmpA = meilleurAppariementTitre(titre, a);
+    const cmpB = meilleurAppariementTitre(titre, b);
+    return (
+      rangVerdict(cmpB.verdict) - rangVerdict(cmpA.verdict) ||
+      cmpB.jaccard - cmpA.jaccard ||
       // L'ANNÉE, et non une date : elle est vraie (préfixe du caseId), là où le jour et
       // le mois ne le sont pas. C'est ce classement qu'une date fabriquée tenait en
       // sous-main ; il se dit maintenant.
@@ -134,8 +146,9 @@ export async function findCase(
       (b.decision_date ?? "").localeCompare(a.decision_date ?? "") ||
       // Et enfin l'identifiant, pour que l'ordre soit DÉTERMINISTE et non simplement
       // stable : sans lui, il dépend de l'ordre de parcours des bases.
-      a.case_id.localeCompare(b.case_id),
-  );
+      a.case_id.localeCompare(b.case_id)
+    );
+  });
   const rendus = tous.slice(0, limit);
 
   const prov = provenance({
@@ -243,8 +256,31 @@ function fenetreLabel(from: number | null, to: number | null, nu = false): strin
   return nu ? `${f}→${t}` : ` (${f}→${t})`;
 }
 
-function similarite(requete: string, titre: string): number {
-  return compareTitles(requete, titre).jaccard;
+function rangVerdict(verdict: CompareResult["verdict"]): number {
+  switch (verdict) {
+    case "appariement":
+      return 2;
+    case "partiel":
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+function meilleurAppariementTitre(requete: string, row: CaseRow): CompareResult {
+  const titres = collectCaseTitles(row);
+  let meilleur = compareTitles(requete, row.title);
+  for (const t of titres) {
+    if (t === row.title) continue;
+    const c = compareTitles(requete, t);
+    if (
+      rangVerdict(c.verdict) > rangVerdict(meilleur.verdict) ||
+      (rangVerdict(c.verdict) === rangVerdict(meilleur.verdict) && c.jaccard > meilleur.jaccard)
+    ) {
+      meilleur = c;
+    }
+  }
+  return meilleur;
 }
 
 /**

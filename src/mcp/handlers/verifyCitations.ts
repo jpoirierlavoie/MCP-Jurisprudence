@@ -22,8 +22,8 @@ import { ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
 import { relancerSiInterruptionGouverne } from "../../canlii/errors";
 import type { Lang } from "../../canlii/types";
-import { compareTitles } from "../../citation/compare";
-import { formLabel, parseCitation, resolve } from "../../citation/parse";
+import { type CompareResult, compareTitles } from "../../citation/compare";
+import { formLabel, parseCitation, type ResolvableForm, resolve } from "../../citation/parse";
 import { dateFr, pluriel } from "../../format/fr";
 import {
   EXPLICATION_INDETERMINEE,
@@ -33,7 +33,13 @@ import {
   noteEtranglement,
   numeroter,
 } from "../../format/render";
-import { type CaseRow, searchLocal } from "../../store/cases";
+import {
+  type CaseRow,
+  collectCaseTitles,
+  hasLangCached,
+  projectCaseForLang,
+  searchLocal,
+} from "../../store/cases";
 import { loadDirectory } from "../../store/databases";
 import { lookupCase } from "../../store/lookup";
 import type { ToolContext } from "../registry";
@@ -161,14 +167,22 @@ export async function verifyCitations(
       res.constructible === "non"
     ) {
       const lignes = [`${citation} — NON CONSTRUCTIBLE`, res.raison];
-      // §7.1 étape 1 : si `expected_title` est fourni, enchaîner AUTOMATIQUEMENT une
-      // recherche bornée et proposer les candidats. Le balayage vif est exclu ici :
-      // il faut rester dans le budget d'une vérification par lot.
-      if (d.expected_title) {
+      if (
+        (parsed.primary.kind === "reporter" || parsed.primary.kind === "canlii") &&
+        parsed.primary.year > now.getUTCFullYear() + 1
+      ) {
+        lignes.push(
+          `⚠ Année future / invraisemblable (${parsed.primary.year}, année courante : ${now.getUTCFullYear()}).`,
+        );
+      }
+      // §7.1 étape 1 : si `expected_title` (ou intitulé dans la citation) est fourni,
+      // enchaîner AUTOMATIQUEMENT une recherche bornée et proposer les candidats.
+      const titreRecherche = d.expected_title ?? parsed.inlineTitle;
+      if (titreRecherche) {
         const bornes = d.expected_year
           ? { yearFrom: d.expected_year - 1, yearTo: d.expected_year + 1 }
           : {};
-        const candidats = await searchLocal(ctx.db, d.expected_title, { ...bornes, limit: 5 });
+        const candidats = await searchLocal(ctx.db, titreRecherche, { ...bornes, limit: 5 });
         if (candidats.length > 0) {
           lignes.push(
             "",
@@ -194,8 +208,20 @@ export async function verifyCitations(
       continue;
     }
 
+    // ── Garde d'année future / invraisemblable (D21) ──────────────────────
+    const form = parsed.primary as ResolvableForm;
+    if (form.year > now.getUTCFullYear() + 1) {
+      blocs.push(
+        [
+          `${citation} — INTROUVABLE`,
+          `Forme ${parsed.primary.kind === "neutral" ? "neutre" : "attribuée par CanLII"} bien formée (${res.databaseId} / ${res.caseId}), mais l'année (${form.year}) est future / invraisemblable (année courante : ${now.getUTCFullYear()}).`,
+          "Aucun appel à CanLII n'a été fait : une décision ne peut pas porter une année future. Vérifier la transcription de l'année.",
+        ].join("\n"),
+      );
+      continue;
+    }
+
     // ── Résolution, avec la boucle d'auto-correction (§6.4) ────────────────
-    const form = parsed.primary as import("../../citation/parse").ResolvableForm;
     let lookup: Awaited<ReturnType<typeof lookupCase>>;
     try {
       lookup = await lookupCase(form, res, {
@@ -249,11 +275,50 @@ export async function verifyCitations(
       continue;
     }
 
-    // ── Comparaison : intitulé (§6.5) et année ────────────────────────────
-    const row = lookup.row;
-    const ecarts = comparer(row, d);
-    const verdict: Verdict = ecarts.length === 0 ? "CONFIRMÉE" : "DISCORDANTE";
-    blocs.push(rendreFiche(citation, verdict, row, ecarts, parsed.parallel.map(formLabel)));
+    // ── Comparaison : intitulé (§6.5, D1/D2) et année ────────────────────
+    let row = lookup.row;
+    let ecarts = comparer(row, d, parsed.inlineTitle, lang);
+    const ecartIntitule = ecarts.some((e) => e.champ.startsWith("Intitulé"));
+    const altLang: Lang = lang === "fr" ? "en" : "fr";
+    let noteAutreLangue: string | null = null;
+    let altInterrompue = false;
+    if (ecartIntitule && !hasLangCached(row, altLang)) {
+      try {
+        const altLookup = await lookupCase(form, res, {
+          db: ctx.db,
+          client: ctx.client,
+          dir,
+          lang: altLang,
+          refresh,
+          now,
+        });
+        if (altLookup.status === "trouvee" && altLookup.row) {
+          row = projectCaseForLang(altLookup.row, lang);
+          ecarts = comparer(row, d, parsed.inlineTitle, lang);
+        } else if (altLookup.status === "budget") {
+          budgetEpuise = true;
+          altInterrompue = true;
+          noteAutreLangue = `Vérification dans l'autre langue (${altLang}) interrompue : budget d'appels épuisé.`;
+        } else if (altLookup.status === "erreur") {
+          altInterrompue = true;
+          noteAutreLangue = `Vérification dans l'autre langue (${altLang}) impossible : ${altLookup.message ?? "erreur CanLII"}`;
+        }
+      } catch (e) {
+        relancerSiInterruptionGouverne(e);
+        altInterrompue = true;
+        noteAutreLangue = `Vérification dans l'autre langue (${altLang}) impossible : ${describeError(e)}`;
+      }
+    }
+    const ecartHorsIntitule = ecarts.some((e) => !e.champ.startsWith("Intitulé"));
+    const verdict: Verdict =
+      ecarts.length === 0
+        ? "CONFIRMÉE"
+        : altInterrompue && !ecartHorsIntitule
+          ? "INDÉTERMINÉE"
+          : "DISCORDANTE";
+    blocs.push(
+      rendreFiche(citation, verdict, row, ecarts, parsed.parallel.map(formLabel), noteAutreLangue),
+    );
   }
 
   const entete = `Vérification de ${pluriel(demandes.length, "citation", "citations")} — collection CanLII.`;
@@ -280,26 +345,65 @@ interface Ecart {
   note: string;
 }
 
+function compareAcrossTitles(attendu: string, row: CaseRow): CompareResult {
+  const titres = collectCaseTitles(row);
+  let meilleur = compareTitles(attendu, row.title);
+  if (meilleur.verdict === "appariement") return meilleur;
+  for (const t of titres) {
+    if (t === row.title) continue;
+    const c = compareTitles(attendu, t);
+    if (c.verdict === "appariement") return c;
+    if (
+      c.verdict === "partiel" &&
+      (meilleur.verdict === "discordance" || c.jaccard > meilleur.jaccard)
+    ) {
+      meilleur = c;
+    }
+  }
+  return meilleur;
+}
+
+function noteIntituleEcart(c: CompareResult, row: CaseRow, lang: Lang): string {
+  const altLang: Lang = lang === "fr" ? "en" : "fr";
+  const altTitre = altLang === "en" ? row.title_en : row.title_fr;
+  const suffixe =
+    altTitre && altTitre !== row.title
+      ? ` ; autre version CanLII (${altLang}) : « ${altTitre} »`
+      : "";
+  return c.verdict === "partiel"
+    ? `appariement partiel (indice ${c.jaccard.toFixed(2).replace(".", ",")}) — traité comme une discordance${suffixe}`
+    : `discordance${suffixe}`;
+}
+
 /**
  * Compare l'attendu et l'obtenu.
  *
  * ⚠ Un appariement PARTIEL vaut DISCORDANTE, jamais CONFIRMÉE (§6.5). Mieux vaut un
  *   faux signalement qu'une fausse assurance.
  */
-function comparer(row: CaseRow, d: Demande): Ecart[] {
+function comparer(row: CaseRow, d: Demande, inlineTitle: string | null, lang: Lang): Ecart[] {
   const ecarts: Ecart[] = [];
 
   if (d.expected_title) {
-    const c = compareTitles(d.expected_title, row.title);
+    const c = compareAcrossTitles(d.expected_title, row);
     if (c.verdict !== "appariement") {
       ecarts.push({
         champ: "Intitulé",
         attendu: d.expected_title,
         obtenu: row.title,
-        note:
-          c.verdict === "partiel"
-            ? `appariement partiel (indice ${c.jaccard.toFixed(2).replace(".", ",")}) — traité comme une discordance`
-            : "discordance",
+        note: noteIntituleEcart(c, row, lang),
+      });
+    }
+  }
+
+  if (inlineTitle && (!d.expected_title || d.expected_title !== inlineTitle)) {
+    const c = compareAcrossTitles(inlineTitle, row);
+    if (c.verdict !== "appariement") {
+      ecarts.push({
+        champ: d.expected_title ? "Intitulé (dans la citation)" : "Intitulé",
+        attendu: inlineTitle,
+        obtenu: row.title,
+        note: noteIntituleEcart(c, row, lang),
       });
     }
   }
@@ -343,6 +447,7 @@ function rendreFiche(
   row: CaseRow,
   ecarts: Ecart[],
   paralleles: string[],
+  noteAutreLangue: string | null = null,
 ): string {
   const lignes = [`${citation} — ${verdict}`];
 
@@ -351,6 +456,9 @@ function rendreFiche(
     lignes.push(`${e.champ} attendu : « ${e.attendu} »`);
     lignes.push(`${e.champ} obtenu  : « ${e.obtenu} »`);
     lignes.push(`(${e.note})`);
+  }
+  if (noteAutreLangue && ecarts.length > 0) {
+    lignes.push(`(${noteAutreLangue})`);
   }
 
   lignes.push(ficheDecision(row));
@@ -362,6 +470,10 @@ function rendreFiche(
   if (verdict === "DISCORDANTE") {
     lignes.push(
       "→ La citation existe mais ne désigne pas la décision annoncée. Vérifier la source.",
+    );
+  } else if (verdict === "INDÉTERMINÉE") {
+    lignes.push(
+      "→ Identité partiellement vérifiée : l'autre version linguistique n'a pas pu être interrogée. Vérifier l'intitulé à la source ou réessayer.",
     );
   }
 

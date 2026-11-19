@@ -374,7 +374,7 @@ le quota.
 ## Référence
 
 Spécification complète : [`SPEC.md`](SPEC.md).
-Connecteur jumeau pour le droit législatif québécois : « Législation du Québec »
+Connecteur jumeau pour le droit législatif québécois : « lois »
 (`legislation.poirierlavoie.ca`).
 
 ## Sécurité, confidentialité et licence

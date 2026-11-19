@@ -451,7 +451,7 @@ ${biP(
       "une citation permettrait de construire. Ses annotations MCP le déclarent.",
     "Les outils hors ligne pour les numéros de dossier de cour et les palais de justice du " +
       "Québec (greffe_*, palais_*) relèvent désormais du connecteur public sans authentification " +
-      "« MCP Outils ».",
+      "« outils ».",
   ],
   EN.familleCanliiTexte,
 )}

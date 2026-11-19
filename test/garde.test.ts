@@ -122,8 +122,8 @@ describe("§2 — les dix outils existent et se décrivent", () => {
     expect(TOOLS.subsequent_history!.description).toContain(
       "NE REMPLACE PAS un citateur professionnel",
     );
-    // §7.9 : renvoi au connecteur « Législation du Québec » pour le texte.
-    expect(TOOLS.get_legislation!.description).toContain("Législation du Québec");
+    // §7.9 : renvoi au connecteur « lois » pour le texte.
+    expect(TOOLS.get_legislation!.description).toContain("« lois »");
     // Et la réserve qui manquait : la description GLOSAIT le régime de dates par
     // « (entrée en vigueur) », c'est-à-dire qu'elle INSTRUISAIT le modèle de lire la
     // date de la version comme celle de l'instrument. Elle disait aussi « utile pour
@@ -208,8 +208,13 @@ describe("§2 — les dix outils existent et se décrivent", () => {
     }
   });
 
-  it("le citateur n'expose AUCUN paramètre lang (l'API n'accepte que « en »)", () => {
-    expect(TOOLS.citator!.inputSchema.properties).not.toHaveProperty("lang");
+  it("le citateur expose lang avec divulgation explicite de caseCitator/en (D22)", () => {
+    const langProp = TOOLS.citator!.inputSchema.properties?.lang as
+      | { enum?: string[]; description?: string }
+      | undefined;
+    expect(langProp?.enum).toEqual(["fr", "en"]);
+    expect(langProp?.description).toContain("caseCitator/en");
+    expect(TOOLS.citator!.description).toContain("caseCitator/en");
   });
 });
 
@@ -798,12 +803,14 @@ describe("§2 / invariant 9 — aucun chemin ne présente une panne comme une ab
 });
 
 describe("§7.1 — l'analyse porte sur la citation ENTIÈRE, la borne est un écho", () => {
-  it("une citation de plus de 200 caractères reste analysable", async () => {
+  it("une citation de plus de 200 caractères reste analysable (et son intitulé de tête est vérifié)", async () => {
     // `citationSure` borne à 200 pour la RÉÉMISSION. Analyser cette forme bornée
     // faisait rendre ILLISIBLE sur une citation doctrinale valide dont la citation
     // neutre tombait après la coupure — un verdict faux, rendu avec aplomb.
-    const bourrage = "Untel c. Autrui et consorts, société en commandite, ".repeat(5);
-    const longue = `${bourrage}2005 QCCA 304`;
+    const bourrageConcordant =
+      "Association provinciale des retraités d'Hydro-Québec c. Hydro-Québec, " +
+      "[2005] R.J.Q. 1000, REJB 2005-00001, J.E. 2005-0700, ".repeat(3);
+    const longue = `${bourrageConcordant}2005 QCCA 304`;
     expect(longue.length).toBeGreaterThan(200);
     expect(longue.indexOf("2005 QCCA 304")).toBeGreaterThan(200);
 
@@ -817,6 +824,20 @@ describe("§7.1 — l'analyse porte sur la citation ENTIÈRE, la borne est un é
     expect(t).toContain("CONFIRMÉE");
     // L'écho, lui, reste borné : la citation réémise porte le signe de coupure.
     expect(t).toContain("…");
+
+    // D1 : lorsqu'un intitulé discordante précède la citation sur > 200 car., elle reste
+    // analysable (jamais ILLISIBLE) et rend DISCORDANTE.
+    const bourrageDiscordant = "Untel c. Autrui et consorts, société en commandite, ".repeat(5);
+    const longueDiscordante = `${bourrageDiscordant}2005 QCCA 304`;
+    expect(longueDiscordante.length).toBeGreaterThan(200);
+    const rDisc = await callTool(
+      "verify_citations",
+      { citations: [{ citation: longueDiscordante }] },
+      toolCtx(fakeClient({ "caseBrowse/fr/qcca/2005qcca304/": qcca2005 })),
+    );
+    const tDisc = texte(rDisc);
+    expect(tDisc).not.toContain("ILLISIBLE");
+    expect(tDisc).toContain("DISCORDANTE");
   });
 });
 

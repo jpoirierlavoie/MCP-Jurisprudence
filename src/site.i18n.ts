@@ -66,7 +66,9 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
     texte:
       "What a decision cites, what cites it, and the provisions it cites, as recorded by " +
       "CanLII. Raw lists carrying NO treatment sense: nothing here says followed, " +
-      "distinguished or overruled, and their reach is only as wide as CanLII's collection.",
+      "distinguished or overruled, and their reach is only as wide as CanLII's collection. " +
+      "CanLII's citator endpoint only accepts English (« caseCitator/en »); cached French " +
+      "titles are substituted when « lang='fr' », and remaining English titles are flagged.",
   },
   subsequent_history: {
     titre: "Subsequent history — heuristic indication",
@@ -102,7 +104,7 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
       "instrument — they date neither its coming into force nor its repeal, and a statute in " +
       "force for decades can carry a very recent start date. CanLII's date regime is shown RAW " +
       "and glossed, because its values do not mean the same thing. For the TEXT of Québec " +
-      "statutes, use the « Législation du Québec » connector instead.",
+      "statutes, use the « lois » connector instead.",
   },
   parse_citation: {
     titre: "Parse a citation (offline)",
@@ -158,7 +160,7 @@ export const EN = {
       "makes none — it only reports which identifiers a citation would allow one to build. Its MCP " +
       "annotations say so.",
     "The offline Québec court-file and courthouse utilities (greffe_*, palais_*) now live in " +
-      "the public unauthenticated connector « MCP Outils ».",
+      "the public unauthenticated connector « outils ».",
   ],
 
   // ── Schémas ────────────────────────────────────────────────────────────────

@@ -15,7 +15,9 @@ import {
   extractNeutral,
   ftsQuery,
   getCachedCase,
+  hasLangCached,
   listCases,
+  projectCaseForLang,
   rowFromListItem,
   rowFromMetadata,
   searchLocal,
@@ -29,23 +31,36 @@ import {
   directoryStale,
   loadDirectory,
 } from "../src/store/databases";
+import { lookupCase } from "../src/store/lookup";
 import { utcDay } from "../src/store/telemetry";
+import { fakeClient } from "./helpers";
 
 const db = env.DB;
 
 function row(over: Partial<CaseRow> = {}): CaseRow {
+  const lang = over.lang ?? "fr";
+  const title =
+    over.title ?? "Association provinciale des retraités d'Hydro-Québec c. Hydro-Québec";
+  const keywords = over.keywords === undefined ? "régime de retraite — surplus" : over.keywords;
+  const url = over.url === undefined ? "https://canlii.ca/t/1g2h3" : over.url;
   return {
     database_id: "qcca",
     case_id: "2005qcca304",
-    lang: "fr",
-    title: "Association provinciale des retraités d'Hydro-Québec c. Hydro-Québec",
+    lang,
+    title,
     title_norm: "association provinciale des retraites d hydro quebec c hydro quebec",
+    title_fr: lang === "fr" ? title : null,
+    title_en: lang === "en" ? title : null,
     citation: "2005 QCCA 304 (CanLII)",
     neutral_cite: "2005 QCCA 304",
     docket_number: "500-09-014",
     decision_date: "2005-03-31",
-    keywords: "régime de retraite — surplus",
-    url: "https://canlii.ca/t/1g2h3",
+    keywords,
+    keywords_fr: lang === "fr" ? keywords : null,
+    keywords_en: lang === "en" ? keywords : null,
+    url,
+    url_fr: lang === "fr" ? url : null,
+    url_en: lang === "en" ? url : null,
     concatenated_id: "2005qcca304",
     source: "lookup",
     fetched_at: "2026-07-23T00:00:00.000Z",
@@ -427,5 +442,105 @@ describe("télémétrie locale retirée à l'exécution et continuité des migra
       .run();
     const r = await db.prepare("SELECT tool FROM search_log").first<{ tool: string }>();
     expect(r?.tool).toBe("verify_citations");
+  });
+});
+
+describe("D2 — cache bilingue (migration 0007, préservation COALESCE et lookupCase)", () => {
+  it("conserve l'index FTS5 externe et préserve title_fr / title_en sans écrasement croisé", async () => {
+    const rowFr = rowFromMetadata(
+      {
+        databaseId: "csc-scc",
+        caseId: { fr: "2014csc55" },
+        title: "Banque de Montréal c. Marcotte",
+        citation: "[2014] 2 RCS 725, 2014 CSC 55",
+        decisionDate: "2014-09-19",
+        keywords: "banques",
+        url: "https://canlii.ca/t/fr",
+      },
+      { databaseId: "csc-scc", caseId: "2014scc55" },
+      "lookup",
+      new Date("2026-07-23T00:00:00Z"),
+      "fr",
+    );
+    await upsertCase(db, rowFr);
+
+    const rowEn = rowFromMetadata(
+      {
+        databaseId: "csc-scc",
+        caseId: { en: "2014scc55" },
+        title: "Bank of Montreal v. Marcotte",
+        citation: "[2014] 2 SCR 725, 2014 SCC 55",
+        decisionDate: "2014-09-19",
+        keywords: "banks",
+        url: "https://canlii.ca/t/en",
+      },
+      { databaseId: "csc-scc", caseId: "2014scc55" },
+      "lookup",
+      new Date("2026-07-23T00:05:00Z"),
+      "en",
+    );
+    await upsertCase(db, rowEn);
+
+    const cached = await getCachedCase(db, "csc-scc", "2014scc55");
+    expect(cached).not.toBeNull();
+    expect(cached!.title_fr).toBe("Banque de Montréal c. Marcotte");
+    expect(cached!.title_en).toBe("Bank of Montreal v. Marcotte");
+    expect(cached!.url_fr).toBe("https://canlii.ca/t/fr");
+    expect(cached!.url_en).toBe("https://canlii.ca/t/en");
+    expect(cached!.keywords_fr).toBe("banques");
+    expect(cached!.keywords_en).toBe("banks");
+    expect(hasLangCached(cached!, "fr")).toBe(true);
+    expect(hasLangCached(cached!, "en")).toBe(true);
+    expect(projectCaseForLang(cached!, "fr").title).toBe("Banque de Montréal c. Marcotte");
+    expect(projectCaseForLang(cached!, "en").title).toBe("Bank of Montreal v. Marcotte");
+    expect((await searchLocal(db, "Montreal Marcotte")).length).toBe(1);
+  });
+
+  it("lookupCase ne touche au cache que si la langue demandée est déjà mémorisée", async () => {
+    const dir = await loadDirectory(db);
+    const form = {
+      kind: "neutral" as const,
+      year: 2014,
+      code: "SCC",
+      number: 55,
+      raw: "2014 SCC 55",
+    };
+    const res = {
+      constructible: "oui" as const,
+      databaseId: "csc-scc",
+      caseId: "2014scc55",
+      raison: "test",
+      databaseConnue: true,
+    };
+    const client = fakeClient({
+      "caseBrowse/fr/csc-scc/2014scc55/": {
+        databaseId: "csc-scc",
+        caseId: { fr: "2014csc55" },
+        title: "Banque de Montréal c. Marcotte",
+        decisionDate: "2014-09-19",
+      },
+      "caseBrowse/en/csc-scc/2014scc55/": {
+        databaseId: "csc-scc",
+        caseId: { en: "2014scc55" },
+        title: "Bank of Montreal v. Marcotte",
+        decisionDate: "2014-09-19",
+      },
+    });
+
+    const frHit1 = await lookupCase(form, res, { db, client, dir, lang: "fr" });
+    expect(frHit1.provenance).toBe("api");
+    expect(frHit1.row?.title).toBe("Banque de Montréal c. Marcotte");
+
+    // Même langue => cache local sans nouvel appel
+    const frHit2 = await lookupCase(form, res, { db, client, dir, lang: "fr" });
+    expect(frHit2.provenance).toBe("cache");
+    expect(client.chemins).toHaveLength(1);
+
+    // Autre langue absente => appel API EN puis conservation des deux langues
+    const enHit = await lookupCase(form, res, { db, client, dir, lang: "en" });
+    expect(enHit.provenance).toBe("api");
+    expect(enHit.row?.title).toBe("Bank of Montreal v. Marcotte");
+    expect(enHit.row?.title_fr).toBe("Banque de Montréal c. Marcotte");
+    expect(client.chemins).toHaveLength(2);
   });
 });

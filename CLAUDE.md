@@ -52,8 +52,8 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). La spécification qui fa
 - `src/mcp/` — `defauts.ts` (`LIMITES`, `OFFSET_*`), `registry.ts` (10 descripteurs, annotations `readOnlyHint: true, destructiveHint: false, idempotentHint: true`, `openWorldHint: false` sur `parse_citation` seul), `handlers/` (+ `cible.ts`).
 - `src/citation/` — Analyseur pur hors ligne (`parse.ts`, `normalize.ts`, `compare.ts`).
 - `src/canlii/` — Client REST séquentiel étranglé (`600 ms`, doublement sur `429` jusqu'à `4 s`, plafond `40` appels/invocation, `12 Mo` max, `redactUrl()`).
-- `src/store/` — D1 `canlii` (`cases.ts` + FTS5, `databases.ts`, `citator.ts`, `lookup.ts`).
-- `src/format/` — Rendu texte français (`fr.ts`, `render.ts` — zéro `structuredContent`, zéro `outputSchema`, D4).
+- `src/store/` — D1 `canlii` (`cases.ts` + FTS5 + colonnes bilingues FR/EN `0007_bilingual_case_titles.sql`, `databases.ts`, `citator.ts`, `lookup.ts`).
+- `src/format/` — Rendu texte français (`fr.ts`, `render.ts` — zéro `structuredContent`, zéro `outputSchema`, D4, étiquetage `Mots-clés (index CanLII, non vérifiés)`).
 - **Trois amorces documentées (ne pas supprimer par erreur) :** `src/backfill.ts` (inerte, `BACKFILL_ENABLED="false"`), `listCases()` dans `src/store/cases.ts` (seul appelant : son test), et `idx_cases_docket` dans `migrations/0001_initial.sql`.
 
 ---
@@ -78,22 +78,22 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). La spécification qui fa
 
 ## 3. Les 22 invariants critiques
 
-1. **`INSERT ... ON CONFLICT DO UPDATE`, jamais `INSERT OR REPLACE`** sur `cases` (préserve le `rowid` de `cases_fts` en *external content*).
+1. **`INSERT ... ON CONFLICT DO UPDATE`, jamais `INSERT OR REPLACE`** sur `cases` (préserve le `rowid` de `cases_fts` en *external content* et préserve `title_fr`/`url_fr`/`keywords_fr` vs `*_en` par `COALESCE` ; `lookupCase` exige la colonne de la langue demandée avant de servir le cache).
 2. **Clé de cache = identifiant DEMANDÉ** (et non le `caseId` localisé retourné par CanLII).
 3. **`source` distingue `'lookup'` de `'sweep'` et ne se rétrograde jamais :** seule une ligne `'lookup'` sert une fiche ou une vérification ; un balayage ne persiste que 4 champs et ne fabrique **jamais** de date `${annee}-01-01` (`anneeInferee` sert uniquement au tri/filtre).
 4. **Mises en garde dans le CORPS des réponses (`GARDE_*`)**, zéro `structuredContent`, zéro `outputSchema` (`test/garde.test.ts` ne s'affaiblit jamais).
 5. **Ne jamais journaliser `request.url` ni exposer `api.canlii.org` / `api_key`** (`redactUrl()`).
 6. **Boucle unique d'auto-correction dans `src/store/lookup.ts`**.
-7. **Regex `NEUTRAL` insensible à la casse (`/i`)** avec double parade contre la capture de `"CanLII"` comme code de tribunal.
-8. **Tribunal absent du répertoire ⇒ `INTROUVABLE` sans appel sortant**.
+7. **Regex `NEUTRAL` et `NEUTRAL_CONCAT` insensibles à la casse (`/i`)** (y compris `2008csc64`, `2020qcca495`, `1997canlii335`), double parade contre `"CanLII"`, extraction prudente d'intitulé de tête (`inlineTitle`, D1) et garde d'année future (`> anneeCourante + 1`, D21).
+8. **Tribunal absent du répertoire ⇒ `INTROUVABLE` sans appel sortant** (`find_case` sans `database_id` impose `<= 3` ans avant l'index local et inclut `csc-scc` dans `BASES_QC_USUELLES`, D9).
 9. **Une panne réseau (`401`, `429`, timeout, budget, corps illisible) n'est JAMAIS une absence :** rend `INDÉTERMINÉE` (`EXPLICATION_INDETERMINEE`, en-tête `Recherche INTERROMPUE`), tandis que `EXPLICATIONS_INTROUVABLE` est réservée au seul constat `404`.
-10. **Appariement d'intitulé partiel ⇒ `DISCORDANTE`**, jamais `CONFIRMÉE`.
+10. **Appariement d'intitulé partiel ⇒ `DISCORDANTE`**, jamais `CONFIRMÉE` ; comparaison sur `expected_title` ET `inlineTitle`, contre toutes les versions FR/EN connues avec 1 repli vers l'autre langue avant `DISCORDANTE` (D1, D2).
 11. **Intitulés anonymisés comparés par leur numéro** (*« Droit de la famille — 20495 »*).
-12. **Citateur CanLII figé sur le segment `/en/`** (aucun paramètre `lang` sur `citator`).
+12. **Citateur CanLII sur `caseCitator/en` avec localisation par cache (D22) :** `citator` et `subsequent_history` acceptent `lang` (`'fr'`|`'en'`, défaut `'fr'`), substituent `title_fr`/`title_en` depuis `cases` si disponibles, comparent les intitulés FR/EN et divulguent `caseCitator/en` lorsque des intitulés restent en anglais.
 13. **La télémétrie n'échoue jamais l'outil qu'elle observe** (`catch` silencieux dans `ctx.waitUntil`).
 14. **Fins de ligne LF partout** (`.gitattributes`).
 15. **Moissonnage de masse (§11) inerte par décision** (`BACKFILL_ENABLED="false"`, aucun cron quotidien).
-16. **10 outils sans préfixe sous clé `juris`**, chacun nommant `CanLII` en FR et EN (`openWorldHint: false` sur `parse_citation` uniquement).
+16. **10 outils sans préfixe sous clé `juris`**, chacun nommant `CanLII` en FR et EN (`openWorldHint: false` sur `parse_citation` uniquement) et renvoyant aux connecteurs `« lois »` et `« outils »` (D14).
 17. *(Retiré en v0.3.0 — transféré vers `MCP-Outils` : `palais_*`.)*
 18. *(Retiré en v0.3.0 — transféré vers `MCP-Outils` : `lieux.ts`.)*
 19. **La page publique (`GET /`) dérive de `listToolDescriptors()`**, hors du bloc `/mcp`, sans CORS, et survit à `MCP_ENABLED=false`.
