@@ -58,3 +58,10 @@ npm.cmd run lint
 npm.cmd run audit
 npm.cmd test
 ```
+
+---
+
+## Gouvernance Git et chaîne d'approvisionnement
+
+- **Rulesets GitHub actifs (`main-integrity`, `immutable-release-tags`, `main-pr-and-ci`) :** Historique linéaire exigé ; suppression et *fast-forward* bloqués sur `main` et sur les étiquettes de version ; contournement administrateur de `main-pr-and-ci` restreint au mode `pull_request` (aucun `push` direct sur `main` ; toute modification passe par Pull Request validée par `CI`, `CodeQL`, `OSV-Scanner` et `Trivy`).
+- **Analyse de secrets et chaîne logistique :** GitHub *Secret Scanning* et *Push Protection* activés (complétés en CI par le balayage `secret` de Trivy), Dependabot (`npm`, `github-actions`), Actions épinglées au SHA complet sous `step-security/harden-runner`, OpenSSF Scorecard et sonde quotidienne de dérive `/health` (`.github/workflows/verifier-deploiement.yml`).
