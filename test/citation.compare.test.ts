@@ -91,6 +91,15 @@ describe("§13 — matrice de comparaison d'intitulés", () => {
     expect(
       compareTitles("P.G. du Québec c. Untel", "Procureure générale du Québec c. Untel").verdict,
     ).toBe("appariement");
+    expect(
+      compareTitles(
+        "Centrale des syndicats du Québec c. P.G. Québec",
+        "Centrale des syndicats du Québec c. Québec (Procureure générale)",
+      ).verdict,
+    ).toBe("appariement");
+    expect(compareTitles("P. G. Tremblay c. Gagnon", "Procureur général c. Gagnon").verdict).toBe(
+      "discordance",
+    );
     expect(compareTitles("Ville de St-Jérôme", "Ville de Saint-Jérôme").verdict).toBe(
       "appariement",
     );
