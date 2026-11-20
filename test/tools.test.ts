@@ -614,7 +614,7 @@ describe("§7.5 — subsequent_history", () => {
                 databaseId: "csc-scc",
                 caseId: { en: "2014csc55" },
                 title: "Bank of Montreal v. Marcotte",
-                citation: "2014 SCC 55 (CanLII)",
+                citation: "2014 SCC 55 (CanLII), [2014] 2 SCR 725",
               },
             ],
           },
@@ -623,7 +623,7 @@ describe("§7.5 — subsequent_history", () => {
     );
     const outCross = texte(rCross);
     expect(outCross).toContain("Banque de Montréal c. Marcotte");
-    expect(outCross).toContain("2014 CSC 55 (CanLII)");
+    expect(outCross).toContain("2014 CSC 55 (CanLII), [2014] 2 RCS 725");
     expect(outCross).not.toContain("Note de langue :");
   });
 });

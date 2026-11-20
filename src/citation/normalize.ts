@@ -87,7 +87,10 @@ const TOKEN_CANON: Record<string, string> = {
 /** Découpe une chaîne pliée en jetons significatifs. */
 export function tokens(s: string): string[] {
   const expanded = s
-    .replace(/\bP\.\s*G\.(?=\s+(?:du|de|des|of|for|pour)\b|\s*[,)]|\s*$)/g, "Procureur général")
+    .replace(
+      /\bP\.\s*G\.(?=\s+(?:du|de|des|d['’]|of|for|pour|Qu[ée]bec|Qc|Canada|Ontario|Alberta|Manitoba|Saskatchewan|Colombie-Britannique|British\s+Columbia|Nouveau-Brunswick|New\s+Brunswick|Nouvelle-[ÉéE]cosse|Nova\s+Scotia|[ÎîI]le-du-Prince-[ÉéE]douard|Prince\s+Edward\s+Island|Terre-Neuve(?:-et-Labrador)?|Newfoundland|Yukon|Nunavut|Territoires\s+du\s+Nord-Ouest|Northwest\s+Territories)\b|\s*[,)]|\s*$)/gi,
+      "Procureur général",
+    )
     .replace(/\bA\.\s*G\.(?=\s+(?:of|for)\b|\s*[,)]|\s*$)/g, "Attorney General");
   return fold(expanded)
     .split(" ")

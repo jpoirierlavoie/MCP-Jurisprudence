@@ -161,10 +161,12 @@ export async function subsequentHistory(
   const formatCite = (cite: string | null) => {
     if (!cite || lang !== "fr") return cite;
     const FED_FR: Record<string, string> = { SCC: "CSC", FCA: "CAF", FC: "CF", TCC: "CCI" };
-    return cite.replace(
-      /\b((?:1[89]\d{2}|20\d{2})\s+)(SCC|FCA|FC|TCC)(\s+\d+)\b/g,
-      (_, prefix: string, code: string, num: string) => `${prefix}${FED_FR[code] ?? code}${num}`,
-    );
+    return cite
+      .replace(
+        /\b((?:1[89]\d{2}|20\d{2})\s+)(SCC|FCA|FC|TCC)(\s+\d+)\b/g,
+        (_, prefix: string, code: string, num: string) => `${prefix}${FED_FR[code] ?? code}${num}`,
+      )
+      .replace(/(\[\d{4}\]\s+\d+\s+)SCR(\s+\d+)\b/g, "$1RCS$2");
   };
   const blocs = rendus.map((c) => {
     const lignes = [c.titreAffiche ?? "(intitulé absent)"];
