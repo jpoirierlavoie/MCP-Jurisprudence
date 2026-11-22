@@ -494,9 +494,9 @@ ${biP(
       "publiée sans secret sur https://jurisprudence.poirierlavoie.ca/mcp/server-card ; le dépôt " +
       "inclut les manifestes pour Google Antigravity (plugin.json, mcp_config.json) et Gemini CLI " +
       "(gemini-extension.json).",
-    "Le code est public sous licence CC BY-NC-SA 4.0 assortie d'une autorisation complémentaire de " +
-      "pratique professionnelle du droit pour les membres en règle du Barreau du Québec (voir LICENSE), " +
-      "et la suite de tests s'exécute sans clef d'API ni réseau.",
+    "Le code est libre et gratuit sous licence Apache-2.0 (voir LICENSE), avec un fichier NOTICE " +
+      "reconnaissant les conditions de CanLII sans aucune revendication sur ses données ni décisions ; " +
+      "la suite de tests s'exécute sans clef d'API ni réseau.",
   ],
   EN.acces,
 )}
@@ -548,7 +548,7 @@ function construireJsonLd(): string {
         url: `${ORIGINE_SITE}/`,
         documentation: `${ORIGINE_SITE}/mcp/server-card`,
         termsOfService: "https://acces.poirierlavoie.ca/cgu",
-        license: "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+        license: "https://www.apache.org/licenses/LICENSE-2.0",
         isAccessibleForFree: true,
         inLanguage: ["fr-CA", "en-CA"],
         description: PUBLIC_DESCRIPTION,

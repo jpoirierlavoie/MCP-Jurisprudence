@@ -141,8 +141,8 @@ export const EN = {
       "published at https://jurisprudence.poirierlavoie.ca/mcp/server-card; the repository ships " +
       "manifests for Google Antigravity (plugin.json, mcp_config.json) and Gemini CLI " +
       "(gemini-extension.json).",
-    "The code is public under the CC BY-NC-SA 4.0 licence with a Companion Professional Legal " +
-      "Practice Grant for members in good standing of the Barreau du Québec (see LICENSE), and " +
+    "The code is free and open-source under Apache-2.0 (see LICENSE), with a NOTICE file " +
+      "acknowledging CanLII's Terms of Use and disclaiming any claim over case-law data; " +
       "the test suite runs with no API key and no network.",
   ],
 
