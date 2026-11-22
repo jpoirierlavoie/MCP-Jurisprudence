@@ -68,7 +68,7 @@ import {
   SERVER_INFO,
   TOOLS,
 } from "./mcp/registry";
-import { pagePubliqueHtml } from "./site";
+import { estCheminDecouvertePublique, pagePubliqueHtml, repondreDecouvertePublique } from "./site";
 
 /** Versions du protocole servies. La plus élevée EN TÊTE (§8). */
 export const VERSIONS = ["2026-07-28", "2025-11-25", "2025-06-18", "2025-03-26"] as const;
@@ -302,7 +302,7 @@ export default {
     const admises = originesAdmises(env.ALLOWED_ORIGINS as string | undefined);
     const origin = origineAutorisee(request, admises);
 
-    // Page publique servie AVANT le coupe-circuit, sans en-tête CORS (G22, §18).
+    // Page publique et fichiers de découverte servis AVANT le coupe-circuit, sans en-tête CORS (G22, §18).
     if (pathname === "/") {
       if (request.method !== "GET" && request.method !== "HEAD") {
         return new Response("Method not allowed", {
@@ -311,6 +311,16 @@ export default {
         });
       }
       return pagePublique(request);
+    }
+
+    if (estCheminDecouvertePublique(pathname)) {
+      if (request.method !== "GET" && request.method !== "HEAD") {
+        return new Response("Method not allowed", {
+          status: 405,
+          headers: { Allow: "GET, HEAD" },
+        });
+      }
+      return repondreDecouvertePublique(pathname, request.method);
     }
 
     const estMetaOAuth = pathname === "/.well-known/oauth-protected-resource/mcp/oauth";

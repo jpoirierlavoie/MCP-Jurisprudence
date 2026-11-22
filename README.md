@@ -5,7 +5,7 @@
 Serveur MCP autonome sur Cloudflare Workers, exposant la **REST API de CanLII** sous forme
 de dix outils orientés **vérification de références** plutôt que d'enveloppes d'endpoints.
 
-- **Page publique** : <https://jurisprudence.poirierlavoie.ca/> — bilingue, trois thèmes
+- **Page publique** : <https://jurisprudence.poirierlavoie.ca/> — bilingue, trois thèmes, navigation inter-connecteurs, schéma JSON-LD et découverte (`/robots.txt`, `/sitemap.xml`, `/llms.txt`)
 - **Points d'entrée MCP** : `https://jurisprudence.poirierlavoie.ca/mcp` (jeton direct, refus `404` vide) et `https://jurisprudence.poirierlavoie.ca/mcp/oauth` (OAuth 2.1 PKCE S256 via <https://acces.poirierlavoie.ca>)
 - **Worker** `jurisprudence` · **bases D1** `canlii` (cache partagé) + `mcp-identite` (`DB_IDENTITE`)
 - Propriétaire : Jason Poirier Lavoie (avocat, Québec) — accès réservé aux membres en règle du Barreau du Québec avec clé API CanLII personnelle (BYOK)
