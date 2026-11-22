@@ -20,5 +20,6 @@
 # Fichiers d'exclusion et HTML éventuels : fins de ligne LF pour la cohérence entre postes.
 *.html text eol=lf
 LICENSE text eol=lf
+NOTICE  text eol=lf
 .gitignore text eol=lf
 .gitattributes text eol=lf

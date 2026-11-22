@@ -17,7 +17,7 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). La spécification qui fa
 | 3 | **Schémas d'entrée** | `inputSchema` dans `src/mcp/registry.ts` (`additionalProperties: false`, zéro `x-mcp-header`, valeurs issues de `src/mcp/defauts.ts`, contraintes XOR/format/bornes croisées répétées sur chaque paramètre) |
 | 4 | **`README.md`, `SPEC.md`, sécurité, licence & manifestes** | `README.md` (`## Les dix outils`), `SPEC.md`, `SECURITY.md`, `LICENSE` (`Apache-2.0`), `NOTICE` (sources officielles et conditions CanLII BYOK), `package.json`, `plugin.json`, `mcp_config.json`, `gemini-extension.json`, `/mcp/server-card`, `CLAUDE.md`, `GEMINI.md` |
 | 5 | **Page publique HTML (`GET /`)** | `src/site.ts` + `src/site.i18n.ts` (`test/site.test.ts` : CSP, absence de CORS, `/mcp/<secret>`, liste blanche stricte d'URLs `https://` : écrire `acces.poirierlavoie.ca` sans schéma dans la prose de la page, parité `data-l="fr"` = `data-l="en"`, style jumeau Georgia) |
-| 6 | **Inter-dépôts (`Cross-repository`)** | `droit-civil-quebecois` (`v3.1.0`, manifestes, `skills/`, `verifier.py`, `verifier_tout.py`), `MCP-Socle` (`v0.8.3`), `MCP-Acces` (`mcp-identite`), `MCP-Legislation` (jumeau HTML/CSS), `MCP-Outils` |
+| 6 | **Inter-dépôts (`Cross-repository`)** | `droit-civil-quebecois` (`v3.1.0`, manifestes, `skills/`, `verifier.py`, `verifier_tout.py`), `MCP-Socle` (`v0.8.4`), `MCP-Acces` (`mcp-identite`), `MCP-Legislation` (jumeau HTML/CSS), `MCP-Outils` |
 
 ---
 
@@ -38,7 +38,7 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). La spécification qui fa
          │  `DB_IDENTITE` + AI │ │   `DB_IDENTITE`     │ │       zéro secret        │
          └──────────┬──────────┘ └──────────┬──────────┘ └──────────────────────────┘
                     └───────────┬───────────┘
-                                ▼ (`@poirierlavoie/mcp-socle` v0.8.3, zéro runtime dep)
+                                ▼ (`@poirierlavoie/mcp-socle` v0.8.4, zéro runtime dep)
                  ┌──────────────────────────────────────────┐
                  │  MCP-Socle + MCP-Acces (`mcp-identite`)  │
                  │  Jetons individuels, coffre AES-256-GCM  │
