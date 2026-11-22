@@ -103,7 +103,7 @@ section[id]{scroll-margin-top:1.5rem}
 h1{font-size:1.6rem;margin:0}
 h2{font-size:1.35rem;margin:2.75rem 0 .75rem;padding-bottom:.3rem;border-bottom:2px solid var(--b)}
 h3{font-size:1.1rem;margin:1.75rem 0 .5rem}
-h4{font-size:1rem;margin:1.25rem 0 .25rem}
+#schema h3,h4{font-size:1rem;margin:1.25rem 0 .25rem}
 p{margin:.6rem 0}
 a{color:var(--a)}
 code{font:.9em ui-monospace,Menlo,Consolas,monospace;background:var(--code);padding:.1em .35em;border-radius:3px}
@@ -191,6 +191,8 @@ try{
   var t=localStorage.getItem('jurisTheme');
   if(t==='light'||t==='dark') c.push('t-'+t);
   r.className=c.join(' ');
+  var ti=document.querySelector&&document.querySelector('title[data-en]');
+  if(ti&&p==='en') document.title=ti.getAttribute('data-en');
 }catch(e){}
 `;
 
@@ -203,6 +205,8 @@ const JS = `
     var nv=h.classList.contains('l-en')?'fr':'en';
     h.classList.toggle('l-fr',nv==='fr'); h.classList.toggle('l-en',nv==='en');
     h.lang=nv;
+    var ti=d.querySelector('title[data-en]');
+    if(ti) d.title=ti.getAttribute(nv==='en'?'data-en':'data-fr')||d.title;
     try{localStorage.setItem('jurisLang',nv);}catch(e){}
   });
 
@@ -447,7 +451,7 @@ function schemas(): string {
         return sortie;
       })
       .join("");
-    return `<h4 id="${idTitre}"><code>${esc(d.name)}</code></h4>
+    return `<h3 id="${idTitre}"><code>${esc(d.name)}</code></h3>
 <div class="tw" tabindex="0" role="region" aria-labelledby="${idTitre}"><table><thead><tr>
 <th scope="col">${bi("Paramètre", EN.colParam)}</th><th scope="col">${bi("Type", EN.colType)}</th>
 <th scope="col">${bi("Contraintes", EN.colContrainte)}</th><th scope="col">${bi("Description", EN.colDescription)}</th>
@@ -557,7 +561,7 @@ function construireJsonLd(): string {
 
 export function renderSite(): string {
   const corps = [entete(), outils(), schemas(), acces(), pied()].join("\n");
-  const titrePage = "MCP Jurisprudence — Vérification de citations (collection CanLII)";
+  const titrePage = "MCP Jurisprudence — Vérification de citations (CanLII)";
   const descMeta =
     "Serveur MCP en lecture seule : vérification déterministe de citations de jurisprudence canadienne contre la collection de CanLII.";
 
@@ -566,7 +570,7 @@ export function renderSite(): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(titrePage)}</title>
+<title data-fr="${esc(titrePage)}" data-en="${esc(EN.titre)}">${esc(titrePage)}</title>
 <meta name="description" content="${esc(descMeta)}">
 <link rel="canonical" href="${ORIGINE_SITE}/">
 <link rel="alternate" type="application/mcp-server-card+json" href="${ORIGINE_SITE}/mcp/server-card">

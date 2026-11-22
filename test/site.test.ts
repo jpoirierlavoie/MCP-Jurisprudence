@@ -247,6 +247,8 @@ describe("§18 — autonomie et absence de dérive", () => {
     expect(new Set(ids).size).toBe(ids.length);
     expect(html).toContain('<nav class="suite"');
     expect(html).toContain('href="/" aria-current="page"');
+    expect(html).toMatch(/<title data-fr="[^"]+" data-en="[^"]+">/);
+    expect(html).toContain('<h3 id="sc-verify_citations">');
     const ldMatch = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(html);
     expect(ldMatch).not.toBeNull();
     expect((JSON.parse(ldMatch![1]!) as Record<string, unknown>)["@context"]).toBe(
