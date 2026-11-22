@@ -86,6 +86,13 @@ describe("§18 — routage de la page publique", () => {
     // coupé qu'on veut pouvoir lire pourquoi.
     const e = envAvec({ MCP_ENABLED: "false" });
     expect((await demander("/", { env: e })).status).toBe(200);
+    for (const dec of ["/robots.txt", "/sitemap.xml", "/llms.txt"]) {
+      const rDec = await demander(dec, { env: e });
+      expect(rDec.status, dec).toBe(200);
+      expect(rDec.headers.get("Access-Control-Allow-Origin"), dec).toBeNull();
+      expect((await demander(dec, { method: "HEAD", env: e })).status, `${dec} HEAD`).toBe(200);
+      expect((await demander(dec, { method: "POST", env: e })).status, `${dec} POST`).toBe(405);
+    }
     expect((await demander("/health", { env: e })).status).toBe(404);
     expect((await demander("/mcp/server-card", { env: e })).status).toBe(404);
     expect((await demander(`/mcp/${SECRET}`, { method: "POST", env: e })).status).toBe(404);
@@ -197,7 +204,7 @@ describe("§18 — autonomie et absence de dérive", () => {
     expect(html).not.toMatch(/<script[^>]+src=/i);
     expect(html).not.toMatch(/<link[^>]+stylesheet/i);
     expect(html).not.toMatch(
-      /https?:\/\/(?!jurisprudence\.poirierlavoie\.ca|github\.com|canlii\.ca)[a-z]/i,
+      /https?:\/\/(?!jurisprudence\.poirierlavoie\.ca|acces\.poirierlavoie\.ca|legislation\.poirierlavoie\.ca|outils\.poirierlavoie\.ca|github\.com|canlii\.ca|schema\.org|creativecommons\.org)[a-z]/i,
     );
     expect(html).not.toContain("@import");
   });
@@ -222,20 +229,29 @@ describe("§18 — autonomie et absence de dérive", () => {
     expect(vars(clair)).toEqual(vars(sombre));
   });
 
-  it("chaque ancre du sommaire vise une section qui existe", async () => {
+  it("chaque ancre du sommaire vise une section qui existe et tous les id sont uniques", async () => {
     // « #top » est EXCLU à dessein : c'est le repli spécifié par HTML pour le haut du
     // document, et il ne doit surtout PAS avoir de cible. Lui en inventer une casserait
     // la pastille de retour en haut là où le JavaScript ne s'exécute pas.
     const html = await (await demander("/")).text();
     for (const m of html.matchAll(/<a href="#([a-z]+)"/g)) {
       if (m[1] === "top") continue;
-      expect(html, m[1]).toContain(`<h2 id="${m[1]}"`);
+      expect(html, m[1]).toContain(`<section id="${m[1]}"`);
     }
     // ... et le sommaire couvre bel et bien toutes les sections.
     for (const s of SECTIONS) {
       expect(html, s.id).toContain(`<a href="#${s.id}"`);
-      expect(html, s.id).toContain(`<h2 id="${s.id}"`);
+      expect(html, s.id).toContain(`<section id="${s.id}"`);
     }
+    const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]!);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(html).toContain('<nav class="suite"');
+    expect(html).toContain('href="/" aria-current="page"');
+    const ldMatch = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(html);
+    expect(ldMatch).not.toBeNull();
+    expect((JSON.parse(ldMatch![1]!) as Record<string, unknown>)["@context"]).toBe(
+      "https://schema.org",
+    );
   });
 
   it("la table des matières et la pastille survivent SANS JavaScript", async () => {

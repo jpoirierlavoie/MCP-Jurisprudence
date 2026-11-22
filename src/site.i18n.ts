@@ -116,7 +116,7 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
 } as const;
 
 export const EN = {
-  titre: "Canadian case law — citation verification",
+  titre: "MCP Case Law — Citation Verification (CanLII)",
 
   intro: ["A read-only MCP server that tests case-law citations against CanLII's collection."],
 

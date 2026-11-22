@@ -1,5 +1,6 @@
 /**
- * Page publique du connecteur (§18) — `GET /`.
+ * Page publique du connecteur (§18) — `GET /`, et fichiers publics de découverte
+ * (`/robots.txt`, `/sitemap.xml`, `/llms.txt`).
  *
  * ╔══════════════════════════════════════════════════════════════════════════════╗
  * ║ ⚠ CETTE PAGE EST PUBLIQUE. Le secret partagé ne doit JAMAIS y paraître.      ║
@@ -11,17 +12,19 @@
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  *
  * TOUT LE CONTENU DÉRIVE DES DONNÉES VIVES : les outils viennent du registre et les
- * schémas du même `inputSchema` que le validateur applique. Une page qui recopierait
- * ces valeurs deviendrait fausse sans que rien n'échoue — c'est le mode de panne que ce
- * dépôt combat partout ailleurs.
+ * schémas du même `inputSchema` que le validateur applique.
  *
  * Aucune dépendance, aucune requête tierce : ni police distante, ni CDN, ni image.
  * Sans JavaScript, le FRANÇAIS s'affiche et tout le contenu reste lisible.
  */
 
 import type { JsonSchema } from "@poirierlavoie/mcp-socle";
-import { listToolDescriptors } from "./mcp/registry";
+import { listToolDescriptors, PUBLIC_DESCRIPTION } from "./mcp/registry";
 import { EN, OUTILS_EN } from "./site.i18n";
+
+const ORIGINE_SITE = "https://jurisprudence.poirierlavoie.ca";
+const DEPOT = "https://github.com/jpoirierlavoie/MCP-Jurisprudence";
+const DEPOT_PLUGIN = "https://github.com/jpoirierlavoie/droit-civil-quebecois";
 
 /** Échappement HTML. Appliqué à TOUTE valeur interpolée, sans exception. */
 export function esc(s: string): string {
@@ -33,29 +36,19 @@ export function esc(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-/**
- * Bloc bilingue : les DEUX langues sont émises, une règle CSS n'en montre qu'une.
- *
- * Ni deux routes, ni un paramètre, ni une négociation `Accept-Language` : le choix
- * est fait dans le navigateur, avant le premier rendu, et sans requête.
- */
+/** Bloc bilingue : les DEUX langues sont émises, une règle CSS n'en montre qu'une. */
 export function bi(fr: string, en: string): string {
-  return `<span data-l="fr">${esc(fr)}</span><span data-l="en">${esc(en)}</span>`;
+  return `<span data-l="fr">${esc(fr)}</span><span data-l="en" lang="en">${esc(en)}</span>`;
 }
 
 /** Suite de paragraphes bilingues. */
 export function biP(fr: readonly string[], en: readonly string[]): string {
   return (
-    `<div data-l="fr">${fr.map((p) => `<p>${esc(p)}</p>`).join("")}</div>` +
-    `<div data-l="en">${en.map((p) => `<p>${esc(p)}</p>`).join("")}</div>`
+    `<div data-l="fr">${fr.map((p) => `<p>${esc(p)}</p>`).join("")}</div>\n` +
+    `<div data-l="en" lang="en">${en.map((p) => `<p>${esc(p)}</p>`).join("")}</div>`
   );
 }
 
-/**
- * Les sections, en UN SEUL endroit : le sommaire et les `<h2>` en découlent tous
- * deux. Deux listes divergeraient — un sommaire qui renvoie à une ancre disparue est
- * un défaut silencieux.
- */
 export const SECTIONS = [
   { id: "outils", fr: "Les outils", en: "The tools" },
   { id: "schema", fr: "Les schémas", en: "The schemas" },
@@ -70,38 +63,29 @@ const TITRE_SECTION = new Map<SectionId, { fr: string; en: string }>(
 
 function h2(id: SectionId): string {
   const t = TITRE_SECTION.get(id)!;
-  return `<h2 id="${id}">${bi(t.fr, t.en)}</h2>`;
+  return `<h2 id="h-${id}">${bi(t.fr, t.en)}</h2>`;
+}
+
+function compacterBloc(code: string): string {
+  return code
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .split("\n")
+    .map((l) => l.replace(/^\s*\/\/.*$/, "").trim())
+    .filter(Boolean)
+    .join("\n");
 }
 
 // ── Thème ─────────────────────────────────────────────────────────────────────
-//
-// Deux jeux de variables, et RIEN d'autre : aucune couleur en dur ailleurs dans le
-// CSS. Une `rgba(0,0,0,.25)` d'ombre, par exemple, ne bascule pas et devient
-// invisible en sombre. Un test balaie le CSS et échoue s'il en trouve une.
-//
-// Les deux jeux doivent déclarer EXACTEMENT les mêmes variables — un test le vérifie
-// aussi, faute de quoi le mode sombre hériterait en silence d'une valeur claire.
 
-// ⚠ IDENTIQUES À CELLES DU CONNECTEUR JUMEAU « Législation du Québec ». Les deux
-//   sites appartiennent au même praticien, portent le même genre de réserve et se
-//   consultent l'un après l'autre : une divergence de teinte ou de police les ferait
-//   passer pour deux outils sans rapport. Toute retouche ici doit être portée là-bas,
-//   et réciproquement.
 const CLAIR =
-  "--f:#111;--m:#666;--b:#e2e0da;--a:#7a2e1d;--bg:#fdfcfa;--card:#fff;" +
+  "color-scheme:light;--f:#111;--m:#666;--b:#e2e0da;--a:#7a2e1d;--bg:#fdfcfa;--card:#fff;" +
   "--th:#f7f5f1;--code:#f2efe9;--hover:#faf8f4;--avert-bg:#fbf7f1;--avert-b:#e6d9c6";
 
 const SOMBRE =
-  "--f:#e8e6e1;--m:#a09a90;--b:#3a372f;--a:#e08b6a;--bg:#16150f;--card:#1e1c16;" +
+  "color-scheme:dark;--f:#e8e6e1;--m:#a09a90;--b:#3a372f;--a:#e08b6a;--bg:#16150f;--card:#1e1c16;" +
   "--th:#252219;--code:#252219;--hover:#242118;--avert-bg:#211d15;--avert-b:#3d3527";
 
-// Point de rupture de la barre latérale : 13rem + 2.5rem de gouttière + 60rem de
-// colonne de texte + 2.5rem de marge intérieure = 78rem. En deçà, une seule colonne.
 const LARGE = "78rem";
-
-// U+FE0E force la présentation TEXTE : sans lui, ☀ et ↑ basculent en émoji couleur sur
-// plusieurs plateformes et détonnent au milieu d'une page en serif. ◐ et ☾ n'ont pas de
-// variante émoji.
 const SOLEIL = "☀︎";
 const FLECHE = "↑︎";
 
@@ -115,6 +99,7 @@ body{margin:0;background:var(--bg);color:var(--f);font:16px/1.6 Georgia,'Times N
 .wrap{max-width:${LARGE};margin:0 auto;padding:2rem 1.25rem 4rem;display:grid;gap:1rem}
 main{min-width:0;max-width:60rem;width:100%;justify-self:center}
 section[id]{scroll-margin-top:1.5rem}
+#schema{content-visibility:auto;contain-intrinsic-size:auto 40rem}
 h1{font-size:1.6rem;margin:0}
 h2{font-size:1.35rem;margin:2.75rem 0 .75rem;padding-bottom:.3rem;border-bottom:2px solid var(--b)}
 h3{font-size:1.1rem;margin:1.75rem 0 .5rem}
@@ -122,20 +107,34 @@ h4{font-size:1rem;margin:1.25rem 0 .25rem}
 p{margin:.6rem 0}
 a{color:var(--a)}
 code{font:.9em ui-monospace,Menlo,Consolas,monospace;background:var(--code);padding:.1em .35em;border-radius:3px}
-
-/* En-tête : le titre à gauche, les deux bascules à DROITE. */
+:where(a,button,summary,[tabindex]):focus-visible{outline:2px solid var(--a);outline-offset:2px}
+.saut{position:fixed;left:1rem;top:1rem;z-index:20;padding:.45rem .85rem;background:var(--card);
+  color:var(--a);border:2px solid var(--a);border-radius:6px;font-weight:700;text-decoration:none}
+.saut:not(:focus-visible){position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;
+  clip-path:inset(50%);white-space:nowrap;border:0}
+.suite{display:flex;align-items:center;justify-content:space-between;gap:.5rem 1rem;flex-wrap:wrap;
+  margin:0 0 1rem;padding:0 0 .65rem;border-bottom:1px solid var(--b);font-size:.88rem}
+.suite-t{font-weight:700;color:var(--m);letter-spacing:.02em}
+.suite ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.35rem}
+.suite a{display:inline-block;padding:.28rem .65rem;border:1px solid transparent;border-radius:999px;
+  color:var(--m);text-decoration:none;min-height:1.75rem}
+.suite a:hover{color:var(--a);border-color:var(--b);background:var(--card)}
+.suite a[aria-current=page]{color:var(--a);font-weight:700;border-color:var(--a);background:var(--card)}
 .bar{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
-.btns{display:flex;gap:.5rem;flex-wrap:wrap}
-#bascule,#theme{font:inherit;font-size:.8rem;letter-spacing:.05em;background:none;border:1px solid var(--b);
-  border-radius:999px;padding:.35rem .9rem;cursor:pointer;color:var(--m);white-space:nowrap}
-#bascule:hover,#theme:hover{border-color:var(--a);color:var(--a)}
-/* Largeur figée : les trois libellés n'ont pas la même longueur, le bouton sauterait à chaque clic. */
+.btn{font:inherit;font-size:.86rem;font-weight:700;background:var(--a);color:var(--bg);
+  border:1px solid var(--a);border-radius:999px;padding:.35rem .95rem;text-decoration:none;white-space:nowrap;display:inline-block}
+.btn:hover{opacity:.92}
+.btn-sec,#bascule,#theme{font:inherit;font-size:.8rem;letter-spacing:.04em;background:var(--card);border:1px solid var(--b);
+  border-radius:999px;padding:.35rem .9rem;cursor:pointer;color:var(--m);text-decoration:none;white-space:nowrap;display:inline-block}
+.btn-sec:hover,#bascule:hover,#theme:hover{border-color:var(--a);color:var(--a)}
+.btns{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
 #theme{min-width:6.5rem;text-align:center}
 #theme [data-t]{display:none}
 html:not(.t-light):not(.t-dark) #theme [data-t=auto],
 html.t-light #theme [data-t=light],
 html.t-dark #theme [data-t=dark]{display:inline}
-
+.badge{display:inline-block;font-size:.78rem;padding:.2rem .6rem;border-radius:999px;
+  border:1px solid var(--avert-b);background:var(--avert-bg);color:var(--f)}
 .m{color:var(--m);font-size:.85rem}
 .tw{overflow-x:auto;border:1px solid var(--b);border-radius:6px;background:var(--card)}
 table{border-collapse:collapse;width:100%;font-size:.88rem}
@@ -145,7 +144,6 @@ td.n,th.n{text-align:right;white-space:nowrap}
 tbody tr:hover{background:var(--hover)}
 pre{background:var(--code);border:1px solid var(--b);border-radius:6px;padding:.7rem .9rem;
   overflow-x:auto;font-size:.85rem;line-height:1.5}
-
 .tdm{max-width:60rem;width:100%;justify-self:center}
 .tdm ul{list-style:none;margin:.5rem 0 0;padding:0;font-size:.85rem}
 .tdm li{margin:.15rem 0}
@@ -155,27 +153,24 @@ pre{background:var(--code);border:1px solid var(--b);border-radius:6px;padding:.
 .tdm a.on{font-weight:700}
 details{border:1px solid var(--b);border-radius:6px;background:var(--card);margin:.5rem 0;padding:.6rem .9rem}
 summary{cursor:pointer;font-weight:700}
-
 #outils article{border-left:3px solid var(--b);padding-left:1rem;margin:1.5rem 0}
 #outils .titre{color:var(--m);font-style:italic;margin:.1rem 0 .5rem}
 .avert{background:var(--avert-bg);border:1px solid var(--avert-b);border-radius:6px;padding:.25rem 1.25rem 1rem}
 footer{margin-top:3.5rem;padding-top:1.25rem;border-top:2px solid var(--b);font-size:.9rem;color:var(--m)}
-
-/* Libellé réservé aux lecteurs d'écran : retiré de l'affichage sans display:none, qui le
-   retirerait AUSSI de l'arbre d'accessibilité — la pastille redeviendrait un lien anonyme. */
 .sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;
   clip-path:inset(50%);white-space:nowrap;border:0}
 .haut{position:fixed;right:1.25rem;bottom:1.25rem;z-index:10;width:2.6rem;height:2.6rem;
   display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:1.1rem;
   background:var(--card);color:var(--m);border:1px solid var(--b);border-radius:999px}
 .haut:hover{color:var(--a);border-color:var(--a)}
-/* Sans JavaScript la classe js n'est jamais posée : la pastille reste simplement visible.
-   Le masquage et le code qui démasque vivent dans le MÊME script (voir JS). */
 html.js .haut{opacity:0;visibility:hidden}
 html.js .haut.on{opacity:1;visibility:visible}
 @media(prefers-reduced-motion:no-preference){
   html{scroll-behavior:smooth}
   .haut{transition:opacity .2s,visibility .2s,color .2s,border-color .2s}
+}
+@media(forced-colors:active){
+  .suite a[aria-current=page],.tdm a.on{outline:2px solid Highlight}
 }
 html.l-fr [data-l=en],html.l-en [data-l=fr]{display:none}
 @media(min-width:${LARGE}){
@@ -187,20 +182,7 @@ html.l-fr [data-l=en],html.l-en [data-l=fr]{display:none}
 }
 `;
 
-/**
- * Script de tête, SYNCHRONE : il applique langue et thème AVANT le premier rendu.
- * Sans lui, la page clignoterait du français au anglais, ou du clair au sombre.
- *
- * ⚠ Il COMPOSE les deux classes en un seul tableau. Écrire `className` en bloc dans
- *   l'un des deux gestionnaires effacerait l'autre classe EN SILENCE — le connecteur
- *   jumeau s'y est fait prendre. Les gestionnaires n'emploient donc que `classList`.
- */
-// La balise String.raw est une PARADE, pas un ornement. Ce bloc-ci n'a pas
-// d'échappement AUJOURD'HUI — d'où l'avertissement de Biome — mais le jour où
-// quelqu'un y écrit une classe de caractères ou un « \d », un littéral non balisé
-// mangerait l'antislash EN SILENCE et le script cesserait de faire ce qu'il dit.
-// La retirer parce qu'elle « ne sert pas encore » rouvrirait exactement ce défaut.
-// biome-ignore lint/complexity/noUselessStringRaw: parade délibérée, voir ci-dessus
+// biome-ignore lint/complexity/noUselessStringRaw: parade délibérée
 const BOOT = String.raw`
 try{
   var r=document.documentElement, c=[];
@@ -212,12 +194,6 @@ try{
 }catch(e){}
 `;
 
-/**
- * JS client, en fin de corps.
- *
- * Aucun caractère d'échappement dans ce bloc ; le point de rupture voyage comme un
- * jeton textuel substitué par `jsClient()` sous garde.
- */
 const JS = `
 (function(){
   var d=document, h=d.documentElement;
@@ -230,8 +206,6 @@ const JS = `
     try{localStorage.setItem('jurisLang',nv);}catch(e){}
   });
 
-  // Trois etats en cycle : auto -> clair -> sombre -> auto. « auto » n'est pas une
-  // classe mais l'ABSENCE des deux autres, pour que la media query reprenne la main.
   var tb=d.getElementById('theme');
   if(tb) tb.addEventListener('click',function(){
     var cur=h.classList.contains('t-light')?'light'
@@ -245,8 +219,6 @@ const JS = `
     }catch(e){}
   });
 
-  // Table des matieres. Le balisage porte deja open : c'est ICI seulement qu'elle se
-  // replie sous le point de rupture. La ligne courante se marque par observation.
   var td=d.querySelector('.tdm');
   if(td){
     try{
@@ -271,13 +243,6 @@ const JS = `
     }catch(e){}
   }
 
-  // Pastille de retour en haut. La classe 'js' est posee ICI et pas dans BOOT : c'est
-  // elle qui AUTORISE le masquage, et si ce script ne s'executait jamais (throw en
-  // amont), une classe posee dans BOOT masquerait la pastille pour toujours, sans
-  // erreur visible.
-  //
-  // if(ht){...} et JAMAIS if(!ht) return; — un return sortirait de toute l'IIFE et
-  // emporterait le filtre et le compteur du tableau.
   var ht=d.querySelector('.haut');
   if(ht){
     try{
@@ -294,46 +259,38 @@ const JS = `
 })();
 `;
 
-/**
- * Substitue le point de rupture, sous garde : si le jeton disparaissait d'une
- * réécriture, on préfère un échec bruyant à un CSS muet.
- */
 function jsClient(): string {
-  // Le point de rupture ne peut pas être interpolé : `String.raw` interpole `${…}`
-  // malgré la balise, ce qui rouvrirait le piège d'échappement. Il voyage donc comme
-  // un JETON textuel, substitué ici — sous garde, pour qu'une réécriture qui le
-  // perdrait échoue bruyamment plutôt que de laisser un `matchMedia` inopérant.
   if (!JS.includes("LARGEUR")) throw new Error("jeton LARGEUR absent du JS client");
   return JS.replace("LARGEUR", LARGE);
 }
 
 // ── Assemblage ────────────────────────────────────────────────────────────────
 
-/**
- * Table des matières — un `<details>` : déplié en barre latérale COLLANTE au-delà du
- * point de rupture, repliable en « Sommaire » en deçà. L'attribut `open` est dans le
- * balisage pour que le rendu SANS JavaScript reste utilisable ; seul le script la
- * replie sur écran étroit.
- */
+function sautContenu(): string {
+  return `<a href="#contenu-principal" class="saut">${bi("Aller au contenu principal", "Skip to main content")}</a>`;
+}
+
+function barreSuite(): string {
+  return `<nav class="suite" aria-labelledby="suite-t">
+<span id="suite-t" class="sr">${bi("Suite Droit civil québécois", "Québec Civil Law suite")}</span>
+<span class="suite-t">${bi("Droit civil québécois", "Québec Civil Law")}</span>
+<ul>
+<li><a href="https://acces.poirierlavoie.ca/">${bi("Accès", "Access")}</a></li>
+<li><a href="https://legislation.poirierlavoie.ca/">${bi("Législation", "Legislation")}</a></li>
+<li><a href="/" aria-current="page">${bi("Jurisprudence", "Case Law")}</a></li>
+<li><a href="https://outils.poirierlavoie.ca/">${bi("Outils", "Tools")}</a></li>
+</ul>
+</nav>`;
+}
+
 function tdm(): string {
   const items = SECTIONS.map((s) => `<li><a href="#${s.id}">${bi(s.fr, s.en)}</a></li>`).join("");
   return `<details class="tdm" open>
-<summary>${bi("Sommaire", "Contents")}</summary>
-<nav><ul>${items}</ul></nav>
+<summary id="tdm-t">${bi("Sommaire", "Contents")}</summary>
+<nav aria-labelledby="tdm-t"><ul>${items}</ul></nav>
 </details>`;
 }
 
-/**
- * Pastille de retour en haut, dernier enfant de `<body>`.
- *
- * `href="#top"` est le repli SPÉCIFIÉ par HTML : sans élément portant cet id, le
- * fragment « top » désigne le haut du document. Le lien fonctionne donc sans une seule
- * ligne de JavaScript — celui-ci ne fait que le masquer tant qu'on n'a pas défilé.
- *
- * La flèche est `aria-hidden` et le nom accessible vient du libellé `.sr` : pour un
- * `<a>`, le CONTENU prime sur `title` dans le calcul du nom, donc une flèche seule
- * donnerait un lien non étiqueté.
- */
 function haut(): string {
   return (
     `<a href="#top" class="haut"><span aria-hidden="true">${FLECHE}</span>` +
@@ -341,19 +298,15 @@ function haut(): string {
   );
 }
 
-/**
- * Un état du bouton de thème. L'état est porté par `data-t` sur un span EXTÉRIEUR, la
- * langue par `data-l` sur les spans intérieurs : deux dimensions, deux éléments, donc
- * aucune collision de spécificité avec la règle de masquage bilingue.
- */
 function etat(t: string, fr: string, en: string): string {
   return `<span data-t="${t}">${bi(fr, en)}</span>`;
 }
 
 function entete(): string {
   return `<header>
+${barreSuite()}
 <div class="bar">
-<h1>${bi("MCP Jurisprudence", EN.titre)}</h1>
+<h1>${bi("MCP Jurisprudence — Vérification de citations (CanLII)", EN.titre)}</h1>
 <div class="btns">
 <button id="theme" type="button" title="Thème / Theme">${etat("auto", "◐ Auto", "◐ Auto")}${etat("light", `${SOLEIL} Clair`, `${SOLEIL} Light`)}${etat("dark", "☾ Sombre", "☾ Dark")}</button>
 <button id="bascule" type="button" title="Français / English">FR&nbsp;·&nbsp;EN</button>
@@ -378,26 +331,21 @@ ${biP(
   EN.avertissement,
 )}
 </div>
+<p class="btns">
+<span class="badge">${bi("Membres du Barreau du Québec · Clé CanLII requise (BYOK)", "Barreau du Québec members · CanLII key required (BYOK)")}</span>
+<a class="btn" href="https://acces.poirierlavoie.ca/demande">${bi("Demander l'accès →", "Apply for access →")}</a>
+<a class="btn-sec" href="https://acces.poirierlavoie.ca/">${bi("Portail d'accès", "Access portal")}</a>
+</p>
 </header>`;
 }
 
 // ── Les outils, dérivés du REGISTRE ───────────────────────────────────────────
-//
-// `listToolDescriptors()` est la même fonction que sert `tools/list`. La page ne peut
-// donc pas prendre de retard sur le registre : il n'y a pas de seconde copie.
 
 interface Descripteur {
   name: string;
   title: string;
   description: string;
   inputSchema: JsonSchema;
-  /**
-   * ⚠ Ce champ était ABSENT de l'interface, et le `as unknown as` le jetait en
-   *   silence. La page affirmait pourtant « ses annotations MCP le déclarent » — une
-   *   prose RECOPIÉE, qui serait restée vraie d'apparence si l'on basculait un outil
-   *   de DISTANT à LOCAL sans qu'un octet de la page ne change. C'est exactement ce
-   *   que l'invariant 19 interdit : la page DÉRIVE, elle ne recopie pas. 2026-09-16.
-   */
   annotations?: { readOnlyHint?: boolean; openWorldHint?: boolean };
 }
 
@@ -405,16 +353,6 @@ function descripteurs(): Descripteur[] {
   return listToolDescriptors() as unknown as Descripteur[];
 }
 
-/**
- * Le marqueur d'appel sortant, DÉRIVÉ de `openWorldHint`.
- *
- * ⚠ Formulation load-bearing. `openWorldHint: true` dit que la SOURCE DE VÉRITÉ est
- *   distante — PAS qu'un appel part à chaque invocation. `get_case` sert
- *   sa fiche depuis D1 sans aucun appel dès qu'une ligne fraîche existe, et
- *   `list_databases` ne rafraîchit qu'au bout de sept jours. Écrire
- *   « Appel sortant à CanLII » serait donc faux dans le cas le plus courant, et faux
- *   avec l'aplomb d'une valeur dérivée. On annonce la SOURCE, pas le trafic.
- */
 function marqueurAppel(d: Descripteur): string {
   const ouvert = d.annotations?.openWorldHint === true;
   return `<p class="m"><code>openWorldHint: ${ouvert}</code> — ${bi(
@@ -461,7 +399,6 @@ ${tous.map(carte).join("\n")}
 
 // ── Les schémas, dérivés du MÊME objet que le validateur applique ─────────────
 
-/** Rend les contraintes d'un schéma en une phrase compacte. */
 function contraintes(s: JsonSchema): string {
   const bouts: string[] = [];
   if (s.enum) bouts.push(s.enum.map((v) => `« ${String(v)} »`).join(" · "));
@@ -482,15 +419,11 @@ function schemas(): string {
     const props = d.inputSchema.properties ?? {};
     const requis = new Set(d.inputSchema.required ?? []);
     const noms = Object.keys(props);
+    const idTitre = `sc-${esc(d.name)}`;
     if (noms.length === 0) {
-      return `<h4><code>${esc(d.name)}</code></h4>
+      return `<h4 id="${idTitre}"><code>${esc(d.name)}</code></h4>
 <p class="m">${bi("Aucun paramètre.", "No parameters.")}</p>`;
     }
-    // Une ligne par paramètre — et, pour un tableau d'objets, une ligne par PROPRIÉTÉ
-    // de ses éléments. Sans ce dépliage, `citations` se rendait « array<object> » et
-    // les trois entrées de l'outil PIVOT (citation, expected_title, expected_year)
-    // n'apparaissaient nulle part : le plus important des dix était celui que la
-    // page documentait le moins. 2026-09-16.
     const ligne = (n: string, p: JsonSchema, obligatoire: boolean, sous = false) => {
       const type = p.type === "array" ? `array&lt;${p.items?.type ?? "?"}&gt;` : (p.type ?? "?");
       return `<tr>
@@ -514,10 +447,10 @@ function schemas(): string {
         return sortie;
       })
       .join("");
-    return `<h4><code>${esc(d.name)}</code></h4>
-<div class="tw"><table><thead><tr>
-<th>${bi("Paramètre", EN.colParam)}</th><th>${bi("Type", EN.colType)}</th>
-<th>${bi("Contraintes", EN.colContrainte)}</th><th>${bi("Description", EN.colDescription)}</th>
+    return `<h4 id="${idTitre}"><code>${esc(d.name)}</code></h4>
+<div class="tw" tabindex="0" role="region" aria-labelledby="${idTitre}"><table><thead><tr>
+<th scope="col">${bi("Paramètre", EN.colParam)}</th><th scope="col">${bi("Type", EN.colType)}</th>
+<th scope="col">${bi("Contraintes", EN.colContrainte)}</th><th scope="col">${bi("Description", EN.colDescription)}</th>
 </tr></thead><tbody>${lignes}</tbody></table></div>`;
   };
 
@@ -563,7 +496,12 @@ ${biP(
   ],
   EN.acces,
 )}
-<p><a href="https://github.com/jpoirierlavoie/MCP-Jurisprudence">github.com/jpoirierlavoie/MCP-Jurisprudence</a>
+<p><a href="https://acces.poirierlavoie.ca/demande">${bi("Demande d'accès (/demande)", "Apply for access (/demande)")}</a>
+ · <a href="https://acces.poirierlavoie.ca/moi">/moi</a>
+ · <a href="https://legislation.poirierlavoie.ca/">${bi("Connecteur « lois »", "Connector « lois »")}</a>
+ · <a href="https://outils.poirierlavoie.ca/">${bi("Connecteur « outils » (public)", "Connector « outils » (public)")}</a>
+ · <a href="${DEPOT_PLUGIN}">droit-civil-quebecois</a>
+ · <a href="${DEPOT}">github.com/jpoirierlavoie/MCP-Jurisprudence</a>
  · <a href="mailto:jason@poirierlavoie.ca">jason@poirierlavoie.ca</a></p>
 </section>`;
 }
@@ -581,48 +519,161 @@ ${biP(
 </footer>`;
 }
 
-/**
- * Rend la page entière. PURE : aucune E/S, aucune lecture de `env`, aucun accès au
- * `Request`. C'est ce qui permet de la mémoïser sans risque de fuite entre requêtes.
- */
+function construireJsonLd(): string {
+  const nomsOutils = descripteurs().map((d) => d.name);
+  const graphe = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": `${ORIGINE_SITE}/#site`,
+        url: `${ORIGINE_SITE}/`,
+        name: ["MCP Jurisprudence — Vérification de citations (CanLII)", EN.titre],
+        inLanguage: ["fr-CA", "en-CA"],
+        isPartOf: {
+          "@type": "SoftwareApplication",
+          "@id": `${DEPOT_PLUGIN}#plugin`,
+          name: "Droit civil québécois",
+          url: DEPOT_PLUGIN,
+        },
+      },
+      {
+        "@type": "WebAPI",
+        "@id": `${ORIGINE_SITE}/#api`,
+        name: "MCP Jurisprudence (juris)",
+        url: `${ORIGINE_SITE}/`,
+        documentation: `${ORIGINE_SITE}/mcp/server-card`,
+        termsOfService: "https://acces.poirierlavoie.ca/cgu",
+        license: "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+        isAccessibleForFree: true,
+        inLanguage: ["fr-CA", "en-CA"],
+        description: PUBLIC_DESCRIPTION,
+        featureList: nomsOutils,
+      },
+    ],
+  };
+  return JSON.stringify(graphe).replace(/</g, "\\u003c");
+}
+
 export function renderSite(): string {
   const corps = [entete(), outils(), schemas(), acces(), pied()].join("\n");
+  const titrePage = "MCP Jurisprudence — Vérification de citations (collection CanLII)";
+  const descMeta =
+    "Serveur MCP en lecture seule : vérification déterministe de citations de jurisprudence canadienne contre la collection de CanLII.";
 
   return `<!doctype html>
 <html lang="fr" class="l-fr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MCP Jurisprudence — vérification de citations (collection CanLII)</title>
-<meta name="description" content="Serveur MCP en lecture seule : vérification déterministe de citations de jurisprudence canadienne contre la collection de CanLII.">
-<style>${CSS}</style>
-<script>${BOOT}</script>
+<title>${esc(titrePage)}</title>
+<meta name="description" content="${esc(descMeta)}">
+<link rel="canonical" href="${ORIGINE_SITE}/">
+<link rel="alternate" type="application/mcp-server-card+json" href="${ORIGINE_SITE}/mcp/server-card">
+<meta property="og:type" content="website">
+<meta property="og:title" content="${esc(titrePage)}">
+<meta property="og:description" content="${esc(descMeta)}">
+<meta property="og:url" content="${ORIGINE_SITE}/">
+<meta property="og:locale" content="fr_CA">
+<meta property="og:locale:alternate" content="en_CA">
+<style>${compacterBloc(CSS)}</style>
+<script type="application/ld+json">${construireJsonLd()}</script>
+<script>${compacterBloc(BOOT)}</script>
 </head>
 <body>
+${sautContenu()}
 <div class="wrap">
 ${tdm()}
-<main>
+<main id="contenu-principal" tabindex="-1">
 ${corps}
 </main>
 </div>
 ${haut()}
-<script>${jsClient()}</script>
+<script>${compacterBloc(jsClient())}</script>
 </body>
 </html>`;
 }
 
-/**
- * Mémoïsation par isolat. Le rendu est de la concaténation de chaînes sur des tables
- * en mémoire — mais il est inutile de le refaire à chaque requête.
- *
- * ⚠ On ne met PAS la page en cache d'arête avec un `s-maxage` long, contrairement au
- *   connecteur jumeau : lui interroge D1 à chaque rendu et devait s'en protéger, au
- *   prix d'un défaut connu — un déploiement ne rafraîchit pas la page. Ici le rendu
- *   ne coûte rien, et un isolat neuf suit le déploiement.
- */
 let memo: string | null = null;
 
 export function pagePubliqueHtml(): string {
   if (memo === null) memo = renderSite();
   return memo;
+}
+
+// ── Découverte publique (/robots.txt, /sitemap.xml, /llms.txt) ───────────────
+
+export const CHEMINS_DECOUVERTE_PUBLIQUE = ["/robots.txt", "/sitemap.xml", "/llms.txt"] as const;
+export type CheminDecouvertePublique = (typeof CHEMINS_DECOUVERTE_PUBLIQUE)[number];
+
+export function estCheminDecouvertePublique(
+  pathname: string,
+): pathname is CheminDecouvertePublique {
+  return (CHEMINS_DECOUVERTE_PUBLIQUE as readonly string[]).includes(pathname);
+}
+
+const ROBOTS_TXT = [
+  "User-agent: *",
+  "Allow: /",
+  "Disallow: /mcp",
+  `Sitemap: ${ORIGINE_SITE}/sitemap.xml`,
+  "",
+].join("\n");
+
+const SITEMAP_XML = [
+  '<?xml version="1.0" encoding="UTF-8"?>',
+  '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+  `  <url><loc>${ORIGINE_SITE}/</loc></url>`,
+  "</urlset>",
+  "",
+].join("\n");
+
+let llmsMemo: string | null = null;
+
+function construireLlmsTxt(): string {
+  const outilsLignes = descripteurs().map(
+    (d) => `- \`${d.name}\` — ${d.title} / ${OUTILS_EN[d.name]?.titre ?? d.title}`,
+  );
+  return [
+    "# MCP Jurisprudence (`juris`) — Vérification de citations (CanLII)",
+    "",
+    `> ${PUBLIC_DESCRIPTION}`,
+    "",
+    "## Tools (10 read-only MCP tools, derived from live registry)",
+    "",
+    ...outilsLignes,
+    "",
+    "## Québec Civil Law MCP Suite (`droit-civil-quebecois`)",
+    "",
+    "- [MCP Accès (Admission & OAuth 2.1 Portal)](https://acces.poirierlavoie.ca/): Eligibility (active Barreau du Québec members + individual BYOK CanLII key), `/demande` application, and `/moi` self-service portal.",
+    "- [MCP Législation (`lois`)](https://legislation.poirierlavoie.ca/): Official statutes, regulations, court directives, and AMF texts. Server Card: https://legislation.poirierlavoie.ca/mcp/server-card",
+    `- [MCP Jurisprudence (\`juris\`)](${ORIGINE_SITE}/): Case-law citation verification & CanLII metadata. Server Card: ${ORIGINE_SITE}/mcp/server-card`,
+    "- [MCP Outils (`outils` — Public, no account required)](https://outils.poirierlavoie.ca/): C.C.P. deadlines, art. 1619 C.C.Q. interest, registries, courthouses, RQA addresses, and bijural terminology. Endpoint: `https://outils.poirierlavoie.ca/mcp`",
+    `- [Umbrella Plugin Repository](${DEPOT_PLUGIN}) · [Connector Repository](${DEPOT})`,
+    "",
+  ].join("\n");
+}
+
+export function repondreDecouvertePublique(
+  chemin: CheminDecouvertePublique,
+  method: string,
+): Response {
+  if (llmsMemo === null) llmsMemo = construireLlmsTxt();
+  const { corps, type } =
+    chemin === "/robots.txt"
+      ? { corps: ROBOTS_TXT, type: "text/plain; charset=utf-8" }
+      : chemin === "/sitemap.xml"
+        ? { corps: SITEMAP_XML, type: "application/xml; charset=utf-8" }
+        : { corps: llmsMemo, type: "text/markdown; charset=utf-8" };
+
+  const headers = {
+    "Content-Type": type,
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    "Cache-Control": "public, max-age=600",
+  };
+
+  return method === "HEAD"
+    ? new Response(null, { status: 200, headers })
+    : new Response(corps, { status: 200, headers });
 }
