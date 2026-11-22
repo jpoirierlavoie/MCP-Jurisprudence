@@ -115,7 +115,7 @@
     // deux choses : ajouter un client web tiers, ou autoriser une origine de
     // développement. Toute origine de navigateur absente de la liste est refusée par un
     // 403 — c'est la défense contre le ré-attachement DNS exigée par la spécification MCP.
-    "ALLOWED_ORIGINS": "",
+    "ALLOWED_ORIGINS": "https://chatgpt.com,https://chat.openai.com,https://platform.openai.com",
     // Origine canonique du serveur d'autorisation OAuth 2.1 publiée dans RFC 9728 (/mcp/oauth).
     "ORIGINE_PORTAIL": "https://acces.poirierlavoie.ca"
   }
