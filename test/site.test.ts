@@ -204,7 +204,7 @@ describe("§18 — autonomie et absence de dérive", () => {
     expect(html).not.toMatch(/<script[^>]+src=/i);
     expect(html).not.toMatch(/<link[^>]+stylesheet/i);
     expect(html).not.toMatch(
-      /https?:\/\/(?!jurisprudence\.poirierlavoie\.ca|acces\.poirierlavoie\.ca|legislation\.poirierlavoie\.ca|outils\.poirierlavoie\.ca|github\.com|canlii\.ca|schema\.org|creativecommons\.org)[a-z]/i,
+      /https?:\/\/(?!jurisprudence\.poirierlavoie\.ca|acces\.poirierlavoie\.ca|legislation\.poirierlavoie\.ca|outils\.poirierlavoie\.ca|github\.com|canlii\.ca|schema\.org|creativecommons\.org|www\.apache\.org)[a-z]/i,
     );
     expect(html).not.toContain("@import");
   });

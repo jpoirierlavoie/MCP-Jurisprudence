@@ -1,0 +1,51 @@
+MCP-Jurisprudence (jurisprudence.poirierlavoie.ca)
+Copyright 2026 Jason Poirier Lavoie (avocat / lawyer, Québec)
+
+Ce logiciel et sa documentation originale sont publiés sous la licence Apache,
+version 2.0 (identifiant SPDX : Apache-2.0 ; voir LICENSE).
+This software and its original documentation are licensed under the Apache
+License, Version 2.0 (SPDX Identifier: Apache-2.0; see LICENSE).
+
+================================================================================
+PARTIE A — CRÉATION ASSISTÉE PAR IA ET VOCATION D'INTÉRÊT PUBLIC /
+PART A — AI-ASSISTED CREATION & PUBLIC-BENEFIT DEDICATION
+================================================================================
+
+FRANÇAIS — Ce logiciel (code du Worker, analyseur de citations, schémas et
+documentation originale) a été élaboré en grande partie avec l'assistance de
+systèmes d'intelligence artificielle et est mis gratuitement à la disposition
+du public pour l'intérêt général. La licence Apache-2.0 porte exclusivement sur
+ce logiciel et ne confère aucun droit d'aval au nom de l'auteur (Apache-2.0 § 6).
+
+ENGLISH — This software (Worker code, citation parser, schemas, and original
+documentation) was built with substantial assistance from artificial
+intelligence systems and is released free of charge for the public benefit.
+Apache-2.0 applies solely to this software and grants no endorsement in the
+author's name (Apache-2.0 § 6).
+
+================================================================================
+PARTIE B — DONNÉES ET MÉTADONNÉES CANLII / PART B — CANLII METADATA & DATA
+================================================================================
+
+La partie A ne s'étend PAS aux métadonnées jurisprudentielles ou législatives
+provenant de l'API REST de CanLII (https://www.canlii.org), ni aux noms ou
+marques de tiers, et aucun droit d'auteur n'est revendiqué sur ces contenus.
+L'utilisation des services et métadonnées de CanLII demeure régie par les
+conditions d'utilisation de CanLII. La présente implémentation exige d'ailleurs
+une clef d'API personnelle fournie par CanLII à chaque praticien utilisateur
+(coffre chiffré BYOK ou en-tête X-Clef-CanLII).
+
+Part A does NOT extend to case-law or legislative metadata obtained through the
+CanLII REST API (https://www.canlii.org), nor to third-party names or marks,
+and no copyright is claimed therein. Use of CanLII services and metadata remains
+governed by CanLII's Terms of Use. Accessing CanLII-backed tools requires each
+practitioner's own personal CanLII API key obtained from CanLII.
+
+AUCUN CONSEIL JURIDIQUE / NO LEGAL ADVICE :
+Ce logiciel ne fournit aucun conseil juridique et n'atteste ni le texte
+intégral ni l'autorité actuelle d'une décision. Consulter la décision officielle
+et un professionnel du droit.
+
+This software provides no legal advice and establishes neither the full text
+nor the current legal authority of any decision. Consult the official decision
+and a qualified legal professional.
