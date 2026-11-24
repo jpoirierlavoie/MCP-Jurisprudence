@@ -16,7 +16,7 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). La spécification qui fa
 | 2 | **Descriptions et titres** | `src/mcp/registry.ts` (`title`, `description`, `INSTRUCTIONS`, `PUBLIC_DESCRIPTION`), `OUTILS_EN` dans `src/site.i18n.ts` (parité dans les deux sens, mention de `CanLII` en FR et EN), `GARDE_*` dans `src/format/render.ts` et chaîne de couplage `"base(s) au répertoire de CanLII"` dans `listDatabases.ts` (`scripts/refresh-databases.mjs`) |
 | 3 | **Schémas d'entrée** | `inputSchema` dans `src/mcp/registry.ts` (`additionalProperties: false`, zéro `x-mcp-header`, valeurs issues de `src/mcp/defauts.ts`, contraintes XOR/format/bornes croisées répétées sur chaque paramètre) |
 | 4 | **`README.md`, `SPEC.md`, sécurité, licence & manifestes** | `README.md` (`## Les dix outils`), `SPEC.md`, `SECURITY.md`, `LICENSE` (`Apache-2.0`), `NOTICE` (sources officielles et conditions CanLII BYOK), `package.json`, `plugin.json`, `mcp_config.json`, `gemini-extension.json`, `/mcp/server-card`, `CLAUDE.md`, `GEMINI.md` |
-| 5 | **Page publique HTML (`GET /`)** | `src/site.ts` + `src/site.i18n.ts` (`test/site.test.ts` : CSP, absence de CORS, `/mcp/<secret>`, liste blanche stricte d'URLs `https://` : écrire `acces.poirierlavoie.ca` sans schéma dans la prose de la page, parité `data-l="fr"` = `data-l="en"`, style jumeau Georgia) |
+| 5 | **Page publique HTML (`GET /`)** | `src/site.ts` + `src/site.i18n.ts` (`test/site.test.ts` : CSP, absence de CORS, `/mcp/<secret>`, liste blanche stricte d'URLs `https://` : écrire `acces.poirierlavoie.ca` sans schéma dans la prose de la page, parité `data-l="fr"` = `data-l="en"`, style jumeau `system-ui`) |
 | 6 | **Inter-dépôts (`Cross-repository`)** | `droit-civil-quebecois` (`v3.1.0`, manifestes, `skills/`, `verifier.py`, `verifier_tout.py`), `MCP-Socle` (`v0.8.4`), `MCP-Acces` (`mcp-identite`), `MCP-Legislation` (jumeau HTML/CSS), `MCP-Outils` |
 
 ---
@@ -98,7 +98,7 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). La spécification qui fa
 18. *(Retiré en v0.3.0 — transféré vers `MCP-Outils` : `lieux.ts`.)*
 19. **La page publique (`GET /`) dérive de `listToolDescriptors()`**, hors du bloc `/mcp`, sans CORS, et survit à `MCP_ENABLED=false`.
 20. *(Retiré en v0.3.0 — transféré vers `MCP-Outils` : `dossier.ts`.)*
-21. **Identité visuelle jumelle avec `MCP-Legislation`** (`Georgia`, variables CSS clair/sombre identiques, zéro couleur en dur hors des deux jeux).
+21. **Identité visuelle jumelle avec `MCP-Legislation`** (`system-ui`, variables CSS clair/sombre identiques, zéro couleur en dur hors des deux jeux).
 22. **Refus `/mcp` uniforme en `404` vide sans `WWW-Authenticate` (Phase 3)** et OAuth 2.1 confiné sur `/mcp/oauth` (`401` RFC 9728) ; tolérance de tous les porteurs sur `/mcp` sans rognage destructif (`segmentBorne: false`, `%FF` géré sans `500`).
 
 ---
