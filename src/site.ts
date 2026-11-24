@@ -320,8 +320,7 @@ ${barreSuite()}
 </div>
 ${biP(
   [
-    "Serveur MCP en lecture seule. Il éprouve des citations de jurisprudence contre la " +
-      "collection de CanLII.",
+    "Serveur MCP en lecture seule permettant de vérifier des références de jurisprudence canadienne dans la collection de CanLII, de consulter la fiche officielle d'une décision et de lire ses listes de citations.",
   ],
   EN.intro,
 )}
@@ -363,11 +362,11 @@ function marqueurAppel(d: Descripteur): string {
   const ouvert = d.annotations?.openWorldHint === true;
   return `<p class="m"><code>openWorldHint: ${ouvert}</code> — ${bi(
     ouvert
-      ? "source distante : la réponse dépend de la collection de CanLII, et peut être servie du cache local."
-      : "aucun appel sortant : la réponse est une fonction pure de tables compilées dans le Worker.",
+      ? "interroge CanLII (ou le cache local déjà constitué)."
+      : "aucun appel externe : analyse locale hors ligne, sans utiliser le quota CanLII.",
     ouvert
-      ? "distant source: the answer depends on CanLII's collection, and may be served from the local cache."
-      : "no outbound call: the answer is a pure function of tables compiled into the Worker.",
+      ? "queries CanLII (or the local cache)."
+      : "no outbound call: offline local check, using no CanLII quota.",
   )}</p>`;
 }
 
@@ -389,10 +388,8 @@ ${h2("outils")}
 <h3>${bi("Adossés à CanLII", EN.familleCanlii)}</h3>
 ${biP(
   [
-    "Dix outils dont la réponse se rapporte à la collection de CanLII — la couverture et les " +
-      "verdicts en dépendent. NEUF font un appel sortant et sont soumis au quota de l'API ; " +
-      "parse_citation, lui, n'appelle rien : il dit seulement quels identifiants " +
-      "une citation permettrait de construire. Ses annotations MCP le déclarent.",
+    "Neuf outils interrogent l'API de CanLII (et comptent dans le quota de votre clé) ; " +
+      "parse_citation fonctionne hors ligne et analyse uniquement la structure d'une référence.",
     "Les outils hors ligne pour les numéros de dossier de cour et les palais de justice du " +
       "Québec (greffe_*, palais_*) relèvent désormais du connecteur public sans authentification " +
       "« outils ».",
@@ -464,14 +461,10 @@ function schemas(): string {
 ${h2("schema")}
 ${biP(
   [
-    "Chaque outil déclare un schéma FERMÉ : toute propriété non listée est refusée. Ces tables " +
-      "sont générées depuis le schéma même que le validateur applique à l'appel — elles ne " +
-      "peuvent donc pas diverger de ce que le serveur accepte.",
-    "La colonne Description reste en FRANÇAIS dans les deux vues, et c'est délibéré : ces " +
-      "phrases sont celles que le modèle reçoit. Elles sont le texte canonique, non son " +
-      "rendu. Les traduire ici ferait deux copies d'une même vérité, qui divergeraient — le " +
-      "mode de panne contre lequel tout le reste de ce connecteur est bâti. Les mises en " +
-      "garde ci-dessus obéissent déjà à cette règle.",
+    "Chaque outil n'accepte que les paramètres listés ci-dessous : ces tableaux sont générés " +
+      "directement à partir des schémas de validation appliqués par le serveur.",
+    "La colonne Description reste en français dans les deux vues, car ces phrases sont le texte " +
+      "exact reçu par l'assistant.",
   ],
   EN.schemaTexte,
 )}
@@ -484,21 +477,20 @@ function acces(): string {
 ${h2("acces")}
 ${biP(
   [
-    "Ce connecteur est réservé aux membres en règle du Barreau du Québec, selon le principe de " +
-      "clé API CanLII personnelle fournie par chaque praticien (coffre chiffré ou en-tête " +
-      "X-Clef-CanLII, vérifié avant toute lecture du cache partagé). Deux montages coexistent : " +
-      "https://jurisprudence.poirierlavoie.ca/mcp/<secret> ou https://jurisprudence.poirierlavoie.ca/mcp " +
-      "(par en-tête d'autorisation, refus 404 sans corps) et https://jurisprudence.poirierlavoie.ca/mcp/oauth " +
-      "(OAuth 2.1 PKCE S256 via acces.poirierlavoie.ca). Demandes d'accès et gestion libre-service : " +
-      "acces.poirierlavoie.ca/demande et acces.poirierlavoie.ca/moi.",
-    "Aucun texte de requête ni citation cherchée n'est journalisé (journaux d'invocation Cloudflare " +
-      "désactivés, zéro écriture dans search_log). La fiche publique de découverte (SEP-2127) est " +
-      "publiée sans secret sur https://jurisprudence.poirierlavoie.ca/mcp/server-card ; le dépôt " +
-      "inclut les manifestes pour Google Antigravity (plugin.json, mcp_config.json) et Gemini CLI " +
-      "(gemini-extension.json).",
+    "Ce connecteur est réservé aux membres actifs en règle du Barreau du Québec. Chaque praticien " +
+      "fournit sa propre clé API CanLII (enregistrée sous forme chiffrée dans /moi ou transmise " +
+      "par en-tête X-Clef-CanLII). La connexion courante s'effectue par autorisation navigateur " +
+      "OAuth 2.1 via acces.poirierlavoie.ca (https://jurisprudence.poirierlavoie.ca/mcp/oauth), sans " +
+      "clé à copier ; un accès direct par jeton individuel (https://jurisprudence.poirierlavoie.ca/mcp/<secret> " +
+      "ou https://jurisprudence.poirierlavoie.ca/mcp) demeure disponible pour les scripts et outils " +
+      "en ligne de commande. Demandes d'accès et gestion libre-service : acces.poirierlavoie.ca/demande " +
+      "et acces.poirierlavoie.ca/moi.",
+    "Aucune requête ni citation cherchée n'est journalisée. La fiche publique de découverte MCP " +
+      "sans secret est publiée sur https://jurisprudence.poirierlavoie.ca/mcp/server-card ; le dépôt " +
+      "inclut aussi les manifestes autonomes pour Google Antigravity et Gemini CLI.",
     "Le code est libre et gratuit sous licence Apache-2.0 (voir LICENSE), avec un fichier NOTICE " +
-      "reconnaissant les conditions de CanLII sans aucune revendication sur ses données ni décisions ; " +
-      "la suite de tests s'exécute sans clef d'API ni réseau.",
+      "reconnaissant les conditions d'utilisation de CanLII sans aucune revendication sur ses " +
+      "données ni décisions ; la suite de tests s'exécute sans clé d'API ni réseau.",
   ],
   EN.acces,
 )}

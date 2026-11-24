@@ -2,49 +2,30 @@
 
 *Vérification déterministe de jurisprudence canadienne (collection CanLII).*
 
-Serveur MCP autonome sur Cloudflare Workers, exposant la **REST API de CanLII** sous forme
-de dix outils orientés **vérification de références** plutôt que d'enveloppes d'endpoints.
+Serveur MCP public en lecture seule exposant la **REST API de CanLII** sous forme de dix outils orientés vers la **vérification de références** et la consultation de fiches officielles. Accès gratuit réservé aux membres actifs en règle du Barreau du Québec disposant de leur propre clé API CanLII (BYOK) via [`acces.poirierlavoie.ca`](https://acces.poirierlavoie.ca). Aucune requête ni citation cherchée n'est journalisée.
 
-- **Page publique** : <https://jurisprudence.poirierlavoie.ca/> — bilingue, trois thèmes, navigation inter-connecteurs, schéma JSON-LD et découverte (`/robots.txt`, `/sitemap.xml`, `/llms.txt`)
-- **Points d'entrée MCP** : `https://jurisprudence.poirierlavoie.ca/mcp` (jeton direct, refus `404` vide) et `https://jurisprudence.poirierlavoie.ca/mcp/oauth` (OAuth 2.1 PKCE S256 via <https://acces.poirierlavoie.ca>)
-- **Worker** `jurisprudence` · **bases D1** `canlii` (cache partagé) + `mcp-identite` (`DB_IDENTITE`)
-- Propriétaire : Jason Poirier Lavoie (avocat, Québec) — accès réservé aux membres en règle du Barreau du Québec avec clé API CanLII personnelle (BYOK)
+> **In English:** Read-only public-interest MCP server for checking Canadian case-law citations against CanLII's collection and retrieving official decision metadata records. Part of [`droit-civil-quebecois`](https://github.com/jpoirierlavoie/droit-civil-quebecois), open free of charge to active Barreau du Québec members with a personal CanLII API key (BYOK) via [`acces.poirierlavoie.ca`](https://acces.poirierlavoie.ca). Queries and citations are never logged.
 
-L'API de CanLII est en **lecture seule** et ne renvoie que des **métadonnées** — jamais le
-texte d'une décision. La valeur du connecteur tient donc à trois usages :
+- **Page publique** : <https://jurisprudence.poirierlavoie.ca/> (bilingue FR/EN, trois thèmes, outils et schémas détaillés)
+- **Connexion OAuth 2.1 (par défaut via le greffon)** : `https://jurisprudence.poirierlavoie.ca/mcp/oauth`
+- **Connexion directe par jeton (scripts et clients autonomes)** : `https://jurisprudence.poirierlavoie.ca/mcp`
 
-1. **Éprouver** une citation tirée de la doctrine, d'un moteur de recherche ou d'un texte
-   produit par une IA — existence et identité, de façon déterministe ;
-2. **Retrouver** une décision à partir des noms des parties lorsque la citation n'est pas
-   constructible (recueils, identifiants SOQUIJ) ;
-3. **Identifier** précisément une décision, puis en obtenir l'hyperlien `canlii.ca` afin
-   d'en tirer le texte par un autre moyen.
+L'API de CanLII est en **lecture seule** et ne renvoie que des **métadonnées** — jamais le texte d'une décision. Le connecteur sert donc trois usages :
 
-*(Note — 2026-11-14 : les trois outils hors ligne sur les numéros de dossier de cour et les
-palais de justice du Québec — aujourd'hui `greffe_parse_number`, `palais_list`, `palais_get` —
-ont été déplacés vers le connecteur public sans authentification [`MCP-Outils`](https://github.com/jpoirierlavoie/MCP-Outils), où ils
-ne requièrent aucun secret.)*
+1. **Vérifier** une citation tirée de la doctrine, d'un moteur de recherche ou d'un texte produit par une IA — existence et identité ;
+2. **Retrouver** une décision à partir des noms des parties lorsque la citation n'est pas constructible (recueils, identifiants SOQUIJ) ;
+3. **Identifier** précisément une décision et obtenir son hyperlien `canlii.ca` afin d'en consulter le texte officiel.
+
+*(Note : les outils hors ligne sur les numéros de dossier de cour et les palais de justice du Québec — `greffe_parse_number`, `palais_list`, `palais_get` — relèvent du connecteur public sans authentification [`MCP-Outils`](https://github.com/jpoirierlavoie/MCP-Outils).)*
 
 ### ⚠ Source et portée des dix outils
 
-Les dix outils sont exposés **sans préfixe** (`v2.0.0`, sous la clé serveur `juris` dans [`droit-civil-quebecois`](https://github.com/jpoirierlavoie/droit-civil-quebecois)) et portent leur provenance dans leur **description** :
+Les dix outils sont exposés sous la clé serveur `juris` dans [`droit-civil-quebecois`](https://github.com/jpoirierlavoie/droit-civil-quebecois). **Neuf outils sur dix** interrogent CanLII et consomment votre quota d'API (`openWorldHint: true`), tandis que **`parse_citation`** est un analyseur hors ligne qui n'appelle jamais CanLII (`openWorldHint: false`). Cette distinction figure dans les descriptions et annotations MCP de chaque outil ainsi que sur la page publique.
 
 | Portée | Source | Appels sortants |
 |---|---|---|
 | `verify_citations` … `get_legislation` (9) | la collection de **CanLII** — couverture et verdicts en dépendent | oui (`openWorldHint: true`) |
 | `parse_citation` (1) | analyseur local et répertoire compilé — concerne les identifiants **CanLII**, **aucun appel** | non (`openWorldHint: false`) |
-
-**Neuf outils sur dix appellent CanLII, pas dix.** `parse_citation` indique quels identifiants une
-citation permettrait de construire dans CanLII, mais il ne l'interroge jamais : c'est un analyseur pur.
-Cette nuance est **lisible par machine** : `parse_citation` porte `openWorldHint: false` dans ses
-annotations MCP, les neuf autres `openWorldHint: true`. Un hôte qui restreint les outils « monde
-ouvert » peut donc le distinguer sans lire une ligne de prose.
-
-**Le nom d'outil ne porte pas la mise en garde à lui seul** — les noms ont évolué de `canlii_*`
-à `jurisprudence_*` le 2026-09-16 (D8 amendée), puis vers des noms courts sans préfixe en `v2.0.0`
-afin d'alléger la budgétisation des clients MCP : un préfixe ne sait pas porter une réserve.
-L'annonce vit dans la **description de chaque outil**, dans les instructions du serveur (`INSTRUCTIONS`)
-et sur la page publique — trois surfaces qui sont des phrases, épinglées par test dans les deux langues.
 
 ---
 
@@ -162,9 +143,9 @@ s'affiche et tout reste lisible.
 ## Architecture
 
 ```
-claude.ai / Claude Code / Google Antigravity / Gemini
-        │  POST /mcp/<secret>  OU  POST /mcp + Authorization: Bearer <secret>
-        │  (JSON-RPC 2.0, un message par requête ; porteurs SANS préséance, §9.1)
+Claude / ChatGPT / Antigravity / Gemini
+        │  POST /mcp/oauth + OAuth 2.1 Bearer (par défaut via acces.poirierlavoie.ca)
+        │  OU  POST /mcp (+ Authorization: Bearer <jeton> ou ?key=<jeton>)
         │  GET /mcp/server-card (fiche publique SEP-2127, sans secret)
         ▼
   Worker `jurisprudence` (workerd, TypeScript, ZÉRO dépendance d'exécution)
@@ -293,22 +274,13 @@ $env:CLOUDFLARE_API_TOKEN = (Get-Content cf.token -Raw).Trim()   # gitignoré, j
 npm run deploy    # = migrations --remote PUIS wrangler deploy, arrêt au premier échec
 ```
 
-### Après le déploiement
+### Se connecter (pour les avocats et développeurs)
 
-- **Portail d'accès et OAuth 2.1** (<https://acces.poirierlavoie.ca/demande> et <https://acces.poirierlavoie.ca/moi>) :
-  chaque membre en règle du Barreau du Québec dépose sa clé API CanLII personnelle au coffre chiffré (`AES-256-GCM`, ou la fournit par en-tête `X-Clef-CanLII`) et obtient ses jetons individuels ou se connecte en OAuth 2.1 PKCE S256 sur `https://jurisprudence.poirierlavoie.ca/mcp/oauth` (métadonnées RFC 9728 sur `GET /.well-known/oauth-protected-resource/mcp/oauth`).
-- **Montage direct à jeton** : `https://jurisprudence.poirierlavoie.ca/mcp` + `Authorization: Bearer <jeton>` (ou `?key=<jeton>` / `/mcp/<secret>` en coexistence transitoire Phase 3a).
-- **Google Antigravity** (`plugin.json`, `mcp_config.json`, `assets/logo.svg` à la racine) :
-  installer via `agy plugin install https://github.com/jpoirierlavoie/MCP-Jurisprudence.git`
-  (ou copier les fichiers du greffon dans `~/.gemini/config/plugins/mcp-jurisprudence`),
-  renseigner la variable `MCP_JURISPRUDENCE_SECRET` sur la page du greffon puis l'activer
-  — les dix outils se chargent à la demande (*lazy*) par défaut, sans contexte additionnel
-  hors les `INSTRUCTIONS` canoniques du serveur.
-- **Gemini CLI** (`gemini-extension.json`) : installer via
-  `gemini extensions install https://github.com/jpoirierlavoie/MCP-Jurisprudence`
-  et saisir `MCP_JURISPRUDENCE_SECRET` (stocké de façon sensible). Le manifeste déclare
-  `"contextFileName": []` afin que `GEMINI.md` (réservé au développement de ce dépôt) ne
-  soit pas injecté dans les sessions d'usage général.
+- **Via le greffon complet [`droit-civil-quebecois`](https://github.com/jpoirierlavoie/droit-civil-quebecois) :** après approbation sur <https://acces.poirierlavoie.ca/demande> (avec votre clé API CanLII personnelle enregistrée dans `/moi`), Claude Code, Claude Desktop, `claude.ai`, ChatGPT, Google Antigravity, Gemini CLI et Gemini App se connectent par navigateur en OAuth 2.1 sur `https://jurisprudence.poirierlavoie.ca/mcp/oauth`, sans secret à configurer.
+- **Via jeton individuel (scripts, API Gemini Deep Research ou installation autonome) :** utiliser `https://jurisprudence.poirierlavoie.ca/mcp` avec `Authorization: Bearer <jeton>` créé dans <https://acces.poirierlavoie.ca/moi> (ou `?key=<jeton>` pour les formulaires web sans OAuth ; clé CanLII lue depuis votre coffre `/moi` ou l'en-tête `X-Clef-CanLII`).
+- **Installation autonome de ce seul dépôt (sans le greffon `droit-civil-quebecois`) :**
+  - **Google Antigravity** (`plugin.json`, `mcp_config.json`) : `agy plugin install https://github.com/jpoirierlavoie/MCP-Jurisprudence.git`, puis saisir la variable `MCP_JURISPRUDENCE_SECRET` avec un jeton issu de `/moi`.
+  - **Gemini CLI** (`gemini-extension.json`) : `gemini extensions install https://github.com/jpoirierlavoie/MCP-Jurisprudence` et saisir `MCP_JURISPRUDENCE_SECRET`. (`"contextFileName": []` évite d'injecter `GEMINI.md` dans vos sessions.)
 - **Gemini web** : les origines `https://gemini.google.com` et `https://aistudio.google.com`
   sont admises par défaut dans CORS (§9.6, incluant `X-Clef-CanLII`), aux côtés de `https://claude.ai` et
   `https://claude.com`.
