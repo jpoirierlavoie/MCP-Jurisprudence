@@ -42,8 +42,8 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
       "answering with an unusable body, or the call budget spent — and never means absence: " +
       "do not read it as INTROUVABLE. A confirmed " +
       "verdict establishes existence and identity — never current authority, never the disposition. " +
-      "For the RECORD alone of a decision already taken to be correctly cited, " +
-      "get_case is enough and costs less.",
+      "For the RECORD alone of a decision already known to be accurately cited, " +
+      "get_case is enough and uses less quota.",
   },
   find_case: {
     titre: "Find a decision by party names",
@@ -58,7 +58,7 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
       "keywords and its canlii.ca link. It does not return the text — follow the link. It does " +
       "NOT test the citation: no verdict, no comparison of the style of cause, no check on the " +
       "year — the record returned is that of the decision FOUND, which may not be the one you " +
-      "believed you were citing. To find out whether a reference met elsewhere is sound, use " +
+      "believed you were citing. To find out whether a citation found elsewhere is accurate, use " +
       "verify_citations instead.",
   },
   citator: {
@@ -118,7 +118,10 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
 export const EN = {
   titre: "MCP Case Law — Citation Verification (CanLII)",
 
-  intro: ["A read-only MCP server that tests case-law citations against CanLII's collection."],
+  intro: [
+    "Read-only MCP server for checking Canadian case-law citations against CanLII's collection, " +
+      "retrieving official decision metadata records, and reading raw citator lists.",
+  ],
 
   avertissement: [
     "This connector establishes the EXISTENCE and IDENTITY of a decision. It establishes " +
@@ -129,18 +132,17 @@ export const EN = {
   ],
 
   acces: [
-    "This connector is reserved for members in good standing of the Barreau du Québec under a " +
-      "strict bring-your-own CanLII API key policy (encrypted vault or X-Clef-CanLII header, " +
-      "enforced before reading the shared cache). Two mounts coexist: " +
-      "https://jurisprudence.poirierlavoie.ca/mcp/<secret> or https://jurisprudence.poirierlavoie.ca/mcp " +
-      "(by authorization header, empty 404 on refusal) and https://jurisprudence.poirierlavoie.ca/mcp/oauth " +
-      "(OAuth 2.1 PKCE S256 via acces.poirierlavoie.ca). Access requests and self-service management: " +
-      "acces.poirierlavoie.ca/demande and acces.poirierlavoie.ca/moi.",
-    "No query text or searched citation is ever logged (Cloudflare invocation logs disabled, zero " +
-      "runtime writes to search_log). A public MCP Server Card (SEP-2127) without secrets is " +
-      "published at https://jurisprudence.poirierlavoie.ca/mcp/server-card; the repository ships " +
-      "manifests for Google Antigravity (plugin.json, mcp_config.json) and Gemini CLI " +
-      "(gemini-extension.json).",
+    "This connector is reserved for active members in good standing of the Barreau du Québec. " +
+      "Each practitioner supplies their own CanLII API key (stored encrypted in /moi or sent via " +
+      "the X-Clef-CanLII header). Standard connection uses browser-based OAuth 2.1 authorization " +
+      "through acces.poirierlavoie.ca (https://jurisprudence.poirierlavoie.ca/mcp/oauth), with no " +
+      "key to copy; direct per-holder token access (https://jurisprudence.poirierlavoie.ca/mcp/<secret> " +
+      "or https://jurisprudence.poirierlavoie.ca/mcp) remains available for scripts and command-line " +
+      "tools. Access requests and self-service management: acces.poirierlavoie.ca/demande and " +
+      "acces.poirierlavoie.ca/moi.",
+    "Queries and searched citations are never logged. A public, secret-free MCP Server Card is " +
+      "published at https://jurisprudence.poirierlavoie.ca/mcp/server-card; the repository also " +
+      "includes standalone manifests for Google Antigravity and Gemini CLI.",
     "The code is free and open-source under Apache-2.0 (see LICENSE), with a NOTICE file " +
       "acknowledging CanLII's Terms of Use and disclaiming any claim over case-law data; " +
       "the test suite runs with no API key and no network.",
@@ -155,24 +157,18 @@ export const EN = {
   // ── Les outils ─────────────────────────────────────────────────────────────
   familleCanlii: "Backed by CanLII",
   familleCanliiTexte: [
-    "Ten tools whose answer relates to CanLII's collection — coverage and verdicts depend on it. " +
-      "NINE make an outbound call and are subject to the API's quota; parse_citation " +
-      "makes none — it only reports which identifiers a citation would allow one to build. Its MCP " +
-      "annotations say so.",
+    "Nine tools query CanLII's API (and count against your key's quota); parse_citation runs " +
+      "offline and only analyses the structure of a citation.",
     "The offline Québec court-file and courthouse utilities (greffe_*, palais_*) now live in " +
       "the public unauthenticated connector « outils ».",
   ],
 
   // ── Schémas ────────────────────────────────────────────────────────────────
   schemaTexte: [
-    "Every tool declares a closed schema: any property not listed is refused. These tables are " +
-      "generated from the very same schema the validator applies at call time, so they cannot " +
-      "drift from what the server accepts.",
-    "The Description column stays in FRENCH in both language views, and that is deliberate. " +
-      "Those sentences are the ones the model actually receives: they are the canonical text, " +
-      "not a rendering of it. A translation here would be a second copy of a single truth, and " +
-      "the two would drift — the failure this connector guards against everywhere else. The " +
-      "same rule already governs the warnings shown above.",
+    "Every tool only accepts the parameters listed below: these tables are generated directly " +
+      "from the validation schemas applied by the server.",
+    "The Description column stays in French in both views because those sentences are the exact " +
+      "canonical strings sent to the assistant.",
   ],
   colParam: "Parameter",
   colType: "Type",
