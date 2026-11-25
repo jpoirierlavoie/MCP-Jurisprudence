@@ -207,7 +207,7 @@ export const SERVER_INFO = {
   // le jour où il devient le dernier endroit à dire l'inverse des douze autres.
   name: "mcp-jurisprudence",
   title: "MCP Jurisprudence",
-  version: "2.2.1",
+  version: "2.2.2",
 };
 
 /**
@@ -231,7 +231,7 @@ export const INSTRUCTIONS =
   "R.J.Q. / C.A., identifiants J.E. / REJB / EYB / AZ), enchaîner avec find_case. " +
   "Pour consulter les 27 listes d'autorités dispensées de reproduction (9 tribunaux) " +
   "ou vérifier si des citations y figurent, utiliser list_exempt_authorities (hors ligne) " +
-  "et check_exempt_authorities. Pour le TEXTE des lois et règlements du Québec, employer " +
+  "et check_exempt_authority. Pour le TEXTE des lois et règlements du Québec, employer " +
   "le connecteur « lois ». Les verdicts et la couverture dépendent de la collection de CanLII : " +
   "une absence n'est jamais une preuve d'inexistence. " +
   "C'est la description de chaque outil qui nomme sa source et ses limites. DIX des douze " +
@@ -705,7 +705,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 
   // ── 7.12 ───────────────────────────────────────────────────────────────────
-  check_exempt_authorities: {
+  check_exempt_authority: {
     title: "Vérifier la dispense de reproduction",
     description:
       "Vérifie un lot de citations (au plus 50) contre les listes d'autorités dispensées d'un " +

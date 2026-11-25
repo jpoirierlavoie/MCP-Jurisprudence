@@ -82,6 +82,12 @@ describe("README contre registre — ce que la porte shell ne savait pas faire",
   it("le titre de la section porte le bon NUMÉRAL, en toutes lettres", () => {
     expect(readme).toContain(`## Les ${EN_LETTRES[NOMS.length]} outils`);
   });
+
+  it("chaque identifiant composé Claude Code (mcp__plugin_droit-civil-quebecois_juris__<outil>) respecte <= 64 car.", () => {
+    for (const n of NOMS) {
+      expect(`mcp__plugin_droit-civil-quebecois_juris__${n}`.length, n).toBeLessThanOrEqual(64);
+    }
+  });
 });
 
 describe("Manifestes Antigravity / Gemini et version — aucune dérive silencieuse", () => {

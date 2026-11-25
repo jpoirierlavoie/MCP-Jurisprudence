@@ -386,7 +386,7 @@ export const RESUME_OUTILS_FR: Readonly<Record<string, readonly string[]>> = {
     "Consulte et recherche hors ligne les 27 listes compilées d'autorités dispensées de reproduction devant 9 tribunaux canadiens et québécois (QCCA, QCCS, QCCQ, TAT, TDP, TP, TMF, CF et COMC), enrichies des métadonnées et mots-clés compilés depuis CanLII.",
     "Fonctionne strictement hors ligne sans consommer votre quota CanLII ; n'établit ni l'autorité actuelle des décisions ni le contenu de leur dispositif.",
   ],
-  check_exempt_authorities: [
+  check_exempt_authority: [
     "Vérifie un lot d'au plus 50 citations contre les listes d'autorités dispensées d'un tribunal ou d'une sous-liste précise, en rendant l'un des cinq verdicts : DISPENSÉE, À VÉRIFIER, NON LISTÉE, ILLISIBLE ou INDÉTERMINÉE (qui ne vaut jamais ni absence de la liste ni dispense).",
     "L'appariement hors ligne s'exécute en premier ; un repli vers CanLII n'intervient que si resolve_canlii est activé pour résoudre une citation parallèle ou une entrée non indexée. Pour éprouver l'existence générale d'une citation hors liste, votre assistant utilise verify_citations.",
   ],
@@ -443,7 +443,7 @@ ${biP(
     "Vous n'avez jamais à lancer ces fonctions vous-même : votre assistant IA les appelle automatiquement en arrière-plan pour vérifier les arrêts, consulter les listes d'autorités dispensées ou retrouver une décision.",
     "Dix outils peuvent interroger l'API de CanLII (sur le quota de votre clé personnelle) ; " +
       "parse_citation et list_exempt_authorities fonctionnent entièrement hors ligne sans " +
-      "consommer votre quota CanLII (check_exempt_authorities permet aussi un mode strictement " +
+      "consommer votre quota CanLII (check_exempt_authority permet aussi un mode strictement " +
       "hors ligne avec resolve_canlii=false). " +
       "Les outils hors ligne pour les numéros de dossier de cour et les palais de justice du " +
       "Québec (greffe_*, palais_*) relèvent du connecteur public sans authentification " +
