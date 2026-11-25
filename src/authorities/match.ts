@@ -851,3 +851,57 @@ export function canliiKeywordsForLang(decision: ExemptDecisionRecord, lang: Lang
     ? (decision.keywords_en ?? decision.keywords_fr)
     : (decision.keywords_fr ?? decision.keywords_en);
 }
+
+/** Résume en français les règles procédurales des listes ciblées, en regroupant les règles identiques. */
+export function formatTargetProceduralRules(lists: readonly ExemptAuthorityList[]): string[] {
+  if (lists.length === 0) return [];
+  type RuleGroup = {
+    consigne: string;
+    fondements: Set<string>;
+    directives: Set<string>;
+    listIds: string[];
+  };
+  const groups: RuleGroup[] = [];
+  const byConsigne = new Map<string, RuleGroup>();
+  for (const l of lists) {
+    let g = byConsigne.get(l.consigneCitation);
+    if (!g) {
+      g = {
+        consigne: l.consigneCitation,
+        fondements: new Set(),
+        directives: new Set(),
+        listIds: [],
+      };
+      byConsigne.set(l.consigneCitation, g);
+      groups.push(g);
+    }
+    if (l.fondementReglementaire) g.fondements.add(l.fondementReglementaire);
+    if (l.directiveUrl) g.directives.add(l.directiveUrl);
+    g.listIds.push(l.listId);
+  }
+  if (groups.length === 1) {
+    const g = groups[0]!;
+    return [
+      g.fondements.size > 0 ? `Fondement : ${[...g.fondements].join(" ; ")}` : null,
+      `Portée : ${g.consigne}`,
+      g.directives.size > 0 ? `Directive connexe : ${[...g.directives].join(" · ")}` : null,
+    ].filter((x): x is string => Boolean(x));
+  }
+  const firstDirs = groups[0]!.directives;
+  const sharedDirectives =
+    firstDirs.size > 0 &&
+    groups.every(
+      (g) =>
+        g.directives.size === firstDirs.size && [...g.directives].every((d) => firstDirs.has(d)),
+    )
+      ? [...firstDirs]
+      : null;
+  const lines = groups.map((g) => {
+    const fond = g.fondements.size > 0 ? `[${[...g.fondements].join(" ; ")}] ` : "";
+    return `Règles (${g.listIds.join(", ")}) : ${fond}${g.consigne}`;
+  });
+  if (sharedDirectives && sharedDirectives.length > 0) {
+    lines.push(`Directive connexe : ${sharedDirectives.join(" · ")}`);
+  }
+  return lines;
+}

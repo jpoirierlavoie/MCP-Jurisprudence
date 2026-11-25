@@ -12,6 +12,7 @@ import {
   canliiCitationForLang,
   canliiKeywordsForLang,
   canliiTitleForLang,
+  formatTargetProceduralRules,
   resolveTargetLists,
 } from "../../authorities/match";
 import { TRIBUNAUX } from "../../authorities/normalize";
@@ -197,6 +198,7 @@ export async function listExemptAuthorities(
       `Portée : ${l.consigneCitation}`,
       `Liste source : ${l.sourceUrl}`,
       l.directiveUrl ? `Directive connexe : ${l.directiveUrl}` : null,
+      l.relatedUrls.length > 0 ? `Sources connexes : ${l.relatedUrls.join(" · ")}` : null,
     ]
       .filter((x): x is string => Boolean(x))
       .join("\n");
@@ -264,9 +266,11 @@ export async function listExemptAuthorities(
   const portee = tribMeta
     ? `${lang === "en" ? tribMeta.nomEn : tribMeta.nomFr} (${cible.lists.map((l) => l.listId).join(", ")})`
     : "toutes les listes compilées";
-  const entete = queryArg
+  const baseEntete = queryArg
     ? `${nombreFr(blocsTotal.length)} décision(s) pour « ${queryArg} » sur ${portee} :`
     : `${tribMeta ? (lang === "en" ? tribMeta.nomEn : tribMeta.nomFr) : portee} — ${nombreFr(blocsTotal.length)} entrée(s) sur ${nombreFr(cible.lists.length)} liste(s) (${cible.lists.map((l) => l.listId).join(", ")}) :`;
+  const reglesEntete = cible.tribNorm ? formatTargetProceduralRules(cible.lists) : [];
+  const entete = [baseEntete, ...reglesEntete].join("\n");
 
   const tronq = formaterPagination(tranche.length, blocsTotal.length, offset);
   const pied = [
