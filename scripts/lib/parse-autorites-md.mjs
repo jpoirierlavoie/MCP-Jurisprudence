@@ -664,9 +664,26 @@ function nettoyerCorpsEntree(brut, listId) {
 
   if (listId === "cf-imm-general" || listId === "cf-imm-sursis") {
     // Ex.: "(EN : Canada (Citizenship and Immigration) v Kurukkal, 2010 FCA 230)"
-    const mEn = /\s*\(EN\s*:\s*([^)]+(?:\([^)]*\)[^)]*)*)\)\s*$/.exec(propre);
-    if (mEn) {
-      return { cleanText: propre.slice(0, mEn.index).trim(), altEnText: mEn[1].trim() };
+    if (propre.endsWith(")")) {
+      let depth = 0;
+      for (let i = propre.length - 1; i >= 0; i--) {
+        const ch = propre[i];
+        if (ch === ")") depth++;
+        else if (ch === "(") {
+          depth--;
+          if (depth === 0) {
+            const inner = propre.slice(i + 1, -1);
+            const mPrefix = /^\s*EN\s*:\s*/.exec(inner);
+            if (mPrefix) {
+              return {
+                cleanText: propre.slice(0, i).trim(),
+                altEnText: inner.slice(mPrefix[0].length).trim(),
+              };
+            }
+            break;
+          }
+        }
+      }
     }
   }
   return { cleanText: propre, altEnText: null };
