@@ -50,7 +50,7 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). La spécification qui fa
 - `src/index.ts` — Double montage `/mcp` et `/mcp/oauth`, chaîne intergicielle en 12 étapes, garde BYOK `ouvrirCoffre` préalable au cache, quotas `local`/`sortant`, `carteServeur()`, `scheduled`.
 - `src/config.ts` — Lecture typée des `vars` (`mcpActif`, `moissonnageActif`, `persisterBalayages`, `entier`, `liste`).
 - `src/mcp/` — `defauts.ts` (`LIMITES`, `OFFSET_*`), `registry.ts` (12 descripteurs, annotations `readOnlyHint: true, destructiveHint: false, idempotentHint: true`, `openWorldHint: false` sur `parse_citation` et `list_exempt_authorities`), `handlers/` (+ `cible.ts`).
-- `src/authorities/` & `src/data/` — Normalisation/appariement des 15 listes d'autorités dispensées (`data/autorites-dispensees.md` + `data/autorites-enrichies.json` compilés dans `src/data/exemptAuthorities.{json,ts}`).
+- `src/authorities/` & `src/data/` — Normalisation/appariement des 27 listes d'autorités dispensées (`data/autorites-dispensees.md` + `data/autorites-enrichies.json` compilés dans `src/data/exemptAuthorities.{json,ts}`).
 - `src/citation/` — Analyseur pur hors ligne (`parse.ts`, `normalize.ts`, `compare.ts`).
 - `src/canlii/` — Client REST séquentiel étranglé (`600 ms`, doublement sur `429` jusqu'à `4 s`, plafond `40` appels/invocation, `12 Mo` max, `redactUrl()`).
 - `src/store/` — D1 `canlii` (`cases.ts` + FTS5 + colonnes bilingues FR/EN `0007_bilingual_case_titles.sql`, `databases.ts`, `citator.ts`, `lookup.ts`).

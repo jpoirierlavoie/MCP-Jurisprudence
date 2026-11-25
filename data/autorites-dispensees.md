@@ -21,7 +21,19 @@ Compilation du 24 novembre 2026, faite à partir des listes ouvertes dans le nav
 | Cour fédérale | Vol. 4 — Intellectual Property Law | 2013-09-10 | 72 | 67 | 6.5 | <https://www.fct-cf.ca/en/pages/law-and-practice/notices/volume-4-intellectual-property-law> |
 | Cour fédérale | Vol. 5 — Competition Law | 2015-10-15 | 7 | 7 | 6.6 | <https://www.fct-cf.ca/Content/assets/pdf/base/Common%20List%20of%20Authorities%20-%20vol%205%20-%20Competition%20Act%20-%20October%202015.pdf> |
 | Commission des oppositions des marques de commerce | Common List of Authorities for Hearings | non datée | 20 | 15 | 7 | <https://ised-isde.canada.ca/site/canadian-intellectual-property-office/en/trademarks-opposition-board/common-list-authorities-hearings> |
-| **Total** | | | **550** | **459** | | |
+| Cour supérieure du Québec | Liste commune de jurisprudence — Contrôle judiciaire (Division de Montréal) | à jour au 2026-01-01 | 16 | 16 | 8.1 | <https://coursuperieureduquebec.ca/fileadmin/cour-superieure/Districts_judiciaires/Division_Montreal/Directives_et_annexes_Division_de_Montreal/Directives_de_la_division_de_Montreal.pdf> |
+| Cour supérieure du Québec | Liste commune de jurisprudence — Commerciale, faillite et restructuration (Division de Montréal) | à jour au 2026-01-01 | 30 | 30 | 8.2 | <https://coursuperieureduquebec.ca/fileadmin/cour-superieure/Districts_judiciaires/Division_Montreal/Directives_et_annexes_Division_de_Montreal/Directives_de_la_division_de_Montreal.pdf> |
+| Cour supérieure du Québec | Liste commune de jurisprudence — Oppression (Division de Montréal) | à jour au 2026-01-01 | 11 | 11 | 8.3 | <https://coursuperieureduquebec.ca/fileadmin/cour-superieure/Districts_judiciaires/Division_Montreal/Directives_et_annexes_Division_de_Montreal/Directives_de_la_division_de_Montreal.pdf> |
+| Cour supérieure du Québec | Liste commune de jurisprudence — Actions collectives (Division de Montréal) | à jour au 2026-01-01 | 19 | 19 | 8.4 | <https://coursuperieureduquebec.ca/fileadmin/cour-superieure/Districts_judiciaires/Division_Montreal/Directives_et_annexes_Division_de_Montreal/Directives_de_la_division_de_Montreal.pdf> |
+| Cour supérieure du Québec | Liste en matière civile (Division de Québec) | à jour au 2022-01-31 | 27 | 27 | 8.5 | <https://coursuperieureduquebec.ca/fileadmin/cour-superieure/Pdf_Word_par_district/districts/quebec-tous-les-districts/2022-01-31_Directives_concernant_le_fonctionnement_de_la_division_de_Quebec.pdf> |
+| Cour supérieure du Québec | Liste en matière familiale (Division de Québec) | à jour au 2022-01-31 | 14 | 14 | 8.6 | <https://coursuperieureduquebec.ca/fileadmin/cour-superieure/Pdf_Word_par_district/districts/quebec-tous-les-districts/2022-01-31_Directives_concernant_le_fonctionnement_de_la_division_de_Quebec.pdf> |
+| Cour du Québec (Division administrative et d'appel) | Liste commune de jurisprudence — Matière disciplinaire | en vigueur 2021-09-27 | 30 | 30 | 9.1 | <https://courduquebec.ca/fileadmin/cour-du-quebec/centre-de-documentation/chambre-civile/DAA_DirectiveListeCommuneJuris.pdf> |
+| Cour du Québec (Division administrative et d'appel) | Liste commune de jurisprudence — Matière de déontologie policière | en vigueur 2021-09-27 | 20 | 20 | 9.2 | <https://courduquebec.ca/fileadmin/cour-du-quebec/centre-de-documentation/chambre-civile/DAA_DirectiveListeCommuneJuris.pdf> |
+| Cour du Québec (Division administrative et d'appel) | Liste commune de jurisprudence — Fiscalité municipale, expropriation et protection du territoire agricole | en vigueur 2021-09-27 | 35 | 35 | 9.3 | <https://courduquebec.ca/fileadmin/cour-du-quebec/centre-de-documentation/chambre-civile/DAA_DirectiveListeCommuneJuris.pdf> |
+| Cour du Québec (Division administrative et d'appel) | Liste commune de jurisprudence — Matière fiscale | en vigueur 2021-09-27 | 38 | 37 | 9.4 | <https://courduquebec.ca/fileadmin/cour-du-quebec/centre-de-documentation/chambre-civile/DAA_DirectiveListeCommuneJuris.pdf> |
+| Cour du Québec (Division administrative et d'appel) | Liste commune de jurisprudence — Encadrement du secteur financier | en vigueur 2021-09-27 | 38 | 26 | 9.5 | <https://courduquebec.ca/fileadmin/cour-du-quebec/centre-de-documentation/chambre-civile/DAA_DirectiveListeCommuneJuris.pdf> |
+| Cour du Québec (Division administrative et d'appel) | Liste commune de jurisprudence — Accès à l'information | en vigueur 2021-09-27 | 36 | 26 | 9.6 | <https://courduquebec.ca/fileadmin/cour-du-quebec/centre-de-documentation/chambre-civile/DAA_DirectiveListeCommuneJuris.pdf> |
+| **Total** | | | **864** | **750** | | |
 
 Le nombre d'entrées compte les répétitions d'une même décision dans une liste ou d'une liste à l'autre.
 
@@ -784,6 +796,461 @@ Portée, selon la page : la pratique est énoncée dans « Practice in Trademark
 19. Uvex Toko Canada Ltd v Performance Apparel Corp, 2004 FC 448 — <http://decisions.fct-cf.gc.ca/fc-cf/decisions/en/item/39222/index.do>
 20. Veuve Clicquot Ponsardin v Boutiques Cliquot Ltée, 2006 SCC 23 — <https://scc-csc.lexum.com/scc-csc/scc-csc/en/item/2295/index.do>
 
+## 8. Cour supérieure du Québec
+
+### 8.1 Liste commune de jurisprudence — Contrôle judiciaire (Division de Montréal)
+
+Source : <https://coursuperieureduquebec.ca/fileadmin/cour-superieure/Districts_judiciaires/Division_Montreal/Directives_et_annexes_Division_de_Montreal/Directives_de_la_division_de_Montreal.pdf>
+
+Directives de la Cour supérieure — Division de Montréal (à jour au 2026-01-01), par. 187 à 190.
+
+Portée, selon la directive (par. 188) : les jugements compris dans ces listes n'ont pas à être reproduits intégralement dans le cahier des sources transmis préalablement à l'audience. Toutefois, si une partie entend citer l'un d'eux, le passage invoqué doit être inclus ainsi que la page précédente et la suivante avec référence à la liste commune de jurisprudence, et le passage cité doit être marqué.
+
+#### Normes de contrôle : détermination et application
+
+- Canada (Ministre de la Citoyenneté et de l’Immigration) c. Vavilov, 2019 CSC 65 — <https://canlii.ca/t/j46kc>
+- Dunsmuir c. Nouveau-Brunswick, 2008 CSC 9 — <https://www.canlii.org/fr/ca/csc/doc/2008/2008csc9/2008csc9.html>
+
+#### Équité procédurale : norme de contrôle et contenu
+
+- Baker c. Canada (Ministre de la Citoyenneté et de l'Immigration), [1999] 2 R.C.S. 817 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/1717/1/document.do>
+- 2747-3174 Québec Inc. c. Québec (Régie des permis d'alcool), [1996] 3 RCS 919 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/1452/1/document.do>
+- Ocean Port Hotel Ltd. c. Colombie-Britannique (General Manager, Liquor Control and Licensing Branch), 2001 CSC 52 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/1891/1/document.do>
+
+#### Preuve lors du contrôle judiciaire
+
+- Dupont c. Université du Québec à Trois-Rivières, 2008 QCCA 2204 — <http://t.soquij.ca/Fe49G>
+
+#### Délai d'exercice du pourvoi et nature discrétionnaire du contrôle judiciaire
+
+- Immeubles Port Louis Ltée c. Lafontaine (Village), [1991] 1 R.C.S. 326 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/729/1/document.do>
+- Strickland c. Canada (Procureur général), 2015 CSC 37 — <https://canlii.ca/t/gk0rl>
+
+#### Épuisement du processus administratif
+
+- Okwuobi c. Commission scolaire Lester-B.-Pearson; Casimir c. Québec (Procureur général); Zorrilla c. Québec (Procureur général), 2005 CSC 16 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/2216/1/document.do>
+- Parry Sound (District), Conseil d’administration des services sociaux c. S.E.E.F.P.O., section locale 324, 2003 CSC 42 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/2075/1/document.do>
+
+#### Contrôle judiciaire d’une décision interlocutoire
+
+- Cégep de Valleyfield c. Gauthier-Cashman, [1984] C.A. 633 — <https://canlii.ca/t/gnzv8>
+
+#### Sursis d’une décision administrative
+
+- RJR -- Macdonald Inc. c. Canada (Procureur général), [1994] 1 R.C.S. 311 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/1111/1/document.do>
+- Manitoba (P.G.) c. Metropolitan Stores Ltd., [1987] 1 R.C.S. 110 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/194/1/document.do>
+
+#### Autorité de la chose jugée
+
+- Roberge c. Bolduc, [1991] 1 R.C.S. 374 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/731/1/document.do>
+- Rocois Construction Inc. c. Québec Ready Mix Inc., [1990] 2 RCS 440 — <https://canlii.ca/t/1fsv4>
+- Nasifoglu c. Complexe St-Ambroise inc., 2005 QCCA 559 — <http://t.soquij.ca/Ba94E>
+
+### 8.2 Liste commune de jurisprudence — Commerciale, faillite et restructuration (Division de Montréal)
+
+Source : <https://coursuperieureduquebec.ca/fileadmin/cour-superieure/Districts_judiciaires/Division_Montreal/Directives_et_annexes_Division_de_Montreal/Directives_de_la_division_de_Montreal.pdf>
+
+Directives de la Cour supérieure — Division de Montréal (à jour au 2026-01-01), par. 187 à 190 (présentation chronologique).
+
+- Husky Oil Operations ltd. c. Ministre du Revenu national, [1995] 3 R.C.S. 453 — <http://scc-csc.lexum.com/scc-csc/scc-csc/fr/item/1297/index.do>
+- Restaurant Ocean Drive inc. c. Sam Levy & associés inc., [1998] R.J.Q. 30 (QC CA) — <https://canlii.ca/t/1ncph>
+- Bouchard c. Wilfrid Noël & Fils ltée, J.E. 2000-477 (QC CA) — <http://t.soquij.ca/Tg24A>
+- First Vancouver Finance c. M.R.N., 2002 CSC 49 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/1989/index.do>
+- 9076-3335 Québec inc (Syndic de), [2003] R.J.Q. 2101 (QC CA) — <http://t.soquij.ca/c2BYb>
+- 91133 Canada ltée (Syndic de), [2003] R.J.Q. 753 (QC CA) — <http://t.soquij.ca/f8RYg>
+- Lefebvre (Syndic de), 2004 CSC 63 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/2179/index.do>
+- Ouellet (Syndic de), 2004 CSC 64 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/2180/index.do>
+- D.I.M.S Constructions inc (Syndic de) c. Québec (Procureur général), 2005 CSC 52 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/2286/index.do>
+- Exode Automobile inc. (Syndic d’), 2005 QCCA 1208 — <http://t.soquij.ca/x3YZt>
+- Société de crédit commercial GMAC - Canada c. T.C.T. Logistics inc., 2006 CSC 35 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/2308/index.do>
+- AXA Assurances inc. c. Immeubles Saratoga inc., 2007 QCCA 1807 — <http://t.soquij.ca/Hx62X>
+- Metcalfe & Mansfield Alternative Investments II Corp. (Re), 2008 ONCA 587 — <http://t.soquij.ca/Ld46A>
+- Caisse populaire Desjardins de l’Est de Drummond c. Canada, 2009 CSC 29 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/7793/index.do>
+- Century Services Inc. c. Canada (Procureur général), 2010 CSC 60 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/7904/index.do>
+- Dawson (Syndic de), 2011 QCCA 235 — <http://t.soquij.ca/x8T5N>
+- Terre-Neuve-et-Labrador c. AbitibiBowater Inc., 2012 CSC 67 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/12749/index.do>
+- Commission de la santé et de la sécurité du travail c. Dolbec Transport, 2012 QCCA 698 — <http://t.soquij.ca/n5HRf>
+- Canada (Procureur Général) c. Koch, 2012 QCCA 2207 — <http://t.soquij.ca/Ze35W>
+- Sun Indalex Finance, LLC c. Syndicat des Métallos, 2013 CSC 6 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/12844/index.do>
+- Saskatchewan (Procureur General) c. Lemare Lake Logging Ltd., 2015 CSC 53 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/15624/index.do>
+- Arrangement relatif à Métaux Kitco inc., 2017 QCCA 268 — <http://t.soquij.ca/Ej83F>
+- Orphan Well Association c. Grant Thornton Ltd., 2019 CSC 5 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/17474/index.do>
+- 9354-9186 Québec inc. c. Callidus Capital Corp., 2020 CSC 10 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/18365/index.do>
+- Chandos Construction Ltd. c. Restructuration Deloitte Inc., 2020 CSC 25 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/18484/index.do>
+- Séquestre de Media5 Corporation, 2020 QCCA 943 — <http://t.soquij.ca/Sg85W>
+- Arrangement relatif à Nemaska Lithium inc., 2020 QCCA 1488 — <http://t.soquij.ca/Pe72F>
+- Sherman (Succession) c. Donovan, 2021 CSC 25 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/18914/index.do>
+- Canada c. Canada North Group Inc., 2021 CSC 30 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/18963/index.do>
+- Montréal (Ville) c. Restructuration Deloitte Inc., 2021 CSC 53 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/19108/index.do>
+
+### 8.3 Liste commune de jurisprudence — Oppression (Division de Montréal)
+
+Source : <https://coursuperieureduquebec.ca/fileadmin/cour-superieure/Districts_judiciaires/Division_Montreal/Directives_et_annexes_Division_de_Montreal/Directives_de_la_division_de_Montreal.pdf>
+
+Directives de la Cour supérieure — Division de Montréal (à jour au 2026-01-01), par. 187 à 190 (présentation chronologique).
+
+- Sulzer Medica AG c. Krela, J.E. 2003-45 (QC CA) (circonstances dans lesquelles le recours en oppression n’est pas approprié) — <http://www.canlii.org/fr/qc/qcca/doc/2002/2002canlii41290/2002canlii41290.pdf> ; <http://t.soquij.ca/x4J6C>
+- Magasins à rayons Peoples inc. (Syndic de) c. Wise, 2004 CSC 68 (règle de l’appréciation commerciale) — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/2184/index.do>
+- BCE inc. c. Détenteurs de débentures de 1976, 2008 CSC 69 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/6238/index.do>
+- 176283 Canada inc. c. St-Germain, 2011 QCCA 608 (notion d’urgence) — <http://t.soquij.ca/Yp5n8>
+- Sawyer c. S. Teller ltée, 2011 QCCA 2389 (ordonnances intérimaires ne doivent pas court-circuiter le jugement au fond) — <http://t.soquij.ca/Jj5o7>
+- Garage Technology Ventures Canada, s.e.c. (Capital Saint-Laurent s.e.c.) c. Léger, 2012 QCCA 1901 (disponibilité du recours au titulaire d’une option d’achat d’actions) — <http://t.soquij.ca/Se4t6>
+- Richthofen Management inc. c. Global Aviation Concept, 2014 QCCA 1103 (ordonnances discrétionnaires en matière d’oppression) — <http://www.canlii.org/fr/qc/qcca/doc/2014/2014qcca1103/2014qcca1103.pdf> ; <http://t.soquij.ca/e5SPb>
+- Trackcom Systems International inc. c. Trackcom Systems inc., 2014 QCCA 1136 (pouvoirs d’enquête qui constituent une mesure exceptionnelle) — <http://t.soquij.ca/Qw2n7>
+- Charland c. Lessard, 2015 QCCA 14 (proportionnalité en contexte de recours en oppression) — <http://t.soquij.ca/Sw7n5>
+- Mennillo c. Intramodal inc., 2016 CSC 51 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/16247/index.do>
+- Wilson c. Alharayeri, 2017 CSC 39 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/16724/index.do>
+
+### 8.4 Liste commune de jurisprudence — Actions collectives (Division de Montréal)
+
+Source : <https://coursuperieureduquebec.ca/fileadmin/cour-superieure/Districts_judiciaires/Division_Montreal/Directives_et_annexes_Division_de_Montreal/Directives_de_la_division_de_Montreal.pdf>
+
+Directives de la Cour supérieure — Division de Montréal (à jour au 2026-01-01), par. 187 à 190.
+
+- Banque Amex du Canada c. Adams, 2014 CSC 56 — <https://scc-csc.lexum.com/scc-csc/fr/a/s/index.do?cont=2014+CSC+56>
+- Banque de Montréal c. Marcotte, 2014 CSC 55 — <https://scc-csc.lexum.com/scc-csc/fr/a/s/index.do?cont=2014+CSC+55>
+- Bisaillon c. Université Concordia, 2006 CSC 19 — <https://scc-csc.lexum.com/scc-csc/scc-csc/fr/item/2/index.do>
+- Bou Malhab c. Diffusion Métromédia CMR inc., 2011 CSC 9 — <https://scc-csc.lexum.com/scc-csc/fr/a/s/index.do?cont=2011+CSC+9>
+- Ciment du Saint-Laurent inc. c. Barrette, 2008 CSC 64 — <https://scc-csc.lexum.com/scc-csc/fr/a/s/index.do?cont=2008+CSC+64>
+- Comité régional des usagers des transports en commun de Québec c. Commission des transports de la Communauté urbaine de Québec, [1981] 1 R.C.S. 424 — <https://scc-csc.lexum.com/scc-csc/fr/a/s/index.do?cont=%5B1981%5D+1+R.C.S.+424>
+- Dell Computer Corp. c. Union des consommateurs, 2007 CSC 34 — <https://scc-csc.lexum.com/scc-csc/fr/a/s/index.do?cont=2007+CSC+34>
+- Desjardins Cabinet de services financiers inc. c. Asselin, 2020 CSC 30 — <https://scc-csc.lexum.com/scc-csc/fr/a/s/index.do?cont=2020+CSC+30>
+- Guimond c. Québec (Procureur général), [1996] 3 R.C.S. 347 — <https://scc-csc.lexum.com/scc-csc/fr/a/s/index.do?cont=%5B1996%5D+3+R.C.S.+347>
+- Imperial Tobacco Canada ltée c. Conseil québécois sur le tabac et la santé, 2019 QCCA 358 — <https://canlii.ca/t/j2j45>
+- Infineon Technologies AG c. Option consommateurs, 2013 CSC 59 — <https://scc-csc.lexum.com/scc-csc/fr/a/s/index.do?cont=2013+CSC+59>
+- L’Oratoire Saint Joseph du Mont Royal c. J.J., 2019 CSC 35 — <https://scc-csc.lexum.com/scc-csc/fr/a/s/index.do?cont=2019+CSC+35>
+- Marcotte c. Fédération des caisses Desjardins du Québec, 2014 CSC 57 — <https://scc-csc.lexum.com/scc-csc/fr/a/s/index.do?cont=2014+CSC+57>
+- Marcotte c. Longueuil (Ville), 2009 CSC 43 — <https://scc-csc.lexum.com/scc-csc/fr/a/s/index.do?cont=2009+CSC+43>
+- Québec (Curateur public) c. Syndicat national des employés de l’hôpital St-Ferdinand, [1996] 3 R.C.S. 211 — <https://scc-csc.lexum.com/scc-csc/fr/a/s/index.do?cont=%5B1996%5D+3+R.C.S.+211>
+- Société canadienne des postes c. Lépine, 2009 CSC 16 — <https://scc-csc.lexum.com/scc-csc/fr/a/s/index.do?cont=2009+CSC+16>
+- Vivendi Canada Inc. c. Dell’Aniello, 2014 CSC 1 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/13409/index.do>
+- Western Canadian Shopping Centres Inc. c. Dutton, 2001 CSC 46 — <https://decisions.scc-csc.ca/scc-csc/scc-csc/fr/item/1884/index.do>
+- Ellis-Don Ltd. c. Ontario (Commission des relations de travail), 2001 CSC 4 — <https://scc-csc.lexum.com/scc-csc/fr/a/s/index.do?cont=2001+CSC+4>
+
+### 8.5 Liste en matière civile (Division de Québec)
+
+Source : <https://coursuperieureduquebec.ca/fileadmin/cour-superieure/Pdf_Word_par_district/districts/quebec-tous-les-districts/2022-01-31_Directives_concernant_le_fonctionnement_de_la_division_de_Quebec.pdf>
+
+Directives de la juge en chef associée pour la division de Québec (à jour au 2022-01-31), par. 24.1 à 24.3.
+
+Portée, selon la directive (par. 24.2 et 24.3) : les jugements compris dans ces listes n'ont pas à être reproduits intégralement dans le cahier d'autorités transmis préalablement à l'audience. Si une partie entend citer l'un d'eux, le passage invoqué doit être inclus avec référence à la liste commune de jurisprudence.
+
+- Baker c. Canada (Ministre de la Citoyenneté et de l'Immigration), [1999] 2 R.C.S. 817 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/1999/1999canlii699/1999canlii699>
+- Béliveau St-Jacques c. Fédération des employées et employés de services publics inc., [1996] 2 R.C.S. 345 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/1996/1996canlii208/1996canlii208>
+- Canada (Citoyenneté et Immigration) c. Khosa, 2009 CSC 12 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2009/2009csc12/2009csc12>
+- Canada (Ministre de la Citoyenneté et de l’Immigration) c. Vavilov, 2019 CSC 65 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2019/2019csc65/2019csc65>
+- Ciment du Saint-Laurent inc. c. Barrette, [2008] 3 R.C.S. 392 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2008/2008csc64/2008csc64>
+- Compagnie des chemins de fer nationaux du Canada c. McKercher LLP, 2013 CSC 39 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2013/2013csc39/2013csc39>
+- Domtar Inc. c. Québec (Commission d'appel en matière de lésions professionnelles), [1993] 2 R.C.S. 756 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/1993/1993canlii106/1993canlii106>
+- Dr Q c. College of Physicians and Surgeons of British Columbia, 2003 CSC 19 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2003/2003csc19/2003csc19>
+- Dunsmuir c. Nouveau-Brunswick, 2008 CSC 9 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2008/2008csc9/2008csc9>
+- Énergie atomique du Canada Ltée c. Sierra Club du Canada, [2002] 2 R.C.S. 522 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2002/2002csc41/2002csc41>
+- Glegg c. Smith & Nephew inc., [2005] 1 R.C.S. 724 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2005/2005csc31/2005csc31>
+- Hryniak c. Mauldin, [2014] 1 R.C.S. 87 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2014/2014csc7/2014csc7>
+- Immeubles Port Louis Ltée c. Lafontaine (Village), [1991] 1 R.C.S. 326 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/1991/1991canlii82/1991canlii82>
+- Manitoba (P.G.) c. Metropolitan Stores Ltd., [1987] 1 R.C.S. 110 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/1987/1987canlii79/1987canlii79>
+- Noël c. Société d'énergie de la Baie James, 2001 CSC 39 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2001/2001csc39/2001csc39>
+- Okwuobi c. Commission scolaire Lester-B.-Pearson; Casimir c. Québec (Procureur général); Zorrilla c. Québec (Procureur général), 2005 CSC 16 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2005/2005csc16/2005csc16>
+- Parry Sound (district), Conseil d’administration des services sociaux c. S.E.E.F.P.O., section locale 324, 2003 CSC 42 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2003/2003csc42/2003csc42>
+- Prud'homme c. Prud'homme, [2002] 4 R.C.S. 663 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2002/2002csc85/2002csc85>
+- Pushpanathan c. Canada (Ministre de la Citoyenneté et de l’Immigration), [1998] 1 R.C.S. 1222 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/1998/1998canlii787/1998canlii787>
+- R. c. Neil, 2002 CSC 70 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2002/2002csc70/2002csc70>
+- RJR -- Macdonald Inc. c. Canada (Procureur général), [1994] 1 R.C.S. 311 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/1994/1994canlii117/1994canlii117>
+- Roberge c. Bolduc, [1991] 1 R.C.S. 374 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/1991/1991canlii83/1991canlii83>
+- Rocois Construction Inc. c. Québec Ready Mix Inc., [1990] 2 R.C.S. 440 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/1990/1990canlii74/1990canlii74>
+- Spar Aerospace Ltée c. American Mobile Satellite Corp., 2002 CSC 78 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2002/2002csc78/2002csc78>
+- Succession MacDonald c. Martin, [1990] 3 R.C.S. 1235 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/1990/1990canlii32/1990canlii32>
+- Toronto (Ville) c. S.C.F.P., section locale 79, 2003 CSC 63 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2003/2003csc63/2003csc63>
+- Voice Construction Ltd. c. Construction & General Workers’ Union, Local 92, 2004 CSC 23 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2004/2004csc23/2004csc23>
+
+### 8.6 Liste en matière familiale (Division de Québec)
+
+Source : <https://coursuperieureduquebec.ca/fileadmin/cour-superieure/Pdf_Word_par_district/districts/quebec-tous-les-districts/2022-01-31_Directives_concernant_le_fonctionnement_de_la_division_de_Quebec.pdf>
+
+Directives de la juge en chef associée pour la division de Québec (à jour au 2022-01-31), par. 24.1 à 24.3.
+
+- Bracklow c. Bracklow, [1999] 1 R.C.S. 420 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/1999/1999canlii715/1999canlii715>
+- D.B.S. c. S.R.G.; L.J.W. c. T.A.R.; Henry c. Henry; Hiemstra c. Hiemstra, 2006 CSC 37 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2006/2006csc37/2006csc37>
+- G.(L.) c. B.(G.), [1995] 3 R.C.S. 370 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/1995/1995canlii65/1995canlii65>
+- Gordon c. Goertz, [1996] 2 R.C.S. 27 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/1996/1996canlii191/1996canlii191>
+- Kerr c. Baranow, 2011 CSC 10 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2011/2011csc10/2011csc10>
+- L.M.P. c. L.S., 2011 CSC 64 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2011/2011csc64/2011csc64>
+- Lacroix c. Valois, [1990] 2 R.C.S. 1259 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/1990/1990canlii46/1990canlii46>
+- M. (M.E.) c. L. (P.), [1992] 1 R.C.S. 183 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/1992/1992canlii113/1992canlii113>
+- M.T. c. J.-Y.T., 2008 CSC 50 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2008/2008csc50/2008csc50>
+- Miglin c. Miglin, 2003 CSC 24 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/2003/2003csc24/2003csc24>
+- Miron c. Trudel, [1995] 2 R.C.S. 418 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/1995/1995canlii97/1995canlii97>
+- Moge c. Moge, [1992] 3 R.C.S. 813 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/1992/1992canlii25/1992canlii25>
+- Peter c. Beblow, [1993] 1 R.C.S. 980 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/1993/1993canlii126/1993canlii126>
+- Willick c. Willick, [1994] 3 R.C.S. 670 — <https://unik.caij.qc.ca/permalien/fr/ca/csc/doc/1994/1994canlii28/1994canlii28>
+
+## 9. Cour du Québec — Division administrative et d'appel
+
+### 9.1 Liste commune de jurisprudence — Matière disciplinaire
+
+Source : <https://courduquebec.ca/fileadmin/cour-du-quebec/centre-de-documentation/chambre-civile/DAA_DirectiveListeCommuneJuris.pdf>
+
+Directive concernant la liste commune de jurisprudence — Division administrative et d'appel (en vigueur le 2021-09-27), art. 39 R.C.Q., par. 1 à 5.
+
+Portée, selon la directive (par. 2 et 3) : conformément à l'article 39 du Règlement de la Cour du Québec, ces sources sont considérées comme produites et les parties dispensées de les reproduire. Nulle partie n'est tenue de transmettre cette jurisprudence dans son cahier de sources ; toutefois, si une partie entend citer l'un des jugements, le passage invoqué doit être inclus et accompagné d'une référence à la Liste commune.
+
+| Onglet | Décision | Objet | Hyperlien |
+|---|---|---|---|
+| 1 | Association des courtiers et agents immobiliers du Québec c. Proprio Direct inc., 2008 CSC 32 | Interprétation de la Loi sur le courtage immobilier – Rôle du comité de discipline. | <https://www.canlii.org/fr/ca/csc/doc/2008/2008csc32/2008csc32.html> |
+| 2 | Audet c. Payette, 2018 QCCA 309 | Norme d’intervention de l’erreur manifeste et déterminante. | <https://www.canlii.org/fr/qc/qcca/doc/2018/2018qcca309/2018qcca309.html> |
+| 3 | Avocats (Ordre professionnel des) c. Michalakopoulos, 2014 QCCA 2189 | Sanction disciplinaire. | <https://www.canlii.org/fr/qc/qcca/doc/2014/2014qcca2189/2014qcca2189.html> |
+| 4 | Béliveau c. Barreau du Québec, 1992 CanLII 3299 (QC CA) | Le droit disciplinaire est un droit sui generis. | <https://www.canlii.org/fr/qc/qcca/doc/1992/1992canlii3299/1992canlii3299.html> |
+| 5 | Bisson c. Lapointe, 2016 QCCA 1078 | Norme d’intervention de l’erreur manifeste et déterminante - Fardeau de la preuve. | <https://www.canlii.org/fr/qc/qcca/doc/2016/2016qcca1078/2016qcca1078.html> |
+| 6 | Blencoe c. Colombie-Britannique (Human Rights Commission), 2000 CSC 44 | Délais procéduraux en droit administratif. | <https://www.canlii.org/fr/ca/csc/doc/2000/2000csc44/2000csc44.html> |
+| 7 | Canada (Directeur des enquêtes et des recherches) c. Southam inc., 1997 CanLII 385 (CSC) | Normes d’intervention. | <https://www.canlii.org/fr/ca/csc/doc/1997/1997canlii385/1997canlii385.html> |
+| 8 | Canada (Ministre de la Citoyenneté et de l’Immigration) c. Vavilov, 2019 CSC 65 | Normes d’intervention. | <https://www.canlii.org/fr/ca/csc/doc/2019/2019csc65/2019csc65.html> |
+| 9 | Cegerco inc. c. Équipements JVC inc., 2018 QCCA 28 | Norme d’intervention de l’erreur manifeste et déterminante. | <https://www.canlii.org/fr/qc/qcca/doc/2018/2018qcca28/2018qcca28.html> |
+| 10 | Champagne c. Banque Canadienne Impériale de Commerce (CIBC), 2015 QCCS 1890 | Pouvoir d’enquête du syndic de la Chambre de la sécurité financière. | <https://www.canlii.org/fr/qc/qccs/doc/2015/2015qccs1890/2015qccs1890.html> |
+| 11 | Chan c. Médecins (Ordre professionnel des), 2014 QCTP 5 | Sanctions disciplinaires résultant de recommandations communes. | <https://www.canlii.org/fr/qc/qctp/doc/2014/2014qctp5/2014qctp5.html> |
+| 12 | Construction Blenda inc. c. Office municipal d’habitation de Rosemère, 2020 QCCA 149 | Normes d’intervention – rôle d’une cour d’appel. | <https://www.canlii.org/fr/qc/qcca/doc/2020/2020qcca149/2020qcca149.html> |
+| 13 | Drolet-Savoie c. Tribunal des professions, 2017 QCCA 842 | Sanction disciplinaire. | <https://www.canlii.org/fr/qc/qcca/doc/2017/2017qcca842/2017qcca842.html> |
+| 14 | Gercotech inc. c. Kruger inc. Master Trust (CIBC Mellon Trust Company), 2019 QCCA 1168 | Norme d’intervention de l’erreur manifeste et déterminante. | <https://www.canlii.org/fr/qc/qcca/doc/2019/2019qcca1168/2019qcca1168.html> |
+| 15 | Housen c. Nikolaisen, 2002 CSC 33 | Normes d’intervention. | <https://www.canlii.org/fr/ca/csc/doc/2002/2002csc33/2002csc33.html> |
+| 16 | J.G. c. Nadeau, 2016 QCCA 167 | Norme d’intervention de l’erreur manifeste et déterminante – rôle d’une cour d’appel. | <https://www.canlii.org/fr/qc/qcca/doc/2016/2016qcca167/2016qcca167.html> |
+| 17 | Kienapple c. R., [1975] 1 RCS 729, 1974 CanLII 14 (CSC) | Déclarations de culpabilité multiples. | <https://www.canlii.org/fr/ca/csc/doc/1974/1974canlii14/1974canlii14.html> |
+| 18 | Mailloux c. Médecins (Ordre professionnel des), 2009 QCTP 80 | Limitation provisoire de l’exercice de la profession. | <https://www.canlii.org/fr/qc/qctp/doc/2009/2009qctp80/2009qctp80.html> |
+| 19 | Malus c. Gareau, 2020 QCCA 1317 | Normes d’intervention – Sanction disciplinaire. | <https://www.canlii.org/fr/qc/qcca/doc/2020/2020qcca1317/2020qcca1317.html> |
+| 20 | Ménard c. Gardner, 2012 QCCA 1546 | Règles de justice naturelle. | <https://www.canlii.org/fr/qc/qcca/doc/2012/2012qcca1546/2012qcca1546.html> |
+| 21 | Parizeau c. Barreau du Québec, 2011 QCCA 1498 | Normes d’intervention. | <https://www.canlii.org/fr/qc/qcca/doc/2011/2011qcca1498/2011qcca1498.html> |
+| 22 | Pharmascience c. Binet, 2006 CSC 48 | Pouvoir d’enquête du syndic. | <https://www.canlii.org/fr/ca/csc/doc/2006/2006csc48/2006csc48.html> |
+| 23 | Pigeon c. Daigneault, 2003 CanLII 32934 (QC CA) | Sanction disciplinaire. | <https://www.canlii.org/fr/qc/qcca/doc/2003/2003canlii32934/2003canlii32934.html> |
+| 24 | P.L. c. Benchetrit, 2010 QCCA 1505 | Norme d’intervention de l’erreur manifeste et déterminante – rôle d’une cour d’appel. | <https://www.canlii.org/fr/qc/qcca/doc/2010/2010qcca1505/2010qcca1505.html> |
+| 25 | R. c. Friesen, 2020 CSC 9 | Normes d’intervention en matière de peines. | <https://www.canlii.org/fr/ca/csc/doc/2020/2020csc9/2020csc9.html> |
+| 26 | R. c. Lacasse, 2015 CSC 64 | Normes d’intervention en matière de peines. | <https://www.canlii.org/fr/ca/csc/doc/2015/2015csc64/2015csc64.html> |
+| 27 | R. c. Stinchcombe, [1991] 3 RCS 326, 1991 CanLII 45 (CSC) | Divulgation de la preuve. | <https://www.canlii.org/fr/ca/csc/doc/1991/1991canlii45/1991canlii45.html> |
+| 28 | Teal Cedar Products Ltd. c. Colombie-Britannique, 2017 CSC 32 | Question de droit isolable. | <https://www.canlii.org/fr/ca/csc/doc/2017/2017csc32/2017csc32.html> |
+| 29 | Terjanian c. Lafleur, 2019 QCCA 230 | Sanction disciplinaire. | <https://www.canlii.org/fr/qc/qcca/doc/2019/2019qcca230/2019qcca230.html> |
+| 30 | Tremblay c. Dionne, 2006 QCCA 1441 | Devoirs généraux liés aux obligations déontologiques - Le droit disciplinaire est un droit sui generis. | <https://www.canlii.org/fr/qc/qcca/doc/2006/2006qcca1441/2006qcca1441.html> |
+
+### 9.2 Liste commune de jurisprudence — Matière de déontologie policière
+
+Source : <https://courduquebec.ca/fileadmin/cour-du-quebec/centre-de-documentation/chambre-civile/DAA_DirectiveListeCommuneJuris.pdf>
+
+| Onglet | Décision | Objet | Hyperlien |
+|---|---|---|---|
+| 1 | Audet c. Payette, 2018 QCCA 309 | Norme d’intervention de l’erreur manifeste et déterminante. | <https://www.canlii.org/fr/qc/qcca/doc/2018/2018qcca309/2018qcca309.html> |
+| 2 | Bisson c. Lapointe, 2016 QCCA 1078 | Norme d’intervention de l’erreur manifeste et déterminante - Fardeau de la preuve. | <https://www.canlii.org/fr/qc/qcca/doc/2016/2016qcca1078/2016qcca1078.html> |
+| 3 | Canada (Directeur des enquêtes et des recherches) c. Southam inc., 1997 CanLII 385 (CSC) | Normes d’intervention. | <https://www.canlii.org/fr/ca/csc/doc/1997/1997canlii385/1997canlii385.html> |
+| 4 | Canada (Ministre de la Citoyenneté et de l’Immigration) c. Vavilov, 2019 CSC 65 | Normes d’intervention. | <https://www.canlii.org/fr/ca/csc/doc/2019/2019csc65/2019csc65.html> |
+| 5 | Cegerco inc. c. Équipements JVC inc., 2018 QCCA 28 | Norme d’intervention de l’erreur manifeste et déterminante. | <https://www.canlii.org/fr/qc/qcca/doc/2018/2018qcca28/2018qcca28.html> |
+| 6 | Construction Blenda inc. c. Office municipal d’habitation de Rosemère, 2020 QCCA 149 | Normes d’intervention – rôle d’une cour d’appel. | <https://www.canlii.org/fr/qc/qcca/doc/2020/2020qcca149/2020qcca149.html> |
+| 7 | Drolet-Savoie c. Tribunal des professions, 2017 QCCA 842 | Sanction disciplinaire. | <https://www.canlii.org/fr/qc/qcca/doc/2017/2017qcca842/2017qcca842.html> |
+| 8 | Gercotech inc. c. Kruger inc. Master Trust (CIBC Mellon Trust Company), 2019 QCCA 1168 | Norme d’intervention de l’erreur manifeste et déterminante. | <https://www.canlii.org/fr/qc/qcca/doc/2019/2019qcca1168/2019qcca1168.html> |
+| 9 | Housen c. Nikolaisen, 2002 CSC 33 | Normes d’intervention. | <https://www.canlii.org/fr/ca/csc/doc/2002/2002csc33/2002csc33.html> |
+| 10 | J.G. c. Nadeau, 2016 QCCA 167 | Norme d’intervention de l’erreur manifeste et déterminante – rôle d’une cour d’appel. | <https://www.canlii.org/fr/qc/qcca/doc/2016/2016qcca167/2016qcca167.html> |
+| 11 | Kienapple c. R., [1975] 1 RCS 729, 1974 CanLII 14 (CSC) | Déclarations de culpabilité multiples. | <https://www.canlii.org/fr/ca/csc/doc/1974/1974canlii14/1974canlii14.html> |
+| 12 | Kosoian c. Société de transport de Montréal, 2019 CSC 59 | Obligation du policier – Connaissance et compréhension adéquates des lois et règlements. | <https://www.canlii.org/fr/ca/csc/doc/2019/2019csc59/2019csc59.html> |
+| 13 | Ménard c. Gardner, 2012 QCCA 1546 | Règles de justice naturelle. | <https://www.canlii.org/fr/qc/qcca/doc/2012/2012qcca1546/2012qcca1546.html> |
+| 14 | Morin c. Simard, 2010 QCCA 2302 | Norme d’intervention de l’erreur manifeste et déterminante - Question de l’appréciation des faits. | <https://www.canlii.org/fr/qc/qcca/doc/2010/2010qcca2302/2010qcca2302.html> |
+| 15 | Pigeon c. Daigneault, 2003 CanLII 32934 (QC CA) | Sanction disciplinaire. | <https://www.canlii.org/fr/qc/qcca/doc/2003/2003canlii32934/2003canlii32934.html> |
+| 16 | P.L. c. Benchetrit, 2010 QCCA 1505 | Norme d’intervention de l’erreur manifeste et déterminante – rôle d’une cour d’appel. | <https://www.canlii.org/fr/qc/qcca/doc/2010/2010qcca1505/2010qcca1505.html> |
+| 17 | R. c. Lacasse, 2015 CSC 64 | Sanction disciplinaire. | <https://www.canlii.org/fr/ca/csc/doc/2015/2015csc64/2015csc64.html> |
+| 18 | R. c. Stinchcombe, [1991] 3 RCS 326, 1991 CanLII 45 (CSC) | Divulgation de la preuve. | <https://www.canlii.org/fr/ca/csc/doc/1991/1991canlii45/1991canlii45.html> |
+| 19 | Teal Cedar Products Ltd. c. Colombie-Britannique, 2017 CSC 32 | Question de droit isolable. | <https://www.canlii.org/fr/ca/csc/doc/2017/2017csc32/2017csc32.html> |
+| 20 | Terjanian c. Lafleur, 2019 QCCA 230 | Sanction disciplinaire. | <https://www.canlii.org/fr/qc/qcca/doc/2019/2019qcca230/2019qcca230.html> |
+
+### 9.3 Liste commune de jurisprudence — Fiscalité municipale, expropriation et protection du territoire agricole
+
+Source : <https://courduquebec.ca/fileadmin/cour-du-quebec/centre-de-documentation/chambre-civile/DAA_DirectiveListeCommuneJuris.pdf>
+
+#### Permission d’appeler
+
+| Onglet | Décision | Objet | Hyperlien |
+|---|---|---|---|
+| 1 | St-Pie (Municipalité de) c. Commission de protection du territoire agricole du Québec, 2005 QCCA 252 | — | <http://www.canlii.ca/fr/qc/qcca/doc/2005/2005qcca252/2005qcca252.pdf> |
+
+#### Normes d’intervention
+
+| Onglet | Décision | Objet | Hyperlien |
+|---|---|---|---|
+| 2 | Audet c. Payette, 2018 QCCA 309 | Norme d’intervention de l’erreur manifeste et déterminante. | <https://www.canlii.org/fr/qc/qcca/doc/2018/2018qcca309/2018qcca309.html> |
+| 3 | Canada (Directeur des enquêtes et des recherches) c. Southam inc., 1997 CanLII 385 (CSC) | — | <https://www.canlii.org/fr/ca/csc/doc/1997/1997canlii385/1997canlii385.html> |
+| 4 | Canada (Ministre de la Citoyenneté et de l’Immigration) c. Vavilov, 2019 CSC 65 | — | <http://canlii.ca/t/j46kc> |
+| 5 | Cegerco inc. c. Équipements JVC inc., 2018 QCCA 28 | Norme d’intervention de l’erreur manifeste et déterminante. | <https://www.canlii.org/fr/qc/qcca/doc/2018/2018qcca28/2018qcca28.html> |
+| 6 | Construction Blenda inc. c. Office municipal d’habitation de Rosemère, 2020 QCCA 149 | Rôle d’une cour d’appel. | <https://www.canlii.org/fr/qc/qcca/doc/2020/2020qcca149/2020qcca149.html> |
+| 7 | Gercotech inc. c. Kruger inc. Master Trust (CIBC Mellon Trust Company), 2019 QCCA 1168 | Norme d’intervention de l’erreur manifeste et déterminante. | <https://www.canlii.org/fr/qc/qcca/doc/2019/2019qcca1168/2019qcca1168.html> |
+| 8 | Housen c. Nikolaisen, 2002 CSC 33 | — | <https://www.canlii.org/fr/ca/csc/doc/2002/2002csc33/2002csc33.html> |
+| 9 | J.G. c. Nadeau, 2016 QCCA 167 | Norme d’intervention de l’erreur manifeste et déterminante – rôle d’une cour d’appel. | <https://www.canlii.org/fr/qc/qcca/doc/2016/2016qcca167/2016qcca167.html> |
+| 10 | Montréal (Ville) c. Administration portuaire de Montréal, 2010 CSC 14, [2010] 1 RCS 427 | Immunité fiscale applicable aux biens gouvernementaux | <http://www.canlii.ca/fr/ca/csc/doc/2010/2010csc14/2010csc14.pdf> |
+| 11 | P.L. c. Benchetrit, 2010 QCCA 1505 | Norme d’intervention de l’erreur manifeste et déterminante – rôle d’une cour d’appel. | <https://www.canlii.org/fr/qc/qcca/doc/2010/2010qcca1505/2010qcca1505.html> |
+| 12 | Teal Cedar Products Ltd. c. Colombie-Britannique, 2017 CSC 32 | Question de droit isolable. | <https://www.canlii.org/fr/ca/csc/doc/2017/2017csc32/2017csc32.html> |
+
+#### Évaluation foncière
+
+| Onglet | Décision | Objet | Hyperlien |
+|---|---|---|---|
+| 13 | Buanderie centrale de Montréal inc. c. Ville de Montréal, [1994] 3 RCS 29, 1994 CanLII 59 (CSC) | Interprétation des lois fiscales. | <https://www.canlii.org/fr/ca/csc/doc/1994/1994canlii59/1994canlii59.html> |
+| 14 | Fabrique of the Parish of Saint-Patrick c. Ville de Montréal, 2020 QCCS 855 (permission d’appeler rejetée – 2021 QCCA 269) | Interprétation de l’article 204, par. 8 de la Loi sur la fiscalité municipale. | <https://www.canlii.org/fr/qc/qccs/doc/2020/2020qccs855/2020qccs855.html> ; <https://www.canlii.org/fr/qc/qcca/doc/2021/2021qcca269/2021qcca269.html> |
+| 15 | Groupe CRH Canada inc. c. Ville de Laval, 2017 QCCA 85 | Interprétation de l’article 65 de la Loi sur la fiscalité municipale. | <https://www.canlii.org/fr/qc/qcca/doc/2017/2017qcca85/2017qcca85.html> |
+| 16 | Holcim c. Cour du Québec, 2016 QCCS 4853 | Interprétation de l’article 65 de la Loi sur la fiscalité municipale. | <https://www.canlii.org/fr/qc/qccs/doc/2016/2016qccs4853/2016qccs4853.html> |
+| 17 | Procureure générale du Québec (Ministère des Affaires municipales, des Régions et de l’Occupation du territoire («MAMROT»)) c. Fondation internationale Azzahra inc., 2017 QCCA 240 | Interprétation de la notion d’« institution religieuse ». | <https://www.canlii.org/fr/qc/qcca/doc/2017/2017qcca240/2017qcca240.html> |
+| 18 | Québec (Communauté urbaine) c. Corp. Notre-Dame de Bon-Secours, [1994] 3 RCS 3 | Interprétation des lois fiscales. | <http://www.canlii.ca/fr/ca/csc/doc/1994/1994canlii58/1994canlii58.pdf> |
+| 19 | Sun Life c. Ville de Montréal, [1950] RCS 220 | — | <http://www.canlii.ca/en/ca/scc/doc/1950/1950canlii29/1950canlii29.pdf> |
+| 20 | The City of Montreal (Appeal No. 31 of 1950) v. Sun Life Assurance Co. of Canada (Canada), [1951] UKPC 28 (5 novembre 1951) | — | <http://www.bailii.org/uk/cases/UKPC/1951/1951_28.pdf> |
+| 21 | Ville de Bois-des-Filion c. Cour du Québec, 2020 QCCS 3003 | Interprétation des articles 244.3 et 244.36 de la Loi sur la fiscalité municipale. | <https://www.canlii.org/fr/qc/qccs/doc/2020/2020qccs3003/2020qccs3003.html> |
+| 22 | Ville de Montréal c. Diaco, 2018 QCCA 157 | Immuabilité du rôle d’évaluation foncière. | <https://www.canlii.org/fr/qc/qcca/doc/2018/2018qcca157/2018qcca157.html> |
+| 23 | Ville de Windsor c. Domtar inc., 2010 QCCQ 9031 | Désuétude économique – Appréciation de la preuve par le TAQ – Interprétation des articles 46 et 65 de la Loi sur la fiscalité municipale. | <https://www.canlii.org/fr/qc/qccq/doc/2010/2010qccq9031/2010qccq9031.html> |
+| 24 | 9185-6617 Québec inc. c. Ville de Longueuil, 2019 QCCA 1663 | Interprétation de l’article 174, par. 6 de la Loi sur la fiscalité municipale. | <https://www.canlii.org/fr/qc/qcca/doc/2019/2019qcca1663/2019qcca1663.html> |
+
+#### Expropriation
+
+| Onglet | Décision | Objet | Hyperlien |
+|---|---|---|---|
+| 25 | Camp Watchichou inc. c. Québec (Procureur général), 1999 CanLII 13185 (QC CA), EYB 1999-12764 (C.A.) | Utilisation optimale. | <http://www.canlii.ca/fr/qc/qcca/doc/1999/1999canlii13185/1999canlii13185.pdf> |
+| 26 | Drew v. The Queen, [1961] RCS 614 | Valeur difficilement quantifiable. | <http://www.canlii.ca/en/ca/scc/doc/1961/1961canlii76/1961canlii76.pdf> |
+| 27 | Régie des transports en commun de la région de Toronto c. Dell Holdings Ltd., [1997] 1 RCS 32 | Lenteur du processus d'expropriation – indemnisation. | <https://www.canlii.org/fr/ca/csc/doc/1997/1997canlii400/1997canlii400.html> |
+| 28 | Smith c. Alliance Pipeline Ltd., 2011 CSC 7, [2011] 1 RCS 160 | Travaux effectués par l'exproprié – indemnisation. | <https://www.canlii.org/fr/ca/csc/doc/2011/2011csc7/2011csc7.html> |
+
+#### Protection du territoire agricole
+
+| Onglet | Décision | Objet | Hyperlien |
+|---|---|---|---|
+| 29 | Boerboom c. Commission de protection du territoire agricole du Québec, 2008 QCCA 241 | Droits acquis. | <https://www.canlii.org/fr/qc/qcca/doc/2008/2008qcca241/2008qcca241.pdf> |
+| 30 | Commission de protection du territoire agricole du Québec c. Sanctuaire de la Vallée-du-Richelieu, 2013 QCCA 167 | Utilisation à des fins autres que l'agriculture. | <https://www.canlii.org/fr/qc/qcca/doc/2013/2013qcca167/2013qcca167.pdf> |
+| 31 | Gauthier c. Québec (Commission de protection du territoire agricole), [1989] 1 RCS 859 | Utilisation à des fins non agricoles. | <https://www.canlii.org/fr/ca/csc/doc/1989/1989canlii83/1989canlii83.pdf> |
+| 32 | St-Pie (Municipalité de) c. Commission de protection du territoire agricole du Québec, 2005 QCCA 252 | Demande d'exclusion de la zone agricole. | <https://www.canlii.org/fr/qc/qcca/doc/2005/2005qcca252/2005qcca252.pdf> |
+| 33 | St-Pie (Municipalité de) c. Commission de protection du territoire agricole du Québec, 2009 QCCA 2397 | Compétence pour entendre une preuve qui n'a pas été produite devant la Commission de protection du territoire agricole du Québec. | <https://www.canlii.org/fr/qc/qcca/doc/2009/2009qcca2397/2009qcca2397.pdf> |
+| 34 | Veilleux c. Québec (Commission de protection du territoire agricole), [1989] 1 RCS 839 | Droits acquis. | <https://www.canlii.org/fr/ca/csc/doc/1989/1989canlii82/1989canlii82.pdf> |
+| 35 | Venne c. Québec (Commission de la protection du territoire agricole), [1989] 1 RCS 880 | Vente avec réserve de propriété jusqu'à paiement complet et droit acquis. | <https://www.canlii.org/fr/ca/csc/doc/1989/1989canlii84/1989canlii84.pdf> |
+
+### 9.4 Liste commune de jurisprudence — Matière fiscale
+
+Source : <https://courduquebec.ca/fileadmin/cour-du-quebec/centre-de-documentation/chambre-civile/DAA_DirectiveListeCommuneJuris.pdf>
+
+| Onglet | Décision | Objet | Hyperlien |
+|---|---|---|---|
+| 1 | 1068754 Alberta Ltd. c. Québec (Agence du revenu), 2019 CSC 37 | Demande péremptoire et portée extraterritoriale. | <http://canlii.ca/t/j1678> |
+| 2 | Agence Océanica inc. c. Agence du revenu du Québec, 2014 QCCA 1385 | Relation employeur-employé au sens des lois fiscales. | <https://www.canlii.org/fr/qc/qcca/doc/2014/2014qcca1385/2014qcca1385.html> |
+| 3 | Agence du revenu du Québec c. Groupe Enico inc., 2016 QCCA 76 | Dommages contre l’ARQ. | <https://www.canlii.org/fr/qc/qcca/doc/2016/2016qcca76/2016qcca76.html> |
+| 4 | Agence du revenu du Québec c. Stamatopoulos, 2018 QCCA 474 | Fardeau de preuve de l’ARQ sur les hypothèses de faits concernant les tiers. | <https://www.canlii.org/fr/qc/qcca/doc/2018/2018qcca474/2018qcca474.html> |
+| 5 | Agence du revenu du Québec c. Système intérieur GPBR inc., 2015 QCCA 1402 | Fausse facturation. | <https://www.canlii.org/fr/qc/qcca/doc/2015/2015qcca1402/2015qcca1402.html> |
+| 6 | Agence du revenu du Québec c. Technostructur inc. (175094 Canada inc.), 2014 QCCA 533 | Annulation des pénalités et intérêts. | <https://www.canlii.org/fr/qc/qcca/doc/2014/2014qcca533/2014qcca533.html> |
+| 7 | Alertpay Incorporated c. Agence du revenu du Québec, 2020 QCCA 46 | Méthode alternative de vérification. | <http://canlii.ca/t/j4rb9> |
+| 8 | Andreou c. Agence du revenu du Québec, 2018 QCCA 695 | Déchéance du droit de contestation. | <https://www.canlii.org/fr/qc/qcca/doc/2018/2018qcca695/2018qcca695.html> |
+| 9 | Bermex International inc. c. Agence du revenu du Québec, 2013 QCCA 1379 | Définition d’une preuve prima facie. | <https://www.canlii.org/fr/qc/qcca/doc/2013/2013qcca1379/2013qcca1379.html> |
+| 10 | Canada c. Antosko, [1994] 2 RCS 312 | Interprétation des lois fiscales. | <http://www.canlii.ca/fr/ca/csc/doc/1994/1994canlii88/1994canlii88.pdf> |
+| 11 | Canada c. Chambre des notaires du Québec, 2016 CSC 20, [2016] 1 RCS 336 | Secret professionnel du notaire et de l’avocat. | <https://www.canlii.org/fr/ca/csc/doc/2016/2016csc20/2016csc20.html> |
+| 12 | Canada c. Craig, 2012 CSC 43, [2012] 2 RCS 489 | Perte agricole restreinte. | <https://www.canlii.org/fr/ca/csc/doc/2012/2012csc43/2012csc43.html> |
+| 13 | Canada c. McLarty, 2008 CSC 26, [2008] 2 RCS 79 | Obligation conditionnelle. | <http://www.canlii.ca/fr/ca/csc/doc/2008/2008csc26/2008csc26.pdf> |
+| 14 | Canderel Ltée c. Canada, [1998] 1 RCS 147 | Calcul du revenu. | <http://www.canlii.ca/fr/ca/csc/doc/1998/1998canlii846/1998canlii846.pdf> |
+| 15 | Copthorne Holdings Ltd. c. Canada, 2011 CSC 63, [2011] 3 RCS 721 | Disposition générale anti-évitement. | <http://www.canlii.ca/fr/ca/csc/doc/2011/2011csc63/2011csc63.pdf> |
+| 16 | Coulombe c. Agence du revenu du Québec, 2017 QCCA 950 | Pénalités négligence flagrante. | <http://canlii.ca/t/h49pk> |
+| 17 | Delorme c. Agence du revenu du Québec, 2020 QCCA 1295 | Présomption de validité des cotisations – Pénalités. | <https://www.canlii.org/fr/qc/qcca/doc/2020/2020qcca1295/2020qcca1295.html> |
+| 18 | Drolet c. Agence du revenu du Québec, 2020 QCCA 636 | Responsabilité fiscale du conjoint – Personne liée | <https://www.canlii.org/fr/qc/qcca/doc/2020/2020qcca636/2020qcca636.html> |
+| 19 | Duha Printers (Western) Ltd. c. Canada, [1998] 1 RCS 795 | Notion de contrôle de jure et de facto. | <http://www.canlii.ca/fr/ca/csc/doc/1998/1998canlii827/1998canlii827.pdf> |
+| 20 | Entreprises Ludco Ltée c. Canada, 2001 CSC 62, [2001] 2 RCS 1082 | Calcul du revenu. | <http://www.canlii.ca/fr/ca/csc/doc/2001/2001csc62/2001csc62.pdf> |
+| 21 | Guindon c. Canada, 2015 CSC 41, [2015] 3 RCS 3 | Pénalité des tiers. | <https://www.canlii.org/fr/ca/csc/doc/2015/2015csc41/2015csc41.html> |
+| 22 | Hardy c. Agence du revenu du Québec, 2015 QCCA 564 | Fardeau de preuve du contribuable. | <https://www.canlii.org/fr/qc/qcca/doc/2015/2015qcca564/2015qcca564.html> |
+| 23 | Hickman Motors Ltd. c. Canada, [1997] 2 RCS 336 | Présomption de validité des cotisations et fardeau de preuve du contribuable et du ministre. | <http://www.canlii.ca/fr/ca/csc/doc/1997/1997canlii357/1997canlii357.pdf> |
+| 24 | Hypothèques Trustco Canada c. Canada, 2005 CSC 54, [2005] 2 RCS 601 | Règles d’interprétation des lois fiscales et disposition générale anti-évitement. | <http://www.canlii.ca/fr/ca/csc/doc/2005/2005csc54/2005csc54.pdf> |
+| 25 | Jean c. Agence du revenu du Québec, 2019 QCCA 458 | Inscription hors délai de l’appel. | — |
+| 26 | Johns-Manville Canada c. La Reine, [1985] 2 RCS 46 | Dépense de nature capitale. | <http://www.canlii.ca/fr/ca/csc/doc/1985/1985canlii43/1985canlii43.pdf> |
+| 27 | Labrosse c. Agence du revenu du Québec, 2011 QCCA 1592 | Pénalités. | <http://www.canlii.ca/fr/qc/qcca/doc/2011/2011qcca1592/2011qcca1592.pdf> |
+| 28 | Neuman c. M.R.N., [1998] 1 RCS 770 | Imposition des dividendes. | <http://www.canlii.ca/fr/ca/csc/doc/1998/1998canlii826/1998canlii826.pdf> |
+| 29 | Québec (Sous-ministre du Revenu) c. Chiasson, 2010 QCCA 1188 | Années fiscales prescrites. | <https://www.canlii.org/fr/qc/qcca/doc/2010/2010qcca1188/2010qcca1188.html> |
+| 30 | Québec (Sous-ministre du Revenu) c. Chenel, 2005 QCCA 794 | Méthode alternative de vérification. | <https://www.canlii.org/fr/qc/qcca/doc/2005/2005qcca794/2005qcca794.html> |
+| 31 | Québec (Revenu) c. Caisse populaire Desjardins de Montmagny, 2009 CSC 49, [2009] 3 RCS 286 | TPS/TVQ. | <http://www.canlii.ca/fr/ca/csc/doc/2009/2009csc49/2009csc49.pdf> |
+| 32 | R. c. Jarvis, 2002 CSC 73, [2002] 3 RCS 757 | Vérifications vs. Enquêtes; prescription et pénalités. | <http://www.canlii.ca/fr/ca/csc/doc/2002/2002csc73/2002csc73.pdf> |
+| 33 | R. c. Mckinlay transport ltd., [1990] 1 RCS 627 | Principe d’auto-cotisation et d’auto-déclaration. | <http://www.canlii.ca/fr/ca/csc/doc/1990/1990canlii137/1990canlii137.pdf> |
+| 34 | Shell Canada Ltée c. Canada, [1999] 3 RCS 622 | Qualification juridique des opérations aux fins fiscales. | <http://www.canlii.ca/fr/ca/csc/doc/1999/1999canlii647/1999canlii647.pdf> |
+| 35 | Stewart c. Canada, 2002 CSC 46, [2002] 2 RCS 645 | Expectative raisonnable de profit. | <http://www.canlii.ca/fr/ca/csc/doc/2002/2002csc46/2002csc46.pdf> |
+| 36 | St-Georges c. Québec (Sous-ministre du Revenu), 2007 QCCA 1442 | Pénalités. | <http://www.canlii.ca/fr/qc/qcca/doc/2007/2007qcca1442/2007qcca1442.pdf> |
+| 37 | Symes c. Canada, [1993] 4 RCS 695 | Dépense d’entreprise vs dépense personnelle, droit à l’égalité. | <http://www.canlii.ca/fr/ca/csc/doc/1993/1993canlii55/1993canlii55.pdf> |
+| 38 | Tsiaprailis c. Canada, 2005 CSC 8, [2005] 1 RCS 113 | Imposition des dommages. | <http://www.canlii.ca/fr/ca/csc/doc/2005/2005csc8/2005csc8.pdf> |
+
+### 9.5 Liste commune de jurisprudence — Encadrement du secteur financier
+
+Source : <https://courduquebec.ca/fileadmin/cour-du-quebec/centre-de-documentation/chambre-civile/DAA_DirectiveListeCommuneJuris.pdf>
+
+| Onglet | Décision | Objet | Hyperlien |
+|---|---|---|---|
+| 1 | AbitibiBowater inc. (Produits forestiers Résolu) c. Fibrek inc., 2012 QCCA 569 | Décision du TAMF de nature réglementaire - Intérêt public. | <https://www.canlii.org/fr/qc/qcca/doc/2012/2012qcca569/2012qcca569.html> |
+| 2 | Audet c. Payette, 2018 QCCA 309 | Norme d’intervention de l’erreur manifeste et déterminante. | <https://www.canlii.org/fr/qc/qcca/doc/2018/2018qcca309/2018qcca309.html> |
+| 3 | Autorité des marchés financiers c. Assomption, compagnie mutuelle d'assurance-vie, 2007 QCCA 1062 | Compétence de l’AMF. | <https://www.canlii.org/fr/qc/qcca/doc/2007/2007qcca1062/2007qcca1062.html> |
+| 4 | Autorité des marchés financiers c. Groupe SNC-Lavalin inc., 2013 QCCA 204 | Interprétation du terme « décision » prévu à l’article 322 LVM – Compétence du TAMF à l’égard des ordonnances de confidentialité délivrées par l’AMF. | <https://www.canlii.org/fr/qc/qcca/doc/2013/2013qcca204/2013qcca204.html> |
+| 5 | Baker c. Canada (Ministre de la Citoyenneté et de l'Immigration), [1999] 2 R.C.S. 817 | Équité procédurale. | — |
+| 6 | Blencoe c. Colombie-Britannique (Human Rights Commission), 2000 CSC 44 | Délais procéduraux en droit administratif. | <https://www.canlii.org/fr/ca/csc/doc/2000/2000csc44/2000csc44.html> |
+| 7 | British Columbia Securities Commission c. Branch, [1995] 2 R.C.S. 3 | Objectifs de la législation sur les valeurs mobilières / Contrainte à témoigner / Expectative de vie privée en matière administrative. | — |
+| 8 | Brosseau c. Alberta Securities Commission, [1989] 1 RCS 301, 1989 CanLII 121 (CSC) | Objectifs de la législation sur les valeurs mobilières. | <https://www.canlii.org/fr/ca/csc/doc/1989/1989canlii121/1989canlii121.html> |
+| 9 | Bruni c. Autorité des marchés financiers, 2011 QCCA 994 | Probité du représentant. | — |
+| 9 | Murphy c. Autorité des marchés financiers, 2016 QCCA 878 | Probité du représentant. | — |
+| 10 | Canada (Directeur des enquêtes et des recherches) c. Southam inc., 1997 CanLII 385 (CSC) | Normes d’intervention. | <https://www.canlii.org/fr/ca/csc/doc/1997/1997canlii385/1997canlii385.html> |
+| 11 | Canada (Ministre de la Citoyenneté et de l’Immigration) c. Vavilov, 2019 CSC 65 | Normes d’intervention. | <https://www.canlii.org/fr/ca/csc/doc/2019/2019csc65/2019csc65.html> |
+| 12 | Cartaway Resources Corp. (Re), 2004 CSC 26 | Dissuasion générale – Pénalité - Intérêt public. | <https://www.canlii.org/fr/ca/csc/doc/2004/2004csc26/2004csc26.html> |
+| 13 | Cegerco inc. c. Équipements JVC inc., 2018 QCCA 28 | Norme d’intervention de l’erreur manifeste et déterminante. | <https://www.canlii.org/fr/qc/qcca/doc/2018/2018qcca28/2018qcca28.html> |
+| 14 | Comité pour le traitement égal des actionnaires minoritaires de la Société Asbestos Ltée c. Ontario (Commission des valeurs mobilières), 2001 CSC 37 | Portée de l’intérêt public. | <https://www.canlii.org/fr/ca/csc/doc/2001/2001csc37/2001csc37.html> |
+| 15 | Construction Blenda inc. c. Office municipal d’habitation de Rosemère, 2020 QCCA 149 | Normes d’intervention – rôle d’une cour d’appel. | <https://www.canlii.org/fr/qc/qcca/doc/2020/2020qcca149/2020qcca149.html> |
+| 16 | Demers c. Autorité des marchés financiers, 2007 QCCQ 6870, conf. par Demers c. Autorité des marchés financiers, 2007 QCCA 1350 | Interprétation et application de l’article 273.3 LVM. | <https://www.canlii.org/fr/qc/qccq/doc/2007/2007qccq6870/2007qccq6870.html> ; <https://www.canlii.org/fr/qc/qcca/doc/2007/2007qcca1350/2007qcca1350.html> |
+| 17 | Donaldson c. Autorité des marchés financiers, 2020 QCCA 401 | Pénalité administrative prévue à l’article 273.1 LVM – Prescription – Critère du délai raisonnable établi dans l’arrêt Blencoe. | <https://www.canlii.org/fr/qc/qcca/doc/2020/2020qcca401/2020qcca401.html> |
+| 18 | Fondation Fer de lance c. Bureau de décision et de révision, 2012 QCCQ 159 | Appel d’une décision interlocutoire. | — |
+| 19 | Formule Pontiac Buick Inc. c. Québec (Bureau des services financiers), 2004 CanLII 7239 (QC CS), conf. par Formule Pontiac Buick GMC inc. c. Bureau des services financiers, 2005 QCCA 1027 | Interprétation de la LDPSF. | <https://www.canlii.org/fr/qc/qccs/doc/2004/2004canlii7239/2004canlii7239.html> ; <https://www.canlii.org/fr/qc/qcca/doc/2005/2005qcca1027/2005qcca1027.html> |
+| 20 | Gercotech inc. c. Kruger inc. Master Trust (CIBC Mellon Trust Company), 2019 QCCA 1168 | Norme d’intervention de l’erreur manifeste et déterminante. | <https://www.canlii.org/fr/qc/qcca/doc/2019/2019qcca1168/2019qcca1168.html> |
+| 21 | Global Securities Corp. c. Colombie-Britannique (Securities Commission), 2000 CSC 21 | Application de la LVM – Facteurs de rattachement. | <https://www.canlii.org/fr/ca/csc/doc/2000/2000csc21/2000csc21.html> |
+| 22 | Gregory & Co. Inc. v. Quebec Securities Commission, [1961] RCS 584, 1961 CanLII 75 (SCC) | Objectifs de la législation sur les valeurs mobilières. | <https://www.canlii.org/en/ca/scc/doc/1961/1961canlii75/1961canlii75.html> |
+| 23 | Housen c. Nikolaisen, 2002 CSC 33 | Normes d’intervention. | <https://www.canlii.org/fr/ca/csc/doc/2002/2002csc33/2002csc33.html> |
+| 24 | Infotique Tyra inc. c. Québec (Commission des valeurs mobilières), 1994 CanLII 5940 (QC CA) | Interprétation de la LVM. | <https://www.canlii.org/fr/qc/qcca/doc/1994/1994canlii5940/1994canlii5940.html> |
+| 25 | J.G. c. Nadeau, 2016 QCCA 167 | Norme d’intervention de l’erreur manifeste et déterminante – rôle d’une cour d’appel. | <https://www.canlii.org/fr/qc/qcca/doc/2016/2016qcca167/2016qcca167.html> |
+| 26 | Kerr c. Danier Leather Inc., 2007 CSC 44 | Objectifs de la législation en valeurs mobilières et discussion sur l’importance d’un « fait » ou d’un « changement ». | — |
+| 27 | La Souveraine, Compagnie d’assurance générale c. Autorité des marchés financiers, [2013] 3 R.C.S. 756 | Objectifs de la LDPSF / La participation aux marchés est un privilège. | — |
+| 28 | Lemire c. Autorité des marchés financiers, 2016 QCCQ 8932 | Manipulation de marchés. | — |
+| 29 | Marston c. Autorité des marchés financiers, 2009 QCCA 2178 | Interprétation de la LDPSF. | <https://www.canlii.org/fr/qc/qcca/doc/2009/2009qcca2178/2009qcca2178.html> |
+| 30 | Mastrocola c. Autorité des marchés financiers, 2011 QCCA 995 | Manque de probité – Obligation de motivation des décisions. | <https://www.canlii.org/fr/qc/qcca/doc/2011/2011qcca995/2011qcca995.html> |
+| 31 | Mizrahi c. Autorité des marchés financiers, 2009 QCCQ 10542 | [Décision citée 37 fois] Recommandations communes sur sanction. | — |
+| 32 | Organisme canadien de réglementation du commerce des valeurs mobilières c. Séguin, 2014 QCCA 247 | Norme de révision des décisions d’un organisme d’autoréglementation (le jugement confirme Séguin c. Association canadienne des courtiers en valeurs mobilières (Organisme canadien de réglementation du commerce des valeurs mobilières), 2010 QCBDR 104). | — |
+| 33 | Pacific Coast Coin Exchange c. Commission des valeurs mobilières de l’Ontario, [1978] 2 RCS 112, 1977 CanLII 37 (CSC) | Interprétation de la législation sur les valeurs mobilières. | <https://www.canlii.org/fr/ca/csc/doc/1977/1977canlii37/1977canlii37.html> |
+| 34 | Pezim c. Colombie-Britannique (Superintendent of Brokers), [1994] 2 R.C.S. 557 | Interprétation de la législation sur les valeurs mobilières. / Objectifs de la législation en valeurs mobilières et importance des intermédiaires des marchés dans l’atteinte de ces objectifs. | — |
+| 35 | P.L. c. Benchetrit, 2010 QCCA 1505 | Norme d’intervention de l’erreur manifeste et déterminante – rôle d’une cour d’appel. | <https://www.canlii.org/fr/qc/qcca/doc/2010/2010qcca1505/2010qcca1505.html> |
+| 36 | Sharben Holdings c. Vancouver Airport Centre, Ltd., [2011] 2 R.C.S. 175 | Discussion sur la notion d’« importance ». | — |
+| 37 | Teal Cedar Products Ltd. c. Colombie-Britannique, 2017 CSC 32 | Question de droit isolable. | <https://www.canlii.org/fr/ca/csc/doc/2017/2017csc32/2017csc32.html> |
+
+### 9.6 Liste commune de jurisprudence — Accès à l'information
+
+Source : <https://courduquebec.ca/fileadmin/cour-du-quebec/centre-de-documentation/chambre-civile/DAA_DirectiveListeCommuneJuris.pdf>
+
+| Onglet | Décision | Objet | Hyperlien |
+|---|---|---|---|
+| 1 | Agence du revenu du Québec c. Marcotte, 2019 QCCQ 7877 | Interprétation de l’article 32 de la Loi sur l’accès aux documents des organismes publics et sur la protection des renseignements personnels. | <https://www.canlii.org/fr/qc/qccq/doc/2019/2019qccq7877/2019qccq7877.html> |
+| 2 | Alberta (Information and Privacy Commissioner) c. University of Calgary, 2016 CSC 53 | Secret professionnel. | <https://www.canlii.org/fr/ca/csc/doc/2016/2016csc53/2016csc53.html> |
+| 3 | Blank c. Canada (Ministre de la Justice), 2006 CSC 39 | Secret professionnel – Privilège relatif au litige. | <https://www.canlii.org/fr/ca/csc/doc/2006/2006csc39/2006csc39.html> |
+| 4 | Canada (Commissaire à l'information) c. Canada (Ministre de la Défense nationale), 2011 CSC 25 | Objectifs de la législation en matière d’accès à l’information. | <https://www.canlii.org/fr/ca/csc/doc/2011/2011csc25/2011csc25.html> |
+| 5 | Canada (Commissaire à la protection de la vie privée) c. Blood Tribe Department of Health, 2008 CSC 44 | Secret professionnel. | <https://www.canlii.org/fr/ca/csc/doc/2008/2008csc44/2008csc44.html> |
+| 6 | Canada (Directeur des enquêtes et des recherches) c. Southam inc., 1997 CanLII 385 (CSC) | Normes d’intervention. | <https://www.canlii.org/fr/ca/csc/doc/1997/1997canlii385/1997canlii385.html> |
+| 7 | Canada (Ministre de la Citoyenneté et de l’Immigration) c. Vavilov, 2019 CSC 65 | Normes d’intervention. | <https://www.canlii.org/fr/ca/csc/doc/2019/2019csc65/2019csc65.html> |
+| 8 | Chambre de la sécurité financière c. Drapeau, 2021 QCCQ 1838 | Traitement du privilège relatif au litige dans un contexte de demande d'accès à l’information. | — |
+| 9 | Cie H.J. Heinz du Canada Ltée c. Canada (Procureur général), 2006 CSC 13 | Objectifs de la législation en matière d’accès à l’information. | <https://www.canlii.org/fr/ca/csc/doc/2006/2006csc13/2006csc13.html> |
+| 10 | Commission d'accès à l'information du Québec c. ArcelorMittal Montréal inc., 2016 QCCA 1336 | Compétence de la CAI. | <https://www.canlii.org/fr/qc/qcca/doc/2016/2016qcca1336/2016qcca1336.html> |
+| 11 | Commission d'accès à l'information c. Conseil de presse du Québec, 2006 QCCA 1282 | Intérêt à agir de la CAI. | <https://www.canlii.org/fr/qc/qcca/doc/2006/2006qcca1282/2006qcca1282.html> |
+| 12 | Commission d'accès à l'information c. Hydro-Québec, 2003 CanLII 47047 (QC CA) | Compétence de la CAI. | <https://www.canlii.org/fr/qc/qcca/doc/2003/2003canlii47047/2003canlii47047.html> |
+| 13 | Construction Blenda inc. c. Office municipal d’habitation de Rosemère, 2020 QCCA 149 | Normes d’intervention – rôle d’une cour d’appel. | <https://www.canlii.org/fr/qc/qcca/doc/2020/2020qcca149/2020qcca149.html> |
+| 14 | Desmarais c. Autorité des marchés financiers, 2019 QCCQ 7874 | Traitement du privilège relatif au litige dans un contexte de demande d'accès à l’information. | — |
+| 15 | Housen c. Nikolaisen, 2002 CSC 33 | Normes d’intervention. | <https://www.canlii.org/fr/ca/csc/doc/2002/2002csc33/2002csc33.html> |
+| 16 | Hydro-Québec c. Leclerc, 2011 QCCQ 5281 | Permission d’appeler – Décision interlocutoire de la CAI. | <https://www.canlii.org/fr/qc/qccq/doc/2011/2011qccq5281/2011qccq5281.html> |
+| 17 | Intact Assurance c. Landry, 2021 QCCQ 428 | Norme d’intervention en appel. | — |
+| 18 | Investissement Québec c. Constant, 2017 QCCQ 12820 | Permission d’appeler – Décision interlocutoire de la CAI. | <https://www.canlii.org/fr/qc/qccq/doc/2017/2017qccq12820/2017qccq12820.html> |
+| 19 | Kalogerakis c. Commission scolaire des Patriotes, 2017 QCCA 1253 | Secret professionnel – Honoraires professionnels. | <https://www.canlii.org/fr/qc/qcca/doc/2017/2017qcca1253/2017qcca1253.html> |
+| 20 | Lizotte c. Aviva, Compagnie d’assurance du Canada, 2016 CSC 52 (CanLII), [2016] 2 RCS 521 | Privilège relatif au litige. | — |
+| 21 | Loto-Québec c. Clennett, 2011 QCCQ 14855 | Permission d’appeler – Décision interlocutoire de la CAI. | <https://www.canlii.org/fr/qc/qccq/doc/2011/2011qccq14855/2011qccq14855.html> |
+| 22 | Macdonell c. Québec (Commission d'accès à l'information), 2002 CSC 71 | Portée du droit d’appel – Interprétation des articles 34 et 57 de la Loi sur l’accès aux documents des organismes publics et sur la protection des renseignements personnels. | <https://www.canlii.org/fr/ca/csc/doc/2002/2002csc71/2002csc71.html> |
+| 23 | Merck Frosst Canada Ltée c. Canada (Santé), 2012 CSC 3 | Degré de preuve requis – Refus de l’organisme. | <https://www.canlii.org/fr/ca/csc/doc/2012/2012csc3/2012csc3.html> |
+| 24 | Montréal (Ville de) c. Gyulai, 2011 QCCA 238 | Portée du droit d’appel – Retour du dossier. | <https://www.canlii.org/fr/qc/qcca/doc/2011/2011qcca238/2011qcca238.html> |
+| 25 | Moore c. Cour du Québec, 2002 CanLII 41127 (QC CA) | Portée du droit d’appel. | <https://www.canlii.org/fr/qc/qcca/doc/2002/2002canlii41127/2002canlii41127.html> |
+| 26 | Ontario (Sûreté et Sécurité publique) c. Criminal Lawyers' Association, 2010 CSC 23 | Objectifs de la législation en matière d’accès à l’information. | <https://www.canlii.org/fr/ca/csc/doc/2010/2010csc23/2010csc23.html> |
+| 27 | Procureur général du Québec c. Green, 2021 QCCQ 4467 | Privilèges génériques relatifs au litige et au règlement. | — |
+| 28 | Québec (Conseil de la magistrature) c. Québec (Commission d'accès à l'information), 2000 CanLII 11305 (QC CA) | Caractère quasi constitutionnel de la Loi sur l’accès aux documents des organismes publics et sur la protection des renseignements personnels. | <https://www.canlii.org/fr/qc/qcca/doc/2000/2000canlii11305/2000canlii11305.html> |
+| 29 | Québec (Procureur général) c. Syndicat des professionnelles et professionnels du gouvernement du Québec (SPGQ), 2008 QCCA 939 | Interprétation de l’article 57, par. 4 de la Loi sur l’accès aux documents des organismes publics et sur la protection des renseignements personnels. | <https://www.canlii.org/fr/qc/qcca/doc/2008/2008qcca939/2008qcca939.html> |
+| 30 | Ricard-Châtelain c. Québec (Ministère de la santé et des services sociaux), 2006 QCCQ 13508 | Interprétation de l’article 34, alinéa 2 de la Loi sur l’accès aux documents des organismes publics et sur la protection des renseignements personnels. | — |
+| 31 | Sattva Capital Corp. c. Creston Moly Corp., 2014 CSC 53 | Question de droit isolable. | <https://www.canlii.org/fr/ca/csc/doc/2014/2014csc53/2014csc53.html> |
+| 32 | Spooner c. Commission scolaire des Sommets, 2008 QCCQ 9396 | Expertise de la Commission d’accès à l’information – Réouverture des débats. | — |
+| 33 | Teal Cedar Products Ltd. c. Colombie-Britannique, 2017 CSC 32 | Question de droit isolable. | <https://www.canlii.org/fr/ca/csc/doc/2017/2017csc32/2017csc32.html> |
+| 34 | Vaillancourt c. Investissement Québec, 2020 QCCQ 9429 | Interprétation de l’article 22 de la Loi sur l’accès aux documents des organismes publics et sur la protection des renseignements personnels. Notion de détention et d’appartenance. | — |
+| 35 | Vézina c. Municipalité régionale de comté de Coaticook, 2020 QCCQ 3660 | Détermination du critère juridique applicable. Interprétation de l’article 147 de la Loi sur l’accès aux documents des organismes publics et sur la protection des renseignements personnels. | — |
+| 36 | Ville de Longueuil c. Côté, 2020 QCCQ 1224 | Traitement du privilège relatif au litige dans un contexte de demande d'accès à l’information. | — |
+
 ## Onglets sans liste
 
 La page « Notices – Federal Court » (<https://www.fct-cf.ca/en/pages/law-and-practice/notices>) est un index des avis; elle renvoie aux volumes de la section 6. La page de résultats Google « Federal Court Common List of Authorities / Liste partagée des autorités » ne contient pas de liste. La liste commune du Tribunal des droits de la personne était ouverte dans deux onglets.
@@ -798,7 +1265,8 @@ La page « Notices – Federal Court » (<https://www.fct-cf.ca/en/pages/law-and
 6. Cour fédérale, vol. 4-II, partie A (Miss Universe) : la référence de la source porte « 1994 CanLII 35340 », mais son hyperlien renvoie à 1994canlii3534. CanLII (connecteur juris) donne Miss Universe, Inc. v. Bohna (C.A.), 1994 CanLII 3534 (FCTAD), [1995] 1 FC 614.
 7. Tribunal des droits de la personne, onglet 36 : parenthèse fermante superflue retirée après « droits de la jeunesse ».
 8. TAT, Division des relations du travail : l'ordre de la source, qui n'est pas strictement alphabétique, est conservé.
-9. Hyperliens : chaque lien est celui que la source associe à la décision, lu dans le code de la page ou dans les annotations du PDF. Les paramètres qui suivent « ? » ont été retirés (jetons de session et contexte de recherche), sauf l'identifiant « ID » des liens SOQUIJ et le paramètre « referer » des liens « cgi-bin/print.pl », qui désignent la décision. Le protocole (http ou https) est celui de la source.
+9. Hyperliens : chaque lien est celui que la source associe à la décision, lu dans le code de la page ou dans les annotations du PDF. Les paramètres qui suivent « ? » ont été retirés (jetons de session et contexte de recherche), sauf l'identifiant « ID » des liens SOQUIJ, le paramètre « referer » des liens « cgi-bin/print.pl » et le paramètre « cont » des liens de recherche « scc-csc.lexum.com/scc-csc/fr/a/s/index.do », qui désignent la décision. Le protocole (http ou https) est celui de la source.
+10. Cour supérieure (Division de Montréal) et Cour du Québec (DAA) : extraites de la base du connecteur « lois » le 24 novembre 2026 (`qccs-div-mtl` à jour au 2026-01-01, `qccs-div-qc` à jour au 2022-01-31, `qccq-daa-jurisprudence` à jour au 2021-09-27). Pour `qccs-mtl-actions-collectives`, le PDF source lie `Bisaillon c. Université Concordia, 2006 CSC 19` vers un identifiant tronqué (`item/2/index.do`). Pour `qccq-daa-secteur-financier`, l'onglet 9 regroupe deux décisions alternatives (`Bruni, 2011 QCCA 994 - ou - Murphy, 2016 QCCA 878`), scindées ici en deux lignes partageant l'onglet 9 ; l'onglet 36 imprime « Sharben » pour *Sharbern Holding Inc.*, 2011 CSC 23.
 
 ## Réserves
 

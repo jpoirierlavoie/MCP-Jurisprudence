@@ -383,7 +383,7 @@ export const RESUME_OUTILS_FR: Readonly<Record<string, readonly string[]>> = {
     "Analyse hors ligne la forme d'une citation (citation neutre, recueil ou identifiant d'éditeur) sans consommer votre quota CanLII. Vérifie uniquement le format, jamais l'existence réelle du jugement.",
   ],
   list_exempt_authorities: [
-    "Consulte et recherche hors ligne les 15 listes compilées d'autorités dispensées de reproduction devant 7 tribunaux canadiens et québécois (QCCA, TAT, TDP, TP, TMF, CF et COMC), enrichies des métadonnées et mots-clés compilés depuis CanLII.",
+    "Consulte et recherche hors ligne les 27 listes compilées d'autorités dispensées de reproduction devant 9 tribunaux canadiens et québécois (QCCA, QCCS, QCCQ, TAT, TDP, TP, TMF, CF et COMC), enrichies des métadonnées et mots-clés compilés depuis CanLII.",
     "Fonctionne strictement hors ligne sans consommer votre quota CanLII ; n'établit ni l'autorité actuelle des décisions ni le contenu de leur dispositif.",
   ],
   check_exempt_authorities: [

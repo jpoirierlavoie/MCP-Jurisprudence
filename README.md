@@ -2,7 +2,7 @@
 
 *Vérification déterministe de jurisprudence canadienne (collection CanLII).*
 
-Serveur MCP public en lecture seule exposant la **REST API de CanLII** et les **15 listes compilées d'autorités dispensées de reproduction** sous forme de douze outils orientés vers la **vérification de références**, le contrôle de dispense et la consultation de fiches officielles. Accès gratuit réservé aux membres actifs en règle du Barreau du Québec disposant de leur propre clé API CanLII (BYOK) via [`acces.poirierlavoie.ca`](https://acces.poirierlavoie.ca). Aucune requête ni citation cherchée n'est journalisée.
+Serveur MCP public en lecture seule exposant la **REST API de CanLII** et les **27 listes compilées d'autorités dispensées de reproduction** sous forme de douze outils orientés vers la **vérification de références**, le contrôle de dispense et la consultation de fiches officielles. Accès gratuit réservé aux membres actifs en règle du Barreau du Québec disposant de leur propre clé API CanLII (BYOK) via [`acces.poirierlavoie.ca`](https://acces.poirierlavoie.ca). Aucune requête ni citation cherchée n'est journalisée.
 
 > **In English:** Read-only public-interest MCP server for checking Canadian case-law citations against CanLII's collection and retrieving official decision metadata records. Part of [`droit-civil-quebecois`](https://github.com/jpoirierlavoie/droit-civil-quebecois), open free of charge to active Barreau du Québec members with a personal CanLII API key (BYOK) via [`acces.poirierlavoie.ca`](https://acces.poirierlavoie.ca). Queries and citations are never logged.
 
@@ -24,8 +24,8 @@ Les douze outils sont exposés sous la clé serveur `juris` dans [`droit-civil-q
 
 | Portée | Source | Appels sortants |
 |---|---|---|
-| `verify_citations` … `get_legislation`, `check_exempt_authorities` (10) | la collection de **CanLII** (et, pour `check_exempt_authorities`, les 15 listes compilées dans `data/autorites-dispensees.md`) — couverture et verdicts en dépendent | oui (`openWorldHint: true`, désactivable sur `check_exempt_authorities` par `resolve_canlii=false`) |
-| `parse_citation`, `list_exempt_authorities` (2) | analyseur local, répertoire et 15 listes compilées d'autorités dispensées (7 tribunaux) — **aucun appel** | non (`openWorldHint: false`) |
+| `verify_citations` … `get_legislation`, `check_exempt_authorities` (10) | la collection de **CanLII** (et, pour `check_exempt_authorities`, les 27 listes compilées dans `data/autorites-dispensees.md`) — couverture et verdicts en dépendent | oui (`openWorldHint: true`, désactivable sur `check_exempt_authorities` par `resolve_canlii=false`) |
+| `parse_citation`, `list_exempt_authorities` (2) | analyseur local, répertoire et 27 listes compilées d'autorités dispensées (9 tribunaux) — **aucun appel** | non (`openWorldHint: false`) |
 
 ---
 
@@ -99,7 +99,7 @@ Ces quatre garanties sont verrouillées par `test/garde.test.ts` afin qu'aucune 
 | `browse_legislation` | Lois et règlements d'une base législative |
 | `get_legislation` | Fiche d'une loi : abrogation, découpage, et les dates de la VERSION servie — jamais celles de l'instrument |
 | `parse_citation` | Analyse hors ligne d'une citation — **aucun appel** |
-| `list_exempt_authorities` | Consultation et recherche **hors ligne** dans les 15 listes compilées d'autorités dispensées de reproduction (7 tribunaux, 550 entrées) — **aucun appel** |
+| `list_exempt_authorities` | Consultation et recherche **hors ligne** dans les 27 listes compilées d'autorités dispensées de reproduction (9 tribunaux, 864 entrées) — **aucun appel** |
 | `check_exempt_authorities` | Vérification de dispense de reproduction (DISPENSÉE · À VÉRIFIER · NON LISTÉE · ILLISIBLE · INDÉTERMINÉE), hors ligne d'abord puis repli CanLII borné optionnel (`resolve_canlii`) |
 
 Sorties en **texte français**, jamais en JSON.

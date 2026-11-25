@@ -1,6 +1,6 @@
 /**
- * `list_exempt_authorities` — Consultation et recherche hors ligne dans les 15 listes
- * d'autorités dispensées de reproduction (7 tribunaux canadiens et québécois).
+ * `list_exempt_authorities` — Consultation et recherche hors ligne dans les 27 listes
+ * d'autorités dispensées de reproduction (9 tribunaux canadiens et québécois).
  *
  * Aucun appel à l'API de CanLII n'est émis : les métadonnées CanLII et mots-clés
  * éventuels ont été compilés à l'avance dans le dépôt.
@@ -166,7 +166,7 @@ export async function listExemptAuthorities(
   const cible = resolveTargetLists({ list_id: listIdArg, tribunal: tribunalArg });
   if (!cible.ok) return err(cible.error);
 
-  // Mode 1 : Annuaire des 15 listes (aucun filtre)
+  // Mode 1 : Annuaire des 27 listes (aucun filtre)
   if (!listIdArg && !tribunalArg && !queryArg) {
     const toutes = EXEMPT_AUTHORITY_LISTS;
     const tranche = toutes.slice(offset, offset + limit);

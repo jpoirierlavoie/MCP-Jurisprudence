@@ -33,22 +33,22 @@ beforeEach(async () => {
 });
 
 describe("Parité de compilation des autorités dispensées", () => {
-  it("les statistiques, 15 listes, 550 entrées et 519 décisions concordent avec les sources", () => {
+  it("les statistiques, 27 listes, 864 entrées et 737 décisions concordent avec les sources", () => {
     expect(EXEMPT_AUTHORITY_STATS).toEqual({
-      listCount: 15,
-      totalEntries: 550,
-      totalLinks: 459,
-      uniqueDecisions: 519,
+      listCount: 27,
+      totalEntries: 864,
+      totalLinks: 750,
+      uniqueDecisions: 737,
     });
-    expect(EXEMPT_AUTHORITY_LISTS).toHaveLength(15);
+    expect(EXEMPT_AUTHORITY_LISTS).toHaveLength(27);
 
     const totalEntrees = EXEMPT_AUTHORITY_LISTS.reduce((acc, l) => acc + l.entries.length, 0);
     const totalLiens = EXEMPT_AUTHORITY_LISTS.reduce(
       (acc, l) => acc + l.entries.filter((e) => e.sourceUrls.length > 0).length,
       0,
     );
-    expect(totalEntrees).toBe(550);
-    expect(totalLiens).toBe(459);
+    expect(totalEntrees).toBe(864);
+    expect(totalLiens).toBe(750);
 
     // Contrôler chaque ligne du tableau `## Sommaire` dans `autorites-dispensees.md`
     const sommaireSection = autoritesMd.split("## Sommaire")[1]?.split("\n## 1.")[0] ?? "";
@@ -57,16 +57,16 @@ describe("Parité de compilation des autorités dispensées", () => {
         /^\|\s*[^|\n]+\|\s*[^|\n]+\|\s*[^|\n]+\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+(?:\.\d+)?)\s*\|/gm,
       ),
     ];
-    expect(lignesSommaire).toHaveLength(15);
-    expect(lignesSommaire.reduce((s, m) => s + Number(m[1]), 0)).toBe(550);
-    expect(lignesSommaire.reduce((s, m) => s + Number(m[2]), 0)).toBe(459);
+    expect(lignesSommaire).toHaveLength(27);
+    expect(lignesSommaire.reduce((s, m) => s + Number(m[1]), 0)).toBe(864);
+    expect(lignesSommaire.reduce((s, m) => s + Number(m[2]), 0)).toBe(750);
 
-    // Vérifier la ventilation des 519 décisions enrichies
+    // Vérifier la ventilation des 737 décisions enrichies
     const enrichiesMap = autoritesEnrichies.decisions as Record<string, { status: string }>;
     const clesCompilees = Object.keys(EXEMPT_DECISIONS).sort();
     const clesEnrichies = Object.keys(enrichiesMap).sort();
     expect(clesCompilees).toEqual(clesEnrichies);
-    expect(clesCompilees).toHaveLength(519);
+    expect(clesCompilees).toHaveLength(737);
 
     const comptesStatut = { canlii: 0, hors_collection: 0, hors_juridiction: 0 };
     for (const d of Object.values(EXEMPT_DECISIONS)) {
@@ -74,22 +74,22 @@ describe("Parité de compilation des autorités dispensées", () => {
     }
     expect(comptesStatut).toEqual({
       canlii: 487,
-      hors_collection: 29,
-      hors_juridiction: 3,
+      hors_collection: 246,
+      hors_juridiction: 4,
     });
   });
 });
 
 describe("list_exempt_authorities (hors ligne)", () => {
-  it("sans paramètre, rend l'annuaire des 15 listes / 7 tribunaux sans appel CanLII", async () => {
+  it("sans paramètre, rend l'annuaire des 27 listes / 9 tribunaux sans appel CanLII", async () => {
     const client = fakeClient({});
     const res = await callTool("list_exempt_authorities", {}, toolCtx(client));
     expect(res.isError).toBe(false);
     expect(client.usage().calls).toBe(0);
 
     const out = texte(res);
-    expect(out).toContain("15 listes d'autorités dispensées compilées");
-    expect(out).toContain("7 tribunaux");
+    expect(out).toContain("27 listes d'autorités dispensées compilées");
+    expect(out).toContain("9 tribunaux");
     expect(out).toContain("mode hors ligne");
     for (const lid of [
       "qcca-civil",
@@ -107,6 +107,18 @@ describe("list_exempt_authorities (hors ligne)", () => {
       "cf-pi",
       "cf-concurrence",
       "comc",
+      "qccs-mtl-controle-judiciaire",
+      "qccs-mtl-commercial",
+      "qccs-mtl-oppression",
+      "qccs-mtl-actions-collectives",
+      "qccs-qc-civil",
+      "qccs-qc-familial",
+      "qccq-daa-disciplinaire",
+      "qccq-daa-deontologie-policiere",
+      "qccq-daa-fiscalite-municipale",
+      "qccq-daa-fiscale",
+      "qccq-daa-secteur-financier",
+      "qccq-daa-acces-information",
     ]) {
       expect(out, lid).toContain(lid);
     }
@@ -171,7 +183,7 @@ describe("list_exempt_authorities (hors ligne)", () => {
   it("refuse list_id inconnu, tribunal inconnu ou couple list_id/tribunal incompatible", async () => {
     for (const args of [
       { list_id: "inexistant" },
-      { tribunal: "qccq" },
+      { tribunal: "qccm" },
       { list_id: "qcca-civil", tribunal: "cf" },
     ]) {
       const res = await callTool("list_exempt_authorities", args, toolCtx(fakeClient({})));
@@ -266,6 +278,58 @@ describe("check_exempt_authorities", () => {
     );
     expect(c5.usage().calls).toBe(0);
     expect(texte(rDte)).toContain("D.T.E. 97T-1375 — DISPENSÉE");
+
+    const cQccq = fakeClient({});
+    const rQccq = await callTool(
+      "check_exempt_authorities",
+      {
+        tribunal: "qccq",
+        citations: [
+          { citation: "2014 QCCA 2189" },
+          { citation: "[1951] UKPC 28" },
+          { citation: "2011 QCCA 994" },
+          { citation: "2016 QCCA 878" },
+          { citation: "[2011] 2 R.C.S. 175" },
+          { citation: "2011 CSC 23" },
+        ],
+      },
+      toolCtx(cQccq),
+    );
+    expect(rQccq.isError).toBe(false);
+    expect(cQccq.usage().calls).toBe(0);
+    const outQccq = texte(rQccq);
+    expect(outQccq).toContain("2014 QCCA 2189 — DISPENSÉE");
+    expect(outQccq).toContain("[1951] UKPC 28 — DISPENSÉE");
+    expect(outQccq).toContain("2011 QCCA 994 — DISPENSÉE");
+    expect(outQccq).toContain("2016 QCCA 878 — DISPENSÉE");
+    expect(outQccq).toContain("[2011] 2 R.C.S. 175 — DISPENSÉE");
+    expect(outQccq).toContain("2011 CSC 23 — DISPENSÉE");
+
+    const cQccs = fakeClient({});
+    const rQccs = await callTool(
+      "check_exempt_authorities",
+      {
+        tribunal: "qccs",
+        citations: [
+          { citation: "[1984] C.A. 633" },
+          { citation: "2008 ONCA 587" },
+          { citation: "J.E. 2003-45" },
+          { citation: "2002 CanLII 41290 (QC CA)" },
+          { citation: "[1999] 1 R.C.S. 420" },
+          { citation: "1999 CanLII 715 (CSC)" },
+        ],
+      },
+      toolCtx(cQccs),
+    );
+    expect(rQccs.isError).toBe(false);
+    expect(cQccs.usage().calls).toBe(0);
+    const outQccs = texte(rQccs);
+    expect(outQccs).toContain("[1984] C.A. 633 — DISPENSÉE");
+    expect(outQccs).toContain("2008 ONCA 587 — DISPENSÉE");
+    expect(outQccs).toContain("J.E. 2003-45 — DISPENSÉE");
+    expect(outQccs).toContain("2002 CanLII 41290 (QC CA) — DISPENSÉE");
+    expect(outQccs).toContain("[1999] 1 R.C.S. 420 — DISPENSÉE");
+    expect(outQccs).toContain("1999 CanLII 715 (CSC) — DISPENSÉE");
   });
 
   it("contrôle toutes les sous-listes d'un tribunal et nomme celles qui concordent", async () => {
