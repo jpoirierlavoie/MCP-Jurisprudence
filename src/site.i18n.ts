@@ -153,12 +153,12 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
   list_exempt_authorities: {
     titre: "List exempt authorities (offline)",
     resume: [
-      "Browses and searches offline the 15 compiled lists of authorities exempt from reproduction across 7 Canadian and Québec courts and tribunals (QCCA, TAT, TDP, TP, TMF, Federal Court, TMOB), enriched with compiled CanLII metadata and keywords.",
+      "Browses and searches offline the 27 compiled lists of authorities exempt from reproduction across 9 Canadian and Québec courts and tribunals (QCCA, QCCS, QCCQ, TAT, TDP, TP, TMF, Federal Court, TMOB), enriched with compiled CanLII metadata and keywords.",
       "Runs strictly offline without using your CanLII quota; establishes neither the current authority of decisions nor the content of their disposition.",
     ],
     texte:
-      "Consults and searches OFFLINE the 15 compiled lists of authorities exempt from " +
-      "reproduction across 7 Canadian and Québec courts and tribunals, enriched with " +
+      "Consults and searches OFFLINE the 27 compiled lists of authorities exempt from " +
+      "reproduction across 9 Canadian and Québec courts and tribunals, enriched with " +
       "pre-compiled CanLII metadata and keywords. Supports directory mode (no parameters), " +
       "verbatim single-list browsing preserving source order (`list_id`), and cross-list " +
       "full-text search (`query`). Makes NO outbound calls to CanLII, does not verify links " +

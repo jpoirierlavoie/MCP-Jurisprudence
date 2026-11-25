@@ -1,6 +1,6 @@
 {
   "name": "mcp-jurisprudence",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "private": true,
   "description": "Serveur MCP « MCP Jurisprudence » — vérification déterministe de jurisprudence canadienne (collection CanLII). Worker Cloudflare, lecture seule.",
   "license": "Apache-2.0",

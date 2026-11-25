@@ -68,10 +68,10 @@ export interface ExemptAuthorityList {
 }
 
 export const EXEMPT_AUTHORITY_STATS = {
-  listCount: 15,
-  totalEntries: 550,
-  totalLinks: 459,
-  uniqueDecisions: 519,
+  listCount: 27,
+  totalEntries: 864,
+  totalLinks: 750,
+  uniqueDecisions: 737,
 } as const;
 
 const donneesCompilees = rawData as unknown as {

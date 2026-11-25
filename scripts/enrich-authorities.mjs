@@ -67,10 +67,11 @@ const NEUTRE_VERS_CANLII = {
   QCTMF: { db: "qcbdrvm", frag: "qctmf" },
   BCCA: { db: "bcca", frag: "bcca" },
   YKCA: { db: "ykca", frag: "ykca" },
+  ONCA: { db: "onca", frag: "onca" },
 };
 
 const URL_CANLII_SEG =
-  /canlii\.org\/(?:fr|en)\/([a-z]{2})\/([a-z0-9-]+)\/doc\/\d{4}\/(\d{4}[a-z0-9-]+)\//i;
+  /(?:canlii\.(?:org|ca)|unik\.caij\.qc\.ca\/permalien)\/(?:fr|en)\/([a-z]{2})\/([a-z0-9-]+)\/doc\/\d{4}\/(\d{4}[a-z0-9-]+)(?:\/|\.(?:html|pdf)|$)/i;
 
 function redactUrl(url) {
   return String(url).replace(/([?&]api_key=)[^&\s]+/gi, "$1***");
@@ -99,6 +100,7 @@ function extraireIdDeUrl(url) {
     "qc/qctp": "qctp",
     "bc/bcca": "bcca",
     "yk/ykca": "ykca",
+    "on/onca": "onca",
   };
   const db = map[`${juris.toLowerCase()}/${seg.toLowerCase()}`];
   return db ? { db, caseId: caseId.toLowerCase() } : null;

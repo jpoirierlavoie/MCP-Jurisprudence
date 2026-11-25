@@ -12,7 +12,7 @@
  * ║ 2026-11-14).                                                                 ║
  * ║                                                                              ║
  * ║   serveur `juris`       la réponse se rapporte à la COLLECTION DE CANLII     ║
- * ║   (12 outils)           ou aux 15 listes compilées d'autorités dispensées.    ║
+ * ║   (12 outils)           ou aux 27 listes compilées d'autorités dispensées.    ║
  * ║                                                                              ║
  * ║ NOTE HISTORIQUE (2026-11-14) : les trois outils hors ligne `greffe_*` et     ║
  * ║ `palais_*` ont été déplacés vers le connecteur public sans authentification  ║
@@ -207,7 +207,7 @@ export const SERVER_INFO = {
   // le jour où il devient le dernier endroit à dire l'inverse des douze autres.
   name: "mcp-jurisprudence",
   title: "MCP Jurisprudence",
-  version: "2.1.0",
+  version: "2.2.0",
 };
 
 /**
@@ -229,7 +229,7 @@ export const INSTRUCTIONS =
   "d'un moteur de recherche ou d'un texte rédigé par une IA, commencer par " +
   "verify_citations ; si la citation n'est pas constructible (recueils R.C.S. / " +
   "R.J.Q. / C.A., identifiants J.E. / REJB / EYB / AZ), enchaîner avec find_case. " +
-  "Pour consulter les 15 listes d'autorités dispensées de reproduction (7 tribunaux) " +
+  "Pour consulter les 27 listes d'autorités dispensées de reproduction (9 tribunaux) " +
   "ou vérifier si des citations y figurent, utiliser list_exempt_authorities (hors ligne) " +
   "et check_exempt_authorities. Pour le TEXTE des lois et règlements du Québec, employer " +
   "le connecteur « lois ». Les verdicts et la couverture dépendent de la collection de CanLII : " +
@@ -652,14 +652,14 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   list_exempt_authorities: {
     title: "Lister les autorités dispensées (hors ligne)",
     description:
-      "Consulte et recherche HORS LIGNE les 15 listes compilées d'autorités dispensées de " +
-      "reproduction (7 tribunaux canadiens et québécois : QCCA, TAT, TDP, TP, TMF, CF et COMC), " +
-      "enrichies des métadonnées et mots-clés compilés depuis CanLII. Sans paramètre, rend " +
-      "l'annuaire des 15 listes ; avec « list_id », rend la liste verbatim dans l'ordre source " +
-      "; avec « query », recherche par intitulé, surnom, citation ou mot-clé CanLII. " +
-      "N'émet AUCUN appel réseau à CanLII, ne vérifie pas les hyperliens des listes sources et " +
-      "n'établit NI l'autorité actuelle des décisions (aucun historique d'appel, aucun " +
-      "traitement), NI le contenu de leur dispositif.",
+      "Consulte et recherche HORS LIGNE les 27 listes compilées d'autorités dispensées de " +
+      "reproduction (9 tribunaux canadiens et québécois : QCCA, QCCS, QCCQ, TAT, TDP, TP, TMF, " +
+      "CF et COMC), enrichies des métadonnées et mots-clés compilés depuis CanLII. Sans " +
+      "paramètre, rend l'annuaire des 27 listes ; avec « list_id », rend la liste verbatim dans " +
+      "l'ordre source ; avec « query », recherche par intitulé, surnom, citation ou mot-clé " +
+      "CanLII. N'émet AUCUN appel réseau à CanLII, ne vérifie pas les hyperliens des listes " +
+      "sources et n'établit NI l'autorité actuelle des décisions (aucun historique d'appel, " +
+      "aucun traitement), NI le contenu de leur dispositif.",
     inputSchema: {
       type: "object",
       properties: {
@@ -668,15 +668,17 @@ export const TOOLS: Record<string, ToolDescriptor> = {
           minLength: 1,
           maxLength: 20,
           description:
-            "Filtre sur un tribunal : « qcca », « tat », « tdp », « tp », « tmf », « cf » ou « comc ».",
+            "Filtre sur un tribunal : « qcca », « qccs », « qccq », « tat », « tdp », « tp », " +
+            "« tmf », « cf » ou « comc ».",
         },
         list_id: {
           type: "string",
           minLength: 1,
-          maxLength: 30,
+          maxLength: 35,
           description:
-            "Identifiant précis d'une sous-liste (p. ex. « qcca-civil », « tat-dsst », « tdp », " +
-            "« cf-imm-general »). Annuaire obtenu sans paramètres.",
+            "Identifiant précis d'une sous-liste (p. ex. « qcca-civil », " +
+            "« qccs-mtl-controle-judiciaire », « qccq-daa-disciplinaire », « tat-dsst », " +
+            "« tdp », « cf-imm-general »). Annuaire obtenu sans paramètres.",
         },
         query: {
           type: "string",
@@ -723,9 +725,10 @@ export const TOOLS: Record<string, ToolDescriptor> = {
         list_id: {
           type: "string",
           minLength: 1,
-          maxLength: 30,
+          maxLength: 35,
           description:
-            "Identifiant de la sous-liste ciblée (p. ex. « qcca-civil », « cf-imm-general »). " +
+            "Identifiant de la sous-liste ciblée (p. ex. « qcca-civil », " +
+            "« qccs-mtl-controle-judiciaire », « qccq-daa-disciplinaire », « cf-imm-general »). " +
             "Voir list_exempt_authorities. ⚠ Fournir EXACTEMENT l'un des deux paramètres de portée " +
             ": soit « list_id », soit « tribunal » (jamais les deux ensemble ni aucun).",
         },
@@ -734,9 +737,10 @@ export const TOOLS: Record<string, ToolDescriptor> = {
           minLength: 1,
           maxLength: 20,
           description:
-            "Code du tribunal dont toutes les sous-listes sont contrôlées : « qcca », « tat », " +
-            "« tdp », « tp », « tmf », « cf » ou « comc ». ⚠ Fournir EXACTEMENT l'un des deux " +
-            "paramètres de portée : soit « list_id », soit « tribunal » (jamais les deux ensemble ni aucun).",
+            "Code du tribunal dont toutes les sous-listes sont contrôlées : « qcca », « qccs », " +
+            "« qccq », « tat », « tdp », « tp », « tmf », « cf » ou « comc ». ⚠ Fournir EXACTEMENT " +
+            "l'un des deux paramètres de portée : soit « list_id », soit « tribunal » (jamais les " +
+            "deux ensemble ni aucun).",
         },
         citations: {
           type: "array",

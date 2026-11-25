@@ -1,8 +1,8 @@
 /**
  * Parseur du document source `data/autorites-dispensees.md`.
  *
- * Module Node sans dépendance externe : extrait les 15 listes, leurs métadonnées
- * procédurales, les 550 entrées et les 459 hyperliens, puis contrôle la parité
+ * Module Node sans dépendance externe : extrait les 27 listes, leurs métadonnées
+ * procédurales, les 864 entrées et les 750 hyperliens, puis contrôle la parité
  * exacte avec la table `## Sommaire`.
  */
 
@@ -335,6 +335,282 @@ export const LIST_METADATA = {
     consigneCitation:
       "La partie qui fournit un cahier d'autorités n'est pas tenue d'y inclure une copie des décisions de la liste commune, mais doit identifier dans sa liste de jurisprudence celles sur lesquelles elle entend s'appuyer.",
   },
+  8.1: {
+    listId: "qccs-mtl-controle-judiciaire",
+    tribunal: "qccs",
+    tribunalNomFr: "Cour supérieure du Québec",
+    tribunalNomEn: "Superior Court of Québec",
+    databaseId: "qccs",
+    jurisdiction: "qc",
+    titleFr: "Liste commune de jurisprudence — Contrôle judiciaire (Division de Montréal)",
+    titleEn: "Common List of Authorities — Judicial Review (Montréal Division)",
+    versionLabel: "à jour au 2026-01-01",
+    effectiveDate: "2026-01-01",
+    modifiedDate: null,
+    compiledAt: "2026-11-24",
+    sourceUrl:
+      "https://coursuperieureduquebec.ca/fileadmin/cour-superieure/Districts_judiciaires/Division_Montreal/Directives_et_annexes_Division_de_Montreal/Directives_de_la_division_de_Montreal.pdf",
+    directiveUrl: null,
+    relatedUrls: [],
+    fondementReglementaire:
+      "Directives de la Cour supérieure — Division de Montréal (par. 187 à 190) ; art. 5 Règlement de la Cour supérieure du Québec en matière civile",
+    consigneCitation:
+      "Les jugements compris dans ces listes n'ont pas à être reproduits intégralement dans le cahier des sources transmis avant l'audience. Si une partie entend citer l'un d'eux, inclure le passage invoqué avec les pages précédente et suivante, marquer le passage et renvoyer à la liste commune (par. 188).",
+  },
+  8.2: {
+    listId: "qccs-mtl-commercial",
+    tribunal: "qccs",
+    tribunalNomFr: "Cour supérieure du Québec",
+    tribunalNomEn: "Superior Court of Québec",
+    databaseId: "qccs",
+    jurisdiction: "qc",
+    titleFr:
+      "Liste commune de jurisprudence — Commerciale, faillite et restructuration (Division de Montréal)",
+    titleEn:
+      "Common List of Authorities — Commercial, Bankruptcy and Restructuring (Montréal Division)",
+    versionLabel: "à jour au 2026-01-01",
+    effectiveDate: "2026-01-01",
+    modifiedDate: null,
+    compiledAt: "2026-11-24",
+    sourceUrl:
+      "https://coursuperieureduquebec.ca/fileadmin/cour-superieure/Districts_judiciaires/Division_Montreal/Directives_et_annexes_Division_de_Montreal/Directives_de_la_division_de_Montreal.pdf",
+    directiveUrl: null,
+    relatedUrls: [],
+    fondementReglementaire:
+      "Directives de la Cour supérieure — Division de Montréal (par. 187 à 190) ; art. 5 Règlement de la Cour supérieure du Québec en matière civile",
+    consigneCitation:
+      "Les jugements compris dans ces listes n'ont pas à être reproduits intégralement dans le cahier des sources transmis avant l'audience. Si une partie entend citer l'un d'eux, inclure le passage invoqué avec les pages précédente et suivante, marquer le passage et renvoyer à la liste commune (par. 188).",
+  },
+  8.3: {
+    listId: "qccs-mtl-oppression",
+    tribunal: "qccs",
+    tribunalNomFr: "Cour supérieure du Québec",
+    tribunalNomEn: "Superior Court of Québec",
+    databaseId: "qccs",
+    jurisdiction: "qc",
+    titleFr: "Liste commune de jurisprudence — Oppression (Division de Montréal)",
+    titleEn: "Common List of Authorities — Oppression (Montréal Division)",
+    versionLabel: "à jour au 2026-01-01",
+    effectiveDate: "2026-01-01",
+    modifiedDate: null,
+    compiledAt: "2026-11-24",
+    sourceUrl:
+      "https://coursuperieureduquebec.ca/fileadmin/cour-superieure/Districts_judiciaires/Division_Montreal/Directives_et_annexes_Division_de_Montreal/Directives_de_la_division_de_Montreal.pdf",
+    directiveUrl: null,
+    relatedUrls: [],
+    fondementReglementaire:
+      "Directives de la Cour supérieure — Division de Montréal (par. 187 à 190) ; art. 5 Règlement de la Cour supérieure du Québec en matière civile",
+    consigneCitation:
+      "Les jugements compris dans ces listes n'ont pas à être reproduits intégralement dans le cahier des sources transmis avant l'audience. Si une partie entend citer l'un d'eux, inclure le passage invoqué avec les pages précédente et suivante, marquer le passage et renvoyer à la liste commune (par. 188).",
+  },
+  8.4: {
+    listId: "qccs-mtl-actions-collectives",
+    tribunal: "qccs",
+    tribunalNomFr: "Cour supérieure du Québec",
+    tribunalNomEn: "Superior Court of Québec",
+    databaseId: "qccs",
+    jurisdiction: "qc",
+    titleFr: "Liste commune de jurisprudence — Actions collectives (Division de Montréal)",
+    titleEn: "Common List of Authorities — Class Actions (Montréal Division)",
+    versionLabel: "à jour au 2026-01-01",
+    effectiveDate: "2026-01-01",
+    modifiedDate: null,
+    compiledAt: "2026-11-24",
+    sourceUrl:
+      "https://coursuperieureduquebec.ca/fileadmin/cour-superieure/Districts_judiciaires/Division_Montreal/Directives_et_annexes_Division_de_Montreal/Directives_de_la_division_de_Montreal.pdf",
+    directiveUrl: null,
+    relatedUrls: [],
+    fondementReglementaire:
+      "Directives de la Cour supérieure — Division de Montréal (par. 187 à 190) ; art. 5 Règlement de la Cour supérieure du Québec en matière civile",
+    consigneCitation:
+      "Les jugements compris dans ces listes n'ont pas à être reproduits intégralement dans le cahier des sources transmis avant l'audience. Si une partie entend citer l'un d'eux, inclure le passage invoqué avec les pages précédente et suivante, marquer le passage et renvoyer à la liste commune (par. 188).",
+  },
+  8.5: {
+    listId: "qccs-qc-civil",
+    tribunal: "qccs",
+    tribunalNomFr: "Cour supérieure du Québec",
+    tribunalNomEn: "Superior Court of Québec",
+    databaseId: "qccs",
+    jurisdiction: "qc",
+    titleFr: "Liste en matière civile (Division de Québec)",
+    titleEn: "Civil Matters List (Québec Division)",
+    versionLabel: "à jour au 2022-01-31",
+    effectiveDate: "2022-01-31",
+    modifiedDate: null,
+    compiledAt: "2026-11-24",
+    sourceUrl:
+      "https://coursuperieureduquebec.ca/fileadmin/cour-superieure/Pdf_Word_par_district/districts/quebec-tous-les-districts/2022-01-31_Directives_concernant_le_fonctionnement_de_la_division_de_Quebec.pdf",
+    directiveUrl: null,
+    relatedUrls: [],
+    fondementReglementaire:
+      "Directives de la juge en chef associée pour la division de Québec (par. 24.1 à 24.3)",
+    consigneCitation:
+      "Les jugements compris dans ces listes n'ont pas à être reproduits intégralement dans le cahier d'autorités transmis préalablement à l'audience. Si une partie entend citer l'un d'eux, le passage invoqué doit être inclus avec référence à la liste commune de jurisprudence (par. 24.2 et 24.3).",
+  },
+  8.6: {
+    listId: "qccs-qc-familial",
+    tribunal: "qccs",
+    tribunalNomFr: "Cour supérieure du Québec",
+    tribunalNomEn: "Superior Court of Québec",
+    databaseId: "qccs",
+    jurisdiction: "qc",
+    titleFr: "Liste en matière familiale (Division de Québec)",
+    titleEn: "Family Matters List (Québec Division)",
+    versionLabel: "à jour au 2022-01-31",
+    effectiveDate: "2022-01-31",
+    modifiedDate: null,
+    compiledAt: "2026-11-24",
+    sourceUrl:
+      "https://coursuperieureduquebec.ca/fileadmin/cour-superieure/Pdf_Word_par_district/districts/quebec-tous-les-districts/2022-01-31_Directives_concernant_le_fonctionnement_de_la_division_de_Quebec.pdf",
+    directiveUrl: null,
+    relatedUrls: [],
+    fondementReglementaire:
+      "Directives de la juge en chef associée pour la division de Québec (par. 24.1 à 24.3)",
+    consigneCitation:
+      "Les jugements compris dans ces listes n'ont pas à être reproduits intégralement dans le cahier d'autorités transmis préalablement à l'audience. Si une partie entend citer l'un d'eux, le passage invoqué doit être inclus avec référence à la liste commune de jurisprudence (par. 24.2 et 24.3).",
+  },
+  9.1: {
+    listId: "qccq-daa-disciplinaire",
+    tribunal: "qccq",
+    tribunalNomFr: "Cour du Québec (Division administrative et d'appel)",
+    tribunalNomEn: "Court of Québec (Administrative and Appeal Division)",
+    databaseId: "qccq",
+    jurisdiction: "qc",
+    titleFr:
+      "Liste commune de jurisprudence — Matière disciplinaire (Division administrative et d'appel)",
+    titleEn:
+      "Common List of Authorities — Disciplinary Matters (Administrative and Appeal Division)",
+    versionLabel: "en vigueur 2021-09-27",
+    effectiveDate: "2021-09-27",
+    modifiedDate: null,
+    compiledAt: "2026-11-24",
+    sourceUrl:
+      "https://courduquebec.ca/fileadmin/cour-du-quebec/centre-de-documentation/chambre-civile/DAA_DirectiveListeCommuneJuris.pdf",
+    directiveUrl: null,
+    relatedUrls: [],
+    fondementReglementaire:
+      "art. 39 Règlement de la Cour du Québec ; Directive concernant la liste commune de jurisprudence — Division administrative et d'appel (par. 1 à 5)",
+    consigneCitation:
+      "Sources considérées comme produites et dispensées de reproduction devant la Division administrative et d'appel dans les matières visées (art. 39 R.C.Q. ; Directive, par. 2 et 3). Si une partie entend citer un jugement de la liste, inclure le passage invoqué et joindre une référence à la Liste commune (par. 3).",
+  },
+  9.2: {
+    listId: "qccq-daa-deontologie-policiere",
+    tribunal: "qccq",
+    tribunalNomFr: "Cour du Québec (Division administrative et d'appel)",
+    tribunalNomEn: "Court of Québec (Administrative and Appeal Division)",
+    databaseId: "qccq",
+    jurisdiction: "qc",
+    titleFr:
+      "Liste commune de jurisprudence — Matière de déontologie policière (Division administrative et d'appel)",
+    titleEn: "Common List of Authorities — Police Ethics (Administrative and Appeal Division)",
+    versionLabel: "en vigueur 2021-09-27",
+    effectiveDate: "2021-09-27",
+    modifiedDate: null,
+    compiledAt: "2026-11-24",
+    sourceUrl:
+      "https://courduquebec.ca/fileadmin/cour-du-quebec/centre-de-documentation/chambre-civile/DAA_DirectiveListeCommuneJuris.pdf",
+    directiveUrl: null,
+    relatedUrls: [],
+    fondementReglementaire:
+      "art. 39 Règlement de la Cour du Québec ; Directive concernant la liste commune de jurisprudence — Division administrative et d'appel (par. 1 à 5)",
+    consigneCitation:
+      "Sources considérées comme produites et dispensées de reproduction devant la Division administrative et d'appel dans les matières visées (art. 39 R.C.Q. ; Directive, par. 2 et 3). Si une partie entend citer un jugement de la liste, inclure le passage invoqué et joindre une référence à la Liste commune (par. 3).",
+  },
+  9.3: {
+    listId: "qccq-daa-fiscalite-municipale",
+    tribunal: "qccq",
+    tribunalNomFr: "Cour du Québec (Division administrative et d'appel)",
+    tribunalNomEn: "Court of Québec (Administrative and Appeal Division)",
+    databaseId: "qccq",
+    jurisdiction: "qc",
+    titleFr:
+      "Liste commune de jurisprudence — Fiscalité municipale, expropriation et protection du territoire agricole (Division administrative et d'appel)",
+    titleEn:
+      "Common List of Authorities — Municipal Taxation, Expropriation and Agricultural Land Protection (Administrative and Appeal Division)",
+    versionLabel: "en vigueur 2021-09-27",
+    effectiveDate: "2021-09-27",
+    modifiedDate: null,
+    compiledAt: "2026-11-24",
+    sourceUrl:
+      "https://courduquebec.ca/fileadmin/cour-du-quebec/centre-de-documentation/chambre-civile/DAA_DirectiveListeCommuneJuris.pdf",
+    directiveUrl: null,
+    relatedUrls: [],
+    fondementReglementaire:
+      "art. 39 Règlement de la Cour du Québec ; Directive concernant la liste commune de jurisprudence — Division administrative et d'appel (par. 1 à 5)",
+    consigneCitation:
+      "Sources considérées comme produites et dispensées de reproduction devant la Division administrative et d'appel dans les matières visées (art. 39 R.C.Q. ; Directive, par. 2 et 3). Si une partie entend citer un jugement de la liste, inclure le passage invoqué et joindre une référence à la Liste commune (par. 3).",
+  },
+  9.4: {
+    listId: "qccq-daa-fiscale",
+    tribunal: "qccq",
+    tribunalNomFr: "Cour du Québec (Division administrative et d'appel)",
+    tribunalNomEn: "Court of Québec (Administrative and Appeal Division)",
+    databaseId: "qccq",
+    jurisdiction: "qc",
+    titleFr:
+      "Liste commune de jurisprudence — Matière fiscale (Division administrative et d'appel)",
+    titleEn: "Common List of Authorities — Tax Matters (Administrative and Appeal Division)",
+    versionLabel: "en vigueur 2021-09-27",
+    effectiveDate: "2021-09-27",
+    modifiedDate: null,
+    compiledAt: "2026-11-24",
+    sourceUrl:
+      "https://courduquebec.ca/fileadmin/cour-du-quebec/centre-de-documentation/chambre-civile/DAA_DirectiveListeCommuneJuris.pdf",
+    directiveUrl: null,
+    relatedUrls: [],
+    fondementReglementaire:
+      "art. 39 Règlement de la Cour du Québec ; Directive concernant la liste commune de jurisprudence — Division administrative et d'appel (par. 1 à 5)",
+    consigneCitation:
+      "Sources considérées comme produites et dispensées de reproduction devant la Division administrative et d'appel dans les matières visées (art. 39 R.C.Q. ; Directive, par. 2 et 3). Si une partie entend citer un jugement de la liste, inclure le passage invoqué et joindre une référence à la Liste commune (par. 3).",
+  },
+  9.5: {
+    listId: "qccq-daa-secteur-financier",
+    tribunal: "qccq",
+    tribunalNomFr: "Cour du Québec (Division administrative et d'appel)",
+    tribunalNomEn: "Court of Québec (Administrative and Appeal Division)",
+    databaseId: "qccq",
+    jurisdiction: "qc",
+    titleFr:
+      "Liste commune de jurisprudence — Encadrement du secteur financier (Division administrative et d'appel)",
+    titleEn:
+      "Common List of Authorities — Financial Sector Regulation (Administrative and Appeal Division)",
+    versionLabel: "en vigueur 2021-09-27",
+    effectiveDate: "2021-09-27",
+    modifiedDate: null,
+    compiledAt: "2026-11-24",
+    sourceUrl:
+      "https://courduquebec.ca/fileadmin/cour-du-quebec/centre-de-documentation/chambre-civile/DAA_DirectiveListeCommuneJuris.pdf",
+    directiveUrl: null,
+    relatedUrls: [],
+    fondementReglementaire:
+      "art. 39 Règlement de la Cour du Québec ; Directive concernant la liste commune de jurisprudence — Division administrative et d'appel (par. 1 à 5)",
+    consigneCitation:
+      "Sources considérées comme produites et dispensées de reproduction devant la Division administrative et d'appel dans les matières visées (art. 39 R.C.Q. ; Directive, par. 2 et 3). Si une partie entend citer un jugement de la liste, inclure le passage invoqué et joindre une référence à la Liste commune (par. 3).",
+  },
+  9.6: {
+    listId: "qccq-daa-acces-information",
+    tribunal: "qccq",
+    tribunalNomFr: "Cour du Québec (Division administrative et d'appel)",
+    tribunalNomEn: "Court of Québec (Administrative and Appeal Division)",
+    databaseId: "qccq",
+    jurisdiction: "qc",
+    titleFr:
+      "Liste commune de jurisprudence — Accès à l'information (Division administrative et d'appel)",
+    titleEn:
+      "Common List of Authorities — Access to Information (Administrative and Appeal Division)",
+    versionLabel: "en vigueur 2021-09-27",
+    effectiveDate: "2021-09-27",
+    modifiedDate: null,
+    compiledAt: "2026-11-24",
+    sourceUrl:
+      "https://courduquebec.ca/fileadmin/cour-du-quebec/centre-de-documentation/chambre-civile/DAA_DirectiveListeCommuneJuris.pdf",
+    directiveUrl: null,
+    relatedUrls: [],
+    fondementReglementaire:
+      "art. 39 Règlement de la Cour du Québec ; Directive concernant la liste commune de jurisprudence — Division administrative et d'appel (par. 1 à 5)",
+    consigneCitation:
+      "Sources considérées comme produites et dispensées de reproduction devant la Division administrative et d'appel dans les matières visées (art. 39 R.C.Q. ; Directive, par. 2 et 3). Si une partie entend citer un jugement de la liste, inclure le passage invoqué et joindre une référence à la Liste commune (par. 3).",
+  },
 };
 
 const COUR_NEUTRE_VERS_FAMILLE = {
@@ -364,6 +640,7 @@ const COUR_NEUTRE_VERS_FAMILLE = {
   QCTMF: "qctmf",
   BCCA: "bcca",
   YKCA: "ykca",
+  ONCA: "onca",
 };
 
 const SIGLE_CANON = new Map([
@@ -393,6 +670,7 @@ const SIGLE_CANON = new Map([
   ["DLR", "DLR"],
   ["FTR", "FTR"],
   ["NR", "NR"],
+  ["UKPC", "UKPC"],
 ]);
 
 export function normaliserSigleRecueil(rawSigle) {
@@ -458,7 +736,7 @@ export function extraireFormesEtClef(texteCitation) {
 
   const reporterMatches = [];
   const REP_BRACKET =
-    /\[(1[89]\d{2}|20\d{2})\]\s*(\d+)?\s*(C\.?A\.?L\.?P\.?|CALP|C\.?L\.?P\.?|CLP|C\.?N\.?L\.?R\.?|CNLR|F\.?C\.?R\.?|FCR|F\.?C\.?J\.?|FCJ|F\.?C\.?|FC|C\.?F\.?|CF|R\.?C\.?S\.?|RCS|S\.?C\.?R\.?|SCR|R\.?S\.?C\.?|RSC|R\.?C\.?F\.?|RCF|R\.?J\.?D\.?T\.?|RJDT|R\.?J\.?Q\.?|RJQ|R\.?D\.?J\.?|RDJ|R\.?D\.?T\.?|RDT|R\.?L\.?|RL|T\.?T\.?|TT|C\.?A\.?|C\.?S\.?|C\.?Q\.?|A\.?C\.?|AC)\s*(?:No\.?\s*)?(\d+)/g;
+    /\[(1[89]\d{2}|20\d{2})\]\s*(\d+)?\s*(C\.?A\.?L\.?P\.?|CALP|C\.?L\.?P\.?|CLP|C\.?N\.?L\.?R\.?|CNLR|F\.?C\.?R\.?|FCR|F\.?C\.?J\.?|FCJ|F\.?C\.?|FC|C\.?F\.?|CF|R\.?C\.?S\.?|RCS|S\.?C\.?R\.?|SCR|R\.?S\.?C\.?|RSC|R\.?C\.?F\.?|RCF|R\.?J\.?D\.?T\.?|RJDT|R\.?J\.?Q\.?|RJQ|R\.?D\.?J\.?|RDJ|R\.?D\.?T\.?|RDT|R\.?L\.?|RL|T\.?T\.?|TT|C\.?A\.?|C\.?S\.?|C\.?Q\.?|A\.?C\.?|AC|UKPC)\s*(?:No\.?\s*)?(\d+)/g;
   for (const m of mask().matchAll(REP_BRACKET)) {
     reporterMatches.push({
       kind: "reporter",
@@ -584,6 +862,15 @@ const OVERRIDES = [
     transcriptionNote:
       "Audit CanLII : la source imprime « 2004 CF 1124 » (qui désigne Fournier c. Canada sur CanLII) ; la décision Suleiman correspond à 2004 FC 1125 ([2005] 2 R.C.F. 26).",
   },
+  {
+    match: (listId, raw) =>
+      listId === "qccq-daa-secteur-financier" && /^Sharben Holdings/i.test(raw),
+    canonicalText:
+      "Sharbern Holding Inc. c. Vancouver Airport Centre Ltd., 2011 CSC 23, [2011] 2 R.C.S. 175",
+    erroneousSourceCitations: [],
+    transcriptionNote:
+      "Note 10 : la source épelle « Sharben Holdings » et omet la référence neutre (Sharbern Holding Inc., 2011 CSC 23).",
+  },
 ];
 
 function extraireNicknames(raw) {
@@ -648,7 +935,7 @@ function parserSommaire(lignes) {
 
 function nettoyerCorpsEntree(brut, listId) {
   // Retirer les notes parenthétiques purement éditoriales en bout de ligne
-  const propre = brut
+  let propre = brut
     .replace(/\s*\(répète le no \d+ dans la source\)/gi, "")
     .replace(/\s*\(arrêt de la C\.S\.C\. classé sous la C\.A\.F\. dans la source\)/gi, "")
     .replace(/\s*\(colonne anglaise :[^)]+\)/gi, "")
@@ -661,6 +948,15 @@ function nettoyerCorpsEntree(brut, listId) {
     .replace(/\s*\[«\s*[^»\]]+\s*»\]/g, "")
     .replace(/\s*\[(Raloxifene|Olanzapine FCA|Donepezil|Imatinib)\]/g, "")
     .trim();
+
+  let extractedDescriptor = null;
+  if (listId === "qccs-mtl-oppression") {
+    const mDesc = /\s*\(([a-zéèêà][^)]+)\)\s*$/.exec(propre);
+    if (mDesc) {
+      extractedDescriptor = mDesc[1].trim();
+      propre = propre.slice(0, mDesc.index).trim();
+    }
+  }
 
   if (listId === "cf-imm-general" || listId === "cf-imm-sursis") {
     // Ex.: "(EN : Canada (Citizenship and Immigration) v Kurukkal, 2010 FCA 230)"
@@ -678,6 +974,7 @@ function nettoyerCorpsEntree(brut, listId) {
               return {
                 cleanText: propre.slice(0, i).trim(),
                 altEnText: inner.slice(mPrefix[0].length).trim(),
+                extractedDescriptor,
               };
             }
             break;
@@ -686,7 +983,7 @@ function nettoyerCorpsEntree(brut, listId) {
       }
     }
   }
-  return { cleanText: propre, altEnText: null };
+  return { cleanText: propre, altEnText: null, extractedDescriptor };
 }
 
 /**
@@ -758,8 +1055,8 @@ export function parseAutoritesMarkdown(mdPath = CHEMIN_MD_AUTORITES) {
     let sourceDescriptors = null;
     const sourceUrls = [];
 
-    if (sectionCourante === "3") {
-      // Table TDP : | Onglet | Décision | Objet | Hyperlien |
+    if (sectionCourante === "3" || sectionCourante.startsWith("9.")) {
+      // Table TDP / Cour du Québec DAA : | Onglet | Décision | Objet | Hyperlien |
       if (!ligne.startsWith("|")) continue;
       const cols = ligne
         .split("|")
@@ -768,7 +1065,7 @@ export function parseAutoritesMarkdown(mdPath = CHEMIN_MD_AUTORITES) {
       if (cols.length < 4 || !/^\d+$/.test(cols[0])) continue;
       tabNumber = Number(cols[0]);
       rawCore = cols[1];
-      sourceDescriptors = cols[2] || null;
+      sourceDescriptors = cols[2] && cols[2] !== "—" ? cols[2] : null;
       for (const m of cols[3].matchAll(/<(https?:\/\/[^>]+)>/g)) {
         sourceUrls.push(m[1]);
       }
@@ -792,7 +1089,13 @@ export function parseAutoritesMarkdown(mdPath = CHEMIN_MD_AUTORITES) {
     const subdivision = [subHeadingH4, subHeadingH5].filter(Boolean).join(" — ") || null;
 
     const override = OVERRIDES.find((o) => o.match(liste.listId, rawCore));
-    const { cleanText, altEnText } = nettoyerCorpsEntree(rawCore, liste.listId);
+    const { cleanText, altEnText, extractedDescriptor } = nettoyerCorpsEntree(
+      rawCore,
+      liste.listId,
+    );
+    if (!sourceDescriptors && extractedDescriptor) {
+      sourceDescriptors = extractedDescriptor;
+    }
     const { primary, affirming } = scinderCompose(cleanText);
     const texteAnalyse = override ? override.canonicalText : primary;
     const formes = extraireFormesEtClef(texteAnalyse);
@@ -852,7 +1155,7 @@ export function parseAutoritesMarkdown(mdPath = CHEMIN_MD_AUTORITES) {
     resultats.push(liste);
   }
 
-  if (totalEntries !== 550 || totalLinks !== 459) {
+  if (totalEntries !== 864 || totalLinks !== 750) {
     throw new Error(`Totaux inattendus : ${totalEntries} entrées, ${totalLinks} liens.`);
   }
 

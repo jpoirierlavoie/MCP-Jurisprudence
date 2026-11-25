@@ -20,6 +20,18 @@ export const TRIBUNAUX: Readonly<Record<string, TribunalMeta>> = {
     nomEn: "Court of Appeal of Québec",
     defaultDatabases: ["qcca", "csc-scc"],
   },
+  qccs: {
+    id: "qccs",
+    nomFr: "Cour supérieure du Québec",
+    nomEn: "Superior Court of Québec",
+    defaultDatabases: ["qccs", "qcca", "csc-scc", "onca"],
+  },
+  qccq: {
+    id: "qccq",
+    nomFr: "Cour du Québec (Division administrative et d'appel)",
+    nomEn: "Court of Québec (Administrative and Appeal Division)",
+    defaultDatabases: ["qccq", "qcca", "qccs", "qctp", "qcbdrvm", "csc-scc", "ukpc"],
+  },
   tat: {
     id: "tat",
     nomFr: "Tribunal administratif du travail",
@@ -71,6 +83,14 @@ export const TRIBUNAUX: Readonly<Record<string, TribunalMeta>> = {
 const TRIBUNAL_ALIASES: Readonly<Record<string, string>> = {
   qcca: "qcca",
   caq: "qcca",
+  qccs: "qccs",
+  cs: "qccs",
+  csq: "qccs",
+  qccq: "qccq",
+  cq: "qccq",
+  "cq-daa": "qccq",
+  "qccq-daa": "qccq",
+  daa: "qccq",
   tat: "tat",
   qctat: "tat",
   tdp: "tdp",
@@ -123,6 +143,7 @@ export const NEUTRE_VERS_FAMILLE: Readonly<Record<string, string>> = {
   QCTMF: "qcbdrvm",
   BCCA: "bcca",
   YKCA: "ykca",
+  ONCA: "onca",
 };
 
 export const NEUTRE_VERS_DB: Readonly<Record<string, string>> = {
@@ -151,6 +172,7 @@ export const NEUTRE_VERS_DB: Readonly<Record<string, string>> = {
   QCTMF: "qcbdrvm",
   BCCA: "bcca",
   YKCA: "ykca",
+  ONCA: "onca",
 };
 
 const SIGLE_CANON: ReadonlyMap<string, string> = new Map([
@@ -180,6 +202,7 @@ const SIGLE_CANON: ReadonlyMap<string, string> = new Map([
   ["DLR", "DLR"],
   ["FTR", "FTR"],
   ["NR", "NR"],
+  ["UKPC", "UKPC"],
 ]);
 
 /** Normalise un sigle de recueil judiciaire de façon identique au compilateur. */

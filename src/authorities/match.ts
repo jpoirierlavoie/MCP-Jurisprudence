@@ -221,7 +221,7 @@ function buildIndex(): AuthorityIndex {
       for (const k of collectKeysForEntry(entry, decision, false)) {
         pushKey(k, primaryItem);
       }
-      if (decision.status === "hors_collection") {
+      if (decision.status === "hors_collection" && (!decision.database_id || !decision.case_id)) {
         hors.push(inferHorsCollectionMeta(list, entry, decision, false));
       }
 
@@ -252,7 +252,7 @@ function buildIndex(): AuthorityIndex {
           for (const k of collectKeysForEntry(entry, affDec, true)) {
             pushKey(k, affItem);
           }
-          if (affDec.status === "hors_collection") {
+          if (affDec.status === "hors_collection" && (!affDec.database_id || !affDec.case_id)) {
             hors.push(inferHorsCollectionMeta(list, entry, affDec, true));
           }
         }

@@ -20,9 +20,12 @@ export const CHEMIN_SORTIE_JSON = resolve(RACINE_DEPOT, "src/data/exemptAuthorit
 export const CHEMIN_SORTIE_TS = resolve(RACINE_DEPOT, "src/data/exemptAuthorities.ts");
 
 export const HOTES_SOURCES_AUTORISES = new Set([
+  "bailii.org",
   "canlii.ca",
   "citoyens.soquij.qc.ca",
   "courdappelduquebec.ca",
+  "courduquebec.ca",
+  "coursuperieureduquebec.ca",
   "decisions.fca-caf.gc.ca",
   "decisions.fct-cf.gc.ca",
   "decisions.scc-csc.ca",
@@ -32,11 +35,16 @@ export const HOTES_SOURCES_AUTORISES = new Set([
   "scc-csc.lexum.com",
   "scc.lexum.org",
   "supreme.justia.com",
+  "t.soquij.ca",
   "tmf.gouv.qc.ca",
   "tribunaldesdroitsdelapersonne.ca",
   "tribunaldesprofessions.ca",
+  "unik.caij.qc.ca",
+  "www.bailii.org",
   "www.canlii.ca",
   "www.canlii.org",
+  "www.courduquebec.ca",
+  "www.coursuperieureduquebec.ca",
   "www.fct-cf.ca",
   "www.fct-cf.gc.ca",
   "www.tat.gouv.qc.ca",
@@ -91,14 +99,14 @@ function extraireTitreSource(texte) {
     .replace(/,\s*(?:C\.L\.P\.|D\.T\.E\.|88-A-|IMM-).*$/i, "")
     // Retirer l'amorce d'une citation recueil/neutre/CanLII/éditeur
     .replace(
-      /(?:,\s*|\s+\(\d{4}\),?\s*)(?:\[\d{4}\]|\d{4}\s+(?:CSC|SCC|CAF|FCA|CF|FC|FCT|CFPI|QCCA|QCCS|QCCQ|QCTP|QCTDP|QCCLP|QCCRT|QCBDRVM|QCBDR|QCTMF|BCCA|YKCA|CanLII|Carswell)|C\.L\.P\.|D\.T\.E\.|J\.E\.|REJB|EYB|AZ-|\d{1,4}\s+(?:C\.?P\.?R\.?|D\.?L\.?R\.?|F\.?T\.?R\.?|N\.?R\.?|A\.C\.|U\.?S\.?)).*$/i,
+      /(?:,\s*|\s+\(\d{4}\),?\s*)(?:\[\d{4}\]|\d{4}\s+(?:CSC|SCC|CAF|FCA|CF|FC|FCT|CFPI|QCCA|QCCS|QCCQ|QCTP|QCTDP|QCCLP|QCCRT|QCBDRVM|QCBDR|QCTMF|BCCA|YKCA|ONCA|CanLII|Carswell)|C\.L\.P\.|D\.T\.E\.|J\.E\.|REJB|EYB|AZ-|\d{1,4}\s+(?:C\.?P\.?R\.?|D\.?L\.?R\.?|F\.?T\.?R\.?|N\.?R\.?|A\.C\.|U\.?S\.?)).*$/i,
       "",
     )
     .replace(/\s*\(\d{4}\)\s*$/, "")
     .replace(/\s*,\s*$/, "")
     .trim();
-  // Enlever un suffixe "(C.A.)" / "(T.D.)" / "(F.C.)" / "(QL)" résiduel
-  s = s.replace(/\s*\((?:C\.A\.|C\.S\.|T\.A\.|T\.D\.|F\.C\.|QL)\)\s*$/i, "").trim();
+  // Enlever un suffixe "(C.A.)" / "(T.D.)" / "(F.C.)" / "(QL)" / "(QC CA)" résiduel
+  s = s.replace(/\s*\((?:C\.A\.|C\.S\.|T\.A\.|T\.D\.|F\.C\.|QL|QC\s*CA|QC\s*CS)\)\s*$/i, "").trim();
   return s;
 }
 

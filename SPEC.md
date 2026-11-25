@@ -6,7 +6,7 @@
 **Auteur de la spéc. :** (préparé pour Jason Poirier Lavoie)
 **Cible :** nouveau dépôt autonome — Worker Cloudflare, D1, TypeScript
 **Modèle de référence :** le Worker `legislation` / base D1 `qclaw` (connecteur « lois »)
-**Statut :** **livré (`2.1.0`) et mis à niveau Phase 3 (`@poirierlavoie/mcp-socle` `0.8.4`)** sur `jurisprudence.poirierlavoie.ca` — douze outils sans préfixe (clé `juris` dans `droit-civil-quebecois` `v3.1.0`), identité partagée `DB_IDENTITE` (`mcp-identite`), double montage `/mcp` (`404` vide sans `WWW-Authenticate`) et `/mcp/oauth` (`401` RFC 9728 OAuth 2.1 PKCE S256 via `acces.poirierlavoie.ca`), garde stricte BYOK CanLII préalable au cache D1 (`ouvrirCoffre` / `lirePorteurEntete` `X-Clef-CanLII`), observabilité Cloudflare désactivée et zéro écriture dans `search_log` / `api_usage` *(voir `MCP-Socle/SPEC-SOCLE-COMMUN.md` pour l'amendement Phase 3 de D7, §8, §9, §10 et §18)*. Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
+**Statut :** **livré (`2.2.0`) et mis à niveau Phase 3 (`@poirierlavoie/mcp-socle` `0.8.4`)** sur `jurisprudence.poirierlavoie.ca` — douze outils sans préfixe (clé `juris` dans `droit-civil-quebecois` `v3.1.0`), identité partagée `DB_IDENTITE` (`mcp-identite`), double montage `/mcp` (`404` vide sans `WWW-Authenticate`) et `/mcp/oauth` (`401` RFC 9728 OAuth 2.1 PKCE S256 via `acces.poirierlavoie.ca`), garde stricte BYOK CanLII préalable au cache D1 (`ouvrirCoffre` / `lirePorteurEntete` `X-Clef-CanLII`), observabilité Cloudflare désactivée et zéro écriture dans `search_log` / `api_usage` *(voir `MCP-Socle/SPEC-SOCLE-COMMUN.md` pour l'amendement Phase 3 de D7, §8, §9, §10 et §18)*. Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
 
 ---
 
@@ -128,7 +128,7 @@ claude.ai / Claude Code      (Athéna : client du 2026-08-27 au 2026-09-02, reti
 │   │   ├── normalize.ts      # normalisation des tribunaux, clés de citations et dossiers
 │   │   └── match.ts          # index mémoire + appariement + repli CanLII borné
 │   ├── data/
-│   │   ├── exemptAuthorities.json  # corpus compilé (15 listes, 550 entrées, 519 décisions)
+│   │   ├── exemptAuthorities.json  # corpus compilé (27 listes, 864 entrées, 737 décisions)
 │   │   └── exemptAuthorities.ts    # enveloppe typée sans surcharge Biome
 │   ├── canlii/
 │   │   ├── client.ts         # fetch sortant : étranglement, réessais, délais, quota
@@ -151,13 +151,14 @@ claude.ai / Claude Code      (Athéna : client du 2026-08-27 au 2026-09-02, reti
 │   ├── site.i18n.ts          # §18 — l'ANGLAIS seulement (traduction, jamais copie)
 │   ├── backfill.ts           # §11 — écrit, testé, INERTE
 ├── data/
-│   ├── autorites-dispensees.md     # compilation source des 15 listes (550 entrées)
-│   └── autorites-enrichies.json    # fichier d'enrichissement CanLII (519 clés uniques)
+│   ├── autorites-dispensees.md     # compilation source des 27 listes (864 entrées)
+│   └── autorites-enrichies.json    # fichier d'enrichissement CanLII (737 clés uniques)
 ├── migrations/
 │   ├── 0001_initial.sql
 │   ├── 0002_seed_court_codes.sql
 │   ├── 0003_reconcile_court_codes.sql   # §4.3, avec sa preuve d'observation
-│   └── 0004_rename_tool_prefix.sql      # 2026-09-16 — rattrape la DONNÉE déjà écrite
+│   ├── 0004_rename_tool_prefix.sql      # 2026-09-16 — rattrape la DONNÉE déjà écrite
+│   └── 0009_add_onca_court_code.sql     # 2026-11-24 — ajoute ONCA -> onca (2.2.0)
 │                                        #   sous `canlii_*` : search_log.tool et
 │                                        #   court_codes.note. Aucun schéma touché.
 ├── scripts/
@@ -596,7 +597,7 @@ Un **appariement partiel** produit le verdict `DISCORDANTE`, jamais `CONFIRMÉE`
 
 ## 7. Les douze outils (`juris`)
 
-*Le connecteur en compte **douze**, exposés sans préfixe en `2.1.0` sous la clé `juris`. Dix peuvent interroger la collection de CanLII ; `parse_citation` et `list_exempt_authorities` n'appellent rien (et `check_exempt_authorities` supporte un mode hors ligne strict via `resolve_canlii=false`).* *(Note — 2026-11-14, `0.3.0` : les trois outils hors ligne `greffe_*` et `palais_*` anciennement décrits en §17 ont été déplacés vers « MCP-Outils ».)*
+*Le connecteur en compte **douze**, exposés sans préfixe depuis `2.0.0` (`2.2.0` : 27 listes d'autorités dispensées) sous la clé `juris`. Dix peuvent interroger la collection de CanLII ; `parse_citation` et `list_exempt_authorities` n'appellent rien (et `check_exempt_authorities` supporte un mode hors ligne strict via `resolve_canlii=false`).* *(Note — 2026-11-14, `0.3.0` : les trois outils hors ligne `greffe_*` et `palais_*` anciennement décrits en §17 ont été déplacés vers « MCP-Outils ».)*
 
 *Historique de nommage : `canlii_*` (initial) → `jurisprudence_*` (2026-09-16) → sans préfixe (`2.0.0`). Les descriptions ci-dessous
 sont reproduites verbatim du registre — chacune nomme désormais CanLII.*
@@ -786,9 +787,9 @@ Aucun appel sortant, aucune écriture. Utile au débogage de la table `court_cod
 
 ### 7.11 `list_exempt_authorities`
 
-> **Description :** « Consulte et recherche HORS LIGNE les 15 listes compilées d'autorités dispensées de reproduction (7 tribunaux canadiens et québécois : QCCA, TAT, TDP, TP, TMF, CF et COMC), enrichies des métadonnées et mots-clés compilés depuis CanLII. Sans paramètre, rend l'annuaire des 15 listes ; avec « list_id », rend la liste verbatim dans l'ordre source ; avec « query », recherche par intitulé, surnom, citation ou mot-clé CanLII. N'émet AUCUN appel réseau à CanLII, ne vérifie pas les hyperliens des listes sources et n'établit NI l'autorité actuelle des décisions (aucun historique d'appel, aucun traitement), NI le contenu de leur dispositif. »
+> **Description :** « Consulte et recherche HORS LIGNE les 27 listes compilées d'autorités dispensées de reproduction (9 tribunaux canadiens et québécois : QCCA, QCCS, QCCQ, TAT, TDP, TP, TMF, CF et COMC), enrichies des métadonnées et mots-clés compilés depuis CanLII. Sans paramètre, rend l'annuaire des 27 listes ; avec « list_id », rend la liste verbatim dans l'ordre source ; avec « query », recherche par intitulé, surnom, citation ou mot-clé CanLII. N'émet AUCUN appel réseau à CanLII, ne vérifie pas les hyperliens des listes sources et n'établit NI l'autorité actuelle des décisions (aucun historique d'appel, aucun traitement), NI le contenu de leur dispositif. »
 
-Paramètres facultatifs : `tribunal`, `list_id`, `query`, `lang` (`"fr"` | `"en"`), `limit` (défaut `50`, max `150` via `LIMITES.list_exempt_authorities`), `offset`. Zéro appel CanLII, aucune clé CanLII BYOK requise, comptabilisé en classe `local`, et clôturé par `GARDE_AUTORITES_DISPENSEES`. En recherche (`query`), les résultats sont dédupliqués par `decisionKey` en indiquant toutes les listes appariées.
+Paramètres facultatifs : `tribunal`, `list_id`, `query`, `lang` (`"fr"` | `"en"`), `limit` (défaut `50`, max `150` via `LIMITES.list_exempt_authorities`), `offset`. Zéro appel CanLII, aucune clé CanLII BYOK requise, comptabilisé en classe `local`, et clôturé par `GARDE_AUTORITES_DISPENSEES`. En recherche (`query`), les résultats sont dédupliqués par `decisionKey` en indiquant toutes les listes appariées. En `2.2.0`, le corpus intègre les 6 listes de la Cour supérieure du Québec (`qccs`, issues des directives `qccs-div-mtl` et `qccs-div-qc`) et les 6 listes de la Cour du Québec — Division administrative et d'appel (`qccq`, issues de `qccq-daa-jurisprudence`).
 
 ### 7.12 `check_exempt_authorities`
 
