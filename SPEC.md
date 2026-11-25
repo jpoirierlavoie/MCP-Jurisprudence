@@ -6,7 +6,7 @@
 **Auteur de la spéc. :** (préparé pour Jason Poirier Lavoie)
 **Cible :** nouveau dépôt autonome — Worker Cloudflare, D1, TypeScript
 **Modèle de référence :** le Worker `legislation` / base D1 `qclaw` (connecteur « lois »)
-**Statut :** **livré (`2.0.0`) et mis à niveau Phase 3 (`@poirierlavoie/mcp-socle` `0.8.4`)** sur `jurisprudence.poirierlavoie.ca` — dix outils sans préfixe (clé `juris` dans `droit-civil-quebecois` `v3.1.0`), identité partagée `DB_IDENTITE` (`mcp-identite`), double montage `/mcp` (`404` vide sans `WWW-Authenticate`) et `/mcp/oauth` (`401` RFC 9728 OAuth 2.1 PKCE S256 via `acces.poirierlavoie.ca`), garde stricte BYOK CanLII préalable au cache D1 (`ouvrirCoffre` / `lirePorteurEntete` `X-Clef-CanLII`), observabilité Cloudflare désactivée et zéro écriture dans `search_log` / `api_usage` *(voir `MCP-Socle/SPEC-SOCLE-COMMUN.md` pour l'amendement Phase 3 de D7, §8, §9, §10 et §18)*. Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
+**Statut :** **livré (`2.1.0`) et mis à niveau Phase 3 (`@poirierlavoie/mcp-socle` `0.8.4`)** sur `jurisprudence.poirierlavoie.ca` — douze outils sans préfixe (clé `juris` dans `droit-civil-quebecois` `v3.1.0`), identité partagée `DB_IDENTITE` (`mcp-identite`), double montage `/mcp` (`404` vide sans `WWW-Authenticate`) et `/mcp/oauth` (`401` RFC 9728 OAuth 2.1 PKCE S256 via `acces.poirierlavoie.ca`), garde stricte BYOK CanLII préalable au cache D1 (`ouvrirCoffre` / `lirePorteurEntete` `X-Clef-CanLII`), observabilité Cloudflare désactivée et zéro écriture dans `search_log` / `api_usage` *(voir `MCP-Socle/SPEC-SOCLE-COMMUN.md` pour l'amendement Phase 3 de D7, §8, §9, §10 et §18)*. Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
 
 ---
 
@@ -115,14 +115,21 @@ claude.ai / Claude Code      (Athéna : client du 2026-08-27 au 2026-09-02, reti
 │   ├── env.d.ts              # les SECRETS, déclarés à la main (absents de wrangler.jsonc)
 │   ├── mcp/
 │   │   ├── rpc.ts            # enveloppe JSON-RPC, codes d'erreur, initialize/ping
-│   │   ├── registry.ts       # les 10 descripteurs (nom, titre, description FR, schéma)
+│   │   ├── registry.ts       # les 12 descripteurs (nom, titre, description FR, schéma)
 │   │   ├── validate.ts       # validateur JSON-Schema (sous-ensemble) — calqué sur mcp/tools.py
 │   │   └── handlers/         # un fichier par outil, + un module partagé
 │   │       ├── verifyCitations.ts · parseCitation.ts · findCase.ts
 │   │       ├── getCase.ts · citator.ts · subsequentHistory.ts
 │   │       ├── browseCases.ts · listDatabases.ts
 │   │       ├── browseLegislation.ts · getLegislation.ts
+│   │       ├── listExemptAuthorities.ts · checkExemptAuthorities.ts
 │   │       └── cible.ts      # résolution de cible, partagée
+│   ├── authorities/
+│   │   ├── normalize.ts      # normalisation des tribunaux, clés de citations et dossiers
+│   │   └── match.ts          # index mémoire + appariement + repli CanLII borné
+│   ├── data/
+│   │   ├── exemptAuthorities.json  # corpus compilé (15 listes, 550 entrées, 519 décisions)
+│   │   └── exemptAuthorities.ts    # enveloppe typée sans surcharge Biome
 │   ├── canlii/
 │   │   ├── client.ts         # fetch sortant : étranglement, réessais, délais, quota
 │   │   ├── types.ts          # types des réponses de l'API
@@ -142,7 +149,10 @@ claude.ai / Claude Code      (Athéna : client du 2026-08-27 au 2026-09-02, reti
 │   │   └── render.ts         # gabarits de sortie (Annexe A) + mises en garde
 │   ├── site.ts               # §18 — la page publique, DÉRIVÉE des données vives
 │   ├── site.i18n.ts          # §18 — l'ANGLAIS seulement (traduction, jamais copie)
-│   └── backfill.ts           # §11 — écrit, testé, INERTE
+│   ├── backfill.ts           # §11 — écrit, testé, INERTE
+├── data/
+│   ├── autorites-dispensees.md     # compilation source des 15 listes (550 entrées)
+│   └── autorites-enrichies.json    # fichier d'enrichissement CanLII (519 clés uniques)
 ├── migrations/
 │   ├── 0001_initial.sql
 │   ├── 0002_seed_court_codes.sql
@@ -584,9 +594,9 @@ Un **appariement partiel** produit le verdict `DISCORDANTE`, jamais `CONFIRMÉE`
 
 ---
 
-## 7. Les dix outils (`juris`)
+## 7. Les douze outils (`juris`)
 
-*Le connecteur en compte **dix**, exposés sans préfixe en `2.0.0` sous la clé `juris`. Neuf interrogent la collection de CanLII ; `parse_citation` n'appelle rien.* *(Note — 2026-11-14, `0.3.0` : les trois outils hors ligne `greffe_*` et `palais_*` anciennement décrits en §17 ont été déplacés vers « MCP-Outils ».)*
+*Le connecteur en compte **douze**, exposés sans préfixe en `2.1.0` sous la clé `juris`. Dix peuvent interroger la collection de CanLII ; `parse_citation` et `list_exempt_authorities` n'appellent rien (et `check_exempt_authorities` supporte un mode hors ligne strict via `resolve_canlii=false`).* *(Note — 2026-11-14, `0.3.0` : les trois outils hors ligne `greffe_*` et `palais_*` anciennement décrits en §17 ont été déplacés vers « MCP-Outils ».)*
 
 *Historique de nommage : `canlii_*` (initial) → `jurisprudence_*` (2026-09-16) → sans préfixe (`2.0.0`). Les descriptions ci-dessous
 sont reproduites verbatim du registre — chacune nomme désormais CanLII.*
@@ -594,8 +604,8 @@ sont reproduites verbatim du registre — chacune nomme désormais CanLII.*
 **Conventions communes** — appliquées sans exception :
 
 - Nom d'outil en anglais, **description et sortie en français** (motif `qclaw`).
-- `readOnlyHint: true` sur **les dix** : aucun n'écrit quoi que ce soit hors de son propre cache et de sa télémétrie.
-- `openWorldHint` **n'est PAS uniforme**, et c'est le point : `true` pour les neuf qui appellent CanLII — leur réponse dépend d'un système tiers, faillible et hors de notre contrôle — et `false` pour `parse_citation`, qui ne fait aucun appel sortant. *Amendé le 2026-09-16 : les outils portaient tous `true`, ce qui annonçait un appel sortant là où il n'y en a jamais eu.* `test/rpc.test.ts` épingle la scission outil par outil.
+- `readOnlyHint: true` sur **les douze** : aucun n'écrit quoi que ce soit hors de son propre cache et de sa télémétrie.
+- `openWorldHint` **n'est PAS uniforme**, et c'est le point : `true` pour les dix qui peuvent appeler CanLII — leur réponse dépend d'un système tiers, faillible et hors de notre contrôle — et `false` pour `parse_citation` et `list_exempt_authorities`, qui ne font aucun appel sortant. *Amendé le 2026-09-16 : les outils portaient tous `true`, ce qui annonçait un appel sortant là où il n'y en a jamais eu.* `test/rpc.test.ts` épingle la scission outil par outil.
 - Tout paramètre déclaré porte une `description`. *Ajouté le 2026-09-16 : vingt et un n'en avaient pas. Un paramètre nu se devine par son nom, et `offset` comme `limit` se devinent mal — `test/garde.test.ts` échoue désormais si l'un la perd.*
 - `additionalProperties: false` sur tous les schémas.
 - Tout paramètre `lang` : `enum ["fr","en"]`, défaut `"fr"`.
@@ -773,6 +783,25 @@ Rendre `repealed` en français explicite (« Abrogé : oui / non »). **Ne JAMAI
 > **Description :** « Analyse une citation sans appeler CanLII : indique la forme reconnue (citation neutre, citation attribuée par CanLII, recueil, identifiant d'éditeur), et, si elle est constructible, le database_id et le case_id qui en découlent. Outil de diagnostic ; pour vérifier réellement l'existence d'une décision, utiliser verify_citations. »
 
 Aucun appel sortant, aucune écriture. Utile au débogage de la table `court_codes` et pour expliquer un `NON CONSTRUCTIBLE`.
+
+### 7.11 `list_exempt_authorities`
+
+> **Description :** « Consulte et recherche HORS LIGNE les 15 listes compilées d'autorités dispensées de reproduction (7 tribunaux canadiens et québécois : QCCA, TAT, TDP, TP, TMF, CF et COMC), enrichies des métadonnées et mots-clés compilés depuis CanLII. Sans paramètre, rend l'annuaire des 15 listes ; avec « list_id », rend la liste verbatim dans l'ordre source ; avec « query », recherche par intitulé, surnom, citation ou mot-clé CanLII. N'émet AUCUN appel réseau à CanLII, ne vérifie pas les hyperliens des listes sources et n'établit NI l'autorité actuelle des décisions (aucun historique d'appel, aucun traitement), NI le contenu de leur dispositif. »
+
+Paramètres facultatifs : `tribunal`, `list_id`, `query`, `lang` (`"fr"` | `"en"`), `limit` (défaut `50`, max `150` via `LIMITES.list_exempt_authorities`), `offset`. Zéro appel CanLII, aucune clé CanLII BYOK requise, comptabilisé en classe `local`, et clôturé par `GARDE_AUTORITES_DISPENSEES`. En recherche (`query`), les résultats sont dédupliqués par `decisionKey` en indiquant toutes les listes appariées.
+
+### 7.12 `check_exempt_authorities`
+
+> **Description :** « Vérifie un lot de citations (au plus 50) contre les listes d'autorités dispensées d'un tribunal ou d'une liste précise. CINQ verdicts : DISPENSÉE, À VÉRIFIER (coquille connue de la liste source, écart d'intitulé ou d'année), NON LISTÉE, ILLISIBLE et INDÉTERMINÉE (CanLII injoignable, étranglé ou budget épuisé — ne vaut JAMAIS ni absence de la liste ni dispense). L'appariement hors ligne s'exécute en premier ; un repli vers l'API de CanLII n'intervient que si « resolve_canlii » est vrai et que la référence peut correspondre à une forme parallèle ou à une entrée non encore indexée sur CanLII. La dispense ne vaut que devant le tribunal et sous réserve de ses règles procédurales ; n'établit NI l'autorité actuelle (aucun historique d'appel, aucun traitement), NI le contenu du dispositif. Pour éprouver l'existence générale d'une citation hors liste, employer verify_citations. »
+
+Paramètres : **EXACTEMENT l'un des deux** paramètres de portée `list_id` OU `tribunal` (répété sur les deux descriptions et validé au gestionnaire), `citations` (`1..50` objets `{ citation, expected_title?, expected_year? }` où `citation` n'a délibérément pas de `minLength` afin de rendre `ILLISIBLE` au niveau de l'élément sans faire échouer tout le lot), `lang`, `resolve_canlii` (défaut `true` ; `false` force un contrôle strictement hors ligne sans clé CanLII et compte en `local`).
+
+**Algorithme :**
+
+1. Contrôler d'abord les coquilles connues imprimées par les listes sources (`erroneousSourceCitations`, p. ex. `2016 CAF 126`, `1994 CanLII 35340`, `2004 CF 1124`) ⇒ verdict `À VÉRIFIER` exposant la référence imprimée et la décision visée.
+2. Exécuter l'appariement statique hors ligne sur toutes les clés compilées (`neutral`, `canlii`, recueils, identifiants d'éditeur, dossiers, y compris les décisions confirmantes « conf. par » / « aff'd » qui rendent `DISPENSÉE` avec mention explicite de la décision primaire), puis vérifier `expected_title` / `inlineTitle` et `expected_year` (`À VÉRIFIER` en cas d'écart).
+3. Si non appariée et exploitable, retourner `NON LISTÉE` si `resolve_canlii === false`. Lorsque `resolve_canlii !== false`, une référence neutre/CanLII ordinaire absente d'une liste sans entrée `hors_collection` compatible rend immédiatement `NON LISTÉE` (0 appel CanLII) ; le repli CanLII (`lookupCase` ou `searchLocal` + `<= 3` `caseBrowse` bornés par tribunal/année) ne s'active que pour résoudre une forme parallèle (recueil/éditeur/intitulé) ou une entrée `hors_collection` compatible.
+4. Tout échec réseau / `429` / budget durant ce repli rend `INDÉTERMINÉE` (en-tête `Vérification INTERROMPUE` + `EXPLICATION_INDETERMINEE`), jamais `NON LISTÉE`. Clôture systématique par `GARDE_AUTORITES_DISPENSEES`.
 
 ---
 

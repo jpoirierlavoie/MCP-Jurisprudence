@@ -1,5 +1,5 @@
 /**
- * Registre des dix outils MCP (spécification §7).
+ * Registre des douze outils MCP (spécification §7).
  *
  * ⚠ LES DESCRIPTIONS SONT REPRISES VERBATIM DE §7 ET NE DOIVENT PAS ÊTRE
  *   REFORMULÉES. Elles portent elles-mêmes leurs mises en garde : c'est le second
@@ -11,12 +11,12 @@
  * ║ PROVENANCE DANS LA DESCRIPTION (D8, amendée le 2026-09-16 ; §17 retiré le    ║
  * ║ 2026-11-14).                                                                 ║
  * ║                                                                              ║
- * ║   serveur `juris`       la réponse se rapporte à la COLLECTION DE CANLII,    ║
- * ║   (10 outils)           et sa couverture comme ses verdicts en dépendent.      ║
+ * ║   serveur `juris`       la réponse se rapporte à la COLLECTION DE CANLII     ║
+ * ║   (12 outils)           ou aux 15 listes compilées d'autorités dispensées.    ║
  * ║                                                                              ║
  * ║ NOTE HISTORIQUE (2026-11-14) : les trois outils hors ligne `greffe_*` et     ║
  * ║ `palais_*` ont été déplacés vers le connecteur public sans authentification  ║
- * ║ « outils » (`MCP-Outils`, v0.2.0). Les dix outils restants portent            ║
+ * ║ « outils » (`MCP-Outils`, v0.2.0). Les douze outils du registre portent      ║
  * ║ tous « CanLII » dans leur description en français et en anglais (épinglé     ║
  * ║ par test/garde.test.ts et test/site.test.ts).                                ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -24,9 +24,10 @@
  * Conventions communes appliquées sans exception :
  *   - nom d'outil en anglais, description ET sortie en français ;
  *   - `readOnlyHint: true` sur TOUS les outils : aucun n'écrit hors de son cache ;
- *   - `openWorldHint` N'EST PAS uniforme — vrai pour les NEUF qui interrogent CanLII
- *     (source de vérité distante), faux pour `parse_citation` qui ne
- *     fait aucun appel. Voir `DISTANT`/`LOCAL` et `SANS_APPEL` plus bas ;
+ *   - `openWorldHint` N'EST PAS uniforme — vrai pour les DIX qui peuvent interroger
+ *     CanLII (source de vérité distante), faux pour `parse_citation` et
+ *     `list_exempt_authorities` qui ne font aucun appel. Voir `DISTANT`/`LOCAL`
+ *     et `SANS_APPEL` plus bas ;
  *   - tout paramètre déclaré porte une `description` ;
  *   - `additionalProperties: false` sur tous les schémas ;
  *   - tout `lang` : enum ["fr","en"], défaut "fr" ;
@@ -44,11 +45,13 @@ import type { CanliiClient } from "../canlii/client";
 import { LIMITES, OFFSET_DEFAUT, OFFSET_MAX } from "./defauts";
 import { browseCases } from "./handlers/browseCases";
 import { browseLegislation } from "./handlers/browseLegislation";
+import { checkExemptAuthorities } from "./handlers/checkExemptAuthorities";
 import { citator } from "./handlers/citator";
 import { findCase } from "./handlers/findCase";
 import { getCase } from "./handlers/getCase";
 import { getLegislation } from "./handlers/getLegislation";
 import { listDatabasesTool } from "./handlers/listDatabases";
+import { listExemptAuthorities } from "./handlers/listExemptAuthorities";
 import { parseCitationTool } from "./handlers/parseCitation";
 import { subsequentHistory } from "./handlers/subsequentHistory";
 import { verifyCitations } from "./handlers/verifyCitations";
@@ -109,8 +112,8 @@ const LOCAL = {
   openWorldHint: false,
 } as const;
 
-/** Outil(s) dont la réponse ne dépend d'aucun appel sortant ni du cache CanLII. */
-export const SANS_APPEL = new Set(["parse_citation"]);
+/** Outils dont la réponse ne dépend d'aucun appel sortant ni du cache CanLII en direct. */
+export const SANS_APPEL = new Set(["parse_citation", "list_exempt_authorities"]);
 
 const LANG: JsonSchema = {
   type: "string",
@@ -204,7 +207,7 @@ export const SERVER_INFO = {
   // le jour où il devient le dernier endroit à dire l'inverse des douze autres.
   name: "mcp-jurisprudence",
   title: "MCP Jurisprudence",
-  version: "2.0.0",
+  version: "2.1.0",
 };
 
 /**
@@ -212,8 +215,8 @@ export const SERVER_INFO = {
  * et épinglée contre `plugin.json` et `gemini-extension.json` dans `test/doc.test.ts`.
  */
 export const PUBLIC_DESCRIPTION =
-  "Vérification déterministe de citations de jurisprudence canadienne (collection CanLII, " +
-  "métadonnées en lecture seule).";
+  "Vérification déterministe de citations de jurisprudence canadienne et d'autorités dispensées " +
+  "(collection CanLII, métadonnées en lecture seule).";
 
 /** Orientation rendue à l'initialisation. Elle porte, elle aussi, le contrat de §2. */
 export const INSTRUCTIONS =
@@ -226,13 +229,14 @@ export const INSTRUCTIONS =
   "d'un moteur de recherche ou d'un texte rédigé par une IA, commencer par " +
   "verify_citations ; si la citation n'est pas constructible (recueils R.C.S. / " +
   "R.J.Q. / C.A., identifiants J.E. / REJB / EYB / AZ), enchaîner avec find_case. " +
-  "Pour le TEXTE des lois et règlements du Québec, employer le connecteur « lois ». " +
-  "Les verdicts et la couverture dépendent de la collection de CanLII : " +
+  "Pour consulter les 15 listes d'autorités dispensées de reproduction (7 tribunaux) " +
+  "ou vérifier si des citations y figurent, utiliser list_exempt_authorities (hors ligne) " +
+  "et check_exempt_authorities. Pour le TEXTE des lois et règlements du Québec, employer " +
+  "le connecteur « lois ». Les verdicts et la couverture dépendent de la collection de CanLII : " +
   "une absence n'est jamais une preuve d'inexistence. " +
-  "C'est la description de chaque outil qui nomme sa source et ses limites. NEUF des dix " +
-  "outils interrogent CanLII ; le dixième, parse_citation, " +
-  "n'appelle RIEN — il analyse une citation contre le répertoire local et ne confirme aucune " +
-  "existence. Pour analyser un numéro de dossier judiciaire québécois " +
+  "C'est la description de chaque outil qui nomme sa source et ses limites. DIX des douze " +
+  "outils peuvent interroger CanLII ; deux, parse_citation et list_exempt_authorities, " +
+  "n'appellent RIEN en direct. Pour analyser un numéro de dossier judiciaire québécois " +
   "(greffe_parse_number) ou consulter le répertoire des palais de justice et " +
   "greffes du Québec (palais_list, palais_get), employer le connecteur public hors ligne " +
   "« outils ».";
@@ -642,6 +646,142 @@ export const TOOLS: Record<string, ToolDescriptor> = {
       additionalProperties: false,
     },
     handler: parseCitationTool,
+  },
+
+  // ── 7.11 ───────────────────────────────────────────────────────────────────
+  list_exempt_authorities: {
+    title: "Lister les autorités dispensées (hors ligne)",
+    description:
+      "Consulte et recherche HORS LIGNE les 15 listes compilées d'autorités dispensées de " +
+      "reproduction (7 tribunaux canadiens et québécois : QCCA, TAT, TDP, TP, TMF, CF et COMC), " +
+      "enrichies des métadonnées et mots-clés compilés depuis CanLII. Sans paramètre, rend " +
+      "l'annuaire des 15 listes ; avec « list_id », rend la liste verbatim dans l'ordre source " +
+      "; avec « query », recherche par intitulé, surnom, citation ou mot-clé CanLII. " +
+      "N'émet AUCUN appel réseau à CanLII, ne vérifie pas les hyperliens des listes sources et " +
+      "n'établit NI l'autorité actuelle des décisions (aucun historique d'appel, aucun " +
+      "traitement), NI le contenu de leur dispositif.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        tribunal: {
+          type: "string",
+          minLength: 1,
+          maxLength: 20,
+          description:
+            "Filtre sur un tribunal : « qcca », « tat », « tdp », « tp », « tmf », « cf » ou « comc ».",
+        },
+        list_id: {
+          type: "string",
+          minLength: 1,
+          maxLength: 30,
+          description:
+            "Identifiant précis d'une sous-liste (p. ex. « qcca-civil », « tat-dsst », « tdp », " +
+            "« cf-imm-general »). Annuaire obtenu sans paramètres.",
+        },
+        query: {
+          type: "string",
+          minLength: 1,
+          maxLength: 200,
+          description:
+            "Recherche plein texte sur les intitulés, surnoms, descripteurs sources, citations et " +
+            "mots-clés CanLII compilés.",
+        },
+        lang: LANG,
+        limit: {
+          type: "integer",
+          minimum: 1,
+          maximum: LIMITES.list_exempt_authorities.max,
+          description:
+            `Nombre maximal d'entrées rendues (défaut ${LIMITES.list_exempt_authorities.defaut}, ` +
+            `maximum ${LIMITES.list_exempt_authorities.max}).`,
+        },
+        offset: offsetDe("de la première entrée rendue"),
+      },
+      additionalProperties: false,
+    },
+    handler: listExemptAuthorities,
+  },
+
+  // ── 7.12 ───────────────────────────────────────────────────────────────────
+  check_exempt_authorities: {
+    title: "Vérifier la dispense de reproduction",
+    description:
+      "Vérifie un lot de citations (au plus 50) contre les listes d'autorités dispensées d'un " +
+      "tribunal ou d'une liste précise. CINQ verdicts : DISPENSÉE, À VÉRIFIER (coquille connue " +
+      "de la liste source, écart d'intitulé ou d'année), NON LISTÉE, ILLISIBLE et INDÉTERMINÉE " +
+      "(CanLII injoignable, étranglé ou budget épuisé — ne vaut JAMAIS ni absence de la liste " +
+      "ni dispense). L'appariement hors ligne s'exécute en premier ; un repli vers l'API de " +
+      "CanLII n'intervient que si « resolve_canlii » est vrai et que la référence peut " +
+      "correspondre à une forme parallèle ou à une entrée non encore indexée sur CanLII. " +
+      "La dispense ne vaut que devant le tribunal et sous réserve de ses règles procédurales ; " +
+      "n'établit NI l'autorité actuelle (aucun historique d'appel, aucun traitement), NI le " +
+      "contenu du dispositif. Pour éprouver l'existence générale d'une citation hors liste, " +
+      "employer verify_citations.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        list_id: {
+          type: "string",
+          minLength: 1,
+          maxLength: 30,
+          description:
+            "Identifiant de la sous-liste ciblée (p. ex. « qcca-civil », « cf-imm-general »). " +
+            "Voir list_exempt_authorities. ⚠ Fournir EXACTEMENT l'un des deux paramètres de portée " +
+            ": soit « list_id », soit « tribunal » (jamais les deux ensemble ni aucun).",
+        },
+        tribunal: {
+          type: "string",
+          minLength: 1,
+          maxLength: 20,
+          description:
+            "Code du tribunal dont toutes les sous-listes sont contrôlées : « qcca », « tat », " +
+            "« tdp », « tp », « tmf », « cf » ou « comc ». ⚠ Fournir EXACTEMENT l'un des deux " +
+            "paramètres de portée : soit « list_id », soit « tribunal » (jamais les deux ensemble ni aucun).",
+        },
+        citations: {
+          type: "array",
+          minItems: 1,
+          maxItems: 50,
+          description: "Les références à contrôler contre la liste, au plus 50 par appel.",
+          items: {
+            type: "object",
+            properties: {
+              citation: {
+                type: "string",
+                maxLength: 400,
+                description:
+                  "Citation neutre, CanLII, de recueil, d'éditeur, numéro de dossier ou intitulé.",
+              },
+              expected_title: {
+                type: "string",
+                maxLength: 300,
+                description:
+                  "Intitulé attendu, s'il est connu (signalera À VÉRIFIER en cas d'écart).",
+              },
+              expected_year: {
+                type: "integer",
+                minimum: 1800,
+                maximum: 2100,
+                description:
+                  "Année attendue de la décision ou du recueil (signalera À VÉRIFIER en cas d'écart).",
+              },
+            },
+            required: ["citation"],
+            additionalProperties: false,
+          },
+        },
+        lang: LANG,
+        resolve_canlii: {
+          type: "boolean",
+          description:
+            "Autoriser un repli vers l'API de CanLII pour résoudre les citations non appariées hors ligne " +
+            "(vrai par défaut ; faux force un contrôle strictement hors ligne sans clé CanLII).",
+        },
+      },
+      required: ["citations"],
+      additionalProperties: false,
+    },
+    handler: checkExemptAuthorities,
   },
 };
 

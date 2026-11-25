@@ -46,6 +46,7 @@ export async function parseCitationTool(
     (parsed.primary.kind === "neutral" ||
       parsed.primary.kind === "canlii" ||
       parsed.primary.kind === "reporter") &&
+    parsed.primary.year !== null &&
     parsed.primary.year > now.getUTCFullYear() + 1
   ) {
     lignes.push(

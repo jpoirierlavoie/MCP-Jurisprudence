@@ -737,16 +737,13 @@ describe("§8 — méthodes JSON-RPC", () => {
       };
     };
     const outils = body.result.tools;
-    expect(outils).toHaveLength(10);
+    expect(outils).toHaveLength(12);
     for (const t of outils) {
       expect(t.name).not.toMatch(/^(?:jurisprudence|canlii)_/);
       expect(t.description.length).toBeGreaterThan(80);
-      // `openWorldHint` n est PAS uniforme : vrai pour les neuf outils qui interrogent
-      // CanLII, faux pour `parse_citation` qui n appelle rien. Annoncer
-      // « monde ouvert » sur un outil purement local interdirait sans raison a un client
-      // de mettre en cache ; l inverse ferait croire a une réponse stable la ou la
-      // couverture de CanLII évolue.
-      const sansAppel = t.name === "parse_citation";
+      // `openWorldHint` n est PAS uniforme : vrai pour les dix outils qui peuvent interroger
+      // CanLII, faux pour `parse_citation` et `list_exempt_authorities` qui n appellent rien.
+      const sansAppel = t.name === "parse_citation" || t.name === "list_exempt_authorities";
       expect(t.annotations, t.name).toEqual({
         readOnlyHint: true,
         destructiveHint: false,
@@ -760,11 +757,13 @@ describe("§8 — méthodes JSON-RPC", () => {
       [
         "browse_cases",
         "browse_legislation",
+        "check_exempt_authorities",
         "citator",
         "find_case",
         "get_case",
         "get_legislation",
         "list_databases",
+        "list_exempt_authorities",
         "parse_citation",
         "subsequent_history",
         "verify_citations",
@@ -776,7 +775,7 @@ describe("§8 — méthodes JSON-RPC", () => {
     const listRes = await appeler(rpc("tools/list"));
     const listBody = (await listRes.json()) as { result: { tools: Array<{ name: string }> } };
     const noms = listBody.result.tools.map((t) => t.name);
-    expect(noms).toHaveLength(10);
+    expect(noms).toHaveLength(12);
     expect(noms.every((n) => !n.startsWith("jurisprudence_") && !n.startsWith("canlii_"))).toBe(
       true,
     );

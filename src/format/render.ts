@@ -47,6 +47,14 @@ export const GARDE_CITATEUR =
   "infirmé). Pour les dispositions québécoises, enchaîner avec le connecteur\n" +
   "« lois » afin d'en lire le texte officiel.";
 
+/** Pied des outils sur les listes d'autorités dispensées de reproduction. */
+export const GARDE_AUTORITES_DISPENSEES =
+  "Dispense propre au tribunal et à la liste visés, sous réserve de ses conditions\n" +
+  "procédurales (cahier technologique, extraits ou renvoi d'onglet), sans établir\n" +
+  "NI l'autorité actuelle de la décision (aucun historique d'appel ni traitement),\n" +
+  "NI le contenu de son dispositif. Mots-clés (index CanLII, non vérifiés) et liens\n" +
+  "des listes sources non vérifiés ; compilation des listes sources au 2026-11-24.";
+
 /**
  * Note d'ÉTRANGLEMENT — rendue seulement quand CanLII a effectivement refusé des
  * appels pendant CETTE invocation.

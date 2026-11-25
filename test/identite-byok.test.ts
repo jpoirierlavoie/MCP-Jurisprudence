@@ -347,6 +347,7 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       ["get_case", { citation: "2008 CSC 9" }],
       ["verify_citations", { citations: [{ citation: "2008 CSC 9" }] }],
       ["find_case", { title: "Dunsmuir", live: false }],
+      ["check_exempt_authorities", { tribunal: "qcca", citations: [{ citation: "2008 CSC 9" }] }],
     ] as const) {
       const res = await postMcp("/mcp", jetonSansClef, {
         jsonrpc: "2.0",
@@ -364,7 +365,8 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       expect(corps.result.content[0]?.text, outil).not.toContain("Dunsmuir");
     }
 
-    // En revanche `parse_citation` (purement hors ligne) reste accessible sans clé CanLII.
+    // En revanche `parse_citation`, `list_exempt_authorities` et `check_exempt_authorities`
+    // avec `resolve_canlii: false` (purement hors ligne) restent accessibles sans clé CanLII.
     const resParse = await postMcp("/mcp", jetonSansClef, {
       jsonrpc: "2.0",
       id: 2,
@@ -376,6 +378,37 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
     };
     expect(corpsParse.result.isError).toBe(false);
     expect(corpsParse.result.content[0]?.text).toContain("csc-scc");
+
+    const resListExempt = await postMcp("/mcp", jetonSansClef, {
+      jsonrpc: "2.0",
+      id: 21,
+      method: "tools/call",
+      params: { name: "list_exempt_authorities", arguments: {} },
+    });
+    const corpsListExempt = (await resListExempt.json()) as {
+      result: { isError?: boolean; content: Array<{ text: string }> };
+    };
+    expect(corpsListExempt.result.isError).toBe(false);
+    expect(corpsListExempt.result.content[0]?.text).toContain("qcca-civil");
+
+    const resCheckHorsLigne = await postMcp("/mcp", jetonSansClef, {
+      jsonrpc: "2.0",
+      id: 22,
+      method: "tools/call",
+      params: {
+        name: "check_exempt_authorities",
+        arguments: {
+          tribunal: "qcca",
+          citations: [{ citation: "2008 CSC 9" }],
+          resolve_canlii: false,
+        },
+      },
+    });
+    const corpsCheckHorsLigne = (await resCheckHorsLigne.json()) as {
+      result: { isError?: boolean; content: Array<{ text: string }> };
+    };
+    expect(corpsCheckHorsLigne.result.isError).toBe(false);
+    expect(corpsCheckHorsLigne.result.content[0]?.text).toContain("DISPENSÉE");
 
     // 2. Clé marquée `refusee` ou chiffré altéré => [CLEF_REFUSEE], aucun accès au cache.
     for (const jeton of [jetonClefRefusee, jetonChiffreCorrompu]) {
