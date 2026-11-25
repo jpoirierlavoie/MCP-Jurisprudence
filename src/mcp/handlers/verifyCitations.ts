@@ -169,6 +169,7 @@ export async function verifyCitations(
       const lignes = [`${citation} — NON CONSTRUCTIBLE`, res.raison];
       if (
         (parsed.primary.kind === "reporter" || parsed.primary.kind === "canlii") &&
+        parsed.primary.year !== null &&
         parsed.primary.year > now.getUTCFullYear() + 1
       ) {
         lignes.push(

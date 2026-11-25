@@ -41,6 +41,7 @@ export const LIMITES = {
   subsequent_history: { defaut: 20, max: 50 },
   browse_cases: { defaut: 25, max: 100 },
   browse_legislation: { defaut: 50, max: 100 },
+  list_exempt_authorities: { defaut: 50, max: 150 },
 } as const satisfies Record<string, BornesListe>;
 
 /** `offset` vaut 0 partout, et son maximum est commun. */

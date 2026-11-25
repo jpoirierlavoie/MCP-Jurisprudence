@@ -37,7 +37,8 @@ export interface ReporterForm {
   kind: "reporter";
   /** Sigle du recueil, tel qu'écrit : 'R.C.S.', 'RCS', 'C.A.'. */
   reporter: string;
-  year: number;
+  /** Année de publication/recueil si exprimée dans la citation ; nulle p. ex. pour « 64 NR 287 ». */
+  year: number | null;
   volume: number | null;
   page: number;
   raw: string;
@@ -45,7 +46,7 @@ export interface ReporterForm {
 
 export interface PublisherForm {
   kind: "publisher";
-  scheme: "SOQUIJ" | "Yvon Blais";
+  scheme: "SOQUIJ" | "Yvon Blais" | "Carswell";
   id: string;
   raw: string;
 }
@@ -74,10 +75,33 @@ export interface ParseResult {
 /**
  * Citation attribuée par CanLII, AVEC son couple de codes entre parenthèses.
  * Appliquée EN PREMIER et ses plages masquées ensuite — voir NEUTRAL.
- * Tolère la forme collée sans espaces (`2002canlii32322 (QC CQ)`).
+ * Tolère la forme collée sans espaces (`2002canlii32322 (QC CQ)`) et les points (`(QC C.A.)`).
  */
 const CANLII =
-  /\b(1[89]\d{2}|20\d{2})\s*CanLII\s*(\d{1,7})\s*\(\s*([A-Z]{2})\s+([A-Z]{1,6})\s*\)/gi;
+  /\b(1[89]\d{2}|20\d{2})\s*CanLII\s*(\d{1,7})\s*\(\s*([A-Z]{2})\s+([A-Z](?:\.?[A-Z]){0,5}\.?)\s*\)/gi;
+
+/**
+ * Citation attribuée par CanLII avec code de cour fédérale à un seul jeton
+ * (`1996 CanLII 4086 (FCA)`, `1968 CanLII 1 (SCC)`, `1994 CanLII 3534 (FCTAD)`).
+ */
+const CANLII_SOLO =
+  /\b(1[89]\d{2}|20\d{2})\s*CanLII\s*(\d{1,7})\s*\(\s*([A-Z](?:\.?[A-Z]){1,6}\.?)\s*\)/gi;
+
+const SINGLE_COURT_PARENS: Readonly<Record<string, string>> = {
+  SCC: "SCC",
+  CSC: "CSC",
+  FCA: "FCA",
+  CAF: "CAF",
+  FCTAD: "FCTAD",
+  FCT: "FCT",
+  FC: "FCT",
+  FCTD: "FCT",
+  FCTTD: "FCTTD",
+  CF: "CF",
+  CFPI: "CFPI",
+  TCC: "TCC",
+  CCI: "CCI",
+};
 
 /** Même forme, mais sans les parenthèses : le tribunal reste indéterminable (`1997canlii335`). */
 const CANLII_NUE = /\b(1[89]\d{2}|20\d{2})\s*CanLII\s*(\d{1,7})\b/gi;
@@ -89,7 +113,7 @@ const CANLII_NUE = /\b(1[89]\d{2}|20\d{2})\s*CanLII\s*(\d{1,7})\b/gi;
  *   mais la matrice de test §13 exige que « 2020 qcca 495 » s'analyse. Le drapeau est
  *   donc obligatoire — et il fait alors capturer « CanLII » lui-même comme code de
  *   tribunal dans « 2002 CanLII 32322 ». Deux parades, cumulatives :
- *     1. les plages appariées par CANLII/CANLII_NUE sont MASQUÉES avant ce passage ;
+ *     1. les plages appariées par CANLII/CANLII_SOLO/CANLII_NUE sont MASQUÉES avant ce passage ;
  *     2. le code « CANLII » est rejeté explicitement (voir `scanNeutral`).
  *   Retirer l'une ou l'autre rouvre le défaut ; les deux sont testées.
  */
@@ -98,13 +122,17 @@ const NEUTRAL = /\b(1[89]\d{2}|20\d{2})\s+([A-Za-z]{2,8})\s*(\d{1,6})\b/g;
 /** Identifiant CanLII collé sans espaces : `2008csc64`, `2020qcca495` (D21). */
 const NEUTRAL_CONCAT = /\b(1[89]\d{2}|20\d{2})([A-Za-z]{2,8})(\d{1,7})\b/g;
 
-/** Recueils : [année] volume? sigle page. */
+/** Recueils à année entre crochets : [année] volume? sigle (No.)? page. */
 const REPORTER =
-  /\[(1[89]\d{2}|20\d{2})\]\s*(\d+)?\s*((?:[A-Z]\.){2,4}|R\.?C\.?S\.?|RCS|SCR|R\.?J\.?Q\.?|C\.?A\.?|C\.?S\.?|C\.?Q\.?)\s*(\d+)/g;
+  /\[(1[89]\d{2}|20\d{2})\]\s*(\d+)?\s*(C\.?A\.?L\.?P\.?|CALP|C\.?L\.?P\.?|CLP|C\.?N\.?L\.?R\.?|CNLR|F\.?C\.?R\.?|FCR|F\.?C\.?J\.?|FCJ|F\.?C\.?|FC|C\.?F\.?|CF|R\.?C\.?S\.?|RCS|S\.?C\.?R\.?|SCR|R\.?S\.?C\.?|RSC|R\.?C\.?F\.?|RCF|R\.?J\.?D\.?T\.?|RJDT|R\.?J\.?Q\.?|RJQ|R\.?D\.?J\.?|RDJ|R\.?D\.?T\.?|RDT|R\.?L\.?|RL|T\.?T\.?|TT|C\.?A\.?|C\.?S\.?|C\.?Q\.?|A\.?C\.?|AC|(?:[A-Z]\.){2,4})\s*(?:No\.?\s*)?(\d+)/g;
+
+/** Recueils à volume en tête : (année)? volume sigle (série)? page (année)?. */
+const REPORTER_VOL =
+  /(?:\(\s*(1[89]\d{2}|20\d{2})\s*\),?\s*)?\b(\d{1,4})\s+((?:C\.?P\.?R\.?|D\.?L\.?R\.?|F\.?T\.?R\.?|N\.?R\.?|A\.C\.|U\.\s*S\.)(?:\s*\.?\s*\(\s*(?:2d|3d|4th|5th)\s*\)|\s+\d+\s+Wheat\.)?)\s+(\d{1,5})(?:\s*\(\s*(1[89]\d{2}|20\d{2})\s*\))?/g;
 
 /** Identifiants d'éditeurs. */
 const PUBLISHER =
-  /\b(J\.?E\.?\s*\d{2,4}-\d+|REJB\s*\d{4}-\d+|EYB\s*\d{4}-\d+|AZ-\d{6,10}|D\.?T\.?E\.?\s*\d{4}T?-\d+)\b/gi;
+  /\b(J\.?E\.?\s*\d{2,4}-\d+|REJB\s*\d{4}-\d+|EYB\s*\d{4}-\d+|AZ-\d{6,10}|D\.?T\.?E\.?\s*\d{2,4}T?-\s*\d+|(?:1[89]\d{2}|20\d{2})\s+Carswell[A-Za-z]{2,12}\s+\d+)\b/gi;
 
 /**
  * Codes de ressort canadiens connus, employés pour écarter les faux positifs de
@@ -136,6 +164,8 @@ const FEDERAUX = new Set([
   "FCA",
   "CF",
   "FC",
+  "FCT",
+  "CFPI",
   "CCI",
   "TCC",
   "CACM",
@@ -180,12 +210,28 @@ function scanCanlii(text: string, spans: Span[]): CanliiForm[] {
       year: Number(m[1]),
       number: Number(m[2]),
       juris: (m[3] ?? "").toUpperCase(),
-      court: (m[4] ?? "").toUpperCase(),
+      court: (m[4] ?? "").replace(/\./g, "").toUpperCase(),
       raw: m[0].trim(),
     });
     spans.push({ start: m.index, end: m.index + m[0].length });
   }
-  // Second passage : les formes CanLII privées de leur couple de codes. Elles ne sont
+  const apresCouples = mask(text, spans);
+  CANLII_SOLO.lastIndex = 0;
+  for (const m of apresCouples.matchAll(CANLII_SOLO)) {
+    const token = (m[3] ?? "").replace(/\./g, "").toUpperCase();
+    const mapped = SINGLE_COURT_PARENS[token];
+    if (!mapped) continue;
+    found.push({
+      kind: "canlii",
+      year: Number(m[1]),
+      number: Number(m[2]),
+      juris: "CA",
+      court: mapped,
+      raw: m[0].trim(),
+    });
+    spans.push({ start: m.index, end: m.index + m[0].length });
+  }
+  // Troisième passage : les formes CanLII privées de leur couple de codes. Elles ne sont
   // pas constructibles (le tribunal est indéterminable) mais il faut les RECONNAÎTRE,
   // sinon elles tombent en « ILLISIBLE », ce qui serait un diagnostic faux.
   const reste = mask(text, spans);
@@ -250,14 +296,28 @@ function scanNeutral(
 
 function scanReporter(text: string, spans: Span[]): ReporterForm[] {
   const found: ReporterForm[] = [];
-  const reste = mask(text, spans);
+  const resteBracket = mask(text, spans);
   REPORTER.lastIndex = 0;
-  for (const m of reste.matchAll(REPORTER)) {
+  for (const m of resteBracket.matchAll(REPORTER)) {
     found.push({
       kind: "reporter",
       reporter: (m[3] ?? "").trim(),
       year: Number(m[1]),
       volume: m[2] ? Number(m[2]) : null,
+      page: Number(m[4]),
+      raw: m[0].trim(),
+    });
+    spans.push({ start: m.index, end: m.index + m[0].length });
+  }
+  const resteVol = mask(text, spans);
+  REPORTER_VOL.lastIndex = 0;
+  for (const m of resteVol.matchAll(REPORTER_VOL)) {
+    const annee = m[1] ? Number(m[1]) : m[5] ? Number(m[5]) : null;
+    found.push({
+      kind: "reporter",
+      reporter: (m[3] ?? "").replace(/\s+/g, " ").trim(),
+      year: annee,
+      volume: Number(m[2]),
       page: Number(m[4]),
       raw: m[0].trim(),
     });
@@ -274,7 +334,11 @@ function scanPublisher(text: string, spans: Span[]): PublisherForm[] {
     const id = (m[1] ?? "").trim();
     const tete = id.toUpperCase().replace(/[.\s]/g, "");
     const scheme: PublisherForm["scheme"] =
-      tete.startsWith("REJB") || tete.startsWith("EYB") ? "Yvon Blais" : "SOQUIJ";
+      tete.startsWith("REJB") || tete.startsWith("EYB")
+        ? "Yvon Blais"
+        : /CARSWELL/.test(tete)
+          ? "Carswell"
+          : "SOQUIJ";
     found.push({ kind: "publisher", scheme, id, raw: id });
     spans.push({ start: m.index, end: m.index + m[0].length });
   }
@@ -461,12 +525,15 @@ export function resolve(form: CitationForm | UnparsedForm, dir: Directory): Reso
   }
 
   if (form.kind === "reporter") {
-    const volume = form.volume === null ? "" : ` ${form.volume}`;
+    const ref =
+      form.year !== null && form.raw.trim().startsWith("[")
+        ? `[${form.year}]${form.volume === null ? "" : ` ${form.volume}`} ${form.reporter} ${form.page}`
+        : form.raw;
     return {
       constructible: "non",
       databaseId: null,
       caseId: null,
-      raison: `Forme reconnue : recueil ([${form.year}]${volume} ${form.reporter} ${form.page}). L'API de CanLII ne résout pas les citations de recueils.`,
+      raison: `Forme reconnue : recueil (${ref}). L'API de CanLII ne résout pas les citations de recueils.`,
       databaseConnue: false,
     };
   }

@@ -2,8 +2,8 @@
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "mcp-jurisprudence",
   "displayName": "MCP Jurisprudence",
-  "version": "2.0.0",
-  "description": "Vérification déterministe de citations de jurisprudence canadienne (collection CanLII, métadonnées en lecture seule).",
+  "version": "2.1.0",
+  "description": "Vérification déterministe de citations de jurisprudence canadienne et d'autorités dispensées (collection CanLII, métadonnées en lecture seule).",
   "logo": "assets/logo.svg",
   "suggestedPrompts": [
     "Vérifie de façon déterministe l'existence et l'intitulé de ces citations de jurisprudence : 2008 CSC 9 et 2020 QCCA 495",

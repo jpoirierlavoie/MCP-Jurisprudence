@@ -20,7 +20,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 import script from "../scripts/refresh-databases.mjs?raw";
 import { CanliiError } from "../src/canlii/errors";
 import {
+  EXPLICATION_INDETERMINEE,
   EXPLICATIONS_INTROUVABLE,
+  GARDE_AUTORITES_DISPENSEES,
   GARDE_CITATEUR,
   GARDE_RECHERCHE,
   GARDE_SORTS_PIED,
@@ -67,9 +69,9 @@ const FORMULATIONS_INTERDITES = [
   /\bcitation valide\b/i,
 ];
 
-describe("§2 — les dix outils existent et se décrivent", () => {
-  it("expose exactement dix outils sans préfixe", () => {
-    expect(Object.keys(TOOLS)).toHaveLength(10);
+describe("§2 — les douze outils existent et se décrivent", () => {
+  it("expose exactement douze outils sans préfixe", () => {
+    expect(Object.keys(TOOLS)).toHaveLength(12);
   });
 
   it("chacun porte une description non vide et un schéma fermé", () => {
@@ -97,12 +99,12 @@ describe("§2 — les dix outils existent et se décrivent", () => {
     expect(t.subsequent_history).toMatch(/heuristique/i);
     expect(t.citator).toMatch(/brute/i);
     expect(t.parse_citation).toMatch(/hors ligne/i);
+    expect(t.list_exempt_authorities).toMatch(/hors ligne/i);
   });
 
   it("tous sont annotés en LECTURE SEULE ; le monde ouvert, lui, dépend de l outil (§7)", () => {
-    // `readOnlyHint` est universel — aucun des dix n écrit quoi que ce soit.
-    // `openWorldHint` ne l est PAS, et c est vérifié dans test/rpc.test.ts : vrai pour les
-    // neuf qui interrogent CanLII, faux pour `parse_citation`.
+    // `readOnlyHint` est universel — aucun des douze n écrit quoi que ce soit.
+    // `openWorldHint` ne l est PAS, et c est vérifié dans test/rpc.test.ts.
     for (const d of listToolDescriptors()) {
       expect(d.annotations).toMatchObject({ readOnlyHint: true });
     }
@@ -130,6 +132,13 @@ describe("§2 — les dix outils existent et se décrivent", () => {
     // dater une disposition » — l'usage exact qu'il ne faut pas en faire.
     expect(TOOLS.get_legislation!.description).toContain("JAMAIS l'instrument");
     expect(TOOLS.get_legislation!.description).toContain("DOWNLOAD_DATE");
+    // §7.11 & §7.12 : listes d'autorités dispensées — réserve de fond et 5 verdicts.
+    expect(TOOLS.list_exempt_authorities!.description).toContain("n'établit NI");
+    expect(TOOLS.check_exempt_authorities!.description).toContain("n'établit NI");
+    for (const v of ["DISPENSÉE", "À VÉRIFIER", "NON LISTÉE", "ILLISIBLE", "INDÉTERMINÉE"]) {
+      expect(TOOLS.check_exempt_authorities!.description, v).toContain(v);
+    }
+    expect(TOOLS.check_exempt_authorities!.description).toMatch(/JAMAIS/);
   });
 
   /**
@@ -1080,6 +1089,7 @@ describe("§7 — les valeurs par défaut annoncées sont celles qui s'appliquen
       ["subsequent_history", "subsequent_history"],
       ["browse_cases", "browse_cases"],
       ["browse_legislation", "browse_legislation"],
+      ["list_exempt_authorities", "list_exempt_authorities"],
     ];
     for (const [outil, clef] of paires) {
       const limit = TOOLS[outil]!.inputSchema.properties?.limit;
@@ -1132,6 +1142,12 @@ describe("§8 — les refus du gestionnaire sont ANNONCÉS dans la description",
     ["get_case", ["citation", "case_id"], /EXACTEMENT l'une des deux formes/, {}],
     ["citator", ["citation", "case_id"], /EXACTEMENT l'une des deux formes/, { rel: "citing" }],
     ["subsequent_history", ["citation", "case_id"], /EXACTEMENT l'une des deux formes/, {}],
+    [
+      "check_exempt_authorities",
+      ["list_id", "tribunal"],
+      /EXACTEMENT l'un des deux/,
+      { citations: [{ citation: "2008 CSC 9" }] },
+    ],
   ];
 
   for (const [outil, params, attendu, args] of CAS) {
@@ -1172,7 +1188,7 @@ describe("§8 — les refus du gestionnaire sont ANNONCÉS dans la description",
  * La règle : `true` quand l'outil n'a RIEN à livrer ; `false` dès qu'un résultat part,
  * même vide, même partiel, même dégradé — la réserve voyage alors dans le corps.
  */
-describe("§7 — `isError` veut dire la même chose dans les dix outils", () => {
+describe("§7 — `isError` veut dire la même chose dans les douze outils", () => {
   it("une liste VIDE est un résultat, jamais une panne", async () => {
     const vide = [
       await callTool(
@@ -1180,12 +1196,18 @@ describe("§7 — `isError` veut dire la même chose dans les dix outils", () =>
         { database_id: "qcca" },
         toolCtx(fakeClient({ "caseBrowse/fr/qcca/": { cases: [] } })),
       ),
+      await callTool(
+        "list_exempt_authorities",
+        { query: "introuvable_xyz_999" },
+        toolCtx(fakeClient({})),
+      ),
     ];
     for (const r of vide) {
       expect(r.isError).toBe(false);
       // …et la réserve de §2 est DANS le corps, puisqu'elle ne peut plus être portée
       // par le drapeau.
-      expect(texte(r).toLowerCase()).toContain("absence");
+      const body = texte(r).toLowerCase();
+      expect(body.includes("absence") || body.includes("l'autorité actuelle")).toBe(true);
     }
   });
 
@@ -1194,11 +1216,87 @@ describe("§7 — `isError` veut dire la même chose dans les dix outils", () =>
     // partout, ce qui priverait le client du seul signal qu'il possède.
     const fautifs = [
       await callTool("get_case", {}, toolCtx(fakeClient({}))),
+      await callTool(
+        "check_exempt_authorities",
+        { citations: [{ citation: "2008 CSC 9" }] },
+        toolCtx(fakeClient({})),
+      ),
       await callTool("greffe_parse_court_file_number", {}, toolCtx(fakeClient({}))),
       await callTool("palais_list", {}, toolCtx(fakeClient({}))),
       await callTool("palais_get", {}, toolCtx(fakeClient({}))),
       await callTool("jurisprudence_inexistant", {}, toolCtx(fakeClient({}))),
     ];
     for (const r of fautifs) expect(r.isError).toBe(true);
+  });
+});
+
+describe("§7.11 & §7.12 — garde obligatoire dans les sorties d'autorités dispensées", () => {
+  it("GARDE_AUTORITES_DISPENSEES paraît dans toutes les sorties de list_exempt_authorities et check_exempt_authorities", async () => {
+    await seedDatabases(["csc-scc", "qcca", "qccs", "qccq", "fct", "fca"]);
+    const sorties = [
+      texte(await callTool("list_exempt_authorities", {}, toolCtx(fakeClient({})))),
+      texte(
+        await callTool(
+          "list_exempt_authorities",
+          { list_id: "qcca-civil", limit: 3 },
+          toolCtx(fakeClient({})),
+        ),
+      ),
+      texte(
+        await callTool(
+          "list_exempt_authorities",
+          { query: "terme_absent_zz99" },
+          toolCtx(fakeClient({})),
+        ),
+      ),
+      texte(
+        await callTool(
+          "check_exempt_authorities",
+          { list_id: "qcca-civil", citations: [{ citation: "2008 CSC 9" }], resolve_canlii: false },
+          toolCtx(fakeClient({})),
+        ),
+      ),
+      texte(
+        await callTool(
+          "check_exempt_authorities",
+          {
+            list_id: "qcca-civil",
+            citations: [{ citation: "2020 QCCA 495" }],
+            resolve_canlii: false,
+          },
+          toolCtx(fakeClient({})),
+        ),
+      ),
+      texte(
+        await callTool(
+          "check_exempt_authorities",
+          {
+            list_id: "cf-imm-general",
+            citations: [{ citation: "2004 CF 9999" }],
+          },
+          toolCtx(
+            fakeClient(
+              {},
+              {
+                erreur: () =>
+                  new CanliiError(
+                    429,
+                    "https://api.canlii.org/v1/caseBrowse/fr/fct/2004cf9999/",
+                    "rate",
+                  ),
+              },
+            ),
+          ),
+        ),
+      ),
+    ];
+
+    for (const s of sorties) {
+      expect(contient(s, GARDE_AUTORITES_DISPENSEES)).toBe(true);
+      for (const interdite of FORMULATIONS_INTERDITES) {
+        expect(s, String(interdite)).not.toMatch(interdite);
+      }
+    }
+    expect(contient(sorties[5]!, EXPLICATION_INDETERMINEE)).toBe(true);
   });
 });

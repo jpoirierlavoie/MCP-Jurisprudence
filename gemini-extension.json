@@ -1,7 +1,7 @@
 {
   "name": "mcp-jurisprudence",
-  "version": "2.0.0",
-  "description": "Vérification déterministe de citations de jurisprudence canadienne (collection CanLII, métadonnées en lecture seule).",
+  "version": "2.1.0",
+  "description": "Vérification déterministe de citations de jurisprudence canadienne et d'autorités dispensées (collection CanLII, métadonnées en lecture seule).",
   "contextFileName": [],
   "settings": [
     {

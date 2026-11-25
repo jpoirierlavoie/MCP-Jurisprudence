@@ -12,10 +12,10 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). La spécification qui fa
 
 | # | Axe | Éléments à inspecter et synchroniser |
 |---|---|---|
-| 1 | **Outils MCP (`juris`)** | `src/mcp/registry.ts` (10 outils sans préfixe : `verify_citations`, `find_case`, `get_case`, `citator`, `subsequent_history`, `browse_cases`, `list_databases`, `browse_legislation`, `get_legislation`, `parse_citation`), `src/mcp/handlers/*.ts`, `test/garde.test.ts`, `test/rpc.test.ts`, `test/doc.test.ts` (`NOMS.length === 10`, `EN_LETTRES`) |
+| 1 | **Outils MCP (`juris`)** | `src/mcp/registry.ts` (12 outils sans préfixe : `verify_citations`, `find_case`, `get_case`, `citator`, `subsequent_history`, `browse_cases`, `list_databases`, `browse_legislation`, `get_legislation`, `parse_citation`, `list_exempt_authorities`, `check_exempt_authorities`), `src/mcp/handlers/*.ts`, `test/garde.test.ts`, `test/rpc.test.ts`, `test/doc.test.ts` (`NOMS.length === 12`, `EN_LETTRES`) |
 | 2 | **Descriptions et titres** | `src/mcp/registry.ts` (`title`, `description`, `INSTRUCTIONS`, `PUBLIC_DESCRIPTION`), `OUTILS_EN` dans `src/site.i18n.ts` (parité dans les deux sens, mention de `CanLII` en FR et EN), `GARDE_*` dans `src/format/render.ts` et chaîne de couplage `"base(s) au répertoire de CanLII"` dans `listDatabases.ts` (`scripts/refresh-databases.mjs`) |
 | 3 | **Schémas d'entrée** | `inputSchema` dans `src/mcp/registry.ts` (`additionalProperties: false`, zéro `x-mcp-header`, valeurs issues de `src/mcp/defauts.ts`, contraintes XOR/format/bornes croisées répétées sur chaque paramètre) |
-| 4 | **`README.md`, `SPEC.md`, sécurité, licence & manifestes** | `README.md` (`## Les dix outils`), `SPEC.md`, `SECURITY.md`, `LICENSE` (`Apache-2.0`), `NOTICE` (sources officielles et conditions CanLII BYOK), `package.json`, `plugin.json`, `mcp_config.json`, `gemini-extension.json`, `/mcp/server-card`, `CLAUDE.md`, `GEMINI.md` |
+| 4 | **`README.md`, `SPEC.md`, sécurité, licence & manifestes** | `README.md` (`## Les douze outils`), `SPEC.md`, `SECURITY.md`, `LICENSE` (`Apache-2.0`), `NOTICE` (sources officielles et conditions CanLII BYOK), `package.json`, `plugin.json`, `mcp_config.json`, `gemini-extension.json`, `/mcp/server-card`, `CLAUDE.md`, `GEMINI.md` |
 | 5 | **Page publique HTML (`GET /`)** | `src/site.ts` + `src/site.i18n.ts` (`test/site.test.ts` : CSP, absence de CORS, `/mcp/<secret>`, liste blanche stricte d'URLs `https://` : écrire `acces.poirierlavoie.ca` sans schéma dans la prose de la page, parité `data-l="fr"` = `data-l="en"`, style jumeau `system-ui`) |
 | 6 | **Inter-dépôts (`Cross-repository`)** | `droit-civil-quebecois` (`v3.1.0`, manifestes, `skills/`, `verifier.py`, `verifier_tout.py`), `MCP-Socle` (`v0.8.4`), `MCP-Acces` (`mcp-identite`), `MCP-Legislation` (jumeau HTML/CSS), `MCP-Outils` |
 
@@ -29,7 +29,7 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). La spécification qui fa
              │  5 routeurs SKILL.md · 17 feuilles · 2 scripts stdlib  │
              └──────┬───────────────────────┬──────────────────┬──────┘
                     │                       │                  │
-        (serveur `lois`, 10 outils)  (serveur `juris`, 10)  (serveur `outils`, 12)
+        (serveur `lois`, 10 outils)  (serveur `juris`, 12)  (serveur `outils`, 12)
                     │                       │                  │
                     ▼                       ▼                  ▼
          ┌─────────────────────┐ ┌─────────────────────┐ ┌──────────────────────────┐
@@ -49,7 +49,8 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). La spécification qui fa
 ### Découpage interne (`src/`, zéro dépendance d'exécution)
 - `src/index.ts` — Double montage `/mcp` et `/mcp/oauth`, chaîne intergicielle en 12 étapes, garde BYOK `ouvrirCoffre` préalable au cache, quotas `local`/`sortant`, `carteServeur()`, `scheduled`.
 - `src/config.ts` — Lecture typée des `vars` (`mcpActif`, `moissonnageActif`, `persisterBalayages`, `entier`, `liste`).
-- `src/mcp/` — `defauts.ts` (`LIMITES`, `OFFSET_*`), `registry.ts` (10 descripteurs, annotations `readOnlyHint: true, destructiveHint: false, idempotentHint: true`, `openWorldHint: false` sur `parse_citation` seul), `handlers/` (+ `cible.ts`).
+- `src/mcp/` — `defauts.ts` (`LIMITES`, `OFFSET_*`), `registry.ts` (12 descripteurs, annotations `readOnlyHint: true, destructiveHint: false, idempotentHint: true`, `openWorldHint: false` sur `parse_citation` et `list_exempt_authorities`), `handlers/` (+ `cible.ts`).
+- `src/authorities/` & `src/data/` — Normalisation/appariement des 15 listes d'autorités dispensées (`data/autorites-dispensees.md` + `data/autorites-enrichies.json` compilés dans `src/data/exemptAuthorities.{json,ts}`).
 - `src/citation/` — Analyseur pur hors ligne (`parse.ts`, `normalize.ts`, `compare.ts`).
 - `src/canlii/` — Client REST séquentiel étranglé (`600 ms`, doublement sur `429` jusqu'à `4 s`, plafond `40` appels/invocation, `12 Mo` max, `redactUrl()`).
 - `src/store/` — D1 `canlii` (`cases.ts` + FTS5 + colonnes bilingues FR/EN `0007_bilingual_case_titles.sql`, `databases.ts`, `citator.ts`, `lookup.ts`).
@@ -66,7 +67,7 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). La spécification qui fa
    - `/mcp/oauth` (`PORTE_OAUTH`, `autoriserChemin: false`) accepte **exclusivement** `Authorization: Bearer <jeton>` (aucun `?key=`, aucun segment `/mcp/oauth/<x>`, aucun secret partagé de Worker) et répond `401` RFC 9728 pointant vers `GET /.well-known/oauth-protected-resource/mcp/oauth` (`https://acces.poirierlavoie.ca`), tandis que la racine `GET /.well-known/oauth-protected-resource` reste en `404`.
    - Le contrôle de méthode `POST` (`405`) est exécuté **après** l'authentification sur `/mcp` comme sur `/mcp/oauth` (`G23`). Le pré-vol `OPTIONS` autorise l'en-tête `X-Clef-CanLII` et n'est jamais limité en débit (`G6`).
 2. **Garde stricte BYOK CanLII préalable au cache partagé (`S10`–`S12`, `S17`, `G8`, `G10`, `G38`) :**
-   - Pour tout `titulaire` sur les 9 outils adossés à CanLII (`!SANS_APPEL.has(nom)`), la clé est résolue via `ouvrirCoffre` (`X-Clef-CanLII` → `DB_IDENTITE.coffre_clef` `usage='canlii'`, secrets maîtres `COFFRE_MAITRE_V1`/`V2`) **avant** toute lecture de `cases`, `cases_fts` ou `citator_*`, avec **zéro retombée** sur `env.CANLII_API_KEY` (`G8`). Sans clé valide, l'outil renvoie HTTP `200` `isError: true` `[CLEF_ABSENTE]` ou `[CLEF_REFUSEE]` sans lire le cache.
+   - Pour tout `titulaire` sur les 10 outils pouvant interroger CanLII (`!SANS_APPEL.has(nom)` sauf `check_exempt_authorities` lorsque `resolve_canlii === false`, qui compte en `local`), la clé est résolue via `ouvrirCoffre` (`X-Clef-CanLII` → `DB_IDENTITE.coffre_clef` `usage='canlii'`, secrets maîtres `COFFRE_MAITRE_V1`/`V2`) **avant** toute lecture de `cases`, `cases_fts` ou `citator_*`, avec **zéro retombée** sur `env.CANLII_API_KEY` (`G8`). Sans clé valide, l'outil renvoie HTTP `200` `isError: true` `[CLEF_ABSENTE]` ou `[CLEF_REFUSEE]` sans lire le cache.
    - Si un appel sortant CanLII échoue en `401`/`403` avec la clé du coffre (`provenance === "coffre"`, et non sur une surcharge `X-Clef-CanLII`), `coffre_clef.etat` passe à `'refusee'` dans `ctx.waitUntil` et l'outil renvoie `[CLEF_REFUSEE]` vers `https://acces.poirierlavoie.ca/moi`.
    - Aucun horodatage exact `fetched_at` n'est exposé dans la prose rendue (`G38`).
 3. **Débit à deux niveaux, quotas exacts `local`/`sortant` et zéro journal de contenu (`G9`, `G32`, `G34`, `G37`) :**
@@ -93,7 +94,7 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). La spécification qui fa
 13. **La télémétrie n'échoue jamais l'outil qu'elle observe** (`catch` silencieux dans `ctx.waitUntil`).
 14. **Fins de ligne LF partout** (`.gitattributes`).
 15. **Moissonnage de masse (§11) inerte par décision** (`BACKFILL_ENABLED="false"`, aucun cron quotidien).
-16. **10 outils sans préfixe sous clé `juris`**, chacun nommant `CanLII` en FR et EN (`openWorldHint: false` sur `parse_citation` uniquement) et renvoyant aux connecteurs `« lois »` et `« outils »` (D14).
+16. **12 outils sans préfixe sous clé `juris`**, chacun nommant `CanLII` en FR et EN (`openWorldHint: false` sur `parse_citation` et `list_exempt_authorities`) et renvoyant aux connecteurs `« lois »` et `« outils »` (D14).
 17. *(Retiré en v0.3.0 — transféré vers `MCP-Outils` : `palais_*`.)*
 18. *(Retiré en v0.3.0 — transféré vers `MCP-Outils` : `lieux.ts`.)*
 19. **La page publique (`GET /`) dérive de `listToolDescriptors()`**, hors du bloc `/mcp`, sans CORS, et survit à `MCP_ENABLED=false`.

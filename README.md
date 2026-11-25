@@ -2,7 +2,7 @@
 
 *Vérification déterministe de jurisprudence canadienne (collection CanLII).*
 
-Serveur MCP public en lecture seule exposant la **REST API de CanLII** sous forme de dix outils orientés vers la **vérification de références** et la consultation de fiches officielles. Accès gratuit réservé aux membres actifs en règle du Barreau du Québec disposant de leur propre clé API CanLII (BYOK) via [`acces.poirierlavoie.ca`](https://acces.poirierlavoie.ca). Aucune requête ni citation cherchée n'est journalisée.
+Serveur MCP public en lecture seule exposant la **REST API de CanLII** et les **15 listes compilées d'autorités dispensées de reproduction** sous forme de douze outils orientés vers la **vérification de références**, le contrôle de dispense et la consultation de fiches officielles. Accès gratuit réservé aux membres actifs en règle du Barreau du Québec disposant de leur propre clé API CanLII (BYOK) via [`acces.poirierlavoie.ca`](https://acces.poirierlavoie.ca). Aucune requête ni citation cherchée n'est journalisée.
 
 > **In English:** Read-only public-interest MCP server for checking Canadian case-law citations against CanLII's collection and retrieving official decision metadata records. Part of [`droit-civil-quebecois`](https://github.com/jpoirierlavoie/droit-civil-quebecois), open free of charge to active Barreau du Québec members with a personal CanLII API key (BYOK) via [`acces.poirierlavoie.ca`](https://acces.poirierlavoie.ca). Queries and citations are never logged.
 
@@ -18,22 +18,32 @@ L'API de CanLII est en **lecture seule** et ne renvoie que des **métadonnées**
 
 *(Note : les outils hors ligne sur les numéros de dossier de cour et les palais de justice du Québec — `greffe_parse_number`, `palais_list`, `palais_get` — relèvent du connecteur public sans authentification [`MCP-Outils`](https://github.com/jpoirierlavoie/MCP-Outils).)*
 
-### ⚠ Source et portée des dix outils
+### ⚠ Source et portée des douze outils
 
-Les dix outils sont exposés sous la clé serveur `juris` dans [`droit-civil-quebecois`](https://github.com/jpoirierlavoie/droit-civil-quebecois). **Neuf outils sur dix** interrogent CanLII et consomment votre quota d'API (`openWorldHint: true`), tandis que **`parse_citation`** est un analyseur hors ligne qui n'appelle jamais CanLII (`openWorldHint: false`). Cette distinction figure dans les descriptions et annotations MCP de chaque outil ainsi que sur la page publique.
+Les douze outils sont exposés sous la clé serveur `juris` dans [`droit-civil-quebecois`](https://github.com/jpoirierlavoie/droit-civil-quebecois). **Dix outils sur douze** peuvent interroger CanLII et consommer votre quota d'API (`openWorldHint: true`, dont `check_exempt_authorities` avec repli désactivable via `resolve_canlii=false`), tandis que **`parse_citation`** et **`list_exempt_authorities`** fonctionnent hors ligne et n'appellent jamais CanLII (`openWorldHint: false`). Cette distinction figure dans les descriptions et annotations MCP de chaque outil ainsi que sur la page publique.
 
 | Portée | Source | Appels sortants |
 |---|---|---|
-| `verify_citations` … `get_legislation` (9) | la collection de **CanLII** — couverture et verdicts en dépendent | oui (`openWorldHint: true`) |
-| `parse_citation` (1) | analyseur local et répertoire compilé — concerne les identifiants **CanLII**, **aucun appel** | non (`openWorldHint: false`) |
+| `verify_citations` … `get_legislation`, `check_exempt_authorities` (10) | la collection de **CanLII** (et, pour `check_exempt_authorities`, les 15 listes compilées dans `data/autorites-dispensees.md`) — couverture et verdicts en dépendent | oui (`openWorldHint: true`, désactivable sur `check_exempt_authorities` par `resolve_canlii=false`) |
+| `parse_citation`, `list_exempt_authorities` (2) | analyseur local, répertoire et 15 listes compilées d'autorités dispensées (7 tribunaux) — **aucun appel** | non (`openWorldHint: false`) |
+
+---
+
+## Se connecter (avocats et développeurs)
+
+- **Via le greffon complet [`droit-civil-quebecois`](https://github.com/jpoirierlavoie/droit-civil-quebecois) (méthode recommandée) :** après approbation sur <https://acces.poirierlavoie.ca/demande> (avec votre clé API CanLII personnelle enregistrée sur `/moi`), Claude Code, Claude Desktop, `claude.ai`, ChatGPT Web/Desktop, Google Antigravity, Gemini CLI et Gemini App se connectent par navigateur en OAuth 2.1 sur `https://jurisprudence.poirierlavoie.ca/mcp/oauth`, sans secret à copier.
+- **Via jeton individuel (scripts, API Gemini Deep Research ou installation autonome) :** utiliser `https://jurisprudence.poirierlavoie.ca/mcp` avec `Authorization: Bearer <jeton>` créé dans <https://acces.poirierlavoie.ca/moi> (ou `?key=<jeton>` pour les formulaires web sans OAuth ; clé CanLII lue depuis votre coffre `/moi` ou l'en-tête `X-Clef-CanLII`).
+- **Installation autonome de ce seul dépôt (sans le greffon `droit-civil-quebecois`) :**
+  - **Google Antigravity** (`plugin.json`, `mcp_config.json`) : `agy plugin install https://github.com/jpoirierlavoie/MCP-Jurisprudence.git`, puis saisir la variable `MCP_JURISPRUDENCE_SECRET` avec un jeton issu de `/moi`.
+  - **Gemini CLI** (`gemini-extension.json`) : `gemini extensions install https://github.com/jpoirierlavoie/MCP-Jurisprudence` et saisir `MCP_JURISPRUDENCE_SECRET`. (`"contextFileName": []` évite d'injecter `GEMINI.md` dans vos sessions.)
+- **Origines navigateur autorisées :** `https://gemini.google.com`, `https://aistudio.google.com`, `https://claude.ai`, `https://claude.com`, `https://chatgpt.com`, `https://chat.openai.com` et `https://platform.openai.com` (incluant `X-Clef-CanLII`).
+- **Découverte HTTP (SEP-2127) :** la fiche publique de connectivité est exposée sans secret sur `GET https://jurisprudence.poirierlavoie.ca/mcp/server-card` (`application/mcp-server-card+json`).
 
 ---
 
 ## ⚠ Contrat de vérité
 
-> Reproduit **in extenso** de la spécification §2. Un vérificateur de citations qui promet
-> plus qu'il ne tient est **pire qu'aucun outil** : il transforme une incertitude connue en
-> fausse assurance, dans un contexte où la sanction est déontologique.
+> Un vérificateur de citations qui promet plus qu'il ne tient est **pire qu'aucun outil** : il transforme une incertitude connue en fausse assurance, dans un contexte où la sanction est déontologique.
 
 ### Ce que l'API établit
 
@@ -48,14 +58,13 @@ Les dix outils sont exposés sous la clé serveur `juris` dans [`droit-civil-que
 
 ### Ce que l'API n'établit pas, et qu'aucun outil ne doit laisser croire
 
-- le **texte** de la décision — il n'existe aucun endpoint de plein texte ni de recherche
+- le **texte** de la décision — il n'existe aucun point de terminaison de plein texte ni de recherche
   par mots du texte ;
 - l'**autorité actuelle** — aucun historique d'appel, aucun indicateur de traitement
   (suivi, distingué, infirmé), aucun pourvoi pendant, aucun refus de permission d'appeler ;
 - le **dispositif** ou le motif pour lequel une décision est invoquée ;
 - l'**exhaustivité** — la couverture a des bornes historiques, et la documentation
-  reconnaît un délai de diffusion pour lequel elle recommande de prévoir un jeu de deux
-  jours.
+  reconnaît un délai de diffusion de deux jours.
 
 ### Conséquences imposées au code
 
@@ -70,73 +79,46 @@ Les dix outils sont exposés sous la clé serveur `juris` dans [`droit-civil-que
 4. Les valeurs brutes renvoyées par CanLII sont **toujours affichées** en cas d'écart — le
    praticien tranche, l'outil ne masque pas.
 
-**Ces quatre conséquences sont verrouillées par `test/garde.test.ts`.** Ce fichier n'éprouve
-pas une fonctionnalité : il empêche une *disparition*. Le mode de panne redouté n'est pas
-l'erreur, c'est le **silence** — une refonte de gabarit qui rend des sorties impeccables
-dont la garantie a discrètement disparu. Si l'un de ses tests échoue, la bonne réaction
-n'est pas de l'ajuster pour qu'il passe : c'est de remettre la mise en garde.
+Ces quatre garanties sont verrouillées par `test/garde.test.ts` afin qu'aucune refonte de gabarit ne fasse disparaître les mises en garde en silence.
 
 ---
 
-## Les dix outils
+## Les douze outils
 
-### Adossés à CanLII
+### Adossés à CanLII et listes compilées
 
 | Outil | Rôle |
 |---|---|
-| `verify_citations` | **Pivot.** Verdict par citation : CONFIRMÉE · DISCORDANTE · INTROUVABLE · NON CONSTRUCTIBLE · ILLISIBLE — et **INDÉTERMINÉE**, qui dit qu’aucun constat n’a pu être fait (CanLII injoignable, étranglé, réponse inexploitable, ou budget épuisé) et ne vaut JAMAIS absence |
-| `find_case` | Recherche par noms des parties ; index local puis balayage vif |
+| `verify_citations` | **Pivot.** Verdict par citation : CONFIRMÉE · DISCORDANTE · INTROUVABLE · NON CONSTRUCTIBLE · ILLISIBLE — et **INDÉTERMINÉE**, qui dit qu'aucun constat n'a pu être fait (CanLII injoignable, étranglé, réponse inexploitable, ou budget épuisé) et ne vaut JAMAIS absence |
+| `find_case` | Recherche par noms des parties ; index local puis balayage en direct sur CanLII |
 | `get_case` | Fiche officielle d'une décision |
 | `citator` | Ce qu'une décision cite, ce qui la cite, les dispositions qu'elle cite |
 | `subsequent_history` | **Indice heuristique** de sorts ultérieurs — ne remplace pas un citateur |
-| `browse_cases` | Décisions d'un tribunal, avec les huit filtres de dates |
-| `list_databases` | Répertoire des cours et corpus législatifs — l'en-tête nomme le filtre et dit sur quel ensemble il compte |
+| `browse_cases` | Décisions d'un tribunal, avec filtres de dates |
+| `list_databases` | Répertoire des cours et corpus législatifs — l'en-tête nomme le filtre et précise sur quel ensemble il compte |
 | `browse_legislation` | Lois et règlements d'une base législative |
 | `get_legislation` | Fiche d'une loi : abrogation, découpage, et les dates de la VERSION servie — jamais celles de l'instrument |
 | `parse_citation` | Analyse hors ligne d'une citation — **aucun appel** |
+| `list_exempt_authorities` | Consultation et recherche **hors ligne** dans les 15 listes compilées d'autorités dispensées de reproduction (7 tribunaux, 550 entrées) — **aucun appel** |
+| `check_exempt_authorities` | Vérification de dispense de reproduction (DISPENSÉE · À VÉRIFIER · NON LISTÉE · ILLISIBLE · INDÉTERMINÉE), hors ligne d'abord puis repli CanLII borné optionnel (`resolve_canlii`) |
 
-Sorties en **texte français**, jamais en JSON (décision D4).
+Sorties en **texte français**, jamais en JSON.
 
 ---
 
 ## 🔒 Réserve de secret professionnel
 
-> Spécification §9.5.
+Ce connecteur n'envoie vers CanLII que des **citations, identifiants de tribunaux et dates** — aucun nom de client, aucun fait de dossier, aucun document.
 
-Ce connecteur est, sur ce plan, exceptionnellement propre : ce qui sort de l'infrastructure,
-ce sont des **citations, des identifiants de tribunaux et des dates**. Aucun nom de client,
-aucun fait de dossier, aucun document.
-
-**Une seule réserve** : `find_case` prend des **noms de parties**. Si ce nom est celui
-d'une partie à un dossier en cours plutôt que celui d'une décision publiée, la requête révèle
-à CanLII un intérêt de recherche. Le risque est faible — CanLII est un organisme sans but
-lucratif canadien, et la recherche jurisprudentielle nominative est l'usage normal du site —
-mais il n'est pas nul, et il mérite d'être connu plutôt que découvert.
+**Une seule réserve** : `find_case` transmet des **noms de parties**. Si ce nom est celui d'une partie à un dossier en cours plutôt que celui d'une décision publiée, la requête révèle à CanLII un intérêt de recherche. CanLII est un organisme sans but lucratif canadien, et la recherche nominative correspond à l'usage normal du site, mais ce point mérite d'être connu.
 
 ---
 
-## Page publique (§18)
+## Page publique (`GET /`)
 
-`GET /` sert une page **statique et bilingue** (français · anglais, thème auto / clair /
-sombre) en trois sections : les dix outils, leurs schémas et l'accès. Depuis le 2026-09-16 elle
-porte aussi, comme la description de chaque outil et les instructions du serveur, l'**annonce
-de la source** que le préfixe `canlii_` portait seul jusque-là — dans les deux langues, et
-un test échoue si une traduction cesse de la porter.
+`GET /` sert une page **statique et bilingue** (français · anglais, thème auto / clair / sombre) présentant le contrat de vérité, les douze outils, les schémas de paramètres et les instructions d'accès.
 
-**Tout y dérive des données vives** : les outils viennent de `listToolDescriptors()` — la
-fonction même que sert `tools/list` —, les schémas du même `inputSchema` que le validateur
-applique, et les annotations MCP du registre. Une valeur recopiée deviendrait fausse sans
-qu'aucun test n'échoue ; il n'y a donc aucune copie.
-
-Trois propriétés de sa route sont délibérées et testées : égalité stricte sur `/` ;
-**hors** du bloc `/mcp`, dont la garde d'origine refuserait la page à tout visiteur venu
-d'un lien externe ; et **aucun en-tête CORS**, sans quoi la page pourrait servir d'oracle
-à une autre origine. Le secret n'y paraît jamais — seulement sa forme. Elle est servie
-même lorsque `MCP_ENABLED=false` : le coupe-circuit protège la surface MCP, pas la
-documentation.
-
-Aucune requête tierce : ni CDN, ni police distante, ni image. Sans JavaScript, le français
-s'affiche et tout reste lisible.
+**Tout y dérive des données vives** : les outils viennent de `listToolDescriptors()`, les schémas de validation du serveur et les annotations MCP du registre. Trois propriétés de la route sont testées : égalité stricte sur `/`, exclusion du bloc `/mcp`, et absence d'en-tête CORS. Le secret n'y paraît jamais — seulement la forme `/mcp/<secret>`. Elle reste servie même lorsque `MCP_ENABLED=false` et ne charge aucune ressource tierce (sans JavaScript, le français reste affiché).
 
 ---
 
@@ -161,19 +143,13 @@ Claude / ChatGPT / Antigravity / Gemini
                        index ET cache
 ```
 
-**Transport** : Streamable HTTP, **mode JSON sans état** — un message JSON-RPC par `POST`,
-pas de SSE, pas de `Mcp-Session-Id`.
+**Transport** : Streamable HTTP, **mode JSON sans état** — un message JSON-RPC par `POST`, pas de SSE, pas de `Mcp-Session-Id`.
 
-**Le cache se remplit par l'usage** : tout balayage effectué pour répondre à une requête est
-persisté. Ce n'est pas un miroir téléchargé, c'est la sédimentation des appels déjà faits.
-Un balayage persiste les **quatre champs** que porte une liste de CanLII — ni date, ni
-numéro de dossier, ni hyperlien. C'est la phrase dont l'absence a rendu le défaut écrivable :
-le connecteur a longtemps complété la date manquante par le 1er janvier de l'année balayée,
-l'a rendue comme une date de décision, et l'a écrite en base par-dessus la vraie.
+**Le cache se remplit par l'usage** : tout balayage effectué pour répondre à une requête est persisté dans D1 (uniquement les champs réellement retournés par CanLII, sans inventer de date manquante et sans exposer d'horodatage exact de récupération).
 
 ---
 
-## Mise en service
+## Mise en service et déploiement (opérateur)
 
 ```bash
 npm ci
@@ -185,108 +161,44 @@ npx wrangler secret put CANLII_API_KEY
 openssl rand -hex 32                              # puis :
 npx wrangler secret put MCP_SHARED_SECRET
 
-# FACULTATIF — second porteur du MÊME point d'entrée, aux droits identiques (§9.1).
-# Il n'ouvre rien de plus ; il existe pour que deux clients se révoquent SÉPARÉMENT.
-# ⚠ IL N'A PLUS DE PORTEUR depuis le 2026-09-02 : le clavardage de Pallas Athéna,
-#   qui l'employait depuis le 2026-08-27, a été retiré de son dépôt (commit ef854733)
-#   au passage du cabinet à un compte Claude for Work. Une installation neuve n'a donc
-#   aucune raison de le poser — sauter ces deux lignes. Ce bloc disait jusqu'au
-#   2026-09-16 : « il existe pour que les deux clients se révoquent SÉPARÉMENT » ; la
-#   raison reste juste pour le PROCHAIN client, elle n'en décrit aucun aujourd'hui.
-#   Le secret reste admis et n'est pas à retirer (§19), il ne coûte rien.
-openssl rand -hex 32
-npx wrangler secret put MCP_SHARED_SECRET_ATHENA
-
-# Déploiement continu sur `main` (§12) via `.github/workflows/deploy.yml` (`environment: production`),
-# ou repli local via `npm run deploy` (`scripts/deployer.mjs` : migrations --remote PUIS wrangler deploy).
 export CLOUDFLARE_API_TOKEN="$(tr -d '\r\n' < cf.token)"   # gitignoré, jamais affiché
 npm run deploy
 ```
 
-### Répertoire des tribunaux (§4.3) — réconcilié, et à re-vérifier périodiquement
+### Répertoire des tribunaux
 
-Les correspondances « code de citation → databaseId » ne sont documentées que pour
-`csc-scc`. Tout le reste était une **hypothèse** d'amorçage, et les identifiants fédéraux
-composés n'étaient pas documentés du tout.
-
-**La réconciliation a été faite contre l'API vivante le 2026-07-23**, et elle a démenti
-cinq hypothèses : `caf-fca` et `cf-fc` n'existent pas (les vraies bases sont `fca` et
-`fct`), le fragment français de la Cour canadienne de l'impôt est `cci` et non `tcc`, et
-le TAL a gardé le `databaseId` de la Régie du logement (`qcrdl`) — exactement le piège de
-renommage que la spécification anticipait. Les valeurs mesurées, avec leur preuve
-d'observation, sont dans `migrations/0003_reconcile_court_codes.sql` : **une installation
-neuve les obtient donc par les migrations**, sans manœuvre manuelle.
-
-Ce qui reste utile, et qu'il faut refaire quand un tribunal est créé, fusionné ou renommé :
+Les correspondances mesurées contre l'API de CanLII sont appliquées automatiquement par les migrations D1 (`migrations/0003_reconcile_court_codes.sql`). Lorsqu'un tribunal est créé, fusionné ou renommé, rafraîchir le répertoire et relire le SQL produit :
 
 ```bash
 node scripts/refresh-databases.mjs --remote --sql
 ```
 
-Le script **n'écrit rien en base** : il rafraîchit le répertoire, dénonce les hypothèses que
-CanLII dément, et produit un gabarit SQL à relire. Corriger automatiquement une
-correspondance de tribunal reviendrait à figer une erreur en silence — c'est pourquoi la
-dernière étape reste un geste humain.
+Le script **n'écrit rien en base** : il signale les écarts détectés et produit un gabarit SQL à valider manuellement.
 
-### Recette manuelle (§14 étape 8)
+### Recette manuelle
 
 ```bash
 node scripts/mcp-client.mjs --remote tools/call verify_citations \
   '{"citations":[{"citation":"2008 CSC 9"},{"citation":"2020 QCCA 999999"},{"citation":"[1985] C.A. 105"}]}'
 ```
 
-Attendu : *Dunsmuir* CONFIRMÉE · `2020 QCCA 999999` INTROUVABLE (avec les explications
-concurrentes) · `[1985] C.A. 105` NON CONSTRUCTIBLE (avec renvoi à `find_case`).
+Attendu : *Dunsmuir* CONFIRMÉE · `2020 QCCA 999999` INTROUVABLE (avec les explications concurrentes) · `[1985] C.A. 105` NON CONSTRUCTIBLE (avec renvoi à `find_case`).
 
-### Déploiement — continu sur `main` via `.github/workflows/deploy.yml` *(rétabli le 2026-11-14)*
+### Déploiement continu sur `main`
 
-**Pousser sur `main` déclenche [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)**
-dans l'environnement GitHub `production` (`CLOUDFLARE_API_TOKEN` requis côté GitHub) :
+Pousser sur `main` déclenche [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) dans l'environnement GitHub `production` (`CLOUDFLARE_API_TOKEN` requis) :
 
-1. **4 contrôles préalables en lecture seule** (présence du jeton sans espace/retour chariot,
-   validité auprès de Cloudflare, compte unique, concordance de la D1 `canlii` avec
-   `wrangler.jsonc`).
-2. **Porte technique complète** (`wrangler types`, `tsc --noEmit`, `biome check .`,
-   `vitest run`, `wrangler deploy --dry-run`).
-3. **`npm run deploy`** (`scripts/deployer.mjs`), qui applique les migrations D1 **avant**
-   de déployer le Worker avec `--var COMMIT:<sha>`, et s'arrête au premier échec.
-4. **Vérification vivante** de `/health` (correspondance exacte du `commit` déployé) et de
-   `/mcp/server-card` (`HTTP 200`).
+1. **4 contrôles préalables en lecture seule** (présence et validité du jeton Cloudflare, compte unique, concordance de la D1 `canlii` avec `wrangler.jsonc`).
+2. **Porte technique complète** (`wrangler types`, `tsc --noEmit`, `biome check .`, `vitest run`, `wrangler deploy --dry-run`).
+3. **`npm run deploy`** (`scripts/deployer.mjs`), qui applique les migrations D1 **avant** de déployer le Worker avec `--var COMMIT:<sha>`, et s'arrête au premier échec.
+4. **Vérification vivante** de `/health` et `/mcp/server-card`.
 
-⚠ **Ne pas appeler `npx wrangler deploy` directement.** L'ordre migrations → déploiement est
-tenu par `npm run deploy` (`scripts/deployer.mjs`), aussi bien en CI qu'en repli local.
-
-**Le filet indépendant de dérive reste actif.** `/health` annonce le commit dont la version en
-ligne est issue, et `.github/workflows/verifier-deploiement.yml` (aucun secret, `contents: read`)
-le compare **chaque jour** au dernier commit de `main` pour signaler tout déploiement CD manqué
-ou expiré :
-
-```bash
-curl -s https://jurisprudence.poirierlavoie.ca/health
-# {"status":"ok","commit":"8b34810"}   ← ce sha change à chaque déploiement
-```
-
-En repli local, `scripts/deployer.mjs` **refuse un arbre de travail sale** (déployer un arbre
-modifié ferait annoncer un commit qui ne décrit pas le code en ligne) :
+⚠ **Ne pas appeler `npx wrangler deploy` directement.** L'ordre migrations → déploiement est garanti par `npm run deploy` (`scripts/deployer.mjs`), aussi bien en CI qu'en repli local (le script refuse tout arbre de travail sale). `.github/workflows/verifier-deploiement.yml` compare chaque jour `/health` au dernier commit de `main`.
 
 ```powershell
 $env:CLOUDFLARE_API_TOKEN = (Get-Content cf.token -Raw).Trim()   # gitignoré, jamais affiché
-npm run deploy    # = migrations --remote PUIS wrangler deploy, arrêt au premier échec
+npm run deploy
 ```
-
-### Se connecter (pour les avocats et développeurs)
-
-- **Via le greffon complet [`droit-civil-quebecois`](https://github.com/jpoirierlavoie/droit-civil-quebecois) :** après approbation sur <https://acces.poirierlavoie.ca/demande> (avec votre clé API CanLII personnelle enregistrée dans `/moi`), Claude Code, Claude Desktop, `claude.ai`, ChatGPT, Google Antigravity, Gemini CLI et Gemini App se connectent par navigateur en OAuth 2.1 sur `https://jurisprudence.poirierlavoie.ca/mcp/oauth`, sans secret à configurer.
-- **Via jeton individuel (scripts, API Gemini Deep Research ou installation autonome) :** utiliser `https://jurisprudence.poirierlavoie.ca/mcp` avec `Authorization: Bearer <jeton>` créé dans <https://acces.poirierlavoie.ca/moi> (ou `?key=<jeton>` pour les formulaires web sans OAuth ; clé CanLII lue depuis votre coffre `/moi` ou l'en-tête `X-Clef-CanLII`).
-- **Installation autonome de ce seul dépôt (sans le greffon `droit-civil-quebecois`) :**
-  - **Google Antigravity** (`plugin.json`, `mcp_config.json`) : `agy plugin install https://github.com/jpoirierlavoie/MCP-Jurisprudence.git`, puis saisir la variable `MCP_JURISPRUDENCE_SECRET` avec un jeton issu de `/moi`.
-  - **Gemini CLI** (`gemini-extension.json`) : `gemini extensions install https://github.com/jpoirierlavoie/MCP-Jurisprudence` et saisir `MCP_JURISPRUDENCE_SECRET`. (`"contextFileName": []` évite d'injecter `GEMINI.md` dans vos sessions.)
-- **Gemini web** : les origines `https://gemini.google.com` et `https://aistudio.google.com`
-  sont admises par défaut dans CORS (§9.6, incluant `X-Clef-CanLII`), aux côtés de `https://claude.ai` et
-  `https://claude.com`.
-- **Découverte HTTP (SEP-2127)** : la fiche publique de connectivité est exposée sans secret
-  sur `GET https://jurisprudence.poirierlavoie.ca/mcp/server-card` (`application/mcp-server-card+json`).
-- **Gouverne à deux étages et zéro journalisation de contenu** : cinq liaisons `ratelimits` dédiées (`1021..1025`, pré-auth IP + quarantaine d'échecs épargnant les jetons déjà validés + débit par `titulaire_id` à `180/min` `actif` / `20/min` `limite`), quotas journaliers UTC (`local` sur cache D1 / `parse_citation`, `sortant` sur appels CanLII), journaux d'invocation Cloudflare désactivés et zéro écriture dans `search_log` ni `api_usage` (seuls `compteur_jour` et `evenement_technique` sans contenu sont tenus dans `DB_IDENTITE`).
 
 ---
 
@@ -295,53 +207,27 @@ npm run deploy    # = migrations --remote PUIS wrangler deploy, arrêt au premie
 ```bash
 cp .dev.vars.example .dev.vars    # y mettre la clef CanLII et un secret de DEV
 npx wrangler dev
-npx wrangler types                # engendre worker-configuration.d.ts, GITIGNORÉ :
-                                  # sans lui, tsc ignore `Env` sur un clone neuf
+npx wrangler types                # engendre worker-configuration.d.ts (gitignoré)
 npx tsc --noEmit && npx biome check . && npx vitest run
 npx wrangler deploy --dry-run     # valide paquet ET configuration, sans aucun jeton
 npx wrangler d1 migrations apply canlii --local
 ```
 
-Les tests s'exécutent dans **workerd** avec une D1 locale et des réponses de CanLII figées
-(`test/fixtures/`) : **la suite est verte sans la clef d'API**, faute de quoi elle
-dépendrait du quota d'une clef personnelle.
+Les tests s'exécutent dans **workerd** avec une D1 locale et des réponses de CanLII figées (`test/fixtures/`), sans consommer votre quota d'API.
 
-⚠ `wrangler dev` avec une vraie clef dans `.dev.vars` fait de **vrais appels** et consomme
-le quota.
+⚠ `wrangler dev` avec une vraie clef dans `.dev.vars` fait de **vrais appels** vers CanLII et consomme le quota.
 
 ---
 
-## Sécurité
+## Contrôle d'accès et cadence d'appel
 
-- **Garde stricte BYOK CanLII préalable au cache partagé (`G8`, `G10`)** : pour tout `titulaire`, les neuf outils adossés à CanLII résolvent la clé personnelle via `ouvrirCoffre` (`X-Clef-CanLII` → `DB_IDENTITE.coffre_clef` chiffré `HKDF-SHA256` + `AES-256-GCM`) **avant** toute lecture du cache D1 `cases`/`citator_*`, sans aucune retombée sur `env.CANLII_API_KEY`. Toute clé refusée en direct par CanLII (`401`/`403`) fait basculer l'entrée du coffre à `etat = 'refusee'` et renvoie `[CLEF_REFUSEE]`. Le texte clair ne quitte jamais la fermeture `ouvrirCoffre`, toute URL journalisée passe par `redactUrl()`, et aucun horodatage exact `fetched_at` n'est exposé au rendu (`G38`).
-- **Zéro journalisation de contenu et observabilité désactivée (`S13`, `S14`, `G9`, `G37`)** : aucune écriture n'est effectuée dans `search_log` ni `api_usage`, `request.url` n'est jamais journalisée, et `wrangler.jsonc` désactive explicitement les journaux d'invocation Cloudflare.
-- **Double montage étanche (`/mcp` et `/mcp/oauth`)** :
-  - `/mcp` accepte les jetons individuels `DB_IDENTITE` (`portee` `'jurisprudence'` ou `'les_deux'`) en coexistence transitoire Phase 3a avec `MCP_SHARED_SECRET`, sous `Authorization: Bearer <jeton>`, `?key=<jeton>` ou `/mcp/<secret>`. Tout appel non authentifié ou jeton invalide/hors portée reçoit **uniformément `404` à corps vide sans `WWW-Authenticate`** (`S8`, `G7`, `G23`) afin de prévenir toute découverte OAuth non sollicitée ; le contrôle de méthode `POST` (`405`) s'exécute **après** l'authentification.
-  - `/mcp/oauth` accepte uniquement `Authorization: Bearer <jeton>` et répond `401` RFC 9728 pointant vers `GET /.well-known/oauth-protected-resource/mcp/oauth` (`https://acces.poirierlavoie.ca`), tandis que la racine `/.well-known/oauth-protected-resource` reste en `404`.
-- `MCP_ENABLED=false` ⇒ **404 sur toutes les routes MCP**, `/health`, `/mcp/server-card` et `/.well-known/oauth-protected-resource/mcp/oauth` compris, tout en laissant la page publique `GET /` accessible (`200`).
-
----
-
-## Questions restées ouvertes
-
-- **§16.1 — moissonnage de masse : TRANCHÉ, ce sera non (2026-07-23).** Décision du
-  praticien : pas de téléchargement en masse. `src/backfill.ts` reste écrit et testé mais
-  **ne s'exécute pas** — `BACKFILL_ENABLED=false`, et aucun cron quotidien n'est déclaré,
-  de sorte que l'activer exigerait deux gestes délibérés. Le cache continue de se remplir
-  par l'usage (D6), ce qui est autre chose : la sédimentation des appels réellement faits,
-  et non un aspirateur. Rouvrir la question supposerait de la poser d'abord à CanLII.
-- **§16.2 — quota et débit.** Non publiés, et **mesurés faute d'être documentés** : à
-  250 ms entre appels, la production était étranglée sur 12 à 18 % des appels des
-  journées chargées (8 `429` pour 64 appels le 2026-08-24). Les valeurs par défaut sont
-  donc **600 ms** entre appels — et l'intervalle **double à chaque `429`**, plafonné à
-  4 s, pour le reste de l'invocation. 40 appels par invocation, aucune concurrence
-  sortante. Quand un étranglement a lieu, les outils le **disent** dans leur réponse,
-  en précisant que le résultat n'en est ni tronqué ni affaibli : sans cela, un « aucun
-  candidat » obtenu sous étranglement se lirait comme une inexistence. **Sauf quand le
-  balayage a été interrompu ou le budget épuisé** — la note dit alors l'inverse plutôt
-  que de rassurer à tort. Elle a longtemps rassuré inconditionnellement, deux lignes
-  sous celle qui annonçait l'interruption ; c'est ce voisinage qui faisait prendre
-  l'étranglement pour la cause. À réajuster si CanLII finit par publier ses chiffres.
+- **Garde stricte BYOK CanLII préalable au cache partagé :** pour tout titulaire, les dix outils pouvant interroger CanLII résolvent et vérifient la clé personnelle via `ouvrirCoffre` (`X-Clef-CanLII` ou `DB_IDENTITE.coffre_clef` chiffré `HKDF-SHA256` + `AES-256-GCM`) **avant** toute lecture du cache D1 partagé, sans jamais retomber sur `env.CANLII_API_KEY` (`parse_citation`, `list_exempt_authorities` et `check_exempt_authorities` avec `resolve_canlii: false` demeurent accessibles sans clé CanLII). Toute clé refusée par CanLII (`401`/`403`) renvoie `[CLEF_REFUSEE]`, le texte clair ne quitte jamais `ouvrirCoffre`, toute URL journalisée passe par `redactUrl()`, et aucun horodatage exact `fetched_at` n'est exposé.
+- **Gouverne à deux étages :** cinq limiteurs de débit (`1021..1025`, pré-auth IP + quarantaine sur échecs d'auth + débit par titulaire à `180/min` `actif` / `20/min` `limite`) et quotas journaliers UTC (`local` sur cache / `parse_citation`, `sortant` sur appels CanLII).
+- **Double montage étanche (`/mcp` et `/mcp/oauth`) :**
+  - `/mcp` accepte les jetons individuels `DB_IDENTITE` (`portee` `'jurisprudence'` ou `'les_deux'`) ou `MCP_SHARED_SECRET` sous `Authorization: Bearer <jeton>`, `?key=<jeton>` ou `/mcp/<secret>`. Tout appel non authentifié reçoit **uniformément `404` à corps vide sans `WWW-Authenticate`**.
+  - `/mcp/oauth` accepte uniquement `Authorization: Bearer <jeton>` et répond `401` RFC 9728 pointant vers `GET /.well-known/oauth-protected-resource/mcp/oauth` (`https://acces.poirierlavoie.ca`), tandis que `/.well-known/oauth-protected-resource` reste en `404`.
+  - `MCP_ENABLED=false` coupe toutes les routes MCP (`/mcp*`, `/health`, `/mcp/server-card`, `/.well-known/oauth-protected-resource/mcp/oauth`) en `404`, tout en laissant la page publique `GET /` accessible (`200`).
+- **Cadence d'appel CanLII et absence de moissonnage :** aucun téléchargement massif en arrière-plan n'est exécuté (`BACKFILL_ENABLED=false`, aucun cron). Les appels sortants vers CanLII sont espacés de **600 ms** par défaut (intervalle doublé à chaque `429`, jusqu'à 4 s, max 40 appels séquentiels par invocation). Lorsqu'un étranglement ou une interruption survient, les outils le signalent explicitement dans leur réponse.
 
 ## Référence
 

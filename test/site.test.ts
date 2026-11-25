@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 
 import worker from "../src/index";
 import { TOOLS } from "../src/mcp/registry";
-import { SECTIONS } from "../src/site";
+import { RESUME_OUTILS_FR, SECTIONS } from "../src/site";
 import { OUTILS_EN } from "../src/site.i18n";
 
 const SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
@@ -291,10 +291,15 @@ describe("§18 — le registre est la source, pas une copie", () => {
     }
   });
 
-  it("chaque outil a son pendant ANGLAIS, dans les DEUX sens", async () => {
+  it("chaque outil a son pendant ANGLAIS et un résumé clair, dans les DEUX sens", async () => {
     // Un outil ajouté sans traduction paraîtrait vide en anglais ; une traduction
     // orpheline survivrait à un outil supprimé. Les deux sont des dérives silencieuses.
     expect(Object.keys(OUTILS_EN).sort()).toEqual(Object.keys(TOOLS).sort());
+    expect(Object.keys(RESUME_OUTILS_FR).sort()).toEqual(Object.keys(TOOLS).sort());
+    for (const [nom, frLines] of Object.entries(RESUME_OUTILS_FR)) {
+      expect(frLines.length, `${nom} resume FR`).toBeGreaterThanOrEqual(1);
+      expect(OUTILS_EN[nom]!.resume.length, `${nom} resume EN`).toBe(frLines.length);
+    }
   });
 
   it("aucune traduction anglaise n'est une copie du français", async () => {
@@ -338,6 +343,13 @@ describe("§18 — le registre est la source, pas une copie", () => {
     // Ajoutée le 2026-09-17 : les deux comptes de la sortie ne mesurent pas le même
     // ensemble, et chaque phrase doit nommer le sien.
     list_databases: [/ENTIER/, /WHOLE directory/],
+    // Ajoutées le 2026-11-24 : les listes d'autorités dispensées n'établissent ni
+    // l'autorité actuelle ni le dispositif, et INDÉTERMINÉE ne vaut jamais absence.
+    list_exempt_authorities: [
+      /n'établit NI l'autorité actuelle/,
+      /establishes NEITHER the current authority/i,
+    ],
+    check_exempt_authorities: [/ne vaut JAMAIS ni absence/, /NEVER means absence/i],
   };
 
   it("une réserve SUBSTANTIELLE portée en français l'est aussi en anglais", () => {
@@ -426,16 +438,16 @@ describe("§18 / invariant 19 — la page dérive, et ses classes existent", () 
     expect(orphelines).toEqual([]);
   });
 
-  it("le marqueur openWorldHint est DÉRIVÉ : un faux, neuf vrais", async () => {
+  it("le marqueur openWorldHint est DÉRIVÉ : deux faux, dix vrais", async () => {
     const html = await (await demander("/")).text();
     const vrais = [...html.matchAll(/openWorldHint: true/g)].length;
     const faux = [...html.matchAll(/openWorldHint: false/g)].length;
-    expect(faux).toBe(1);
-    expect(vrais).toBe(9);
+    expect(faux).toBe(2);
+    expect(vrais).toBe(10);
     expect(faux + vrais).toBe(Object.keys(TOOLS).length);
   });
 
-  it("le renvoi croisé get_case ↔ verify_citations tient dans les DEUX langues", async () => {
+  it("le renvoi croisé get_case ↔ verify_citations et check_exempt_authorities tient dans les DEUX langues", async () => {
     // Le français vient du registre et ne peut pas dériver ; l'anglais est écrit à la
     // main dans OUTILS_EN, et c'est lui qui avait pris du retard.
     const fr = TOOLS.get_case!.description;
@@ -444,6 +456,9 @@ describe("§18 / invariant 19 — la page dérive, et ses classes existent", () 
     expect(frV).toContain("get_case");
     expect(OUTILS_EN.get_case!.texte).toContain("verify_citations");
     expect(OUTILS_EN.verify_citations!.texte).toContain("get_case");
+    expect(TOOLS.check_exempt_authorities!.description).toContain("verify_citations");
+    expect(OUTILS_EN.check_exempt_authorities!.texte).toContain("verify_citations");
+    expect(OUTILS_EN.check_exempt_authorities!.texte).toContain("list_exempt_authorities");
   });
 
   it("chaque description de paramètre PARAÎT sur la page", async () => {

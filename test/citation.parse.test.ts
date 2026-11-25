@@ -296,4 +296,54 @@ describe("D1 & D21 — extraction d'intitulé de tête et formes concaténées",
     expect(zeroCanlii.res.constructible).toBe("non");
     expect(zeroCanlii.res.raison).toContain("strictement positif");
   });
+
+  it("reconnaît les parenthèses CanLII à un jeton fédéral, les points et les recueils des listes", () => {
+    const fca = parseCitation("Li c. Canada, 1996 CanLII 4086 (FCA)");
+    expect(fca.primary).toMatchObject({
+      kind: "canlii",
+      year: 1996,
+      number: 4086,
+      juris: "CA",
+      court: "FCA",
+    });
+    expect(fca.inlineTitle).toBe("Li c. Canada");
+
+    const qcca = parseCitation("Béliveau c. Barreau, 1992 CanLII 3299 (QC C.A.)");
+    expect(qcca.primary).toMatchObject({
+      kind: "canlii",
+      year: 1992,
+      number: 3299,
+      juris: "QC",
+      court: "CA",
+    });
+
+    const clp = parseCitation("Amar c. CSST, [2003] C.L.P. 606 (C.A.)");
+    expect(clp.primary).toMatchObject({
+      kind: "reporter",
+      year: 2003,
+      reporter: "C.L.P.",
+      page: 606,
+    });
+
+    const cpr = parseCitation("Canada v. CII Honeywell Bull (1985), 4 CPR (3d) 523 (FCA)");
+    expect(cpr.primary).toMatchObject({ kind: "reporter", year: 1985, volume: 4, page: 523 });
+
+    const nr = parseCitation("Beloit Canada Ltd v Valmet Oy, 64 NR 287 (FCA)");
+    expect(nr.primary).toMatchObject({
+      kind: "reporter",
+      year: null,
+      volume: 64,
+      reporter: "NR",
+      page: 287,
+    });
+
+    const fcj = parseCitation("Coca-Cola Ltd. v. Pardhan, [1999] FCJ No 483");
+    expect(fcj.primary).toMatchObject({ kind: "reporter", year: 1999, reporter: "FCJ", page: 483 });
+
+    const dte = parseCitation("Saint-Georges c. Deschamps, D.T.E. 97T- 1342 (C.A.)");
+    expect(dte.primary).toMatchObject({ kind: "publisher", scheme: "SOQUIJ" });
+
+    const carswell = parseCitation("Manhattan Industries Inc. v. Princeton, 1971 CarswellNat 513");
+    expect(carswell.primary).toMatchObject({ kind: "publisher", scheme: "Carswell" });
+  });
 });

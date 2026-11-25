@@ -508,13 +508,15 @@ async function executerOutil(
   }
 
   const estOutilHorsLigne = SANS_APPEL.has(nom);
+  const estAppelHorsLigne =
+    estOutilHorsLigne || (nom === "check_exempt_authorities" && args.resolve_canlii === false);
   const estToujoursSortant =
     nom === "browse_cases" ||
     nom === "browse_legislation" ||
     nom === "get_legislation" ||
     args.refresh === true ||
     (nom === "find_case" && args.live === true);
-  const estJamaisSortant = estOutilHorsLigne || (nom === "find_case" && args.live === false);
+  const estJamaisSortant = estAppelHorsLigne || (nom === "find_case" && args.live === false);
 
   // 8 & 10. Lecture des compteurs journaliers et contrôle de quota sur le nom d'outil du corps.
   let verdictLocal: ReturnType<typeof verifierQuotaJour> | null = null;
@@ -572,7 +574,7 @@ async function executerOutil(
   let baseClient: CanliiClient;
   let provenanceClef: "entete" | "coffre" | "transitoire" | "aucune" = "aucune";
 
-  if (estOutilHorsLigne) {
+  if (estAppelHorsLigne) {
     baseClient = createClient(env, {}, { apiKey: "" });
   } else if (principal.type === "titulaire") {
     const dbIdentite = env.DB_IDENTITE!;

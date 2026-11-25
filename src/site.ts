@@ -50,9 +50,9 @@ export function biP(fr: readonly string[], en: readonly string[]): string {
 }
 
 export const SECTIONS = [
-  { id: "outils", fr: "Les outils", en: "The tools" },
-  { id: "schema", fr: "Les schémas", en: "The schemas" },
-  { id: "acces", fr: "Accès", en: "Access" },
+  { id: "outils", fr: "Les 12 outils", en: "The 12 tools" },
+  { id: "acces", fr: "Accès et installation", en: "Access & setup" },
+  { id: "schema", fr: "Les schémas (technique)", en: "The schemas (technical)" },
 ] as const;
 
 export type SectionId = (typeof SECTIONS)[number]["id"];
@@ -320,7 +320,7 @@ ${barreSuite()}
 </div>
 ${biP(
   [
-    "Serveur MCP en lecture seule permettant de vérifier des références de jurisprudence canadienne dans la collection de CanLII, de consulter la fiche officielle d'une décision et de lire ses listes de citations.",
+    "Connecteur gratuit permettant à votre assistant IA (Claude, ChatGPT, Gemini, Antigravity) de vérifier vos références de jurisprudence dans CanLII, d'obtenir la fiche officielle d'une décision et de consulter les listes d'autorités dispensées de reproduction — au lieu d'inventer des arrêts.",
   ],
   EN.intro,
 )}
@@ -337,7 +337,7 @@ ${biP(
 )}
 </div>
 <p class="btns">
-<span class="badge">${bi("Membres du Barreau du Québec · Clé CanLII requise (BYOK)", "Barreau du Québec members · CanLII key required (BYOK)")}</span>
+<span class="badge">${bi("Membres du Barreau du Québec · Votre clé CanLII requise", "Barreau du Québec members · Your CanLII key required")}</span>
 <a class="btn" href="https://acces.poirierlavoie.ca/demande">${bi("Demander l'accès →", "Apply for access →")}</a>
 <a class="btn-sec" href="https://acces.poirierlavoie.ca/">${bi("Portail d'accès", "Access portal")}</a>
 </p>
@@ -345,6 +345,52 @@ ${biP(
 }
 
 // ── Les outils, dérivés du REGISTRE ───────────────────────────────────────────
+
+export const RESUME_OUTILS_FR: Readonly<Record<string, readonly string[]>> = {
+  verify_citations: [
+    "Vérifie si une ou plusieurs citations existent dans CanLII et concordent avec les noms des parties et l'année attendus — idéal pour contrôler les références d'un projet d'acte, d'une note ou d'une réponse d'IA.",
+    "Rend un verdict clair (CONFIRMÉE, DISCORDANTE, INTROUVABLE, NON CONSTRUCTIBLE, ILLISIBLE ou INDÉTERMINÉE si CanLII est injoignable) et le lien direct canlii.ca. La confirmation prouve l'existence de la décision ; il faut toujours en lire le texte intégral et vérifier son sort ultérieur.",
+  ],
+  find_case: [
+    "Retrouve une décision à partir des noms des parties (avec tribunal et années en option) lorsqu'on ne dispose que d'une référence de recueil (R.C.S., R.J.Q., C.A.), d'un identifiant d'éditeur (J.E., EYB, AZ) ou des noms des parties.",
+    "Cherche uniquement dans les intitulés et mots-clés : l'API de CanLII ne permet pas de chercher dans le texte intégral des jugements.",
+  ],
+  get_case: [
+    "Obtient la fiche officielle d'une décision sur CanLII : intitulé, citation neutre, date, numéro de dossier, mots-clés et hyperlien canlii.ca pour lire le jugement.",
+    "Ne renvoie pas le texte de la décision et ne vérifie pas si une citation correspond à l'intitulé attendu (pour cela, votre assistant emploie verify_citations).",
+  ],
+  citator: [
+    "Affiche les décisions citées par un jugement, celles qui le citent et les lois qu'il mentionne, selon l'index de CanLII.",
+    "Listes brutes seulement : n'indique pas si une décision a été suivie, distinguée ou écartée. Pour lire les lois québécoises citées, l'assistant passe par le connecteur « lois ».",
+  ],
+  subsequent_history: [
+    "Signale les décisions de tribunaux supérieurs présentes dans CanLII qui citent le jugement de départ sous un intitulé semblable — un premier indice utile pour repérer un appel éventuel.",
+    "Simple indice approximatif : ne remplace pas un citateur professionnel et ne détecte ni les appels pendants, ni les permissions refusées, ni les désistements.",
+  ],
+  browse_cases: [
+    "Parcourt les décisions récentes d'un tribunal dans CanLII, filtrables par date de décision ou de publication — pratique pour la veille ou pour vérifier l'étendue de la collection.",
+  ],
+  list_databases: [
+    "Répertorie les tribunaux et recueils législatifs disponibles sur CanLII avec leurs identifiants, afin que l'assistant cible la bonne base.",
+  ],
+  browse_legislation: [
+    "Liste les lois et règlements d'une base législative de CanLII (utile notamment pour consulter les titres des lois fédérales ou d'autres provinces).",
+  ],
+  get_legislation: [
+    "Affiche la fiche CanLII d'une loi ou d'un règlement (titre, mention d'abrogation et dates de la copie hébergée par CanLII, qui ne datent pas l'entrée en vigueur d'origine). Pour lire le texte officiel des lois du Québec et des principales lois fédérales, votre assistant utilise « lois ».",
+  ],
+  parse_citation: [
+    "Analyse hors ligne la forme d'une citation (citation neutre, recueil ou identifiant d'éditeur) sans consommer votre quota CanLII. Vérifie uniquement le format, jamais l'existence réelle du jugement.",
+  ],
+  list_exempt_authorities: [
+    "Consulte et recherche hors ligne les 15 listes compilées d'autorités dispensées de reproduction devant 7 tribunaux canadiens et québécois (QCCA, TAT, TDP, TP, TMF, CF et COMC), enrichies des métadonnées et mots-clés compilés depuis CanLII.",
+    "Fonctionne strictement hors ligne sans consommer votre quota CanLII ; n'établit ni l'autorité actuelle des décisions ni le contenu de leur dispositif.",
+  ],
+  check_exempt_authorities: [
+    "Vérifie un lot d'au plus 50 citations contre les listes d'autorités dispensées d'un tribunal ou d'une sous-liste précise, en rendant l'un des cinq verdicts : DISPENSÉE, À VÉRIFIER, NON LISTÉE, ILLISIBLE ou INDÉTERMINÉE (qui ne vaut jamais ni absence de la liste ni dispense).",
+    "L'appariement hors ligne s'exécute en premier ; un repli vers CanLII n'intervient que si resolve_canlii est activé pour résoudre une citation parallèle ou une entrée non indexée. Pour éprouver l'existence générale d'une citation hors liste, votre assistant utilise verify_citations.",
+  ],
+};
 
 interface Descripteur {
   name: string;
@@ -373,11 +419,17 @@ function marqueurAppel(d: Descripteur): string {
 function outils(): string {
   const carte = (d: Descripteur) => {
     const en = OUTILS_EN[d.name];
+    const resumeFr = RESUME_OUTILS_FR[d.name] ?? [d.description];
+    const resumeEn = en?.resume ?? [en?.texte ?? d.description];
     return `<article>
 <h4><code>${esc(d.name)}</code></h4>
 <p class="titre">${bi(d.title, en?.titre ?? d.title)}</p>
+${biP(resumeFr, resumeEn)}
+<details>
+<summary>${bi("Instruction exacte transmise à l'assistant IA", "Exact prompt sent to the AI assistant")}</summary>
 ${biP([d.description], [en?.texte ?? d.description])}
 ${marqueurAppel(d)}
+</details>
 </article>`;
   };
 
@@ -388,10 +440,13 @@ ${h2("outils")}
 <h3>${bi("Adossés à CanLII", EN.familleCanlii)}</h3>
 ${biP(
   [
-    "Neuf outils interrogent l'API de CanLII (et comptent dans le quota de votre clé) ; " +
-      "parse_citation fonctionne hors ligne et analyse uniquement la structure d'une référence.",
-    "Les outils hors ligne pour les numéros de dossier de cour et les palais de justice du " +
-      "Québec (greffe_*, palais_*) relèvent désormais du connecteur public sans authentification " +
+    "Vous n'avez jamais à lancer ces fonctions vous-même : votre assistant IA les appelle automatiquement en arrière-plan pour vérifier les arrêts, consulter les listes d'autorités dispensées ou retrouver une décision.",
+    "Dix outils peuvent interroger l'API de CanLII (sur le quota de votre clé personnelle) ; " +
+      "parse_citation et list_exempt_authorities fonctionnent entièrement hors ligne sans " +
+      "consommer votre quota CanLII (check_exempt_authorities permet aussi un mode strictement " +
+      "hors ligne avec resolve_canlii=false). " +
+      "Les outils hors ligne pour les numéros de dossier de cour et les palais de justice du " +
+      "Québec (greffe_*, palais_*) relèvent du connecteur public sans authentification " +
       "« outils ».",
   ],
   EN.familleCanliiTexte,
@@ -461,14 +516,16 @@ function schemas(): string {
 ${h2("schema")}
 ${biP(
   [
-    "Chaque outil n'accepte que les paramètres listés ci-dessous : ces tableaux sont générés " +
-      "directement à partir des schémas de validation appliqués par le serveur.",
+    "Référence technique pour les développeurs et scripts : chaque outil n'accepte que les paramètres listés ci-dessous, générés directement à partir des règles de validation du serveur.",
     "La colonne Description reste en français dans les deux vues, car ces phrases sont le texte " +
       "exact reçu par l'assistant.",
   ],
   EN.schemaTexte,
 )}
+<details>
+<summary>${bi("Afficher les tables de paramètres des 12 outils (référence technique)", EN.schemaResume)}</summary>
 ${descripteurs().map(bloc).join("\n")}
+</details>
 </section>`;
 }
 
@@ -477,23 +534,24 @@ function acces(): string {
 ${h2("acces")}
 ${biP(
   [
-    "Ce connecteur est réservé aux membres actifs en règle du Barreau du Québec. Chaque praticien " +
-      "fournit sa propre clé API CanLII (enregistrée sous forme chiffrée dans /moi ou transmise " +
-      "par en-tête X-Clef-CanLII). La connexion courante s'effectue par autorisation navigateur " +
-      "OAuth 2.1 via acces.poirierlavoie.ca (https://jurisprudence.poirierlavoie.ca/mcp/oauth), sans " +
-      "clé à copier ; un accès direct par jeton individuel (https://jurisprudence.poirierlavoie.ca/mcp/<secret> " +
-      "ou https://jurisprudence.poirierlavoie.ca/mcp) demeure disponible pour les scripts et outils " +
-      "en ligne de commande. Demandes d'accès et gestion libre-service : acces.poirierlavoie.ca/demande " +
-      "et acces.poirierlavoie.ca/moi.",
-    "Aucune requête ni citation cherchée n'est journalisée. La fiche publique de découverte MCP " +
-      "sans secret est publiée sur https://jurisprudence.poirierlavoie.ca/mcp/server-card ; le dépôt " +
-      "inclut aussi les manifestes autonomes pour Google Antigravity et Gemini CLI.",
-    "Le code est libre et gratuit sous licence Apache-2.0 (voir LICENSE), avec un fichier NOTICE " +
-      "reconnaissant les conditions d'utilisation de CanLII sans aucune revendication sur ses " +
-      "données ni décisions ; la suite de tests s'exécute sans clé d'API ni réseau.",
+    "Accès gratuit réservé aux membres actifs en règle du Barreau du Québec.",
+    "1. Déposez une demande une seule fois sur https://acces.poirierlavoie.ca/demande avec votre numéro du Barreau et votre propre clé API CanLII (elle est conservée chiffrée sur le portail et utilise votre propre quota CanLII).",
+    "2. Installez le greffon droit-civil-quebecois dans Claude, ChatGPT, Gemini ou Antigravity — ou ajoutez https://jurisprudence.poirierlavoie.ca/mcp/oauth dans les réglages de connecteurs — puis cliquez sur « Connecter » pour autoriser l'accès dans votre navigateur (aucune clé technique à copier).",
+    "Vos citations et requêtes ne sont jamais journalisées. Gérez votre clé CanLII ou votre compte à tout moment sur https://acces.poirierlavoie.ca/moi.",
   ],
   EN.acces,
 )}
+<details>
+<summary>${bi("Détails techniques (scripts, ligne de commande et découverte MCP)", EN.accesTechniqueTitre)}</summary>
+${biP(
+  [
+    "Connexion OAuth 2.1 par navigateur : https://jurisprudence.poirierlavoie.ca/mcp/oauth. Un accès direct par jeton individuel (https://jurisprudence.poirierlavoie.ca/mcp ou https://jurisprudence.poirierlavoie.ca/mcp/<secret>, avec en-tête optionnel X-Clef-CanLII) demeure disponible pour les scripts, la ligne de commande et l'API Gemini Deep Research.",
+    "La fiche publique de découverte MCP sans secret est publiée sur https://jurisprudence.poirierlavoie.ca/mcp/server-card ; le dépôt inclut aussi les manifestes autonomes pour Google Antigravity et Gemini CLI.",
+    "Le code est libre et gratuit sous licence Apache-2.0 (voir LICENSE), avec un fichier NOTICE reconnaissant les conditions d'utilisation de CanLII sans aucune revendication sur ses données ni décisions.",
+  ],
+  EN.accesTechnique,
+)}
+</details>
 <p><a href="https://acces.poirierlavoie.ca/demande">${bi("Demande d'accès (/demande)", "Apply for access (/demande)")}</a>
  · <a href="https://acces.poirierlavoie.ca/moi">/moi</a>
  · <a href="https://legislation.poirierlavoie.ca/">${bi("Connecteur « lois »", "Connector « lois »")}</a>
@@ -554,7 +612,7 @@ function construireJsonLd(): string {
 }
 
 export function renderSite(): string {
-  const corps = [entete(), outils(), schemas(), acces(), pied()].join("\n");
+  const corps = [entete(), outils(), acces(), schemas(), pied()].join("\n");
   const titrePage = "MCP Jurisprudence — Vérification de citations (CanLII)";
   const descMeta =
     "Serveur MCP en lecture seule : vérification déterministe de citations de jurisprudence canadienne contre la collection de CanLII.";
@@ -638,7 +696,7 @@ function construireLlmsTxt(): string {
     "",
     `> ${PUBLIC_DESCRIPTION}`,
     "",
-    "## Tools (10 read-only MCP tools, derived from live registry)",
+    "## Tools (12 read-only MCP tools, derived from live registry)",
     "",
     ...outilsLignes,
     "",
