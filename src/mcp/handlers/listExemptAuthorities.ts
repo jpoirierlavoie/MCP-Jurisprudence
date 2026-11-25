@@ -1,5 +1,5 @@
 /**
- * `list_exempt_authorities` — Consultation et recherche hors ligne dans les 27 listes
+ * `list_exempt_cases` — Consultation et recherche hors ligne dans les 27 listes
  * d'autorités dispensées de reproduction (9 tribunaux canadiens et québécois).
  *
  * Aucun appel à l'API de CanLII n'est émis : les métadonnées CanLII et mots-clés
@@ -160,7 +160,7 @@ export async function listExemptAuthorities(
   const queryArg = typeof args.query === "string" ? args.query.trim() : "";
   const lang = (args.lang as Lang) ?? "fr";
 
-  const bornes = LIMITES.list_exempt_authorities;
+  const bornes = LIMITES.list_exempt_cases;
   const limit = Math.min(Math.max((args.limit as number) ?? bornes.defaut, 1), bornes.max);
   const offset = Math.min(Math.max((args.offset as number) ?? OFFSET_DEFAUT, 0), OFFSET_MAX);
 

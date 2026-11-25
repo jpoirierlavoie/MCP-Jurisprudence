@@ -347,7 +347,7 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       ["get_case", { citation: "2008 CSC 9" }],
       ["verify_citations", { citations: [{ citation: "2008 CSC 9" }] }],
       ["find_case", { title: "Dunsmuir", live: false }],
-      ["check_exempt_authority", { tribunal: "qcca", citations: [{ citation: "2008 CSC 9" }] }],
+      ["check_exempt_cases", { tribunal: "qcca", citations: [{ citation: "2008 CSC 9" }] }],
     ] as const) {
       const res = await postMcp("/mcp", jetonSansClef, {
         jsonrpc: "2.0",
@@ -365,7 +365,7 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       expect(corps.result.content[0]?.text, outil).not.toContain("Dunsmuir");
     }
 
-    // En revanche `parse_citation`, `list_exempt_authorities` et `check_exempt_authority`
+    // En revanche `parse_citation`, `list_exempt_cases` et `check_exempt_cases`
     // avec `resolve_canlii: false` (purement hors ligne) restent accessibles sans clé CanLII.
     const resParse = await postMcp("/mcp", jetonSansClef, {
       jsonrpc: "2.0",
@@ -383,7 +383,7 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       jsonrpc: "2.0",
       id: 21,
       method: "tools/call",
-      params: { name: "list_exempt_authorities", arguments: {} },
+      params: { name: "list_exempt_cases", arguments: {} },
     });
     const corpsListExempt = (await resListExempt.json()) as {
       result: { isError?: boolean; content: Array<{ text: string }> };
@@ -396,7 +396,7 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       id: 22,
       method: "tools/call",
       params: {
-        name: "check_exempt_authority",
+        name: "check_exempt_cases",
         arguments: {
           tribunal: "qcca",
           citations: [{ citation: "2008 CSC 9" }],

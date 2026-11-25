@@ -742,8 +742,8 @@ describe("§8 — méthodes JSON-RPC", () => {
       expect(t.name).not.toMatch(/^(?:jurisprudence|canlii)_/);
       expect(t.description.length).toBeGreaterThan(80);
       // `openWorldHint` n est PAS uniforme : vrai pour les dix outils qui peuvent interroger
-      // CanLII, faux pour `parse_citation` et `list_exempt_authorities` qui n appellent rien.
-      const sansAppel = t.name === "parse_citation" || t.name === "list_exempt_authorities";
+      // CanLII, faux pour `parse_citation` et `list_exempt_cases` qui n appellent rien.
+      const sansAppel = t.name === "parse_citation" || t.name === "list_exempt_cases";
       expect(t.annotations, t.name).toEqual({
         readOnlyHint: true,
         destructiveHint: false,
@@ -757,13 +757,13 @@ describe("§8 — méthodes JSON-RPC", () => {
       [
         "browse_cases",
         "browse_legislation",
-        "check_exempt_authority",
+        "check_exempt_cases",
         "citator",
         "find_case",
         "get_case",
         "get_legislation",
         "list_databases",
-        "list_exempt_authorities",
+        "list_exempt_cases",
         "parse_citation",
         "subsequent_history",
         "verify_citations",
@@ -786,6 +786,9 @@ describe("§8 — méthodes JSON-RPC", () => {
       "palais_get",
       "jurisprudence_verify_citations",
       "jurisprudence_parse_citation",
+      "list_exempt_authorities",
+      "check_exempt_authorities",
+      "check_exempt_authority",
     ]) {
       const res = await appeler(rpc("tools/call", { name: retire, arguments: {} }));
       const body = (await res.json()) as {

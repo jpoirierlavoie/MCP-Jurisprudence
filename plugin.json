@@ -2,7 +2,7 @@
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "mcp-jurisprudence",
   "displayName": "MCP Jurisprudence",
-  "version": "2.2.2",
+  "version": "2.3.0",
   "description": "Vérification déterministe de citations de jurisprudence canadienne et d'autorités dispensées (collection CanLII, métadonnées en lecture seule).",
   "logo": "assets/logo.svg",
   "suggestedPrompts": [

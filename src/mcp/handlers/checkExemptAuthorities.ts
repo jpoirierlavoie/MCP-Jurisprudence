@@ -1,5 +1,5 @@
 /**
- * `check_exempt_authority` — Vérification d'un lot de citations contre la ou les
+ * `check_exempt_cases` — Vérification d'un lot de citations contre la ou les
  * listes d'autorités dispensées d'un tribunal (ou d'une liste précise).
  *
  * Contrat à 5 verdicts :

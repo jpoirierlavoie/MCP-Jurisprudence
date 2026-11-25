@@ -150,7 +150,7 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
       "citation is constructible, the identifiers that follow from it. It establishes NOTHING " +
       "about whether the decision exists.",
   },
-  list_exempt_authorities: {
+  list_exempt_cases: {
     titre: "List exempt authorities (offline)",
     resume: [
       "Browses and searches offline the 27 compiled lists of authorities exempt from reproduction across 9 Canadian and Québec courts and tribunals (QCCA, QCCS, QCCQ, TAT, TDP, TP, TMF, Federal Court, TMOB), enriched with compiled CanLII metadata and keywords.",
@@ -165,7 +165,7 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
       "printed in source lists, and establishes NEITHER the current authority of decisions " +
       "(no appellate history, no treatment) NOR the content of their disposition.",
   },
-  check_exempt_authority: {
+  check_exempt_cases: {
     titre: "Check reproduction exemption",
     resume: [
       "Checks a batch of up to 50 citations against a court's or tribunal's exempt-authorities list(s), returning DISPENSÉE, À VÉRIFIER, NON LISTÉE, ILLISIBLE, or INDÉTERMINÉE (which never means absence from the list or exemption).",
@@ -173,7 +173,7 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
     ],
     texte:
       "Checks up to 50 citations against the exempt-authorities list(s) of a target court " +
-      "(`tribunal`, e.g. via `list_exempt_authorities`) or specific sub-list (`list_id`). " +
+      "(`tribunal`, e.g. via `list_exempt_cases`) or specific sub-list (`list_id`). " +
       "FIVE verdicts: DISPENSÉE, À VÉRIFIER (known source-list typo, title or year discrepancy), " +
       "NON LISTÉE, ILLISIBLE, and INDÉTERMINÉE (CanLII unreachable, throttled, or call budget " +
       "spent — NEVER means absence from the list or exemption). Runs offline matching first; " +
@@ -238,8 +238,8 @@ export const EN = {
     "You never need to invoke these tools manually: your AI assistant runs them automatically when " +
       "checking authorities, exempt lists, or looking up a decision.",
     "Ten tools may query CanLII's API (using your personal key's quota); parse_citation and " +
-      "list_exempt_authorities run strictly offline without consuming quota (and " +
-      "check_exempt_authority supports offline-only mode with resolve_canlii=false). Offline " +
+      "list_exempt_cases run strictly offline without consuming quota (and " +
+      "check_exempt_cases supports offline-only mode with resolve_canlii=false). Offline " +
       "Québec court-file and courthouse tools (greffe_*, palais_*) live in the public « outils » connector.",
   ],
 
