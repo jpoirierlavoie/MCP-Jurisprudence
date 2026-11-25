@@ -757,7 +757,7 @@ describe("§8 — méthodes JSON-RPC", () => {
       [
         "browse_cases",
         "browse_legislation",
-        "check_exempt_authorities",
+        "check_exempt_authority",
         "citator",
         "find_case",
         "get_case",

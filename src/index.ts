@@ -509,7 +509,7 @@ async function executerOutil(
 
   const estOutilHorsLigne = SANS_APPEL.has(nom);
   const estAppelHorsLigne =
-    estOutilHorsLigne || (nom === "check_exempt_authorities" && args.resolve_canlii === false);
+    estOutilHorsLigne || (nom === "check_exempt_authority" && args.resolve_canlii === false);
   const estToujoursSortant =
     nom === "browse_cases" ||
     nom === "browse_legislation" ||

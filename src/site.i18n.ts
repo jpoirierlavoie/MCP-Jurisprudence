@@ -165,7 +165,7 @@ export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
       "printed in source lists, and establishes NEITHER the current authority of decisions " +
       "(no appellate history, no treatment) NOR the content of their disposition.",
   },
-  check_exempt_authorities: {
+  check_exempt_authority: {
     titre: "Check reproduction exemption",
     resume: [
       "Checks a batch of up to 50 citations against a court's or tribunal's exempt-authorities list(s), returning DISPENSÉE, À VÉRIFIER, NON LISTÉE, ILLISIBLE, or INDÉTERMINÉE (which never means absence from the list or exemption).",
@@ -239,7 +239,7 @@ export const EN = {
       "checking authorities, exempt lists, or looking up a decision.",
     "Ten tools may query CanLII's API (using your personal key's quota); parse_citation and " +
       "list_exempt_authorities run strictly offline without consuming quota (and " +
-      "check_exempt_authorities supports offline-only mode with resolve_canlii=false). Offline " +
+      "check_exempt_authority supports offline-only mode with resolve_canlii=false). Offline " +
       "Québec court-file and courthouse tools (greffe_*, palais_*) live in the public « outils » connector.",
   ],
 

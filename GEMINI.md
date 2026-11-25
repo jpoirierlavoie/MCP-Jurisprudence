@@ -12,12 +12,12 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). La spécification qui fa
 
 | # | Axe | Éléments à inspecter et synchroniser |
 |---|---|---|
-| 1 | **Outils MCP (`juris`)** | `src/mcp/registry.ts` (12 outils sans préfixe : `verify_citations`, `find_case`, `get_case`, `citator`, `subsequent_history`, `browse_cases`, `list_databases`, `browse_legislation`, `get_legislation`, `parse_citation`, `list_exempt_authorities`, `check_exempt_authorities`), `src/mcp/handlers/*.ts`, `test/garde.test.ts`, `test/rpc.test.ts`, `test/doc.test.ts` (`NOMS.length === 12`, `EN_LETTRES`) |
+| 1 | **Outils MCP (`juris`)** | `src/mcp/registry.ts` (12 outils sans préfixe : `verify_citations`, `find_case`, `get_case`, `citator`, `subsequent_history`, `browse_cases`, `list_databases`, `browse_legislation`, `get_legislation`, `parse_citation`, `list_exempt_authorities`, `check_exempt_authority`), `src/mcp/handlers/*.ts`, `test/garde.test.ts`, `test/rpc.test.ts`, `test/doc.test.ts` (`NOMS.length === 12`, `EN_LETTRES`) |
 | 2 | **Descriptions et titres** | `src/mcp/registry.ts` (`title`, `description`, `INSTRUCTIONS`, `PUBLIC_DESCRIPTION`), `OUTILS_EN` dans `src/site.i18n.ts` (parité dans les deux sens, mention de `CanLII` en FR et EN), `GARDE_*` dans `src/format/render.ts` et chaîne de couplage `"base(s) au répertoire de CanLII"` dans `listDatabases.ts` (`scripts/refresh-databases.mjs`) |
 | 3 | **Schémas d'entrée** | `inputSchema` dans `src/mcp/registry.ts` (`additionalProperties: false`, zéro `x-mcp-header`, valeurs issues de `src/mcp/defauts.ts`, contraintes XOR/format/bornes croisées répétées sur chaque paramètre) |
 | 4 | **`README.md`, `SPEC.md`, sécurité, licence & manifestes** | `README.md` (`## Les douze outils`), `SPEC.md`, `SECURITY.md`, `LICENSE` (`Apache-2.0`), `NOTICE` (sources officielles et conditions CanLII BYOK), `package.json`, `plugin.json`, `mcp_config.json`, `gemini-extension.json`, `/mcp/server-card`, `CLAUDE.md`, `GEMINI.md` |
 | 5 | **Page publique HTML (`GET /`)** | `src/site.ts` + `src/site.i18n.ts` (`test/site.test.ts` : CSP, absence de CORS, `/mcp/<secret>`, liste blanche stricte d'URLs `https://` : écrire `acces.poirierlavoie.ca` sans schéma dans la prose de la page, parité `data-l="fr"` = `data-l="en"`, style jumeau `system-ui`) |
-| 6 | **Inter-dépôts (`Cross-repository`)** | `droit-civil-quebecois` (`v3.1.0`, manifestes, `skills/`, `verifier.py`, `verifier_tout.py`), `MCP-Socle` (`v0.8.4`), `MCP-Acces` (`mcp-identite`), `MCP-Legislation` (jumeau HTML/CSS), `MCP-Outils` |
+| 6 | **Inter-dépôts (`Cross-repository`)** | `droit-civil-quebecois` (`v3.1.1`, manifestes, `skills/`, `verifier.py`, `verifier_tout.py`), `MCP-Socle` (`v0.8.4`), `MCP-Acces` (`mcp-identite`), `MCP-Legislation` (jumeau HTML/CSS), `MCP-Outils` |
 
 ---
 
@@ -25,7 +25,7 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). La spécification qui fa
 
 ```
              ┌────────────────────────────────────────────────────────┐
-             │      droit-civil-quebecois (Plugin Cadre v3.1.0)       │
+             │      droit-civil-quebecois (Plugin Cadre v3.1.1)       │
              │  5 routeurs SKILL.md · 17 feuilles · 2 scripts stdlib  │
              └──────┬───────────────────────┬──────────────────┬──────┘
                     │                       │                  │
@@ -67,7 +67,7 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). La spécification qui fa
    - `/mcp/oauth` (`PORTE_OAUTH`, `autoriserChemin: false`) accepte **exclusivement** `Authorization: Bearer <jeton>` (aucun `?key=`, aucun segment `/mcp/oauth/<x>`, aucun secret partagé de Worker) et répond `401` RFC 9728 pointant vers `GET /.well-known/oauth-protected-resource/mcp/oauth` (`https://acces.poirierlavoie.ca`), tandis que la racine `GET /.well-known/oauth-protected-resource` reste en `404`.
    - Le contrôle de méthode `POST` (`405`) est exécuté **après** l'authentification sur `/mcp` comme sur `/mcp/oauth` (`G23`). Le pré-vol `OPTIONS` autorise l'en-tête `X-Clef-CanLII` et n'est jamais limité en débit (`G6`).
 2. **Garde stricte BYOK CanLII préalable au cache partagé (`S10`–`S12`, `S17`, `G8`, `G10`, `G38`) :**
-   - Pour tout `titulaire` sur les 10 outils pouvant interroger CanLII (`!SANS_APPEL.has(nom)` sauf `check_exempt_authorities` lorsque `resolve_canlii === false`, qui compte en `local`), la clé est résolue via `ouvrirCoffre` (`X-Clef-CanLII` → `DB_IDENTITE.coffre_clef` `usage='canlii'`, secrets maîtres `COFFRE_MAITRE_V1`/`V2`) **avant** toute lecture de `cases`, `cases_fts` ou `citator_*`, avec **zéro retombée** sur `env.CANLII_API_KEY` (`G8`). Sans clé valide, l'outil renvoie HTTP `200` `isError: true` `[CLEF_ABSENTE]` ou `[CLEF_REFUSEE]` sans lire le cache.
+   - Pour tout `titulaire` sur les 10 outils pouvant interroger CanLII (`!SANS_APPEL.has(nom)` sauf `check_exempt_authority` lorsque `resolve_canlii === false`, qui compte en `local`), la clé est résolue via `ouvrirCoffre` (`X-Clef-CanLII` → `DB_IDENTITE.coffre_clef` `usage='canlii'`, secrets maîtres `COFFRE_MAITRE_V1`/`V2`) **avant** toute lecture de `cases`, `cases_fts` ou `citator_*`, avec **zéro retombée** sur `env.CANLII_API_KEY` (`G8`). Sans clé valide, l'outil renvoie HTTP `200` `isError: true` `[CLEF_ABSENTE]` ou `[CLEF_REFUSEE]` sans lire le cache.
    - Si un appel sortant CanLII échoue en `401`/`403` avec la clé du coffre (`provenance === "coffre"`, et non sur une surcharge `X-Clef-CanLII`), `coffre_clef.etat` passe à `'refusee'` dans `ctx.waitUntil` et l'outil renvoie `[CLEF_REFUSEE]` vers `https://acces.poirierlavoie.ca/moi`.
    - Aucun horodatage exact `fetched_at` n'est exposé dans la prose rendue (`G38`).
 3. **Débit à deux niveaux, quotas exacts `local`/`sortant` et zéro journal de contenu (`G9`, `G32`, `G34`, `G37`) :**

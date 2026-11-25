@@ -134,11 +134,11 @@ describe("§2 — les douze outils existent et se décrivent", () => {
     expect(TOOLS.get_legislation!.description).toContain("DOWNLOAD_DATE");
     // §7.11 & §7.12 : listes d'autorités dispensées — réserve de fond et 5 verdicts.
     expect(TOOLS.list_exempt_authorities!.description).toContain("n'établit NI");
-    expect(TOOLS.check_exempt_authorities!.description).toContain("n'établit NI");
+    expect(TOOLS.check_exempt_authority!.description).toContain("n'établit NI");
     for (const v of ["DISPENSÉE", "À VÉRIFIER", "NON LISTÉE", "ILLISIBLE", "INDÉTERMINÉE"]) {
-      expect(TOOLS.check_exempt_authorities!.description, v).toContain(v);
+      expect(TOOLS.check_exempt_authority!.description, v).toContain(v);
     }
-    expect(TOOLS.check_exempt_authorities!.description).toMatch(/JAMAIS/);
+    expect(TOOLS.check_exempt_authority!.description).toMatch(/JAMAIS/);
   });
 
   /**
@@ -1143,7 +1143,7 @@ describe("§8 — les refus du gestionnaire sont ANNONCÉS dans la description",
     ["citator", ["citation", "case_id"], /EXACTEMENT l'une des deux formes/, { rel: "citing" }],
     ["subsequent_history", ["citation", "case_id"], /EXACTEMENT l'une des deux formes/, {}],
     [
-      "check_exempt_authorities",
+      "check_exempt_authority",
       ["list_id", "tribunal"],
       /EXACTEMENT l'un des deux/,
       { citations: [{ citation: "2008 CSC 9" }] },
@@ -1217,7 +1217,7 @@ describe("§7 — `isError` veut dire la même chose dans les douze outils", () 
     const fautifs = [
       await callTool("get_case", {}, toolCtx(fakeClient({}))),
       await callTool(
-        "check_exempt_authorities",
+        "check_exempt_authority",
         { citations: [{ citation: "2008 CSC 9" }] },
         toolCtx(fakeClient({})),
       ),
@@ -1231,7 +1231,7 @@ describe("§7 — `isError` veut dire la même chose dans les douze outils", () 
 });
 
 describe("§7.11 & §7.12 — garde obligatoire dans les sorties d'autorités dispensées", () => {
-  it("GARDE_AUTORITES_DISPENSEES paraît dans toutes les sorties de list_exempt_authorities et check_exempt_authorities", async () => {
+  it("GARDE_AUTORITES_DISPENSEES paraît dans toutes les sorties de list_exempt_authorities et check_exempt_authority", async () => {
     await seedDatabases(["csc-scc", "qcca", "qccs", "qccq", "fct", "fca"]);
     const sorties = [
       texte(await callTool("list_exempt_authorities", {}, toolCtx(fakeClient({})))),
@@ -1251,14 +1251,14 @@ describe("§7.11 & §7.12 — garde obligatoire dans les sorties d'autorités di
       ),
       texte(
         await callTool(
-          "check_exempt_authorities",
+          "check_exempt_authority",
           { list_id: "qcca-civil", citations: [{ citation: "2008 CSC 9" }], resolve_canlii: false },
           toolCtx(fakeClient({})),
         ),
       ),
       texte(
         await callTool(
-          "check_exempt_authorities",
+          "check_exempt_authority",
           {
             list_id: "qcca-civil",
             citations: [{ citation: "2020 QCCA 495" }],
@@ -1269,7 +1269,7 @@ describe("§7.11 & §7.12 — garde obligatoire dans les sorties d'autorités di
       ),
       texte(
         await callTool(
-          "check_exempt_authorities",
+          "check_exempt_authority",
           {
             list_id: "cf-imm-general",
             citations: [{ citation: "2004 CF 9999" }],
