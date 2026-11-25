@@ -26,10 +26,10 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). La spécification qui fa
 ```
              ┌────────────────────────────────────────────────────────┐
              │      droit-civil-quebecois (Plugin Cadre v3.1.1)       │
-             │  5 routeurs SKILL.md · 17 feuilles · 2 scripts stdlib  │
+             │   10 compétences · 59 feuilles · 4 scripts stdlib      │
              └──────┬───────────────────────┬──────────────────┬──────┘
                     │                       │                  │
-        (serveur `lois`, 10 outils)  (serveur `juris`, 12)  (serveur `outils`, 12)
+        (serveur `lois`, 10 outils)  (serveur `juris`, 12)  (serveur `outils`, 15)
                     │                       │                  │
                     ▼                       ▼                  ▼
          ┌─────────────────────┐ ┌─────────────────────┐ ┌──────────────────────────┐
