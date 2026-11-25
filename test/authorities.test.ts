@@ -531,4 +531,48 @@ describe("check_exempt_authorities", () => {
     expect(outErr).toContain(EXPLICATION_INDETERMINEE);
     expect(outErr).not.toContain("2004 CF 9999 — NON LISTÉE");
   });
+
+  it("expose l'Avis modifié CF (2015), les règles multiples QCCS et les consignes sur NON LISTÉE", async () => {
+    const resCf = await callTool(
+      "list_exempt_authorities",
+      { list_id: "cf-pi", limit: 1 },
+      toolCtx(fakeClient({})),
+    );
+    expect(resCf.isError).toBe(false);
+    const outCf = texte(resCf);
+    expect(outCf).toContain("LCJ Vol. 1, partie A, onglet 7");
+    expect(outCf).toContain("Notice%20to%20Parties%20re%20Common%20List");
+    expect(outCf).toContain("Sources connexes :");
+
+    const resQccs = await callTool(
+      "list_exempt_authorities",
+      { tribunal: "qccs", limit: 2 },
+      toolCtx(fakeClient({})),
+    );
+    expect(resQccs.isError).toBe(false);
+    const outQccs = texte(resQccs);
+    expect(outQccs).toContain("par. 188");
+    expect(outQccs).toContain("par. 189");
+    expect(outQccs).toContain("par. 24.2");
+
+    const resTmf = await callTool(
+      "check_exempt_authorities",
+      { tribunal: "tmf", citations: [{ citation: "2022 QCTMF 99" }], resolve_canlii: false },
+      toolCtx(fakeClient({})),
+    );
+    expect(resTmf.isError).toBe(false);
+    const outTmf = texte(resTmf);
+    expect(outTmf).toContain("2022 QCTMF 99 — NON LISTÉE");
+    expect(outTmf).toContain("Toute décision accessible gratuitement par hyperlien");
+
+    const resTdp = await callTool(
+      "check_exempt_authorities",
+      { list_id: "tdp", citations: [{ citation: "2022 QCTDP 99" }], resolve_canlii: false },
+      toolCtx(fakeClient({})),
+    );
+    expect(resTdp.isError).toBe(false);
+    const outTdp = texte(resTdp);
+    expect(outTdp).toContain("2022 QCTDP 99 — NON LISTÉE");
+    expect(outTdp).toContain("par. 40, 3°");
+  });
 });

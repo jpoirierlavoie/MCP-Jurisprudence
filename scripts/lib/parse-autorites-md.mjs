@@ -34,7 +34,7 @@ export const LIST_METADATA = {
     relatedUrls: [],
     fondementReglementaire: "art. 61 et 60 al. 2 R.C.a.Q.m.civ.",
     consigneCitation:
-      "Arrêts réputés faire partie du cahier de sources (art. 61 R.C.a.Q.m.civ.). Pour attirer l'attention de la Cour sur l'un d'eux, se limiter aux extraits pertinents avec les pages précédente et suivante et le sommaire (art. 60 al. 2 R.C.a.Q.m.civ.). Dépôt des cahiers sur support technologique uniquement (actualité du 2 mars 2026).",
+      "Arrêts réputés faire partie du cahier de sources et dispensés de reproduction (art. 61 R.C.a.Q.m.civ. ; liste non exhaustive). Pour attirer l'attention de la Cour sur l'un d'eux, se limiter aux extraits pertinents avec les pages précédente et suivante et le sommaire (art. 60 al. 2 R.C.a.Q.m.civ.). Dépôt des cahiers sur support technologique uniquement (actualité du 2 mars 2026).",
   },
   1.2: {
     listId: "qcca-criminel",
@@ -55,7 +55,7 @@ export const LIST_METADATA = {
     relatedUrls: [],
     fondementReglementaire: "art. 48 et 47 al. 4 R.C.a.Q.m.c. ; art. 43 et 42 al. 4 R.C.a.Q.m.p.",
     consigneCitation:
-      "Arrêts réputés faire partie du cahier de sources (art. 48 R.C.a.Q.m.c. ; art. 43 R.C.a.Q.m.p.). La reproduction d'extraits suit les mêmes conditions (art. 47 al. 4 R.C.a.Q.m.c. ; art. 42 al. 4 R.C.a.Q.m.p.).",
+      "Arrêts réputés faire partie du cahier de sources et dispensés de reproduction (art. 48 R.C.a.Q.m.c. ; art. 43 R.C.a.Q.m.p.). Pour attirer l'attention de la Cour sur l'un d'eux, se limiter aux extraits pertinents avec les pages précédente et suivante et le sommaire (art. 47 al. 4 R.C.a.Q.m.c. ; art. 42 al. 4 R.C.a.Q.m.p.).",
   },
   2.1: {
     listId: "tat-dsst",
@@ -142,7 +142,7 @@ export const LIST_METADATA = {
     fondementReglementaire:
       "art. 26 Règlement du Tribunal des droits de la personne ; Directive du TDP (par. 36, 40 3° et 41)",
     consigneCitation:
-      "Dispensé de reproduction (Directive, par. 41) : mentionner au cahier et à la liste de sources avec pages ou paragraphes pertinents et renvoi à la liste commune (ex. « Béliveau St-Jacques, page ou paragraphe, LCJTDP, onglet 4 »). Transmission PDF par courriel au plus tard 3 jours ouvrables avant l'audience (par. 36).",
+      "Jurisprudence réputée faire partie du cahier de sources (art. 26 Règl. TDP) et dispensée de production (Directive, par. 41) : mentionner au cahier et à la liste de sources les décisions invoquées avec pages ou paragraphes pertinents et renvoi à la liste commune (ex. « Béliveau St-Jacques, page ou paragraphe, LCJTDP, onglet 4 »). Transmission du cahier et de la liste en PDF par courriel au plus tard 3 jours ouvrables avant l'audience (par. 36) ; pour les autres sources citées, fournir un hyperlien vers une version gratuite, à défaut de quoi joindre le texte en PDF (par. 40, 3°).",
   },
   4: {
     listId: "tp",
@@ -184,7 +184,7 @@ export const LIST_METADATA = {
     relatedUrls: [],
     fondementReglementaire: "Directive interne de la liste commune de jurisprudence du TMF",
     consigneCitation:
-      "Une décision accessible gratuitement par hyperlien n'a pas à être reproduite intégralement : la partie peut n'en reproduire que l'extrait pertinent, en joignant la référence et l'hyperlien.",
+      "Le cahier de sources comprend la liste de la jurisprudence citée avec référence et hyperlien gratuit lorsqu'il existe. Toute décision accessible gratuitement par hyperlien (qu'elle figure ou non sur cette liste commune non exhaustive) est dispensée de reproduction intégrale : la partie peut n'en reproduire que l'extrait pertinent. Une décision sans hyperlien gratuit doit être reproduite intégralement.",
   },
   6.1: {
     listId: "cf-imm-general",
@@ -201,13 +201,19 @@ export const LIST_METADATA = {
     compiledAt: "2026-11-24",
     sourceUrl:
       "https://www.fct-cf.ca/Content/assets/pdf/base/Vol-1-Immigration-Book-of-Authorities-General-final-bilingual.pdf",
-    directiveUrl: "https://www.fct-cf.ca/en/pages/law-and-practice/notices",
+    directiveUrl:
+      "https://www.fct-cf.ca/Content/assets/pdf/base/Notice%20to%20Parties%20re%20Common%20List%20of%20Authorities%20October%20(amended%20Oct%2015-2015)%20FR.pdf",
     relatedUrls: [
       "https://www.fct-cf.gc.ca/fr/pages/droit-et-trousse-doutils/questions-certifiees-immigration-citoyennete",
+      "https://www.fct-cf.ca/content/assets/pdf/base/Notice%20to%20Parties%20re%20Common%20List%20of%20Authorities%20October%20(amended%20Oct%2015-2015).pdf",
+      "https://www.fct-cf.ca/fr/pages/droit-et-trousse-doutils/avis",
+      "https://www.fct-cf.ca/en/pages/law-and-practice/notices",
+      "https://www.fct-cf.ca/Content/assets/pdf/base/2025-06-20__Lignes-directrices-generales-consolidees-modifiees.pdf",
     ],
-    fondementReglementaire: "Avis aux parties et à la profession — Liste partagée des autorités",
+    fondementReglementaire:
+      "art. 70 Règles des Cours fédérales ; Avis modifié aux parties et à la communauté juridique — La liste commune de la jurisprudence (15 octobre 2015) ; Lignes directrices générales consolidées modifiées (20 juin 2025, par. 19f), 83 et 84)",
     consigneCitation:
-      "Liste partagée des autorités : une partie n'est pas obligée d'ajouter ces décisions à son cahier d'autorités, mais il lui revient de vérifier qu'elles demeurent valables (et de consulter l'avis modifié sur le site de la Cour).",
+      "Décisions réputées figurer au cahier de la jurisprudence (art. 70 Règles des Cours fédérales ; Avis modifié du 15 octobre 2015) : dispense de copie intégrale, mais le passage invoqué doit être fourni et tout document déposé à la Cour doit renvoyer à la Liste commune (ex. « LCJ Vol. 1, partie A, onglet 7 » / « CLA Vol. 1, Part A, Tab 7 »). Liste non exhaustive ; chaque partie doit vérifier que les décisions demeurent applicables. Hors liste, suivre la pratique habituelle (un mémoire déposé électroniquement avec hyperliens publics gratuits, références précises et index alphabétique tient lieu de cahier selon le par. 19f) des Lignes directrices consolidées du 20 juin 2025).",
   },
   6.2: {
     listId: "cf-imm-sursis",
@@ -224,11 +230,18 @@ export const LIST_METADATA = {
     compiledAt: "2026-11-24",
     sourceUrl:
       "https://www.fct-cf.ca/Content/assets/pdf/base/Vol-1-Immigration-Book-of-Authorities-Stay-final-bilingual.pdf",
-    directiveUrl: "https://www.fct-cf.ca/en/pages/law-and-practice/notices",
-    relatedUrls: [],
-    fondementReglementaire: "Avis aux parties et à la profession — Liste partagée des autorités",
+    directiveUrl:
+      "https://www.fct-cf.ca/Content/assets/pdf/base/Notice%20to%20Parties%20re%20Common%20List%20of%20Authorities%20October%20(amended%20Oct%2015-2015)%20FR.pdf",
+    relatedUrls: [
+      "https://www.fct-cf.ca/content/assets/pdf/base/Notice%20to%20Parties%20re%20Common%20List%20of%20Authorities%20October%20(amended%20Oct%2015-2015).pdf",
+      "https://www.fct-cf.ca/fr/pages/droit-et-trousse-doutils/avis",
+      "https://www.fct-cf.ca/en/pages/law-and-practice/notices",
+      "https://www.fct-cf.ca/Content/assets/pdf/base/2025-06-20__Lignes-directrices-generales-consolidees-modifiees.pdf",
+    ],
+    fondementReglementaire:
+      "art. 70 Règles des Cours fédérales ; Avis modifié aux parties et à la communauté juridique — La liste commune de la jurisprudence (15 octobre 2015) ; Lignes directrices générales consolidées modifiées (20 juin 2025, par. 19f), 83 et 84)",
     consigneCitation:
-      "Liste partagée des autorités : une partie n'est pas obligée d'ajouter ces décisions à son cahier d'autorités, mais il lui revient de vérifier qu'elles demeurent valables.",
+      "Décisions réputées figurer au cahier de la jurisprudence (art. 70 Règles des Cours fédérales ; Avis modifié du 15 octobre 2015) : dispense de copie intégrale, mais le passage invoqué doit être fourni et tout document déposé à la Cour doit renvoyer à la Liste commune (ex. « LCJ Vol. 1, partie A, onglet 7 » / « CLA Vol. 1, Part A, Tab 7 »). Liste non exhaustive ; chaque partie doit vérifier que les décisions demeurent applicables. Hors liste, suivre la pratique habituelle (un mémoire déposé électroniquement avec hyperliens publics gratuits, références précises et index alphabétique tient lieu de cahier selon le par. 19f) des Lignes directrices consolidées du 20 juin 2025).",
   },
   6.3: {
     listId: "cf-autochtone",
@@ -244,11 +257,18 @@ export const LIST_METADATA = {
     modifiedDate: "2019-04-08",
     compiledAt: "2026-11-24",
     sourceUrl: "https://www.fct-cf.ca/en/pages/law-and-practice/notices/volume-2-aboriginal-law",
-    directiveUrl: "https://www.fct-cf.ca/en/pages/law-and-practice/notices",
-    relatedUrls: [],
-    fondementReglementaire: "Avis aux parties et à la profession — Liste partagée des autorités",
+    directiveUrl:
+      "https://www.fct-cf.ca/Content/assets/pdf/base/Notice%20to%20Parties%20re%20Common%20List%20of%20Authorities%20October%20(amended%20Oct%2015-2015)%20FR.pdf",
+    relatedUrls: [
+      "https://www.fct-cf.ca/content/assets/pdf/base/Notice%20to%20Parties%20re%20Common%20List%20of%20Authorities%20October%20(amended%20Oct%2015-2015).pdf",
+      "https://www.fct-cf.ca/fr/pages/droit-et-trousse-doutils/avis",
+      "https://www.fct-cf.ca/en/pages/law-and-practice/notices",
+      "https://www.fct-cf.ca/Content/assets/pdf/base/2025-06-20__Lignes-directrices-generales-consolidees-modifiees.pdf",
+    ],
+    fondementReglementaire:
+      "art. 70 Règles des Cours fédérales ; Avis modifié aux parties et à la communauté juridique — La liste commune de la jurisprudence (15 octobre 2015) ; Lignes directrices générales consolidées modifiées (20 juin 2025, par. 19f), 83 et 84)",
     consigneCitation:
-      "Les volumes 2 à 5 ne contiennent pas d'énoncé de portée propre ; consulter l'avis modifié aux parties et à la profession de la Cour fédérale.",
+      "Décisions réputées figurer au cahier de la jurisprudence (art. 70 Règles des Cours fédérales ; Avis modifié du 15 octobre 2015 — le volume lui-même n'énonce pas de portée propre) : dispense de copie intégrale, mais le passage invoqué doit être fourni et tout document déposé à la Cour doit renvoyer à la Liste commune (ex. « LCJ Vol. 1, partie A, onglet 7 » / « CLA Vol. 1, Part A, Tab 7 »). Hors liste, suivre la pratique habituelle (un mémoire déposé électroniquement avec hyperliens publics gratuits, références précises et index alphabétique tient lieu de cahier selon le par. 19f) des Lignes directrices consolidées du 20 juin 2025).",
   },
   6.4: {
     listId: "cf-travail",
@@ -265,11 +285,18 @@ export const LIST_METADATA = {
     compiledAt: "2026-11-24",
     sourceUrl:
       "https://www.fct-cf.ca/en/pages/law-and-practice/notices/volume-3-labour-law-human-rights-privacy-and-access-review",
-    directiveUrl: "https://www.fct-cf.ca/en/pages/law-and-practice/notices",
-    relatedUrls: [],
-    fondementReglementaire: "Avis aux parties et à la profession — Liste partagée des autorités",
+    directiveUrl:
+      "https://www.fct-cf.ca/Content/assets/pdf/base/Notice%20to%20Parties%20re%20Common%20List%20of%20Authorities%20October%20(amended%20Oct%2015-2015)%20FR.pdf",
+    relatedUrls: [
+      "https://www.fct-cf.ca/content/assets/pdf/base/Notice%20to%20Parties%20re%20Common%20List%20of%20Authorities%20October%20(amended%20Oct%2015-2015).pdf",
+      "https://www.fct-cf.ca/fr/pages/droit-et-trousse-doutils/avis",
+      "https://www.fct-cf.ca/en/pages/law-and-practice/notices",
+      "https://www.fct-cf.ca/Content/assets/pdf/base/2025-06-20__Lignes-directrices-generales-consolidees-modifiees.pdf",
+    ],
+    fondementReglementaire:
+      "art. 70 Règles des Cours fédérales ; Avis modifié aux parties et à la communauté juridique — La liste commune de la jurisprudence (15 octobre 2015) ; Lignes directrices générales consolidées modifiées (20 juin 2025, par. 19f), 83 et 84)",
     consigneCitation:
-      "Les volumes 2 à 5 ne contiennent pas d'énoncé de portée propre ; consulter l'avis modifié aux parties et à la profession de la Cour fédérale.",
+      "Décisions réputées figurer au cahier de la jurisprudence (art. 70 Règles des Cours fédérales ; Avis modifié du 15 octobre 2015 — le volume lui-même n'énonce pas de portée propre) : dispense de copie intégrale, mais le passage invoqué doit être fourni et tout document déposé à la Cour doit renvoyer à la Liste commune (ex. « LCJ Vol. 1, partie A, onglet 7 » / « CLA Vol. 1, Part A, Tab 7 »). Hors liste, suivre la pratique habituelle (un mémoire déposé électroniquement avec hyperliens publics gratuits, références précises et index alphabétique tient lieu de cahier selon le par. 19f) des Lignes directrices consolidées du 20 juin 2025).",
   },
   6.5: {
     listId: "cf-pi",
@@ -286,11 +313,18 @@ export const LIST_METADATA = {
     compiledAt: "2026-11-24",
     sourceUrl:
       "https://www.fct-cf.ca/en/pages/law-and-practice/notices/volume-4-intellectual-property-law",
-    directiveUrl: "https://www.fct-cf.ca/en/pages/law-and-practice/notices",
-    relatedUrls: [],
-    fondementReglementaire: "Avis aux parties et à la profession — Liste partagée des autorités",
+    directiveUrl:
+      "https://www.fct-cf.ca/Content/assets/pdf/base/Notice%20to%20Parties%20re%20Common%20List%20of%20Authorities%20October%20(amended%20Oct%2015-2015)%20FR.pdf",
+    relatedUrls: [
+      "https://www.fct-cf.ca/content/assets/pdf/base/Notice%20to%20Parties%20re%20Common%20List%20of%20Authorities%20October%20(amended%20Oct%2015-2015).pdf",
+      "https://www.fct-cf.ca/fr/pages/droit-et-trousse-doutils/avis",
+      "https://www.fct-cf.ca/en/pages/law-and-practice/notices",
+      "https://www.fct-cf.ca/Content/assets/pdf/base/2025-06-20__Lignes-directrices-generales-consolidees-modifiees.pdf",
+    ],
+    fondementReglementaire:
+      "art. 70 Règles des Cours fédérales ; Avis modifié aux parties et à la communauté juridique — La liste commune de la jurisprudence (15 octobre 2015) ; Lignes directrices générales consolidées modifiées (20 juin 2025, par. 19f), 83 et 84)",
     consigneCitation:
-      "Les volumes 2 à 5 ne contiennent pas d'énoncé de portée propre ; consulter l'avis modifié aux parties et à la profession de la Cour fédérale.",
+      "Décisions réputées figurer au cahier de la jurisprudence (art. 70 Règles des Cours fédérales ; Avis modifié du 15 octobre 2015 — le volume lui-même n'énonce pas de portée propre) : dispense de copie intégrale, mais le passage invoqué doit être fourni et tout document déposé à la Cour doit renvoyer à la Liste commune (ex. « LCJ Vol. 1, partie A, onglet 7 » / « CLA Vol. 1, Part A, Tab 7 »). Hors liste, suivre la pratique habituelle (un mémoire déposé électroniquement avec hyperliens publics gratuits, références précises et index alphabétique tient lieu de cahier selon le par. 19f) des Lignes directrices consolidées du 20 juin 2025).",
   },
   6.6: {
     listId: "cf-concurrence",
@@ -307,11 +341,18 @@ export const LIST_METADATA = {
     compiledAt: "2026-11-24",
     sourceUrl:
       "https://www.fct-cf.ca/Content/assets/pdf/base/Common%20List%20of%20Authorities%20-%20vol%205%20-%20Competition%20Act%20-%20October%202015.pdf",
-    directiveUrl: "https://www.fct-cf.ca/en/pages/law-and-practice/notices",
-    relatedUrls: [],
-    fondementReglementaire: "Avis aux parties et à la profession — Liste partagée des autorités",
+    directiveUrl:
+      "https://www.fct-cf.ca/Content/assets/pdf/base/Notice%20to%20Parties%20re%20Common%20List%20of%20Authorities%20October%20(amended%20Oct%2015-2015)%20FR.pdf",
+    relatedUrls: [
+      "https://www.fct-cf.ca/content/assets/pdf/base/Notice%20to%20Parties%20re%20Common%20List%20of%20Authorities%20October%20(amended%20Oct%2015-2015).pdf",
+      "https://www.fct-cf.ca/fr/pages/droit-et-trousse-doutils/avis",
+      "https://www.fct-cf.ca/en/pages/law-and-practice/notices",
+      "https://www.fct-cf.ca/Content/assets/pdf/base/2025-06-20__Lignes-directrices-generales-consolidees-modifiees.pdf",
+    ],
+    fondementReglementaire:
+      "art. 70 Règles des Cours fédérales ; Avis modifié aux parties et à la communauté juridique — La liste commune de la jurisprudence (15 octobre 2015) ; Lignes directrices générales consolidées modifiées (20 juin 2025, par. 19f), 83 et 84)",
     consigneCitation:
-      "Les volumes 2 à 5 ne contiennent pas d'énoncé de portée propre ; consulter l'avis modifié aux parties et à la profession de la Cour fédérale.",
+      "Décisions réputées figurer au cahier de la jurisprudence (art. 70 Règles des Cours fédérales ; Avis modifié du 15 octobre 2015 — le volume lui-même n'énonce pas de portée propre) : dispense de copie intégrale, mais le passage invoqué doit être fourni et tout document déposé à la Cour doit renvoyer à la Liste commune (ex. « LCJ Vol. 1, partie A, onglet 7 » / « CLA Vol. 1, Part A, Tab 7 »). Hors liste, suivre la pratique habituelle (un mémoire déposé électroniquement avec hyperliens publics gratuits, références précises et index alphabétique tient lieu de cahier selon le par. 19f) des Lignes directrices consolidées du 20 juin 2025).",
   },
   7: {
     listId: "comc",
@@ -333,7 +374,7 @@ export const LIST_METADATA = {
     fondementReglementaire:
       "Practice in Trademark Opposition Proceedings (section X.8) ; Practice in Section 45 Proceedings (section VII.7)",
     consigneCitation:
-      "La partie qui fournit un cahier d'autorités n'est pas tenue d'y inclure une copie des décisions de la liste commune, mais doit identifier dans sa liste de jurisprudence celles sur lesquelles elle entend s'appuyer.",
+      "La partie qui fournit un cahier d'autorités n'est pas tenue d'y inclure une copie des décisions de la liste commune, mais doit identifier dans sa liste de jurisprudence celles sur lesquelles elle entend s'appuyer (liste sujette à mise à jour occasionnelle).",
   },
   8.1: {
     listId: "qccs-mtl-controle-judiciaire",
@@ -353,9 +394,9 @@ export const LIST_METADATA = {
     directiveUrl: null,
     relatedUrls: [],
     fondementReglementaire:
-      "Directives de la Cour supérieure — Division de Montréal (par. 187 à 190) ; art. 5 Règlement de la Cour supérieure du Québec en matière civile",
+      "Directives de la Cour supérieure — Division de Montréal (par. 1, 186 et 187 à 190) ; art. 5 Règlement de la Cour supérieure du Québec en matière civile",
     consigneCitation:
-      "Les jugements compris dans ces listes n'ont pas à être reproduits intégralement dans le cahier des sources transmis avant l'audience. Si une partie entend citer l'un d'eux, inclure le passage invoqué avec les pages précédente et suivante, marquer le passage et renvoyer à la liste commune (par. 188).",
+      "Les jugements de ces listes (non exhaustives, par. 190) n'ont pas à être reproduits intégralement dans le cahier des sources transmis avant l'audience : inclure le passage invoqué avec les pages précédente et suivante, marquer le passage cité et renvoyer à la liste commune (par. 188). Hors liste, reproduire intégralement en indiquant les pages pertinentes et en marquant les passages cités (art. 5 R.C.s.Q.m.civ., par. 189). Vérifier aussi les directives propres au district (notamment Montréal, qui ont préséance, par. 1 et 186).",
   },
   8.2: {
     listId: "qccs-mtl-commercial",
@@ -377,9 +418,9 @@ export const LIST_METADATA = {
     directiveUrl: null,
     relatedUrls: [],
     fondementReglementaire:
-      "Directives de la Cour supérieure — Division de Montréal (par. 187 à 190) ; art. 5 Règlement de la Cour supérieure du Québec en matière civile",
+      "Directives de la Cour supérieure — Division de Montréal (par. 1, 186 et 187 à 190) ; art. 5 Règlement de la Cour supérieure du Québec en matière civile",
     consigneCitation:
-      "Les jugements compris dans ces listes n'ont pas à être reproduits intégralement dans le cahier des sources transmis avant l'audience. Si une partie entend citer l'un d'eux, inclure le passage invoqué avec les pages précédente et suivante, marquer le passage et renvoyer à la liste commune (par. 188).",
+      "Les jugements de ces listes (non exhaustives, par. 190) n'ont pas à être reproduits intégralement dans le cahier des sources transmis avant l'audience : inclure le passage invoqué avec les pages précédente et suivante, marquer le passage cité et renvoyer à la liste commune (par. 188). Hors liste, reproduire intégralement en indiquant les pages pertinentes et en marquant les passages cités (art. 5 R.C.s.Q.m.civ., par. 189). Vérifier aussi les directives propres au district (notamment Montréal, qui ont préséance, par. 1 et 186).",
   },
   8.3: {
     listId: "qccs-mtl-oppression",
@@ -399,9 +440,9 @@ export const LIST_METADATA = {
     directiveUrl: null,
     relatedUrls: [],
     fondementReglementaire:
-      "Directives de la Cour supérieure — Division de Montréal (par. 187 à 190) ; art. 5 Règlement de la Cour supérieure du Québec en matière civile",
+      "Directives de la Cour supérieure — Division de Montréal (par. 1, 186 et 187 à 190) ; art. 5 Règlement de la Cour supérieure du Québec en matière civile",
     consigneCitation:
-      "Les jugements compris dans ces listes n'ont pas à être reproduits intégralement dans le cahier des sources transmis avant l'audience. Si une partie entend citer l'un d'eux, inclure le passage invoqué avec les pages précédente et suivante, marquer le passage et renvoyer à la liste commune (par. 188).",
+      "Les jugements de ces listes (non exhaustives, par. 190) n'ont pas à être reproduits intégralement dans le cahier des sources transmis avant l'audience : inclure le passage invoqué avec les pages précédente et suivante, marquer le passage cité et renvoyer à la liste commune (par. 188). Hors liste, reproduire intégralement en indiquant les pages pertinentes et en marquant les passages cités (art. 5 R.C.s.Q.m.civ., par. 189). Vérifier aussi les directives propres au district (notamment Montréal, qui ont préséance, par. 1 et 186).",
   },
   8.4: {
     listId: "qccs-mtl-actions-collectives",
@@ -421,9 +462,9 @@ export const LIST_METADATA = {
     directiveUrl: null,
     relatedUrls: [],
     fondementReglementaire:
-      "Directives de la Cour supérieure — Division de Montréal (par. 187 à 190) ; art. 5 Règlement de la Cour supérieure du Québec en matière civile",
+      "Directives de la Cour supérieure — Division de Montréal (par. 1, 186 et 187 à 190) ; art. 5 Règlement de la Cour supérieure du Québec en matière civile",
     consigneCitation:
-      "Les jugements compris dans ces listes n'ont pas à être reproduits intégralement dans le cahier des sources transmis avant l'audience. Si une partie entend citer l'un d'eux, inclure le passage invoqué avec les pages précédente et suivante, marquer le passage et renvoyer à la liste commune (par. 188).",
+      "Les jugements de ces listes (non exhaustives, par. 190) n'ont pas à être reproduits intégralement dans le cahier des sources transmis avant l'audience : inclure le passage invoqué avec les pages précédente et suivante, marquer le passage cité et renvoyer à la liste commune (par. 188). Hors liste, reproduire intégralement en indiquant les pages pertinentes et en marquant les passages cités (art. 5 R.C.s.Q.m.civ., par. 189). Vérifier aussi les directives propres au district (notamment Montréal, qui ont préséance, par. 1 et 186).",
   },
   8.5: {
     listId: "qccs-qc-civil",
@@ -445,7 +486,7 @@ export const LIST_METADATA = {
     fondementReglementaire:
       "Directives de la juge en chef associée pour la division de Québec (par. 24.1 à 24.3)",
     consigneCitation:
-      "Les jugements compris dans ces listes n'ont pas à être reproduits intégralement dans le cahier d'autorités transmis préalablement à l'audience. Si une partie entend citer l'un d'eux, le passage invoqué doit être inclus avec référence à la liste commune de jurisprudence (par. 24.2 et 24.3).",
+      "Jugements fréquemment invoqués (par. 24.1) qui n'ont pas à être reproduits intégralement dans le cahier d'autorités transmis préalablement à l'audience : si une partie entend citer l'un d'eux, inclure le passage invoqué avec référence à la liste commune de jurisprudence (par. 24.2 et 24.3).",
   },
   8.6: {
     listId: "qccs-qc-familial",
@@ -467,7 +508,7 @@ export const LIST_METADATA = {
     fondementReglementaire:
       "Directives de la juge en chef associée pour la division de Québec (par. 24.1 à 24.3)",
     consigneCitation:
-      "Les jugements compris dans ces listes n'ont pas à être reproduits intégralement dans le cahier d'autorités transmis préalablement à l'audience. Si une partie entend citer l'un d'eux, le passage invoqué doit être inclus avec référence à la liste commune de jurisprudence (par. 24.2 et 24.3).",
+      "Jugements fréquemment invoqués (par. 24.1) qui n'ont pas à être reproduits intégralement dans le cahier d'autorités transmis préalablement à l'audience : si une partie entend citer l'un d'eux, inclure le passage invoqué avec référence à la liste commune de jurisprudence (par. 24.2 et 24.3).",
   },
   9.1: {
     listId: "qccq-daa-disciplinaire",
@@ -489,9 +530,9 @@ export const LIST_METADATA = {
     directiveUrl: null,
     relatedUrls: [],
     fondementReglementaire:
-      "art. 39 Règlement de la Cour du Québec ; Directive concernant la liste commune de jurisprudence — Division administrative et d'appel (par. 1 à 5)",
+      "art. 38 et 39 Règlement de la Cour du Québec ; Directive concernant la liste commune de jurisprudence — Division administrative et d'appel (par. 1 à 5)",
     consigneCitation:
-      "Sources considérées comme produites et dispensées de reproduction devant la Division administrative et d'appel dans les matières visées (art. 39 R.C.Q. ; Directive, par. 2 et 3). Si une partie entend citer un jugement de la liste, inclure le passage invoqué et joindre une référence à la Liste commune (par. 3).",
+      "Sources considérées comme produites et dispensées de reproduction devant la Division administrative et d'appel dans les matières visées (art. 39 R.C.Q. ; Directive, par. 2 et 3). Si une partie entend citer un jugement de la liste, inclure le passage invoqué et joindre une référence à la Liste commune (par. 3). Hors liste, suivre la pratique habituelle conformément à l'art. 38 R.C.Q. (par. 4).",
   },
   9.2: {
     listId: "qccq-daa-deontologie-policiere",
@@ -512,9 +553,9 @@ export const LIST_METADATA = {
     directiveUrl: null,
     relatedUrls: [],
     fondementReglementaire:
-      "art. 39 Règlement de la Cour du Québec ; Directive concernant la liste commune de jurisprudence — Division administrative et d'appel (par. 1 à 5)",
+      "art. 38 et 39 Règlement de la Cour du Québec ; Directive concernant la liste commune de jurisprudence — Division administrative et d'appel (par. 1 à 5)",
     consigneCitation:
-      "Sources considérées comme produites et dispensées de reproduction devant la Division administrative et d'appel dans les matières visées (art. 39 R.C.Q. ; Directive, par. 2 et 3). Si une partie entend citer un jugement de la liste, inclure le passage invoqué et joindre une référence à la Liste commune (par. 3).",
+      "Sources considérées comme produites et dispensées de reproduction devant la Division administrative et d'appel dans les matières visées (art. 39 R.C.Q. ; Directive, par. 2 et 3). Si une partie entend citer un jugement de la liste, inclure le passage invoqué et joindre une référence à la Liste commune (par. 3). Hors liste, suivre la pratique habituelle conformément à l'art. 38 R.C.Q. (par. 4).",
   },
   9.3: {
     listId: "qccq-daa-fiscalite-municipale",
@@ -536,9 +577,9 @@ export const LIST_METADATA = {
     directiveUrl: null,
     relatedUrls: [],
     fondementReglementaire:
-      "art. 39 Règlement de la Cour du Québec ; Directive concernant la liste commune de jurisprudence — Division administrative et d'appel (par. 1 à 5)",
+      "art. 38 et 39 Règlement de la Cour du Québec ; Directive concernant la liste commune de jurisprudence — Division administrative et d'appel (par. 1 à 5)",
     consigneCitation:
-      "Sources considérées comme produites et dispensées de reproduction devant la Division administrative et d'appel dans les matières visées (art. 39 R.C.Q. ; Directive, par. 2 et 3). Si une partie entend citer un jugement de la liste, inclure le passage invoqué et joindre une référence à la Liste commune (par. 3).",
+      "Sources considérées comme produites et dispensées de reproduction devant la Division administrative et d'appel dans les matières visées (art. 39 R.C.Q. ; Directive, par. 2 et 3). Si une partie entend citer un jugement de la liste, inclure le passage invoqué et joindre une référence à la Liste commune (par. 3). Hors liste, suivre la pratique habituelle conformément à l'art. 38 R.C.Q. (par. 4).",
   },
   9.4: {
     listId: "qccq-daa-fiscale",
@@ -559,9 +600,9 @@ export const LIST_METADATA = {
     directiveUrl: null,
     relatedUrls: [],
     fondementReglementaire:
-      "art. 39 Règlement de la Cour du Québec ; Directive concernant la liste commune de jurisprudence — Division administrative et d'appel (par. 1 à 5)",
+      "art. 38 et 39 Règlement de la Cour du Québec ; Directive concernant la liste commune de jurisprudence — Division administrative et d'appel (par. 1 à 5)",
     consigneCitation:
-      "Sources considérées comme produites et dispensées de reproduction devant la Division administrative et d'appel dans les matières visées (art. 39 R.C.Q. ; Directive, par. 2 et 3). Si une partie entend citer un jugement de la liste, inclure le passage invoqué et joindre une référence à la Liste commune (par. 3).",
+      "Sources considérées comme produites et dispensées de reproduction devant la Division administrative et d'appel dans les matières visées (art. 39 R.C.Q. ; Directive, par. 2 et 3). Si une partie entend citer un jugement de la liste, inclure le passage invoqué et joindre une référence à la Liste commune (par. 3). Hors liste, suivre la pratique habituelle conformément à l'art. 38 R.C.Q. (par. 4).",
   },
   9.5: {
     listId: "qccq-daa-secteur-financier",
@@ -583,9 +624,9 @@ export const LIST_METADATA = {
     directiveUrl: null,
     relatedUrls: [],
     fondementReglementaire:
-      "art. 39 Règlement de la Cour du Québec ; Directive concernant la liste commune de jurisprudence — Division administrative et d'appel (par. 1 à 5)",
+      "art. 38 et 39 Règlement de la Cour du Québec ; Directive concernant la liste commune de jurisprudence — Division administrative et d'appel (par. 1 à 5)",
     consigneCitation:
-      "Sources considérées comme produites et dispensées de reproduction devant la Division administrative et d'appel dans les matières visées (art. 39 R.C.Q. ; Directive, par. 2 et 3). Si une partie entend citer un jugement de la liste, inclure le passage invoqué et joindre une référence à la Liste commune (par. 3).",
+      "Sources considérées comme produites et dispensées de reproduction devant la Division administrative et d'appel dans les matières visées (art. 39 R.C.Q. ; Directive, par. 2 et 3). Si une partie entend citer un jugement de la liste, inclure le passage invoqué et joindre une référence à la Liste commune (par. 3). Hors liste, suivre la pratique habituelle conformément à l'art. 38 R.C.Q. (par. 4).",
   },
   9.6: {
     listId: "qccq-daa-acces-information",
@@ -607,9 +648,9 @@ export const LIST_METADATA = {
     directiveUrl: null,
     relatedUrls: [],
     fondementReglementaire:
-      "art. 39 Règlement de la Cour du Québec ; Directive concernant la liste commune de jurisprudence — Division administrative et d'appel (par. 1 à 5)",
+      "art. 38 et 39 Règlement de la Cour du Québec ; Directive concernant la liste commune de jurisprudence — Division administrative et d'appel (par. 1 à 5)",
     consigneCitation:
-      "Sources considérées comme produites et dispensées de reproduction devant la Division administrative et d'appel dans les matières visées (art. 39 R.C.Q. ; Directive, par. 2 et 3). Si une partie entend citer un jugement de la liste, inclure le passage invoqué et joindre une référence à la Liste commune (par. 3).",
+      "Sources considérées comme produites et dispensées de reproduction devant la Division administrative et d'appel dans les matières visées (art. 39 R.C.Q. ; Directive, par. 2 et 3). Si une partie entend citer un jugement de la liste, inclure le passage invoqué et joindre une référence à la Liste commune (par. 3). Hors liste, suivre la pratique habituelle conformément à l'art. 38 R.C.Q. (par. 4).",
   },
 };
 

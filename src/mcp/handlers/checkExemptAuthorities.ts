@@ -16,6 +16,7 @@ import {
   canliiTitleForLang,
   checkExemptCitation,
   type ExemptMatchItem,
+  formatTargetProceduralRules,
   resolveTargetLists,
 } from "../../authorities/match";
 import { TRIBUNAUX } from "../../authorities/normalize";
@@ -197,9 +198,10 @@ export async function checkExemptAuthorities(
     ? `${listId} (${lang === "en" ? cible.lists[0]!.tribunalNomEn : cible.lists[0]!.tribunalNomFr})`
     : `${tribMeta ? (lang === "en" ? tribMeta.nomEn : tribMeta.nomFr) : tribunal} [${cible.lists.map((l) => l.listId).join(", ")}]`;
 
-  const entete = aIndeterminee
+  const baseEntete = aIndeterminee
     ? `Vérification INTERROMPUE sur ${porteeLabel} — ${nombreFr(outcomes.length)} citation(s), au moins une INDÉTERMINÉE (ne vaut JAMAIS absence) :`
     : `Contrôle d'autorités dispensées (${porteeLabel}) — ${nombreFr(outcomes.length)} référence(s) :`;
+  const entete = [baseEntete, ...formatTargetProceduralRules(cible.lists)].join("\n");
 
   const corps = outcomes.map((o) => formaterResultat(o, lang));
   const piedParts: Array<string | null> = [
