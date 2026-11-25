@@ -6,7 +6,7 @@
 **Auteur de la spéc. :** (préparé pour Jason Poirier Lavoie)
 **Cible :** nouveau dépôt autonome — Worker Cloudflare, D1, TypeScript
 **Modèle de référence :** le Worker `legislation` / base D1 `qclaw` (connecteur « lois »)
-**Statut :** **livré (`2.2.1`) et mis à niveau Phase 3 (`@poirierlavoie/mcp-socle` `0.8.4`)** sur `jurisprudence.poirierlavoie.ca` — douze outils sans préfixe (clé `juris` dans `droit-civil-quebecois` `v3.1.0`), identité partagée `DB_IDENTITE` (`mcp-identite`), double montage `/mcp` (`404` vide sans `WWW-Authenticate`) et `/mcp/oauth` (`401` RFC 9728 OAuth 2.1 PKCE S256 via `acces.poirierlavoie.ca`), garde stricte BYOK CanLII préalable au cache D1 (`ouvrirCoffre` / `lirePorteurEntete` `X-Clef-CanLII`), observabilité Cloudflare désactivée et zéro écriture dans `search_log` / `api_usage` *(voir `MCP-Socle/SPEC-SOCLE-COMMUN.md` pour l'amendement Phase 3 de D7, §8, §9, §10 et §18)*. Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
+**Statut :** **livré (`2.2.2`) et mis à niveau Phase 3 (`@poirierlavoie/mcp-socle` `0.8.4`)** sur `jurisprudence.poirierlavoie.ca` — douze outils sans préfixe (clé `juris` dans `droit-civil-quebecois` `v3.1.1`), identité partagée `DB_IDENTITE` (`mcp-identite`), double montage `/mcp` (`404` vide sans `WWW-Authenticate`) et `/mcp/oauth` (`401` RFC 9728 OAuth 2.1 PKCE S256 via `acces.poirierlavoie.ca`), garde stricte BYOK CanLII préalable au cache D1 (`ouvrirCoffre` / `lirePorteurEntete` `X-Clef-CanLII`), observabilité Cloudflare désactivée et zéro écriture dans `search_log` / `api_usage` *(voir `MCP-Socle/SPEC-SOCLE-COMMUN.md` pour l'amendement Phase 3 de D7, §8, §9, §10 et §18)*. Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
 
 ---
 
@@ -597,7 +597,7 @@ Un **appariement partiel** produit le verdict `DISCORDANTE`, jamais `CONFIRMÉE`
 
 ## 7. Les douze outils (`juris`)
 
-*Le connecteur en compte **douze**, exposés sans préfixe depuis `2.0.0` (`2.2.0` : 27 listes d'autorités dispensées) sous la clé `juris`. Dix peuvent interroger la collection de CanLII ; `parse_citation` et `list_exempt_authorities` n'appellent rien (et `check_exempt_authorities` supporte un mode hors ligne strict via `resolve_canlii=false`).* *(Note — 2026-11-14, `0.3.0` : les trois outils hors ligne `greffe_*` et `palais_*` anciennement décrits en §17 ont été déplacés vers « MCP-Outils ».)*
+*Le connecteur en compte **douze**, exposés sans préfixe depuis `2.0.0` (`2.2.0` : 27 listes d'autorités dispensées) sous la clé `juris`. Dix peuvent interroger la collection de CanLII ; `parse_citation` et `list_exempt_authorities` n'appellent rien (et `check_exempt_authority` supporte un mode hors ligne strict via `resolve_canlii=false`).* *(Note — 2026-11-14, `0.3.0` : les trois outils hors ligne `greffe_*` et `palais_*` anciennement décrits en §17 ont été déplacés vers « MCP-Outils ».)*
 
 *Historique de nommage : `canlii_*` (initial) → `jurisprudence_*` (2026-09-16) → sans préfixe (`2.0.0`). Les descriptions ci-dessous
 sont reproduites verbatim du registre — chacune nomme désormais CanLII.*
@@ -791,7 +791,7 @@ Aucun appel sortant, aucune écriture. Utile au débogage de la table `court_cod
 
 Paramètres facultatifs : `tribunal`, `list_id`, `query`, `lang` (`"fr"` | `"en"`), `limit` (défaut `50`, max `150` via `LIMITES.list_exempt_authorities`), `offset`. Zéro appel CanLII, aucune clé CanLII BYOK requise, comptabilisé en classe `local`, et clôturé par `GARDE_AUTORITES_DISPENSEES`. En recherche (`query`), les résultats sont dédupliqués par `decisionKey` en indiquant toutes les listes appariées. En `2.2.0`, le corpus intègre les 6 listes de la Cour supérieure du Québec (`qccs`, issues des directives `qccs-div-mtl` et `qccs-div-qc`) et les 6 listes de la Cour du Québec — Division administrative et d'appel (`qccq`, issues de `qccq-daa-jurisprudence`).
 
-### 7.12 `check_exempt_authorities`
+### 7.12 `check_exempt_authority`
 
 > **Description :** « Vérifie un lot de citations (au plus 50) contre les listes d'autorités dispensées d'un tribunal ou d'une liste précise. CINQ verdicts : DISPENSÉE, À VÉRIFIER (coquille connue de la liste source, écart d'intitulé ou d'année), NON LISTÉE, ILLISIBLE et INDÉTERMINÉE (CanLII injoignable, étranglé ou budget épuisé — ne vaut JAMAIS ni absence de la liste ni dispense). L'appariement hors ligne s'exécute en premier ; un repli vers l'API de CanLII n'intervient que si « resolve_canlii » est vrai et que la référence peut correspondre à une forme parallèle ou à une entrée non encore indexée sur CanLII. La dispense ne vaut que devant le tribunal et sous réserve de ses règles procédurales ; n'établit NI l'autorité actuelle (aucun historique d'appel, aucun traitement), NI le contenu du dispositif. Pour éprouver l'existence générale d'une citation hors liste, employer verify_citations. »
 

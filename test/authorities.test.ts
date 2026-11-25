@@ -6,7 +6,7 @@
  *     `data/autorites-dispensees.md` et `data/autorites-enrichies.json`.
  *  2. `list_exempt_authorities` (annuaire, consultation verbatim par onglets, recherche
  *     dédupliquée, pagination et erreurs de validation).
- *  3. `check_exempt_authorities` (XOR `list_id` / `tribunal`, 5 verdicts, formats neutre /
+ *  3. `check_exempt_authority` (XOR `list_id` / `tribunal`, 5 verdicts, formats neutre /
  *     CanLII / recueil / éditeur / dossier, `conf. par`, coquilles des listes sources,
  *     0 appel sur citation neutre ordinaire absente, repli CanLII borné et `INDÉTERMINÉE`).
  */
@@ -192,10 +192,10 @@ describe("list_exempt_authorities (hors ligne)", () => {
   });
 });
 
-describe("check_exempt_authorities", () => {
+describe("check_exempt_authority", () => {
   it("impose EXACTEMENT list_id ou tribunal", async () => {
     const sans = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       { citations: [{ citation: "2008 CSC 9" }] },
       toolCtx(fakeClient({})),
     );
@@ -203,7 +203,7 @@ describe("check_exempt_authorities", () => {
     expect(texte(sans)).toContain("EXACTEMENT");
 
     const deux = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       { list_id: "qcca-civil", tribunal: "qcca", citations: [{ citation: "2008 CSC 9" }] },
       toolCtx(fakeClient({})),
     );
@@ -214,7 +214,7 @@ describe("check_exempt_authorities", () => {
   it("rend DISPENSÉE hors ligne sur citation neutre FR/EN, CanLII, R.C.S., FCR et éditeur (0 appel)", async () => {
     const c1 = fakeClient({});
     const rQcca = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       {
         list_id: "qcca-civil",
         citations: [
@@ -235,7 +235,7 @@ describe("check_exempt_authorities", () => {
 
     const c2 = fakeClient({});
     const rCfPi = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       { list_id: "cf-pi", citations: [{ citation: "1994 CanLII 3534 (CAF)" }] },
       toolCtx(c2),
     );
@@ -244,7 +244,7 @@ describe("check_exempt_authorities", () => {
 
     const c3 = fakeClient({});
     const rFcr = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       {
         list_id: "cf-concurrence",
         citations: [{ citation: "[2001] 1 FC 219" }, { citation: "[2001] 1 FCR 219" }],
@@ -257,7 +257,7 @@ describe("check_exempt_authorities", () => {
 
     const c4 = fakeClient({});
     const rPub = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       {
         tribunal: "tmf",
         citations: [{ citation: "J.E. 2004-1751" }],
@@ -269,7 +269,7 @@ describe("check_exempt_authorities", () => {
 
     const c5 = fakeClient({});
     const rDte = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       {
         list_id: "tat-drt",
         citations: [{ citation: "D.T.E. 97T-1375" }],
@@ -281,7 +281,7 @@ describe("check_exempt_authorities", () => {
 
     const cQccq = fakeClient({});
     const rQccq = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       {
         tribunal: "qccq",
         citations: [
@@ -307,7 +307,7 @@ describe("check_exempt_authorities", () => {
 
     const cQccs = fakeClient({});
     const rQccs = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       {
         tribunal: "qccs",
         citations: [
@@ -334,7 +334,7 @@ describe("check_exempt_authorities", () => {
 
   it("contrôle toutes les sous-listes d'un tribunal et nomme celles qui concordent", async () => {
     const res = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       { tribunal: "tat", citations: [{ citation: "2008 CSC 9" }] },
       toolCtx(fakeClient({})),
     );
@@ -347,7 +347,7 @@ describe("check_exempt_authorities", () => {
 
   it("apparie les décisions confirmantes (conf. par / aff'd) avec mention explicite", async () => {
     const res = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       {
         list_id: "cf-pi",
         citations: [
@@ -368,7 +368,7 @@ describe("check_exempt_authorities", () => {
 
   it("signale À VÉRIFIER sur les coquilles connues des listes sources et sur les écarts d'intitulé/année", async () => {
     const rTypo = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       {
         tribunal: "cf",
         citations: [
@@ -387,7 +387,7 @@ describe("check_exempt_authorities", () => {
     expect(outTypo).toContain("Coquille connue de la liste source");
 
     const rEcart = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       {
         list_id: "qcca-civil",
         citations: [
@@ -404,7 +404,7 @@ describe("check_exempt_authorities", () => {
 
   it("apparie le numéro de dossier dans le bon tribunal et rend NON LISTÉE ailleurs", async () => {
     const okCf = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       { tribunal: "cf", citations: [{ citation: "IMM-2664-00" }], resolve_canlii: false },
       toolCtx(fakeClient({})),
     );
@@ -412,7 +412,7 @@ describe("check_exempt_authorities", () => {
     expect(texte(okCf)).toContain("cf-imm-sursis");
 
     const nonTat = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       { tribunal: "tat", citations: [{ citation: "IMM-2664-00" }], resolve_canlii: false },
       toolCtx(fakeClient({})),
     );
@@ -422,7 +422,7 @@ describe("check_exempt_authorities", () => {
   it("une citation neutre ordinaire absente de la liste rend NON LISTÉE avec 0 appel CanLII", async () => {
     const client = fakeClient({});
     const res = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       { list_id: "qcca-civil", citations: [{ citation: "2020 QCCA 495" }] },
       toolCtx(client),
     );
@@ -444,7 +444,7 @@ describe("check_exempt_authorities", () => {
       },
     });
     const rLookup = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       {
         list_id: "cf-autochtone",
         citations: [{ citation: "1998 CanLII 8888 (FCT)" }],
@@ -470,7 +470,7 @@ describe("check_exempt_authorities", () => {
     );
     const clientLocal = fakeClient({});
     const rLocal = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       {
         list_id: "qcca-civil",
         citations: [
@@ -491,7 +491,7 @@ describe("check_exempt_authorities", () => {
 
   it("rend ILLISIBLE sur forme inexploitable/vide et INDÉTERMINÉE sur panne CanLII 429/500", async () => {
     const rIllisible = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       {
         list_id: "qcca-civil",
         citations: [{ citation: "???" }, { citation: "" }],
@@ -505,7 +505,7 @@ describe("check_exempt_authorities", () => {
     expect(outIllisible).toContain("(vide) — ILLISIBLE");
 
     const rErr = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       {
         list_id: "cf-imm-general",
         citations: [{ citation: "2004 CF 9999" }],
@@ -556,7 +556,7 @@ describe("check_exempt_authorities", () => {
     expect(outQccs).toContain("par. 24.2");
 
     const resTmf = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       { tribunal: "tmf", citations: [{ citation: "2022 QCTMF 99" }], resolve_canlii: false },
       toolCtx(fakeClient({})),
     );
@@ -566,7 +566,7 @@ describe("check_exempt_authorities", () => {
     expect(outTmf).toContain("Toute décision accessible gratuitement par hyperlien");
 
     const resTdp = await callTool(
-      "check_exempt_authorities",
+      "check_exempt_authority",
       { list_id: "tdp", citations: [{ citation: "2022 QCTDP 99" }], resolve_canlii: false },
       toolCtx(fakeClient({})),
     );

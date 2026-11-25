@@ -349,7 +349,7 @@ describe("§18 — le registre est la source, pas une copie", () => {
       /n'établit NI l'autorité actuelle/,
       /establishes NEITHER the current authority/i,
     ],
-    check_exempt_authorities: [/ne vaut JAMAIS ni absence/, /NEVER means absence/i],
+    check_exempt_authority: [/ne vaut JAMAIS ni absence/, /NEVER means absence/i],
   };
 
   it("une réserve SUBSTANTIELLE portée en français l'est aussi en anglais", () => {
@@ -447,7 +447,7 @@ describe("§18 / invariant 19 — la page dérive, et ses classes existent", () 
     expect(faux + vrais).toBe(Object.keys(TOOLS).length);
   });
 
-  it("le renvoi croisé get_case ↔ verify_citations et check_exempt_authorities tient dans les DEUX langues", async () => {
+  it("le renvoi croisé get_case ↔ verify_citations et check_exempt_authority tient dans les DEUX langues", async () => {
     // Le français vient du registre et ne peut pas dériver ; l'anglais est écrit à la
     // main dans OUTILS_EN, et c'est lui qui avait pris du retard.
     const fr = TOOLS.get_case!.description;
@@ -456,9 +456,9 @@ describe("§18 / invariant 19 — la page dérive, et ses classes existent", () 
     expect(frV).toContain("get_case");
     expect(OUTILS_EN.get_case!.texte).toContain("verify_citations");
     expect(OUTILS_EN.verify_citations!.texte).toContain("get_case");
-    expect(TOOLS.check_exempt_authorities!.description).toContain("verify_citations");
-    expect(OUTILS_EN.check_exempt_authorities!.texte).toContain("verify_citations");
-    expect(OUTILS_EN.check_exempt_authorities!.texte).toContain("list_exempt_authorities");
+    expect(TOOLS.check_exempt_authority!.description).toContain("verify_citations");
+    expect(OUTILS_EN.check_exempt_authority!.texte).toContain("verify_citations");
+    expect(OUTILS_EN.check_exempt_authority!.texte).toContain("list_exempt_authorities");
   });
 
   it("chaque description de paramètre PARAÎT sur la page", async () => {
