@@ -99,7 +99,7 @@ describe("§2 — les douze outils existent et se décrivent", () => {
     expect(t.subsequent_history).toMatch(/heuristique/i);
     expect(t.citator).toMatch(/brute/i);
     expect(t.parse_citation).toMatch(/hors ligne/i);
-    expect(t.list_exempt_authorities).toMatch(/hors ligne/i);
+    expect(t.list_exempt_cases).toMatch(/hors ligne/i);
   });
 
   it("tous sont annotés en LECTURE SEULE ; le monde ouvert, lui, dépend de l outil (§7)", () => {
@@ -133,12 +133,12 @@ describe("§2 — les douze outils existent et se décrivent", () => {
     expect(TOOLS.get_legislation!.description).toContain("JAMAIS l'instrument");
     expect(TOOLS.get_legislation!.description).toContain("DOWNLOAD_DATE");
     // §7.11 & §7.12 : listes d'autorités dispensées — réserve de fond et 5 verdicts.
-    expect(TOOLS.list_exempt_authorities!.description).toContain("n'établit NI");
-    expect(TOOLS.check_exempt_authority!.description).toContain("n'établit NI");
+    expect(TOOLS.list_exempt_cases!.description).toContain("n'établit NI");
+    expect(TOOLS.check_exempt_cases!.description).toContain("n'établit NI");
     for (const v of ["DISPENSÉE", "À VÉRIFIER", "NON LISTÉE", "ILLISIBLE", "INDÉTERMINÉE"]) {
-      expect(TOOLS.check_exempt_authority!.description, v).toContain(v);
+      expect(TOOLS.check_exempt_cases!.description, v).toContain(v);
     }
-    expect(TOOLS.check_exempt_authority!.description).toMatch(/JAMAIS/);
+    expect(TOOLS.check_exempt_cases!.description).toMatch(/JAMAIS/);
   });
 
   /**
@@ -1089,7 +1089,7 @@ describe("§7 — les valeurs par défaut annoncées sont celles qui s'appliquen
       ["subsequent_history", "subsequent_history"],
       ["browse_cases", "browse_cases"],
       ["browse_legislation", "browse_legislation"],
-      ["list_exempt_authorities", "list_exempt_authorities"],
+      ["list_exempt_cases", "list_exempt_cases"],
     ];
     for (const [outil, clef] of paires) {
       const limit = TOOLS[outil]!.inputSchema.properties?.limit;
@@ -1143,7 +1143,7 @@ describe("§8 — les refus du gestionnaire sont ANNONCÉS dans la description",
     ["citator", ["citation", "case_id"], /EXACTEMENT l'une des deux formes/, { rel: "citing" }],
     ["subsequent_history", ["citation", "case_id"], /EXACTEMENT l'une des deux formes/, {}],
     [
-      "check_exempt_authority",
+      "check_exempt_cases",
       ["list_id", "tribunal"],
       /EXACTEMENT l'un des deux/,
       { citations: [{ citation: "2008 CSC 9" }] },
@@ -1197,7 +1197,7 @@ describe("§7 — `isError` veut dire la même chose dans les douze outils", () 
         toolCtx(fakeClient({ "caseBrowse/fr/qcca/": { cases: [] } })),
       ),
       await callTool(
-        "list_exempt_authorities",
+        "list_exempt_cases",
         { query: "introuvable_xyz_999" },
         toolCtx(fakeClient({})),
       ),
@@ -1217,8 +1217,19 @@ describe("§7 — `isError` veut dire la même chose dans les douze outils", () 
     const fautifs = [
       await callTool("get_case", {}, toolCtx(fakeClient({}))),
       await callTool(
-        "check_exempt_authority",
+        "check_exempt_cases",
         { citations: [{ citation: "2008 CSC 9" }] },
+        toolCtx(fakeClient({})),
+      ),
+      await callTool("list_exempt_authorities", {}, toolCtx(fakeClient({}))),
+      await callTool(
+        "check_exempt_authorities",
+        { citations: [{ citation: "2008 CSC 9" }], tribunal: "qcca" },
+        toolCtx(fakeClient({})),
+      ),
+      await callTool(
+        "check_exempt_authority",
+        { citations: [{ citation: "2008 CSC 9" }], tribunal: "qcca" },
         toolCtx(fakeClient({})),
       ),
       await callTool("greffe_parse_court_file_number", {}, toolCtx(fakeClient({}))),
@@ -1231,34 +1242,34 @@ describe("§7 — `isError` veut dire la même chose dans les douze outils", () 
 });
 
 describe("§7.11 & §7.12 — garde obligatoire dans les sorties d'autorités dispensées", () => {
-  it("GARDE_AUTORITES_DISPENSEES paraît dans toutes les sorties de list_exempt_authorities et check_exempt_authority", async () => {
+  it("GARDE_AUTORITES_DISPENSEES paraît dans toutes les sorties de list_exempt_cases et check_exempt_cases", async () => {
     await seedDatabases(["csc-scc", "qcca", "qccs", "qccq", "fct", "fca"]);
     const sorties = [
-      texte(await callTool("list_exempt_authorities", {}, toolCtx(fakeClient({})))),
+      texte(await callTool("list_exempt_cases", {}, toolCtx(fakeClient({})))),
       texte(
         await callTool(
-          "list_exempt_authorities",
+          "list_exempt_cases",
           { list_id: "qcca-civil", limit: 3 },
           toolCtx(fakeClient({})),
         ),
       ),
       texte(
         await callTool(
-          "list_exempt_authorities",
+          "list_exempt_cases",
           { query: "terme_absent_zz99" },
           toolCtx(fakeClient({})),
         ),
       ),
       texte(
         await callTool(
-          "check_exempt_authority",
+          "check_exempt_cases",
           { list_id: "qcca-civil", citations: [{ citation: "2008 CSC 9" }], resolve_canlii: false },
           toolCtx(fakeClient({})),
         ),
       ),
       texte(
         await callTool(
-          "check_exempt_authority",
+          "check_exempt_cases",
           {
             list_id: "qcca-civil",
             citations: [{ citation: "2020 QCCA 495" }],
@@ -1269,7 +1280,7 @@ describe("§7.11 & §7.12 — garde obligatoire dans les sorties d'autorités di
       ),
       texte(
         await callTool(
-          "check_exempt_authority",
+          "check_exempt_cases",
           {
             list_id: "cf-imm-general",
             citations: [{ citation: "2004 CF 9999" }],

@@ -345,11 +345,11 @@ describe("§18 — le registre est la source, pas une copie", () => {
     list_databases: [/ENTIER/, /WHOLE directory/],
     // Ajoutées le 2026-11-24 : les listes d'autorités dispensées n'établissent ni
     // l'autorité actuelle ni le dispositif, et INDÉTERMINÉE ne vaut jamais absence.
-    list_exempt_authorities: [
+    list_exempt_cases: [
       /n'établit NI l'autorité actuelle/,
       /establishes NEITHER the current authority/i,
     ],
-    check_exempt_authority: [/ne vaut JAMAIS ni absence/, /NEVER means absence/i],
+    check_exempt_cases: [/ne vaut JAMAIS ni absence/, /NEVER means absence/i],
   };
 
   it("une réserve SUBSTANTIELLE portée en français l'est aussi en anglais", () => {
@@ -447,7 +447,7 @@ describe("§18 / invariant 19 — la page dérive, et ses classes existent", () 
     expect(faux + vrais).toBe(Object.keys(TOOLS).length);
   });
 
-  it("le renvoi croisé get_case ↔ verify_citations et check_exempt_authority tient dans les DEUX langues", async () => {
+  it("le renvoi croisé get_case ↔ verify_citations et check_exempt_cases tient dans les DEUX langues", async () => {
     // Le français vient du registre et ne peut pas dériver ; l'anglais est écrit à la
     // main dans OUTILS_EN, et c'est lui qui avait pris du retard.
     const fr = TOOLS.get_case!.description;
@@ -456,9 +456,9 @@ describe("§18 / invariant 19 — la page dérive, et ses classes existent", () 
     expect(frV).toContain("get_case");
     expect(OUTILS_EN.get_case!.texte).toContain("verify_citations");
     expect(OUTILS_EN.verify_citations!.texte).toContain("get_case");
-    expect(TOOLS.check_exempt_authority!.description).toContain("verify_citations");
-    expect(OUTILS_EN.check_exempt_authority!.texte).toContain("verify_citations");
-    expect(OUTILS_EN.check_exempt_authority!.texte).toContain("list_exempt_authorities");
+    expect(TOOLS.check_exempt_cases!.description).toContain("verify_citations");
+    expect(OUTILS_EN.check_exempt_cases!.texte).toContain("verify_citations");
+    expect(OUTILS_EN.check_exempt_cases!.texte).toContain("list_exempt_cases");
   });
 
   it("chaque description de paramètre PARAÎT sur la page", async () => {
@@ -500,5 +500,12 @@ describe("§18 / invariant 19 — la page dérive, et ses classes existent", () 
     expect(html).toContain("« lois »");
     expect(html).not.toContain("Législation du Québec");
     expect(html).not.toContain("MCP Outils");
+
+    const card = await (await demander("/mcp/server-card")).text();
+    for (const corps of [html, card]) {
+      expect(corps).not.toContain("list_exempt_authorities");
+      expect(corps).not.toContain("check_exempt_authorities");
+      expect(corps).not.toContain("check_exempt_authority");
+    }
   });
 });

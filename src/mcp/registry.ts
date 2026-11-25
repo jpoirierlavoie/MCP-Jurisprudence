@@ -26,7 +26,7 @@
  *   - `readOnlyHint: true` sur TOUS les outils : aucun n'écrit hors de son cache ;
  *   - `openWorldHint` N'EST PAS uniforme — vrai pour les DIX qui peuvent interroger
  *     CanLII (source de vérité distante), faux pour `parse_citation` et
- *     `list_exempt_authorities` qui ne font aucun appel. Voir `DISTANT`/`LOCAL`
+ *     `list_exempt_cases` qui ne font aucun appel. Voir `DISTANT`/`LOCAL`
  *     et `SANS_APPEL` plus bas ;
  *   - tout paramètre déclaré porte une `description` ;
  *   - `additionalProperties: false` sur tous les schémas ;
@@ -113,7 +113,7 @@ const LOCAL = {
 } as const;
 
 /** Outils dont la réponse ne dépend d'aucun appel sortant ni du cache CanLII en direct. */
-export const SANS_APPEL = new Set(["parse_citation", "list_exempt_authorities"]);
+export const SANS_APPEL = new Set(["parse_citation", "list_exempt_cases"]);
 
 const LANG: JsonSchema = {
   type: "string",
@@ -207,7 +207,7 @@ export const SERVER_INFO = {
   // le jour où il devient le dernier endroit à dire l'inverse des douze autres.
   name: "mcp-jurisprudence",
   title: "MCP Jurisprudence",
-  version: "2.2.2",
+  version: "2.3.0",
 };
 
 /**
@@ -230,12 +230,12 @@ export const INSTRUCTIONS =
   "verify_citations ; si la citation n'est pas constructible (recueils R.C.S. / " +
   "R.J.Q. / C.A., identifiants J.E. / REJB / EYB / AZ), enchaîner avec find_case. " +
   "Pour consulter les 27 listes d'autorités dispensées de reproduction (9 tribunaux) " +
-  "ou vérifier si des citations y figurent, utiliser list_exempt_authorities (hors ligne) " +
-  "et check_exempt_authority. Pour le TEXTE des lois et règlements du Québec, employer " +
+  "ou vérifier si des citations y figurent, utiliser list_exempt_cases (hors ligne) " +
+  "et check_exempt_cases. Pour le TEXTE des lois et règlements du Québec, employer " +
   "le connecteur « lois ». Les verdicts et la couverture dépendent de la collection de CanLII : " +
   "une absence n'est jamais une preuve d'inexistence. " +
   "C'est la description de chaque outil qui nomme sa source et ses limites. DIX des douze " +
-  "outils peuvent interroger CanLII ; deux, parse_citation et list_exempt_authorities, " +
+  "outils peuvent interroger CanLII ; deux, parse_citation et list_exempt_cases, " +
   "n'appellent RIEN en direct. Pour analyser un numéro de dossier judiciaire québécois " +
   "(greffe_parse_number) ou consulter le répertoire des palais de justice et " +
   "greffes du Québec (palais_list, palais_get), employer le connecteur public hors ligne " +
@@ -649,7 +649,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 
   // ── 7.11 ───────────────────────────────────────────────────────────────────
-  list_exempt_authorities: {
+  list_exempt_cases: {
     title: "Lister les autorités dispensées (hors ligne)",
     description:
       "Consulte et recherche HORS LIGNE les 27 listes compilées d'autorités dispensées de " +
@@ -692,10 +692,10 @@ export const TOOLS: Record<string, ToolDescriptor> = {
         limit: {
           type: "integer",
           minimum: 1,
-          maximum: LIMITES.list_exempt_authorities.max,
+          maximum: LIMITES.list_exempt_cases.max,
           description:
-            `Nombre maximal d'entrées rendues (défaut ${LIMITES.list_exempt_authorities.defaut}, ` +
-            `maximum ${LIMITES.list_exempt_authorities.max}).`,
+            `Nombre maximal d'entrées rendues (défaut ${LIMITES.list_exempt_cases.defaut}, ` +
+            `maximum ${LIMITES.list_exempt_cases.max}).`,
         },
         offset: offsetDe("de la première entrée rendue"),
       },
@@ -705,7 +705,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 
   // ── 7.12 ───────────────────────────────────────────────────────────────────
-  check_exempt_authority: {
+  check_exempt_cases: {
     title: "Vérifier la dispense de reproduction",
     description:
       "Vérifie un lot de citations (au plus 50) contre les listes d'autorités dispensées d'un " +
@@ -729,7 +729,7 @@ export const TOOLS: Record<string, ToolDescriptor> = {
           description:
             "Identifiant de la sous-liste ciblée (p. ex. « qcca-civil », " +
             "« qccs-mtl-controle-judiciaire », « qccq-daa-disciplinaire », « cf-imm-general »). " +
-            "Voir list_exempt_authorities. ⚠ Fournir EXACTEMENT l'un des deux paramètres de portée " +
+            "Voir list_exempt_cases. ⚠ Fournir EXACTEMENT l'un des deux paramètres de portée " +
             ": soit « list_id », soit « tribunal » (jamais les deux ensemble ni aucun).",
         },
         tribunal: {

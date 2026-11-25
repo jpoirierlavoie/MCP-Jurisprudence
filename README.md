@@ -20,12 +20,12 @@ L'API de CanLII est en **lecture seule** et ne renvoie que des **métadonnées**
 
 ### ⚠ Source et portée des douze outils
 
-Les douze outils sont exposés sous la clé serveur `juris` dans [`droit-civil-quebecois`](https://github.com/jpoirierlavoie/droit-civil-quebecois). **Dix outils sur douze** peuvent interroger CanLII et consommer votre quota d'API (`openWorldHint: true`, dont `check_exempt_authority` avec repli désactivable via `resolve_canlii=false`), tandis que **`parse_citation`** et **`list_exempt_authorities`** fonctionnent hors ligne et n'appellent jamais CanLII (`openWorldHint: false`). Cette distinction figure dans les descriptions et annotations MCP de chaque outil ainsi que sur la page publique.
+Les douze outils sont exposés sous la clé serveur `juris` dans [`droit-civil-quebecois`](https://github.com/jpoirierlavoie/droit-civil-quebecois). **Dix outils sur douze** peuvent interroger CanLII et consommer votre quota d'API (`openWorldHint: true`, dont `check_exempt_cases` avec repli désactivable via `resolve_canlii=false`), tandis que **`parse_citation`** et **`list_exempt_cases`** fonctionnent hors ligne et n'appellent jamais CanLII (`openWorldHint: false`). Cette distinction figure dans les descriptions et annotations MCP de chaque outil ainsi que sur la page publique.
 
 | Portée | Source | Appels sortants |
 |---|---|---|
-| `verify_citations` … `get_legislation`, `check_exempt_authority` (10) | la collection de **CanLII** (et, pour `check_exempt_authority`, les 27 listes compilées dans `data/autorites-dispensees.md`) — couverture et verdicts en dépendent | oui (`openWorldHint: true`, désactivable sur `check_exempt_authority` par `resolve_canlii=false`) |
-| `parse_citation`, `list_exempt_authorities` (2) | analyseur local, répertoire et 27 listes compilées d'autorités dispensées (9 tribunaux) — **aucun appel** | non (`openWorldHint: false`) |
+| `verify_citations` … `get_legislation`, `check_exempt_cases` (10) | la collection de **CanLII** (et, pour `check_exempt_cases`, les 27 listes compilées dans `data/autorites-dispensees.md`) — couverture et verdicts en dépendent | oui (`openWorldHint: true`, désactivable sur `check_exempt_cases` par `resolve_canlii=false`) |
+| `parse_citation`, `list_exempt_cases` (2) | analyseur local, répertoire et 27 listes compilées d'autorités dispensées (9 tribunaux) — **aucun appel** | non (`openWorldHint: false`) |
 
 ---
 
@@ -99,8 +99,8 @@ Ces quatre garanties sont verrouillées par `test/garde.test.ts` afin qu'aucune 
 | `browse_legislation` | Lois et règlements d'une base législative |
 | `get_legislation` | Fiche d'une loi : abrogation, découpage, et les dates de la VERSION servie — jamais celles de l'instrument |
 | `parse_citation` | Analyse hors ligne d'une citation — **aucun appel** |
-| `list_exempt_authorities` | Consultation et recherche **hors ligne** dans les 27 listes compilées d'autorités dispensées de reproduction (9 tribunaux, 864 entrées) — **aucun appel** |
-| `check_exempt_authority` | Vérification de dispense de reproduction (DISPENSÉE · À VÉRIFIER · NON LISTÉE · ILLISIBLE · INDÉTERMINÉE), hors ligne d'abord puis repli CanLII borné optionnel (`resolve_canlii`) |
+| `list_exempt_cases` | Consultation et recherche **hors ligne** dans les 27 listes compilées d'autorités dispensées de reproduction (9 tribunaux, 864 entrées) — **aucun appel** |
+| `check_exempt_cases` | Vérification de dispense de reproduction (DISPENSÉE · À VÉRIFIER · NON LISTÉE · ILLISIBLE · INDÉTERMINÉE), hors ligne d'abord puis repli CanLII borné optionnel (`resolve_canlii`) |
 
 Sorties en **texte français**, jamais en JSON.
 
@@ -221,7 +221,7 @@ Les tests s'exécutent dans **workerd** avec une D1 locale et des réponses de C
 
 ## Contrôle d'accès et cadence d'appel
 
-- **Garde stricte BYOK CanLII préalable au cache partagé :** pour tout titulaire, les dix outils pouvant interroger CanLII résolvent et vérifient la clé personnelle via `ouvrirCoffre` (`X-Clef-CanLII` ou `DB_IDENTITE.coffre_clef` chiffré `HKDF-SHA256` + `AES-256-GCM`) **avant** toute lecture du cache D1 partagé, sans jamais retomber sur `env.CANLII_API_KEY` (`parse_citation`, `list_exempt_authorities` et `check_exempt_authority` avec `resolve_canlii: false` demeurent accessibles sans clé CanLII). Toute clé refusée par CanLII (`401`/`403`) renvoie `[CLEF_REFUSEE]`, le texte clair ne quitte jamais `ouvrirCoffre`, toute URL journalisée passe par `redactUrl()`, et aucun horodatage exact `fetched_at` n'est exposé.
+- **Garde stricte BYOK CanLII préalable au cache partagé :** pour tout titulaire, les dix outils pouvant interroger CanLII résolvent et vérifient la clé personnelle via `ouvrirCoffre` (`X-Clef-CanLII` ou `DB_IDENTITE.coffre_clef` chiffré `HKDF-SHA256` + `AES-256-GCM`) **avant** toute lecture du cache D1 partagé, sans jamais retomber sur `env.CANLII_API_KEY` (`parse_citation`, `list_exempt_cases` et `check_exempt_cases` avec `resolve_canlii: false` demeurent accessibles sans clé CanLII). Toute clé refusée par CanLII (`401`/`403`) renvoie `[CLEF_REFUSEE]`, le texte clair ne quitte jamais `ouvrirCoffre`, toute URL journalisée passe par `redactUrl()`, et aucun horodatage exact `fetched_at` n'est exposé.
 - **Gouverne à deux étages :** cinq limiteurs de débit (`1021..1025`, pré-auth IP + quarantaine sur échecs d'auth + débit par titulaire à `180/min` `actif` / `20/min` `limite`) et quotas journaliers UTC (`local` sur cache / `parse_citation`, `sortant` sur appels CanLII).
 - **Double montage étanche (`/mcp` et `/mcp/oauth`) :**
   - `/mcp` accepte les jetons individuels `DB_IDENTITE` (`portee` `'jurisprudence'` ou `'les_deux'`) ou `MCP_SHARED_SECRET` sous `Authorization: Bearer <jeton>`, `?key=<jeton>` ou `/mcp/<secret>`. Tout appel non authentifié reçoit **uniformément `404` à corps vide sans `WWW-Authenticate`**.
