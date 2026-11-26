@@ -17,17 +17,17 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). La spécification qui fa
 | 3 | **Schémas d'entrée** | `inputSchema` dans `src/mcp/registry.ts` (`additionalProperties: false`, zéro `x-mcp-header`, valeurs issues de `src/mcp/defauts.ts`, contraintes XOR/format/bornes croisées répétées sur chaque paramètre) |
 | 4 | **`README.md`, `SPEC.md`, sécurité, licence & manifestes** | `README.md` (`## Les douze outils`), `SPEC.md`, `SECURITY.md`, `LICENSE` (`Apache-2.0`), `NOTICE` (sources officielles et conditions CanLII BYOK), `package.json`, `plugin.json`, `mcp_config.json`, `gemini-extension.json`, `/mcp/server-card`, `CLAUDE.md`, `GEMINI.md` |
 | 5 | **Page publique HTML (`GET /`)** | `src/site.ts` + `src/site.i18n.ts` (`test/site.test.ts` : CSP, absence de CORS, `/mcp/<secret>`, liste blanche stricte d'URLs `https://` : écrire `acces.poirierlavoie.ca` sans schéma dans la prose de la page, parité `data-l="fr"` = `data-l="en"`, style jumeau `system-ui`) |
-| 6 | **Inter-dépôts (`Cross-repository`)** | `droit-civil-quebecois` (`v3.1.1`, manifestes, `skills/`, `verifier.py`, `verifier_tout.py`), `MCP-Socle` (`v0.8.4`), `MCP-Acces` (`mcp-identite`), `MCP-Legislation` (jumeau HTML/CSS), `MCP-Outils` |
+| 6 | **Inter-dépôts (`Cross-repository`)** | `droit-civil-quebecois` (`v3.3.1`, manifestes, `skills/`, `verifier.py`, `verifier_tout.py`), `MCP-Socle` (`v0.8.5`), `MCP-Acces` (`mcp-identite`), `MCP-Legislation` (jumeau HTML/CSS), `MCP-Outils` |
 
 ---
 
 ## 1. Architecture et cadre global (`droit-civil-quebecois`)
 
 ```
-             ┌────────────────────────────────────────────────────────┐
-             │      droit-civil-quebecois (Plugin Cadre v3.1.1)       │
-             │   10 compétences · 59 feuilles · 4 scripts stdlib      │
-             └──────┬───────────────────────┬──────────────────┬──────┘
+          ┌──────────────────────────────────────────────────────────────┐
+          │         droit-civil-quebecois (Plugin Cadre v3.3.1)          │
+          │ 10 compétences · 60 feuilles · 6 personas · 4 scripts stdlib │
+          └─────────┬───────────────────────┬──────────────────┬─────────┘
                     │                       │                  │
         (serveur `lois`, 10 outils)  (serveur `juris`, 12)  (serveur `outils`, 15)
                     │                       │                  │
@@ -38,7 +38,7 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). La spécification qui fa
          │  `DB_IDENTITE` + AI │ │   `DB_IDENTITE`     │ │       zéro secret        │
          └──────────┬──────────┘ └──────────┬──────────┘ └──────────────────────────┘
                     └───────────┬───────────┘
-                                ▼ (`@poirierlavoie/mcp-socle` v0.8.4, zéro runtime dep)
+                                ▼ (`@poirierlavoie/mcp-socle` v0.8.5, zéro runtime dep)
                  ┌──────────────────────────────────────────┐
                  │  MCP-Socle + MCP-Acces (`mcp-identite`)  │
                  │  Jetons individuels, coffre AES-256-GCM  │

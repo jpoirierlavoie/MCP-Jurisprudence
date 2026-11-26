@@ -615,7 +615,7 @@ export function renderSite(): string {
   const corps = [entete(), outils(), acces(), schemas(), pied()].join("\n");
   const titrePage = "MCP Jurisprudence — Vérification de citations (CanLII)";
   const descMeta =
-    "Serveur MCP en lecture seule : vérification déterministe de citations de jurisprudence canadienne contre la collection de CanLII.";
+    "Serveur MCP en lecture seule : vérification déterministe de citations de jurisprudence canadienne (CanLII) et 27 listes d'autorités dispensées.";
 
   return `<!doctype html>
 <html lang="fr" class="l-fr">
@@ -704,8 +704,8 @@ function construireLlmsTxt(): string {
     "",
     "- [MCP Accès (Admission & OAuth 2.1 Portal)](https://acces.poirierlavoie.ca/): Eligibility (active Barreau du Québec members + individual BYOK CanLII key), `/demande` application, and `/moi` self-service portal.",
     "- [MCP Législation (`lois`)](https://legislation.poirierlavoie.ca/): Official statutes, regulations, court directives, and AMF texts. Server Card: https://legislation.poirierlavoie.ca/mcp/server-card",
-    `- [MCP Jurisprudence (\`juris\`)](${ORIGINE_SITE}/): Case-law citation verification & CanLII metadata. Server Card: ${ORIGINE_SITE}/mcp/server-card`,
-    "- [MCP Outils (`outils` — Public, no account required)](https://outils.poirierlavoie.ca/): C.C.P. deadlines, art. 1619 C.C.Q. interest, registries, courthouses, RQA addresses, and bijural terminology. Endpoint: `https://outils.poirierlavoie.ca/mcp`",
+    `- [MCP Jurisprudence (\`juris\`)](${ORIGINE_SITE}/): Case-law citation verification, CanLII metadata, and 27 exempt-authorities lists across 9 courts/tribunals (12 tools). Server Card: ${ORIGINE_SITE}/mcp/server-card`,
+    "- [MCP Outils (`outils` — Public, no account required)](https://outils.poirierlavoie.ca/): 15 tools across 6 families — C.C.P. deadlines, art. 1619 C.C.Q. interest, registries & GLEIF snapshots, courthouses, RQA addresses, bijural terminology, Bank of Canada rates, StatCan CPI, and TAL/CMHC rents. Endpoint: `https://outils.poirierlavoie.ca/mcp`",
     `- [Umbrella Plugin Repository](${DEPOT_PLUGIN}) · [Connector Repository](${DEPOT})`,
     "",
   ].join("\n");

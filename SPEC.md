@@ -6,7 +6,7 @@
 **Auteur de la spéc. :** (préparé pour Jason Poirier Lavoie)
 **Cible :** nouveau dépôt autonome — Worker Cloudflare, D1, TypeScript
 **Modèle de référence :** le Worker `legislation` / base D1 `qclaw` (connecteur « lois »)
-**Statut :** **livré (`2.3.1`) et mis à niveau Phase 3 (`@poirierlavoie/mcp-socle` `0.8.4`)** sur `jurisprudence.poirierlavoie.ca` — douze outils sans préfixe (clé `juris` dans `droit-civil-quebecois` `v3.1.1`), identité partagée `DB_IDENTITE` (`mcp-identite`), double montage `/mcp` (`404` vide sans `WWW-Authenticate`) et `/mcp/oauth` (`401` RFC 9728 OAuth 2.1 PKCE S256 via `acces.poirierlavoie.ca`), garde stricte BYOK CanLII préalable au cache D1 (`ouvrirCoffre` / `lirePorteurEntete` `X-Clef-CanLII`), observabilité Cloudflare désactivée et zéro écriture dans `search_log` / `api_usage` *(voir `MCP-Socle/SPEC-SOCLE-COMMUN.md` pour l'amendement Phase 3 de D7, §8, §9, §10 et §18)*. Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
+**Statut :** **livré (`2.3.2`) et mis à niveau Phase 3 (`@poirierlavoie/mcp-socle` `0.8.5`)** sur `jurisprudence.poirierlavoie.ca` — douze outils sans préfixe (clé `juris` dans `droit-civil-quebecois` `v3.3.1`), identité partagée `DB_IDENTITE` (`mcp-identite`), double montage `/mcp` (`404` vide sans `WWW-Authenticate`) et `/mcp/oauth` (`401` RFC 9728 OAuth 2.1 PKCE S256 via `acces.poirierlavoie.ca`), garde stricte BYOK CanLII préalable au cache D1 (`ouvrirCoffre` / `lirePorteurEntete` `X-Clef-CanLII`), observabilité Cloudflare désactivée et zéro écriture dans `search_log` / `api_usage` *(voir `MCP-Socle/SPEC-SOCLE-COMMUN.md` pour l'amendement Phase 3 de D7, §8, §9, §10 et §18)*. Lire **§1 (décisions arrêtées)** et **§2 (contrat de vérité)** avant toute ligne de code — et lire tout le reste comme le relevé de ce qui TOURNE : tout écart entre cette spécification et le dépôt est un défaut de l'une ou de l'autre, jamais un travail restant.
 
 ---
 
@@ -1129,7 +1129,7 @@ satisferait la première en retirant la garantie de §2 partout.
 ## 15. Récapitulatif des livrables de code
 
 1. `src/index.ts` — routage, garde d'authentification à temps constant, coupe-circuit, gestionnaire `scheduled`.
-2. `src/mcp/` — enveloppe JSON-RPC, registre des **10** outils, validateur de schéma, 10 gestionnaires.
+2. `src/mcp/` — enveloppe JSON-RPC, registre des **12** outils, validateur de schéma, 12 gestionnaires.
 3. `src/citation/` — analyseur, normalisation, comparaison d'intitulés. **Aucune E/S.**
 4. `src/canlii/` — client étranglé et réessayé, types, erreurs, `redactUrl`.
 5. `src/store/` — accès D1 : fiches + FTS, répertoire + auto-correction, citateur avec TTL, télémétrie.
@@ -1207,7 +1207,7 @@ Les numéros de sections §18, §19 et §20 ci-après restent inchangés afin de
 
 ### 18.1 Ce que la page est, et ce qu'elle n'est pas
 
-Une page **statique, publique, bilingue** décrivant le connecteur : ses dix outils sans préfixe (`v2.0.0`), leurs schémas et l'accès. Elle sert deux publics — qui n'a pas accès au connecteur, et qui l'utilise et veut relire le contrat — tout en renvoyant vers « MCP-Outils » pour les utilitaires hors ligne de greffes et palais déplacés le 2026-11-14.
+Une page **statique, publique, bilingue** décrivant le connecteur : ses douze outils sans préfixe (`v2.0.0`), leurs schémas et l'accès. Elle sert deux publics — qui n'a pas accès au connecteur, et qui l'utilise et veut relire le contrat — tout en renvoyant vers « MCP-Outils » pour les utilitaires hors ligne de greffes et palais déplacés le 2026-11-14.
 
 Elle n'est **pas** une console, n'accepte aucune saisie, n'appelle rien et n'écrit rien.
 
@@ -1326,7 +1326,7 @@ quota d'API CanLII, et c'est bien ce quota que D7 protège.
 
 Le connecteur est empaqueté à la racine pour **Google Antigravity** (`plugin.json`, `mcp_config.json` clé `juris`, `assets/logo.svg`) et **Gemini CLI** (`gemini-extension.json` clé `juris`) sans dupliquer les compétences de `droit-civil-quebecois` ni injecter de prose de développement dans les sessions d'usage :
 
-- **Transport et authentification :** les deux manifestes pointent sur `https://jurisprudence.poirierlavoie.ca/mcp` en Streamable HTTP avec l'en-tête `Authorization: Bearer ${MCP_JURISPRUDENCE_SECRET}` (`variables` sous Antigravity ; `settings` sensible dans `gemini-extension.json`). Sous Antigravity, les dix outils restent chargés à la demande (*lazy*, aucun `eager: true`).
+- **Transport et authentification :** les deux manifestes pointent sur `https://jurisprudence.poirierlavoie.ca/mcp` en Streamable HTTP (`"type": "http"` et `"url"` dans `gemini-extension.json`) avec l'en-tête `Authorization: Bearer ${MCP_JURISPRUDENCE_SECRET}` (jeton d'accès individuel via `variables` sous Antigravity et `settings` sensible dans `gemini-extension.json`). Sous Antigravity, les douze outils restent chargés à la demande (*lazy*, aucun `eager: true`).
 - **Contexte minimal (« connector only ») :** `gemini-extension.json` fixe `"contextFileName": []` afin qu'une installation utilisateur n'importe pas le `GEMINI.md` racine dans ses conversations ordinaires ; les instructions canoniques demeurent portées par le serveur (`INSTRUCTIONS` sur `initialize` / `server/discover` et descriptions d'outils).
 - **`GEMINI.md` d'espace de travail :** Antigravity tronque tout fichier de règles au-delà de 24 000 octets, alors que `CLAUDE.md` dépasse 40 Ko. `GEMINI.md` synthétise donc les invariants et renvoie vers `CLAUDE.md` et `SPEC.md`, en demeurant sous 24 000 octets (épinglé par `test/doc.test.ts`).
 - **Fiche de découverte HTTP (`GET /mcp/server-card`, SEP-2127) :** exception exacte et nommée avant la garde `/mcp*`, servie en `application/mcp-server-card+json; charset=utf-8` avec `Access-Control-Allow-Origin: *`, dérivée uniquement de `SERVER_INFO`, `PUBLIC_DESCRIPTION` et `VERSIONS` (invariant 19), sans jamais lire ni exposer de secret, et coupée en `404` lorsque `MCP_ENABLED !== "true"`.
