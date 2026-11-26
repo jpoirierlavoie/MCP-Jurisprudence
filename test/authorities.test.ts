@@ -73,8 +73,8 @@ describe("Parité de compilation des autorités dispensées", () => {
       comptesStatut[d.status]++;
     }
     expect(comptesStatut).toEqual({
-      canlii: 487,
-      hors_collection: 246,
+      canlii: 730,
+      hors_collection: 3,
       hors_juridiction: 4,
     });
   });
@@ -326,6 +326,51 @@ describe("check_exempt_cases", () => {
     expect(outQccs).toContain("2002 CanLII 41290 (QC CA) — DISPENSÉE");
     expect(outQccs).toContain("[1999] 1 R.C.S. 420 — DISPENSÉE");
     expect(outQccs).toContain("1999 CanLII 715 (CSC) — DISPENSÉE");
+
+    const cEnriched = fakeClient({});
+    const rQccsNew = await callTool(
+      "check_exempt_cases",
+      {
+        list_id: "qccs-mtl-controle-judiciaire",
+        citations: [{ citation: "1984 CanLII 2757 (QC CA)" }],
+      },
+      toolCtx(cEnriched),
+    );
+    const rAutochNew = await callTool(
+      "check_exempt_cases",
+      {
+        list_id: "cf-autochtone",
+        citations: [{ citation: "1998 CanLII 9112 (FCTTD)" }],
+      },
+      toolCtx(cEnriched),
+    );
+    const rImmNew = await callTool(
+      "check_exempt_cases",
+      {
+        list_id: "cf-imm-general",
+        citations: [{ citation: "2004 FC 1125" }],
+      },
+      toolCtx(cEnriched),
+    );
+    const rTatNew = await callTool(
+      "check_exempt_cases",
+      {
+        list_id: "tat-dsst",
+        citations: [
+          { citation: "1994 CanLII 16436 (QC CALP)" },
+          { citation: "2008 QCCLP 1795" },
+          { citation: "2007 QCCS 6010" },
+        ],
+      },
+      toolCtx(cEnriched),
+    );
+    expect(cEnriched.usage().calls).toBe(0);
+    expect(texte(rQccsNew)).toContain("1984 CanLII 2757 (QC CA) — DISPENSÉE");
+    expect(texte(rAutochNew)).toContain("1998 CanLII 9112 (FCTTD) — DISPENSÉE");
+    expect(texte(rImmNew)).toContain("2004 FC 1125 — DISPENSÉE");
+    expect(texte(rTatNew)).toContain("1994 CanLII 16436 (QC CALP) — DISPENSÉE");
+    expect(texte(rTatNew)).toContain("2008 QCCLP 1795 — DISPENSÉE");
+    expect(texte(rTatNew)).toContain("2007 QCCS 6010 — DISPENSÉE");
   });
 
   it("contrôle toutes les sous-listes d'un tribunal et nomme celles qui concordent", async () => {
@@ -428,29 +473,30 @@ describe("check_exempt_cases", () => {
   });
 
   it("résout via le repli CanLII (lookupCase hors_collection et searchLocal D1)", async () => {
-    // 1. Repli lookupCase sur entrée `hors_collection` compatible (Fairford First Nation 1998/1999)
+    // 1. Repli lookupCase sur entrée `hors_collection` compatible (Coca-Cola Ltd 1978, tat-drt)
     const clientLookup = fakeClient({
-      "caseBrowse/fr/fct/1998canlii8888/": {
-        databaseId: "fct",
-        caseId: "1998canlii8888",
-        title: "Fairford First Nation v. Canada (Attorney General)",
-        citation: "[1999] 2 F.C. 48",
-        decisionDate: "1998-11-26",
+      "caseBrowse/fr/qctat/1978qctat8888/": {
+        databaseId: "qctat",
+        caseId: "1978qctat8888",
+        title:
+          "International Union of United Brewery, Flour, Cereal, Soft Drink and Distillery Workers of America (local 239) c. Coca-Cola Ltd",
+        citation: "[1978] R.L. 391",
+        decisionDate: "1978-06-15",
         url: "https://canlii.ca/t/4abc",
       },
     });
     const rLookup = await callTool(
       "check_exempt_cases",
       {
-        list_id: "cf-autochtone",
-        citations: [{ citation: "1998 CanLII 8888 (FCT)" }],
+        list_id: "tat-drt",
+        citations: [{ citation: "1978 QCTAT 8888" }],
       },
       toolCtx(clientLookup),
     );
     expect(rLookup.isError).toBe(false);
     expect(clientLookup.usage().calls).toBe(1);
     const outLookup = texte(rLookup);
-    expect(outLookup).toContain("1998 CanLII 8888 (FCT) — DISPENSÉE");
+    expect(outLookup).toContain("1978 QCTAT 8888 — DISPENSÉE");
     expect(outLookup).toContain("Résolution CanLII préalable appliquée");
 
     // 2. Repli searchLocal sur citation de recueil avec intitulé déjà présent dans `cases`
@@ -503,8 +549,8 @@ describe("check_exempt_cases", () => {
     const rErr = await callTool(
       "check_exempt_cases",
       {
-        list_id: "cf-imm-general",
-        citations: [{ citation: "2004 CF 9999" }],
+        list_id: "tat-drt",
+        citations: [{ citation: "1978 QCTAT 9999" }],
       },
       toolCtx(
         fakeClient(
@@ -513,7 +559,7 @@ describe("check_exempt_cases", () => {
             erreur: () =>
               new CanliiError(
                 500,
-                "https://api.canlii.org/v1/caseBrowse/fr/fct/2004cf9999/",
+                "https://api.canlii.org/v1/caseBrowse/fr/qctat/1978qctat9999/",
                 "err",
               ),
           },
@@ -523,9 +569,9 @@ describe("check_exempt_cases", () => {
     expect(rErr.isError).toBe(false);
     const outErr = texte(rErr);
     expect(outErr).toContain("Vérification INTERROMPUE");
-    expect(outErr).toContain("2004 CF 9999 — INDÉTERMINÉE");
+    expect(outErr).toContain("1978 QCTAT 9999 — INDÉTERMINÉE");
     expect(outErr).toContain(EXPLICATION_INDETERMINEE);
-    expect(outErr).not.toContain("2004 CF 9999 — NON LISTÉE");
+    expect(outErr).not.toContain("1978 QCTAT 9999 — NON LISTÉE");
   });
 
   it("expose l'Avis modifié CF (2015), les règles multiples QCCS et les consignes sur NON LISTÉE", async () => {
