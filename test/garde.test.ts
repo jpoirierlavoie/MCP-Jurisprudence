@@ -1243,7 +1243,7 @@ describe("§7 — `isError` veut dire la même chose dans les douze outils", () 
 
 describe("§7.11 & §7.12 — garde obligatoire dans les sorties d'autorités dispensées", () => {
   it("GARDE_AUTORITES_DISPENSEES paraît dans toutes les sorties de list_exempt_cases et check_exempt_cases", async () => {
-    await seedDatabases(["csc-scc", "qcca", "qccs", "qccq", "fct", "fca"]);
+    await seedDatabases(["csc-scc", "qcca", "qccs", "qccq", "fct", "fca", "qctat"]);
     const sorties = [
       texte(await callTool("list_exempt_cases", {}, toolCtx(fakeClient({})))),
       texte(
@@ -1282,8 +1282,8 @@ describe("§7.11 & §7.12 — garde obligatoire dans les sorties d'autorités di
         await callTool(
           "check_exempt_cases",
           {
-            list_id: "cf-imm-general",
-            citations: [{ citation: "2004 CF 9999" }],
+            list_id: "tat-drt",
+            citations: [{ citation: "1978 QCTAT 9999" }],
           },
           toolCtx(
             fakeClient(
@@ -1292,7 +1292,7 @@ describe("§7.11 & §7.12 — garde obligatoire dans les sorties d'autorités di
                 erreur: () =>
                   new CanliiError(
                     429,
-                    "https://api.canlii.org/v1/caseBrowse/fr/fct/2004cf9999/",
+                    "https://api.canlii.org/v1/caseBrowse/fr/qctat/1978qctat9999/",
                     "rate",
                   ),
               },
