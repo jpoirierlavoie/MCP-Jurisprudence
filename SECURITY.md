@@ -15,7 +15,7 @@ Ce dépôt héberge le connecteur **MCP Jurisprudence** (`https://jurisprudence.
 ## Portée
 
 Dans la portée :
-- Le Worker déployé sur `jurisprudence.poirierlavoie.ca` (`POST /mcp`, `POST /mcp/oauth`, `GET /.well-known/oauth-protected-resource/mcp/oauth`, `GET /`, `GET /mcp/server-card`, `GET /health`) ;
+- Le Worker déployé sur `jurisprudence.poirierlavoie.ca` (`POST /mcp`, `POST /mcp/oauth`, `GET /.well-known/oauth-protected-resource/mcp/oauth`, `GET /`, `GET /mcp/server-card`, `GET /.well-known/mcp/server-card.json`, `GET /health`) ;
 - Le code dans `src/`, `migrations/` et les manifestes clients (`plugin.json`, `mcp_config.json`, `gemini-extension.json`).
 
 Hors portée :

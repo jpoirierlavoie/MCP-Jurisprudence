@@ -296,7 +296,7 @@ describe("SEP-2127 — fiche de découverte /mcp/server-card", () => {
     expect(card.version).toBe(SERVER_INFO.version);
     expect(card.description).toBe(PUBLIC_DESCRIPTION);
     expect(card.websiteUrl).toBe("https://jurisprudence.poirierlavoie.ca/");
-    expect(card.remotes).toHaveLength(1);
+    expect(card.remotes).toHaveLength(2);
     expect(card.remotes[0]).toMatchObject({
       type: "streamable-http",
       url: "https://jurisprudence.poirierlavoie.ca/mcp",
@@ -307,6 +307,25 @@ describe("SEP-2127 — fiche de découverte /mcp/server-card", () => {
       isRequired: true,
       isSecret: true,
     });
+    expect(card.remotes[1]).toEqual({
+      type: "streamable-http",
+      url: "https://jurisprudence.poirierlavoie.ca/mcp/oauth",
+      supportedProtocolVersions: [...VERSIONS],
+      headers: [],
+    });
+
+    const ctxWk = createExecutionContext();
+    const resWk = await worker.fetch(
+      new Request("https://jurisprudence.poirierlavoie.ca/.well-known/mcp/server-card.json"),
+      envAvec(),
+      ctxWk,
+    );
+    await waitOnExecutionContext(ctxWk);
+    expect(resWk.status).toBe(200);
+    expect(resWk.headers.get("Content-Type")).toBe(
+      "application/mcp-server-card+json; charset=utf-8",
+    );
+    expect(await resWk.json()).toEqual(card);
   });
 
   it("HEAD et OPTIONS répondent sans corps, POST et DELETE rendent 405", async () => {
@@ -351,6 +370,15 @@ describe("SEP-2127 — fiche de découverte /mcp/server-card", () => {
     );
     await waitOnExecutionContext(ctx);
     expect(res.status).toBe(404);
+
+    const ctxWkOff = createExecutionContext();
+    const resWkOff = await worker.fetch(
+      new Request("https://jurisprudence.poirierlavoie.ca/.well-known/mcp/server-card.json"),
+      eteint,
+      ctxWkOff,
+    );
+    await waitOnExecutionContext(ctxWkOff);
+    expect(resWkOff.status).toBe(404);
   });
 });
 
