@@ -10,6 +10,7 @@
 import {
   type AnneauMaitresCoffre,
   type BinaireD1,
+  CHEMIN_WELL_KNOWN_CARTE_SERVEUR,
   type ClasseOutil,
   type CodeErreurTechnique,
   construireCarteServeur,
@@ -103,6 +104,7 @@ export function carteServeur() {
     websiteUrl: "https://jurisprudence.poirierlavoie.ca/",
     repositoryUrl: "https://github.com/jpoirierlavoie/MCP-Jurisprudence",
     remoteUrl: "https://jurisprudence.poirierlavoie.ca/mcp",
+    oauthRemoteUrl: "https://jurisprudence.poirierlavoie.ca/mcp/oauth",
     supportedProtocolVersions: VERSIONS,
     authDescription:
       "Jeton individuel de titulaire (« Bearer <jeton> ») + clé API CanLII personnelle au coffre (ou en-tête X-Clef-CanLII), ou OAuth 2.1 sur /mcp/oauth via acces.poirierlavoie.ca.",
@@ -324,10 +326,12 @@ export default {
     }
 
     const estMetaOAuth = pathname === "/.well-known/oauth-protected-resource/mcp/oauth";
+    const estCarteServeur =
+      pathname === "/mcp/server-card" || pathname === CHEMIN_WELL_KNOWN_CARTE_SERVEUR;
     const estMcpOAuth = pathname === "/mcp/oauth" || pathname.startsWith("/mcp/oauth/");
     const estMcpDirect = !estMcpOAuth && (pathname === "/mcp" || pathname.startsWith("/mcp/"));
 
-    if (pathname === "/health" || estMetaOAuth || estMcpOAuth || estMcpDirect) {
+    if (pathname === "/health" || estMetaOAuth || estCarteServeur || estMcpOAuth || estMcpDirect) {
       // 1. Coupe-circuit global (`MCP_ENABLED !== "true"` => 404).
       const actif = mcpActif(env);
       if (!actif) return refuser("404", origin);
@@ -344,7 +348,7 @@ export default {
       }
 
       // Fiche SEP-2127 interceptée AVANT `/mcp/<secret>`.
-      if (pathname === "/mcp/server-card") {
+      if (estCarteServeur) {
         return repondreCarteServeur(request.method, carteServeur());
       }
 

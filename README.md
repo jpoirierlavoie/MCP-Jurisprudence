@@ -37,7 +37,7 @@ Les douze outils sont exposés sous la clé serveur `juris` dans [`droit-civil-q
   - **Google Antigravity** (`plugin.json`, `mcp_config.json`) : `agy plugin install https://github.com/jpoirierlavoie/MCP-Jurisprudence.git`, puis saisir la variable `MCP_JURISPRUDENCE_SECRET` avec un jeton issu de `/moi`.
   - **Gemini CLI** (`gemini-extension.json`) : `gemini extensions install https://github.com/jpoirierlavoie/MCP-Jurisprudence` et saisir `MCP_JURISPRUDENCE_SECRET`. (`"contextFileName": []` évite d'injecter `GEMINI.md` dans vos sessions.)
 - **Origines navigateur autorisées :** `https://gemini.google.com`, `https://aistudio.google.com`, `https://claude.ai`, `https://claude.com`, `https://chatgpt.com`, `https://chat.openai.com` et `https://platform.openai.com` (incluant `X-Clef-CanLII`).
-- **Découverte HTTP (SEP-2127) :** la fiche publique de connectivité est exposée sans secret sur `GET https://jurisprudence.poirierlavoie.ca/mcp/server-card` (`application/mcp-server-card+json`).
+- **Découverte HTTP (SEP-2127) :** la fiche publique de connectivité est exposée sans secret sur `GET https://jurisprudence.poirierlavoie.ca/mcp/server-card` et `GET https://jurisprudence.poirierlavoie.ca/.well-known/mcp/server-card.json` (`application/mcp-server-card+json`).
 
 ---
 
