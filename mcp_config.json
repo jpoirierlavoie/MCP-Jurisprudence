@@ -8,8 +8,8 @@
       "variables": [
         {
           "name": "MCP_JURISPRUDENCE_SECRET",
-          "title": "Secret partagé MCP Jurisprudence",
-          "description": "Secret partagé de l'instance MCP Jurisprudence (transmis dans l'en-tête Authorization: Bearer)."
+          "title": "Jeton d'accès MCP Jurisprudence",
+          "description": "Jeton d'accès de l'instance MCP Jurisprudence (transmis dans l'en-tête Authorization: Bearer)."
         }
       ]
     }

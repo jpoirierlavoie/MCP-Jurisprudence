@@ -31,7 +31,7 @@ Hors portée :
    - Les journaux d'invocation Cloudflare sont explicitement désactivés dans `wrangler.jsonc` (`observability.enabled = false`, `observability.logs.invocation_logs = false`).
    - Seuls des compteurs journaliers agrégés (`compteur_jour`) et des événements techniques dépourvus de contenu (`evenement_technique`, horodatés à la minute UTC et purgés à 90 jours) sont inscrits dans `DB_IDENTITE`.
 2. **Garde stricte BYOK CanLII et protection du cache partagé (`G8`, `G10`, `G38`)** :
-   - Pour tout `titulaire`, chacun des 9 outils adossés à CanLII ouvre le coffre (`ouvrirCoffre` : surcharge d'en-tête `X-Clef-CanLII` → `DB_IDENTITE.coffre_clef` chiffré par enveloppe `HKDF-SHA256` + `AES-256-GCM`) **avant** toute lecture du cache D1 `cases`/`cases_fts`/`citator_*`, sans aucune retombée sur `env.CANLII_API_KEY`.
+   - Pour tout `titulaire`, chacun des 10 outils pouvant interroger CanLII ouvre le coffre (`ouvrirCoffre` : surcharge d'en-tête `X-Clef-CanLII` → `DB_IDENTITE.coffre_clef` chiffré par enveloppe `HKDF-SHA256` + `AES-256-GCM`) **avant** toute lecture du cache D1 `cases`/`cases_fts`/`citator_*`, sans aucune retombée sur `env.CANLII_API_KEY`.
    - En cas de refus `401`/`403` de CanLII sur une clé du coffre, `coffre_clef.etat` passe à `'refusee'` et l'outil renvoie `[CLEF_REFUSEE]` vers `https://acces.poirierlavoie.ca/moi`.
    - Aucun horodatage exact `fetched_at` n'est affiché dans les réponses servies (`G38`), empêchant toute inférence d'activité récente d'un confrère sur une décision donnée.
    - **Réserve sur `find_case` :** `find_case` transmet un fragment d'intitulé à l'API REST de CanLII en cas de balayage vif ; éviter d'y soumettre le nom d'une partie à un dossier confidentiel non publié lorsqu'une citation neutre suffit.

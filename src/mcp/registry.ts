@@ -207,7 +207,7 @@ export const SERVER_INFO = {
   // le jour où il devient le dernier endroit à dire l'inverse des douze autres.
   name: "mcp-jurisprudence",
   title: "MCP Jurisprudence",
-  version: "2.3.1",
+  version: "2.3.2",
 };
 
 /**

@@ -120,7 +120,7 @@ describe("Manifestes Antigravity / Gemini et version — aucune dérive silencie
     settings?: Array<{ name: string; description: string; envVar: string; sensitive?: boolean }>;
     mcpServers: Record<
       string,
-      { httpUrl?: string; headers?: Record<string, string>; eager?: boolean }
+      { type?: string; url?: string; headers?: Record<string, string>; eager?: boolean }
     >;
   };
   const card = carteServeur();
@@ -169,7 +169,8 @@ describe("Manifestes Antigravity / Gemini et version — aucune dérive silencie
     // Critiquement vide : évite d'injecter le GEMINI.md de développement dans les sessions utilisateur.
     expect(geminiExt.contextFileName).toEqual([]);
     const gcli = geminiExt.mcpServers.juris;
-    expect(gcli?.httpUrl).toBe("https://jurisprudence.poirierlavoie.ca/mcp");
+    expect(gcli?.type).toBe("http");
+    expect(gcli?.url).toBe("https://jurisprudence.poirierlavoie.ca/mcp");
     expect(gcli?.headers?.Authorization).toBe(`Bearer $${"{MCP_JURISPRUDENCE_SECRET}"}`);
     expect(
       geminiExt.settings?.some(
