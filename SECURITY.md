@@ -8,7 +8,7 @@
 > **Jason Poirier Lavoie, Lawyer (Québec)** — `jason@poirierlavoie.ca` (acknowledgement within **72 hours**, coordinated disclosure).
 > **Never attach** privileged client documents, unredacted confidential client facts, or live tokens / CanLII API keys to an initial report; use synthetic examples first.
 
-Ce dépôt héberge le connecteur **MCP Jurisprudence** (`https://jurisprudence.poirierlavoie.ca/mcp` et `/mcp/oauth`) — vérification déterministe de citations de jurisprudence canadienne contre la collection de CanLII — sur Cloudflare Workers en lecture seule, sans aucune dépendance d'exécution (`dependencies` absent).
+Ce dépôt héberge le connecteur **MCP Jurisprudence** (`https://jurisprudence.poirierlavoie.ca/mcp` et `/mcp/oauth`) — vérification déterministe de citations de jurisprudence canadienne contre la collection de CanLII — sur Cloudflare Workers en lecture seule, sans aucune dépendance d'exécution (`dependencies` absent). L'accès au service hébergé est réservé aux membres actifs en règle du Barreau du Québec via [`https://acces.poirierlavoie.ca`](https://acces.poirierlavoie.ca) (clé API CanLII personnelle facultative sur `/demande`, ajoutable ou modifiable dans `/moi`, requise uniquement pour `juris` et jamais pour `lois` ni `outils`).
 
 ---
 
@@ -26,6 +26,8 @@ Hors portée :
 
 ## Données traitées, BYOK CanLII et secret professionnel
 
+L'instance hébergée est réservée aux membres actifs en règle du Barreau du Québec admis via `https://acces.poirierlavoie.ca`. La clé API CanLII personnelle (BYOK) est **facultative lors de la demande sur `/demande`**, ajoutable ou gérable ensuite dans `/moi`, et exigée **uniquement** pour `juris` (`MCP-Jurisprudence`) — jamais pour `lois` (`MCP-Legislation`) ni `outils` (`MCP-Outils`).
+
 1. **Zéro journalisation de contenu de requête (`S13`, `S14`, `G9`, `G37`)** :
    - Aucune écriture n'a lieu à l'exécution dans `search_log` ni `api_usage` ; aucun texte de citation, intitulé cherché ni URL `request.url` n'est journalisé.
    - Les journaux d'invocation Cloudflare sont explicitement désactivés dans `wrangler.jsonc` (`observability.enabled = false`, `observability.logs.invocation_logs = false`).
@@ -41,8 +43,8 @@ Hors portée :
 ## Modèle d'authentification et contrôles de sécurité
 
 - **Double montage (`/mcp` et `/mcp/oauth`) et coupe-circuit (`MCP_ENABLED !== "true"`) :**
-  - `/mcp` accepte les jetons individuels `DB_IDENTITE` (`portee` `'tous'`, `'jurisprudence'` ou `'les_deux'` héritée) ainsi que le secret partagé transitoire Phase 3a (`MCP_SHARED_SECRET`), et renvoie **uniformément `404` à corps vide sans `WWW-Authenticate`** sur tout refus (`S8`, `G7`, `G23`).
-  - `/mcp/oauth` accepte exclusivement `Authorization: Bearer <jeton>` et répond `401` RFC 9728 pointant vers `https://acces.poirierlavoie.ca`.
+  - `/mcp` accepte les jetons individuels `DB_IDENTITE` (`portee` `'tous'`, `'jurisprudence'` ou `'les_deux'` héritée) ainsi que le secret partagé statique (`MCP_SHARED_SECRET` — repli autonome d'une fourche sans `DB_IDENTITE` ni `MCP-Acces`, avec `CANLII_API_KEY` ou `X-Clef-CanLII`, ou secret transitoire Phase 3a), et renvoie **uniformément `404` à corps vide sans `WWW-Authenticate`** sur tout refus (`S8`, `G7`, `G23`).
+  - `/mcp/oauth` accepte exclusivement `Authorization: Bearer <jeton>` (portées `'tous'`, `'jurisprudence'` ou `'les_deux'` héritée) et répond `401` RFC 9728 pointant vers `https://acces.poirierlavoie.ca`.
   - Le contrôle de méthode `POST` (`405`) s'exécute **après** l'authentification sur les deux montages.
 - **Débit à deux niveaux et quotas (`G32`, `G34`) :** Pré-auth par IP (`RL_PRE_AUTH_IP` `1021` 600/min, `RL_ECHEC_IP` `1022` 20/min, `RL_ECHECS_GLOBAL` `1023` 300/min + quarantaine IP en mémoire contournée par tout jeton valide déjà reconnu), post-auth par `titulaire_id` (`RL_TITULAIRE` `1024` 180/min `actif`, `RL_TITULAIRE_LIMITE` `1025` 20/min `limite`), et quotas journaliers UTC (`local` sur cache / hors ligne, `sortant` dès qu'au moins un appel sortant CanLII est émis).
 
