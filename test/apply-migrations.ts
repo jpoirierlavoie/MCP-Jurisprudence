@@ -13,4 +13,6 @@ function enonces(sql: string): string {
 }
 
 await applyD1Migrations(env.DB, env.TEST_MIGRATIONS);
-await env.DB_IDENTITE.exec(enonces(construireSchemaIdentiteD1(["legislation", "jurisprudence"])));
+await env.DB_IDENTITE.exec(
+  enonces(construireSchemaIdentiteD1(["legislation", "jurisprudence", "outils"])),
+);

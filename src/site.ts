@@ -416,7 +416,7 @@ ${biP(
       "consommer votre quota CanLII (check_exempt_cases permet aussi un mode strictement " +
       "hors ligne avec resolve_canlii=false). " +
       "Les outils hors ligne pour les numéros de dossier de cour et les palais de justice du " +
-      "Québec (greffe_*, palais_*) relèvent du connecteur public sans authentification " +
+      "Québec (greffe_*, palais_*) relèvent du connecteur hors ligne " +
       "« outils ».",
   ],
   EN.familleCanliiTexte,
@@ -503,7 +503,7 @@ ${h2("acces")}
 ${biP(
   [
     "Accès gratuit réservé aux membres actifs en règle du Barreau du Québec.",
-    "1. Déposez une demande une seule fois sur https://acces.poirierlavoie.ca/demande avec votre numéro du Barreau et votre propre clé API CanLII (elle est conservée chiffrée sur le portail et utilise votre propre quota CanLII).",
+    "1. Déposez une demande une seule fois sur https://acces.poirierlavoie.ca/demande avec votre numéro du Barreau et enregistrez votre propre clé API CanLII (à l'inscription ou ensuite dans /moi ; elle est conservée chiffrée sur le portail et utilise votre propre quota CanLII).",
     "2. Installez le greffon droit-civil-quebecois dans Claude, ChatGPT, Gemini ou Antigravity — ou ajoutez https://jurisprudence.poirierlavoie.ca/mcp/oauth dans les réglages de connecteurs — puis cliquez sur « Connecter » pour autoriser l'accès dans votre navigateur (aucune clé technique à copier).",
     "Vos citations et requêtes ne sont jamais journalisées. Gérez votre clé CanLII ou votre compte à tout moment sur https://acces.poirierlavoie.ca/moi.",
   ],
@@ -523,7 +523,7 @@ ${biP(
 <p><a href="https://acces.poirierlavoie.ca/demande">${bi("Demande d'accès (/demande)", "Apply for access (/demande)")}</a>
  · <a href="https://acces.poirierlavoie.ca/moi">/moi</a>
  · <a href="https://legislation.poirierlavoie.ca/">${bi("Connecteur « lois »", "Connector « lois »")}</a>
- · <a href="https://outils.poirierlavoie.ca/">${bi("Connecteur « outils » (public)", "Connector « outils » (public)")}</a>
+ · <a href="https://outils.poirierlavoie.ca/">${bi("Connecteur « outils »", "Connector « outils »")}</a>
  · <a href="${DEPOT_PLUGIN}">droit-civil-quebecois</a>
  · <a href="${DEPOT}">github.com/jpoirierlavoie/MCP-Jurisprudence</a>
  · <a href="mailto:jason@poirierlavoie.ca">jason@poirierlavoie.ca</a></p>
@@ -668,10 +668,10 @@ function construireLlmsTxt(): string {
     "",
     "## Québec Civil Law MCP Suite (`droit-civil-quebecois`)",
     "",
-    "- [MCP Accès (Admission & OAuth 2.1 Portal)](https://acces.poirierlavoie.ca/): Eligibility (active Barreau du Québec members + individual BYOK CanLII key), `/demande` application, and `/moi` self-service portal.",
-    "- [MCP Législation (`lois`)](https://legislation.poirierlavoie.ca/): Official statutes, regulations, court directives, and AMF texts. Server Card: https://legislation.poirierlavoie.ca/mcp/server-card",
+    "- [MCP Accès (Admission & OAuth 2.1 Portal)](https://acces.poirierlavoie.ca/): Eligibility (active Barreau du Québec members; optional personal CanLII API key required for `juris`, not needed for `lois` or `outils`), `/demande` application, and `/moi` self-service portal.",
+    "- [MCP Législation (`lois`)](https://legislation.poirierlavoie.ca/): Official statutes, regulations, court directives, and AMF texts (requires Barreau access via acces.poirierlavoie.ca; no CanLII key needed). Server Card: https://legislation.poirierlavoie.ca/mcp/server-card",
     `- [MCP Jurisprudence (\`juris\`)](${ORIGINE_SITE}/): Case-law citation verification, CanLII metadata, and 27 exempt-authorities lists across 9 courts/tribunals (12 tools). Server Card: ${ORIGINE_SITE}/mcp/server-card`,
-    "- [MCP Outils (`outils` — Public, no account required)](https://outils.poirierlavoie.ca/): 15 tools across 6 families — C.C.P. deadlines, art. 1619 C.C.Q. interest, registries & GLEIF snapshots, courthouses, RQA addresses, bijural terminology, Bank of Canada rates, StatCan CPI, and TAL/CMHC rents. Endpoint: `https://outils.poirierlavoie.ca/mcp`",
+    "- [MCP Outils (`outils`)](https://outils.poirierlavoie.ca/): 15 tools across 6 families — C.C.P. deadlines, art. 1619 C.C.Q. interest, registries & GLEIF snapshots, courthouses, RQA addresses, bijural terminology, Bank of Canada rates, StatCan CPI, and TAL/CMHC rents (requires Barreau access via acces.poirierlavoie.ca; no CanLII key needed). Endpoint: `https://outils.poirierlavoie.ca/mcp/oauth` (or `/mcp`)",
     `- [Umbrella Plugin Repository](${DEPOT_PLUGIN}) · [Connector Repository](${DEPOT})`,
     "",
   ].join("\n");

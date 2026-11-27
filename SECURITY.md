@@ -41,7 +41,7 @@ Hors portée :
 ## Modèle d'authentification et contrôles de sécurité
 
 - **Double montage (`/mcp` et `/mcp/oauth`) et coupe-circuit (`MCP_ENABLED !== "true"`) :**
-  - `/mcp` accepte les jetons individuels `DB_IDENTITE` (`portee` `'jurisprudence'` ou `'les_deux'`) ainsi que le secret partagé transitoire Phase 3a (`MCP_SHARED_SECRET`), et renvoie **uniformément `404` à corps vide sans `WWW-Authenticate`** sur tout refus (`S8`, `G7`, `G23`).
+  - `/mcp` accepte les jetons individuels `DB_IDENTITE` (`portee` `'tous'`, `'jurisprudence'` ou `'les_deux'` héritée) ainsi que le secret partagé transitoire Phase 3a (`MCP_SHARED_SECRET`), et renvoie **uniformément `404` à corps vide sans `WWW-Authenticate`** sur tout refus (`S8`, `G7`, `G23`).
   - `/mcp/oauth` accepte exclusivement `Authorization: Bearer <jeton>` et répond `401` RFC 9728 pointant vers `https://acces.poirierlavoie.ca`.
   - Le contrôle de méthode `POST` (`405`) s'exécute **après** l'authentification sur les deux montages.
 - **Débit à deux niveaux et quotas (`G32`, `G34`) :** Pré-auth par IP (`RL_PRE_AUTH_IP` `1021` 600/min, `RL_ECHEC_IP` `1022` 20/min, `RL_ECHECS_GLOBAL` `1023` 300/min + quarantaine IP en mémoire contournée par tout jeton valide déjà reconnu), post-auth par `titulaire_id` (`RL_TITULAIRE` `1024` 180/min `actif`, `RL_TITULAIRE_LIMITE` `1025` 20/min `limite`), et quotas journaliers UTC (`local` sur cache / hors ligne, `sortant` dès qu'au moins un appel sortant CanLII est émis).

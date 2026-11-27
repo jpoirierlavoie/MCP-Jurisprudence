@@ -112,7 +112,7 @@ function offsetDe(quoi: string): JsonSchema {
 export const SERVER_INFO = {
   name: "mcp-jurisprudence",
   title: "MCP Jurisprudence",
-  version: "2.3.4",
+  version: "2.3.5",
 };
 
 export const PUBLIC_DESCRIPTION =
@@ -138,7 +138,7 @@ export const INSTRUCTIONS =
   "outils peuvent interroger CanLII ; deux, parse_citation et list_exempt_cases, " +
   "n'appellent RIEN en direct. Pour analyser un numéro de dossier judiciaire québécois " +
   "(greffe_parse_number) ou consulter le répertoire des palais de justice et " +
-  "greffes du Québec (palais_list, palais_get), employer le connecteur public hors ligne " +
+  "greffes du Québec (palais_list, palais_get), employer le connecteur hors ligne " +
   "« outils ».";
 
 export const TOOLS: Record<string, ToolDescriptor> = {
