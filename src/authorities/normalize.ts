@@ -1,12 +1,7 @@
-/**
- * Normalisation pure des tribunaux, clés de citations et numéros de dossier pour les
- * listes d'autorités dispensées (module sans E/S).
- */
-
 import { fold } from "../citation/normalize";
 import type { CitationForm } from "../citation/parse";
 
-export interface TribunalMeta {
+interface TribunalMeta {
   id: string;
   nomFr: string;
   nomEn: string;
@@ -110,7 +105,6 @@ const TRIBUNAL_ALIASES: Readonly<Record<string, string>> = {
   tmob: "comc",
 };
 
-/** Normalise un identifiant de tribunal ou alias univoque, ou `null` si inconnu. */
 export function normalizeTribunal(raw: string): string | null {
   const k = raw.trim().toLowerCase().replace(/\s+/g, "");
   return TRIBUNAL_ALIASES[k] ?? null;
@@ -132,35 +126,6 @@ export const NEUTRE_VERS_FAMILLE: Readonly<Record<string, string>> = {
   QCCQ: "qccq",
   QCCM: "qccm",
   QCTAL: "qctal",
-  QCTAT: "qctat",
-  QCTAQ: "qctaq",
-  QCTP: "qctp",
-  QCTDP: "qctdp",
-  QCCLP: "qcclp",
-  QCCRT: "qccrt",
-  QCBDRVM: "qcbdrvm",
-  QCBDR: "qcbdrvm",
-  QCTMF: "qcbdrvm",
-  BCCA: "bcca",
-  YKCA: "ykca",
-  ONCA: "onca",
-};
-
-export const NEUTRE_VERS_DB: Readonly<Record<string, string>> = {
-  CSC: "csc-scc",
-  SCC: "csc-scc",
-  CAF: "fca",
-  FCA: "fca",
-  CF: "fct",
-  FC: "fct",
-  FCT: "fct",
-  CFPI: "fct",
-  CCI: "tcc-cci",
-  TCC: "tcc-cci",
-  QCCA: "qcca",
-  QCCS: "qccs",
-  QCCQ: "qccq",
-  QCCM: "qccm",
   QCTAT: "qctat",
   QCTAQ: "qctaq",
   QCTP: "qctp",
@@ -205,8 +170,7 @@ const SIGLE_CANON: ReadonlyMap<string, string> = new Map([
   ["UKPC", "UKPC"],
 ]);
 
-/** Normalise un sigle de recueil judiciaire de façon identique au compilateur. */
-export function normalizeReporterAbbr(rawSigle: string): string {
+function normalizeReporterAbbr(rawSigle: string): string {
   const s = rawSigle.replace(/\./g, "").replace(/\s+/g, " ").trim().toUpperCase();
   const serieMatch = /^(CPR|DLR)\s*\((\d+(?:ND|D|TH))\)$/i.exec(s);
   if (serieMatch) {
@@ -219,25 +183,21 @@ export function normalizeReporterAbbr(rawSigle: string): string {
   return SIGLE_CANON.get(s) ?? s.replace(/\s+/g, "");
 }
 
-/** Produit toutes les clés d'appariement d'une citation neutre (incl. bilingues). */
-export function neutralMatchKeys(year: number, code: string, number: number): string[] {
+function neutralMatchKeys(year: number, code: string, number: number): string[] {
   const up = code.toUpperCase();
   const fam = NEUTRE_VERS_FAMILLE[up] ?? up.toLowerCase();
   const cles = [`N:${fam}:${year}:${number}`];
-  // Tolérer aussi QCBDR/QCTMF si la clé stockée vient du parseur strict sans repli
   if (up === "QCBDR" || up === "QCTMF") {
     cles.push(`N:${up.toLowerCase()}:${year}:${number}`);
   }
   return cles;
 }
 
-/** Clé d'appariement d'une citation CanLII (`C:<année>:<numéro>`). */
-export function canliiMatchKey(year: number, number: number): string {
+function canliiMatchKey(year: number, number: number): string {
   return `C:${year}:${number}`;
 }
 
-/** Produit toutes les clés d'appariement d'une citation de recueil. */
-export function reporterMatchKeys(
+function reporterMatchKeys(
   year: number | null,
   volume: number | null,
   reporter: string,
@@ -255,15 +215,10 @@ export function reporterMatchKeys(
   return cles;
 }
 
-/** Clé d'appariement d'un identifiant d'éditeur (J.E., D.T.E., AZ, REJB, EYB, Carswell). */
 export function publisherMatchKey(id: string): string {
   return `P:${id.toUpperCase().replace(/[.\s]/g, "")}`;
 }
 
-/**
- * Développe un couple `(database_id, case_id)` CanLII vers ses formes bilingues et
- * sa clé `C:<année>:<num>` le cas échéant.
- */
 export function expandDbCaseKeys(databaseId: string, caseId: string): string[] {
   const db = databaseId.trim().toLowerCase();
   const cid = caseId.trim().toLowerCase();
@@ -298,7 +253,6 @@ export function expandDbCaseKeys(databaseId: string, caseId: string): string[] {
   return [...cles];
 }
 
-/** Extrait les clés de numéros de dossier non ambigus (`C.L.P.`, `IMM-`, `##-A-`, `T-`, `A-`). */
 export function extractDocketKeys(raw: string): string[] {
   const cles = new Set<string>();
   for (const rx of [
@@ -316,7 +270,6 @@ export function extractDocketKeys(raw: string): string[] {
   return [...cles];
 }
 
-/** Collecte toutes les clés d'appariement portées par un ensemble de formes analysées. */
 export function citationFormKeys(form: CitationForm): string[] {
   switch (form.kind) {
     case "neutral":
@@ -330,7 +283,6 @@ export function citationFormKeys(form: CitationForm): string[] {
   }
 }
 
-/** Normalise une chaîne courte pour détecter les entrées trop pauvres (`ILLISIBLE`). */
 export function hasEnoughTextForTitleSearch(raw: string): boolean {
   const f = fold(raw);
   const letters = f.replace(/[^a-z]/g, "");

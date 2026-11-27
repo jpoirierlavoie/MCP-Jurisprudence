@@ -1,11 +1,3 @@
-/**
- * `check_exempt_cases` — Vérification d'un lot de citations contre la ou les
- * listes d'autorités dispensées d'un tribunal (ou d'une liste précise).
- *
- * Contrat à 5 verdicts :
- *   DISPENSÉE · À VÉRIFIER · NON LISTÉE · ILLISIBLE · INDÉTERMINÉE
- */
-
 import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import {
   type CheckCitationInput,
@@ -31,19 +23,9 @@ import {
 } from "../../format/render";
 import { loadDirectory } from "../../store/databases";
 import type { ToolContext } from "../registry";
+import { citationSure } from "./verifyCitations";
 
 const MAX_CITATIONS = 50;
-
-/** Retire caractères de contrôle / retours à la ligne dans la citation reflétée. */
-function citationAssainie(brut: string): string {
-  const espaces = brut.replace(/[\r\n\t]+/g, " ");
-  let out = "";
-  for (let i = 0; i < espaces.length; i++) {
-    const code = espaces.charCodeAt(i);
-    if (code >= 0x20 && code !== 0x7f) out += espaces[i]!;
-  }
-  return out.trim().slice(0, 200);
-}
 
 function formaterOccurrenceMatch(m: ExemptMatchItem, lang: Lang): string {
   const pos = m.entry.tabNumber !== null ? `onglet ${m.entry.tabNumber}` : `#${m.entry.position}`;
@@ -57,7 +39,7 @@ function formaterOccurrenceMatch(m: ExemptMatchItem, lang: Lang): string {
 }
 
 function formaterResultat(outcome: CheckCitationOutcome, lang: Lang): string {
-  const enTete = `${citationAssainie(outcome.input.citation) || "(vide)"} — ${outcome.verdict}`;
+  const enTete = `${citationSure(outcome.input.citation) || "(vide)"} — ${outcome.verdict}`;
 
   if (outcome.verdict === "ILLISIBLE") {
     return [
@@ -88,7 +70,6 @@ function formaterResultat(outcome: CheckCitationOutcome, lang: Lang): string {
     return lignes.join("\n");
   }
 
-  // DISPENSÉE ou À VÉRIFIER
   const lignes = [enTete];
   if (outcome.erroneous) {
     const e = outcome.erroneous;

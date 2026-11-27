@@ -1,6 +1,6 @@
 {
   "name": "mcp-jurisprudence",
-  "version": "2.3.3",
+  "version": "2.3.4",
   "private": true,
   "description": "Serveur MCP « MCP Jurisprudence » — vérification déterministe de jurisprudence canadienne (collection CanLII). Worker Cloudflare, lecture seule.",
   "license": "Apache-2.0",
@@ -24,7 +24,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.6.7",
     "@cloudflare/vitest-pool-workers": "^0.23.0",
-    "@poirierlavoie/mcp-socle": "github:jpoirierlavoie/MCP-Socle#v0.8.6",
+    "@poirierlavoie/mcp-socle": "github:jpoirierlavoie/MCP-Socle#v0.8.7",
     "typescript": "^7.0.2",
     "vitest": "^4.1.12",
     "wrangler": "^4.162.0"

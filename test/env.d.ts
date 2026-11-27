@@ -1,10 +1,5 @@
 declare namespace Cloudflare {
   interface Env {
-    /**
-     * Migrations lues par `vitest.config.ts` et appliquées par
-     * `test/apply-migrations.ts`. Binding réservé aux tests : il n'existe
-     * évidemment pas en production.
-     */
     TEST_MIGRATIONS: import("@cloudflare/vitest-pool-workers").D1Migration[];
   }
 }

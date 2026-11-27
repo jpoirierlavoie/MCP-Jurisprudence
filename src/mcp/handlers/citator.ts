@@ -1,15 +1,3 @@
-/**
- * `citator` (spécification §7.4).
- *
- * ⚠ CONTRAINTE DE L'API CODÉE EN DUR : le chemin du citateur de CanLII n'accepte
- *   QUE `en` comme segment de langue (`caseCitator/en/…`, annexe B).
- *   Lorsqu'une langue d'affichage (`fr` par défaut, ou `en`) est demandée, on
- *   projette la décision de départ et on substitue les intitulés `title_fr` /
- *   `title_en` déjà présents dans le cache local `cases`. Lorsque `lang = "fr"` et
- *   que des intitulés restent ceux retournés par `caseCitator/en`, une mention
- *   explicite l'indique en pied de sortie (D22).
- */
-
 import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
 import { relancerSiInterruptionGouverne } from "../../canlii/errors";

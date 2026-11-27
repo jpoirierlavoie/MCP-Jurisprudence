@@ -1,17 +1,7 @@
 {
   "mcpServers": {
     "juris": {
-      "url": "https://jurisprudence.poirierlavoie.ca/mcp",
-      "headers": {
-        "Authorization": "Bearer ${MCP_JURISPRUDENCE_SECRET}"
-      },
-      "variables": [
-        {
-          "name": "MCP_JURISPRUDENCE_SECRET",
-          "title": "Jeton d'accès MCP Jurisprudence",
-          "description": "Jeton d'accès de l'instance MCP Jurisprudence (transmis dans l'en-tête Authorization: Bearer)."
-        }
-      ]
+      "url": "https://jurisprudence.poirierlavoie.ca/mcp/oauth"
     }
   }
 }

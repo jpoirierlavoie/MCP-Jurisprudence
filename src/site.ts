@@ -1,23 +1,3 @@
-/**
- * Page publique du connecteur (§18) — `GET /`, et fichiers publics de découverte
- * (`/robots.txt`, `/sitemap.xml`, `/llms.txt`).
- *
- * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║ ⚠ CETTE PAGE EST PUBLIQUE. Le secret partagé ne doit JAMAIS y paraître.      ║
- * ║                                                                              ║
- * ║ Elle documente la FORME du point d'entrée — `/mcp/<secret>` — et jamais une  ║
- * ║ URL réelle. Elle ne lit pas `env.MCP_SHARED_SECRET`, ne lit pas `request.url`║
- * ║ et n'appelle rien. Un test épingle l'absence de toute chaîne qui ressemble à ║
- * ║ un jeton dans le corps rendu.                                                ║
- * ╚══════════════════════════════════════════════════════════════════════════════╝
- *
- * TOUT LE CONTENU DÉRIVE DES DONNÉES VIVES : les outils viennent du registre et les
- * schémas du même `inputSchema` que le validateur applique.
- *
- * Aucune dépendance, aucune requête tierce : ni police distante, ni CDN, ni image.
- * Sans JavaScript, le FRANÇAIS s'affiche et tout le contenu reste lisible.
- */
-
 import type { JsonSchema } from "@poirierlavoie/mcp-socle";
 import { listToolDescriptors, PUBLIC_DESCRIPTION } from "./mcp/registry";
 import { EN, OUTILS_EN } from "./site.i18n";
@@ -26,8 +6,7 @@ const ORIGINE_SITE = "https://jurisprudence.poirierlavoie.ca";
 const DEPOT = "https://github.com/jpoirierlavoie/MCP-Jurisprudence";
 const DEPOT_PLUGIN = "https://github.com/jpoirierlavoie/droit-civil-quebecois";
 
-/** Échappement HTML. Appliqué à TOUTE valeur interpolée, sans exception. */
-export function esc(s: string): string {
+function esc(s: string): string {
   return s
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -36,13 +15,11 @@ export function esc(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-/** Bloc bilingue : les DEUX langues sont émises, une règle CSS n'en montre qu'une. */
-export function bi(fr: string, en: string): string {
+function bi(fr: string, en: string): string {
   return `<span data-l="fr">${esc(fr)}</span><span data-l="en" lang="en">${esc(en)}</span>`;
 }
 
-/** Suite de paragraphes bilingues. */
-export function biP(fr: readonly string[], en: readonly string[]): string {
+function biP(fr: readonly string[], en: readonly string[]): string {
   return (
     `<div data-l="fr">${fr.map((p) => `<p>${esc(p)}</p>`).join("")}</div>\n` +
     `<div data-l="en" lang="en">${en.map((p) => `<p>${esc(p)}</p>`).join("")}</div>`
@@ -55,7 +32,7 @@ export const SECTIONS = [
   { id: "schema", fr: "Les schémas (technique)", en: "The schemas (technical)" },
 ] as const;
 
-export type SectionId = (typeof SECTIONS)[number]["id"];
+type SectionId = (typeof SECTIONS)[number]["id"];
 
 const TITRE_SECTION = new Map<SectionId, { fr: string; en: string }>(
   SECTIONS.map((s) => [s.id, { fr: s.fr, en: s.en }]),
@@ -74,8 +51,6 @@ function compacterBloc(code: string): string {
     .filter(Boolean)
     .join("\n");
 }
-
-// ── Thème ─────────────────────────────────────────────────────────────────────
 
 const CLAIR =
   "color-scheme:light;--f:#0f172a;--m:#475569;--b:#cbd5e1;--bi:#64748b;--a:#1d4ed8;--bg:#f8fafc;--card:#fff;" +
@@ -184,8 +159,7 @@ html.l-fr [data-l=en],html.l-en [data-l=fr]{display:none}
 }
 `;
 
-// biome-ignore lint/complexity/noUselessStringRaw: parade délibérée
-const BOOT = String.raw`
+const BOOT = `
 try{
   var r=document.documentElement, c=[];
   var p=localStorage.getItem('jurisLang')||(navigator.language||'fr').slice(0,2);
@@ -270,8 +244,6 @@ function jsClient(): string {
   return JS.replace("LARGEUR", LARGE);
 }
 
-// ── Assemblage ────────────────────────────────────────────────────────────────
-
 function sautContenu(): string {
   return `<a href="#contenu-principal" class="saut">${bi("Aller au contenu principal", "Skip to main content")}</a>`;
 }
@@ -343,8 +315,6 @@ ${biP(
 </p>
 </header>`;
 }
-
-// ── Les outils, dérivés du REGISTRE ───────────────────────────────────────────
 
 export const RESUME_OUTILS_FR: Readonly<Record<string, readonly string[]>> = {
   verify_citations: [
@@ -454,8 +424,6 @@ ${biP(
 ${tous.map(carte).join("\n")}
 </section>`;
 }
-
-// ── Les schémas, dérivés du MÊME objet que le validateur applique ─────────────
 
 function contraintes(s: JsonSchema): string {
   const bouts: string[] = [];
@@ -611,7 +579,7 @@ function construireJsonLd(): string {
   return JSON.stringify(graphe).replace(/</g, "\\u003c");
 }
 
-export function renderSite(): string {
+function renderSite(): string {
   const corps = [entete(), outils(), acces(), schemas(), pied()].join("\n");
   const titrePage = "MCP Jurisprudence — Vérification de citations (CanLII)";
   const descMeta =
@@ -658,10 +626,8 @@ export function pagePubliqueHtml(): string {
   return memo;
 }
 
-// ── Découverte publique (/robots.txt, /sitemap.xml, /llms.txt) ───────────────
-
-export const CHEMINS_DECOUVERTE_PUBLIQUE = ["/robots.txt", "/sitemap.xml", "/llms.txt"] as const;
-export type CheminDecouvertePublique = (typeof CHEMINS_DECOUVERTE_PUBLIQUE)[number];
+const CHEMINS_DECOUVERTE_PUBLIQUE = ["/robots.txt", "/sitemap.xml", "/llms.txt"] as const;
+type CheminDecouvertePublique = (typeof CHEMINS_DECOUVERTE_PUBLIQUE)[number];
 
 export function estCheminDecouvertePublique(
   pathname: string,

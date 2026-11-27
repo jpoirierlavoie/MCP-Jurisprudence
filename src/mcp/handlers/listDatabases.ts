@@ -1,14 +1,3 @@
-/**
- * `list_databases` (spécification §7.7).
- *
- * Sert le répertoire local si `refreshed_at` a moins de 7 jours ; sinon rafraîchit
- * (deux appels : `caseBrowse/{lang}/` et `legislationBrowse/{lang}/`).
- *
- * C'est aussi ici que se fait la RÉCONCILIATION exigée par §4.3 : toute ligne de
- * `court_codes` ou `paren_codes` dont le databaseId est absent du répertoire réel est
- * SIGNALÉE dans la sortie. L'outil détecte, il ne corrige jamais de lui-même.
- */
-
 import { ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
 import { relancerSiInterruptionGouverne } from "../../canlii/errors";
@@ -33,10 +22,6 @@ export async function listDatabasesTool(
   const jurisdiction = args.jurisdiction as string | undefined;
   const query = args.query as string | undefined;
 
-  // Les filtres, nommés UNE SEULE FOIS. Cette construction ne servait qu'à la branche
-  // vide (« Aucune base pour kind=… ») ; la branche non vide la laissait tomber, et
-  // l'en-tête ne disait donc pas sur quel ensemble il comptait. En écrire une seconde
-  // ferait nommer le filtre différemment selon le chemin.
   const filtres = [
     kind ? `kind=${kind}` : null,
     jurisdiction ? `jurisdiction=${jurisdiction}` : null,
@@ -49,12 +34,6 @@ export async function listDatabasesTool(
   if (refresh || (await directoryStale(ctx.db, ctx.now))) {
     try {
       const r = await refreshDatabases(ctx.db, ctx.client, lang, ctx.now);
-      // ⚠ CES NOMBRES PORTENT SUR LE RÉPERTOIRE ENTIER, et la phrase doit le dire.
-      //   Ce sont les longueurs des deux charges utiles que CanLII vient de rendre
-      //   (`refreshDatabases`), tandis que l'en-tête plus bas compte les lignes LOCALES
-      //   retenues par les filtres. Les deux étaient vrais et illisibles ensemble :
-      //   « 409 base(s) de jurisprudence, 50 base(s) législative(s) » suivi de « 4
-      //   base(s) au répertoire de CanLII », sans qu'aucune ne dise qu'un filtre jouait.
       noteRafraichissement =
         "Répertoire rafraîchi depuis CanLII — ces nombres portent sur le répertoire " +
         `ENTIER, filtres exclus : ${nombreFr(r.cases)} base(s) de jurisprudence, ` +
@@ -86,15 +65,12 @@ export async function listDatabasesTool(
     const titre = k === "case" ? "Cours et tribunaux" : "Corpus législatifs";
     const lignes = liste.map((b) => {
       const nom = b.name_fr ?? b.name_en ?? "—";
-      // `type` BRUT entre crochets, pour le motif écrit en §4.1 : l'enum de CanLII
-      // n'est documenté nulle part et l'ensemble n'est pas clos.
       const type = b.type ? ` [${b.type}]` : "";
       return `  · ${b.id} — ${nom} (${b.jurisdiction})${type}`;
     });
     blocs.push(`${titre} (${nombreFr(liste.length)}) :\n${lignes.join("\n")}`);
   }
 
-  // §4.3 — signalement des hypothèses d'amorçage démenties par le répertoire réel.
   const { courts, parens } = await directoryMismatches(ctx.db);
   let alerte: string | null = null;
   if (courts.length > 0 || parens.length > 0) {
@@ -102,20 +78,6 @@ export async function listDatabasesTool(
       ...courts.map((c) => `  · ${c.code} -> ${c.database_id} (${c.note ?? "hypothèse"})`),
       ...parens.map((p) => `  · (${p.juris_code} ${p.court_code}) -> ${p.database_id}`),
     ];
-    // Le marqueur vient de la CONSTANTE, jamais recopié.
-    //
-    // ⚠ CE COMMENTAIRE AFFIRMAIT, jusqu'au 2026-09-16, que `scripts/refresh-databases.mjs`
-    //   « découpe la sortie dessus ». C'est FAUX : le script ne mentionne nulle part
-    //   `MARQUEUR_RECONCILIATION` (`grep` : zéro occurrence). Il repère les écarts par
-    //   leur FORME — `/^·s+.+s+->s+S+/` — et pose son garde-fou sur l'en-tête
-    //   « base(s) au répertoire de CanLII », rendu plus bas dans ce même fichier. C'est
-    //   CELUI-LÀ qu'il faut propager, et non ce marqueur. Le même énoncé faux vivait
-    //   dans `src/format/render.ts` ; les deux sont corrigés ensemble, faute de quoi
-    //   l'un aurait « confirmé » l'autre au prochain lecteur.
-    //
-    //   Ce qui reste vrai, et qui est le motif de la constante : le marqueur ne se
-    //   recopie pas, parce qu'une copie littérale vivrait des DEUX côtés d'une frontière
-    //   TypeScript/JavaScript qu'aucun compilateur ne vérifie.
     alerte =
       `${MARQUEUR_RECONCILIATION} (§4.3) — ces correspondances d'amorçage désignent un\n` +
       "databaseId ABSENT du répertoire réel de CanLII. Toute citation qui en dépend\n" +
@@ -123,15 +85,6 @@ export async function listDatabasesTool(
       details.join("\n");
   }
 
-  // ⚠ « base(s) au répertoire de CanLII » est une CHAÎNE DE COUPLAGE.
-  //   `scripts/refresh-databases.mjs` la cherche TELLE QUELLE (`includes`) dans la
-  //   sortie entière, et sort en CODE 2 — refus de statuer — si elle disparaît. Ce qui
-  //   la précède et ce qui la suit est libre ; ces trente et un caractères ne le sont
-  //   pas. Épinglée par test depuis le 2026-09-17, en lisant le littéral DANS le script
-  //   plutôt qu'en le recopiant.
-  //
-  //   Le `filtres` employé ici est celui de la branche vide : une seule construction,
-  //   sinon les deux phrases nommeraient le filtre différemment.
   const entete = filtres
     ? `${nombreFr(bases.length)} base(s) au répertoire de CanLII pour ${filtres} :`
     : `${nombreFr(bases.length)} base(s) au répertoire de CanLII, sans filtre :`;

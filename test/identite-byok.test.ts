@@ -161,7 +161,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
   });
 
   it("expose /mcp (refus 404 uniforme), /mcp/oauth (Bearer seul, 401 RFC 9728, CORS X-Clef-CanLII) et /.well-known/oauth-protected-resource/mcp/oauth", async () => {
-    // Racine /.well-known/oauth-protected-resource = 404.
     const ctxRoot = createExecutionContext();
     const resRoot = await worker.fetch(
       new Request("https://jurisprudence.poirierlavoie.ca/.well-known/oauth-protected-resource"),
@@ -171,7 +170,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
     await waitOnExecutionContext(ctxRoot);
     expect(resRoot.status).toBe(404);
 
-    // Sous-chemin RFC 9728 = 200 (et 404 si MCP_ENABLED=false, G22).
     const ctxMeta = createExecutionContext();
     const resMeta = await worker.fetch(
       new Request(
@@ -200,7 +198,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
     await waitOnExecutionContext(ctxMetaOff);
     expect(resMetaOff.status).toBe(404);
 
-    // Pré-vol CORS sur /mcp et /mcp/oauth autorise X-Clef-CanLII.
     for (const chemin of ["/mcp", "/mcp/oauth"]) {
       const ctxOpt = createExecutionContext();
       const opt = await worker.fetch(
@@ -234,7 +231,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       portee: "legislation",
     });
 
-    // Jeton portée `legislation` refusé sur `jurisprudence` (404 vide sur /mcp, 401 RFC 9728 sur /mcp/oauth).
     const rHorsPorteeMcp = await postMcp("/mcp", jetonLoisSeul, {
       jsonrpc: "2.0",
       id: 1,
@@ -253,7 +249,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       'resource_metadata="https://jurisprudence.poirierlavoie.ca/.well-known/oauth-protected-resource/mcp/oauth"',
     );
 
-    // /mcp/oauth refuse ?key=, /mcp/oauth/<jeton> et le secret partagé Worker, mais accepte Bearer D1.
     expect(
       (
         await postMcp(`/mcp/oauth?key=${jetonJuris}`, null, {
@@ -282,7 +277,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       ).status,
     ).toBe(401);
 
-    // Méthode GET sur /mcp/oauth : 401 sans porteur, 405 avec porteur valide (G23).
     const ctxGetAnon = createExecutionContext();
     expect(
       (
@@ -341,8 +335,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       clefCanlii: "clef-personnelle-valide-coffre-999",
     });
 
-    // 1. MÊME avec env.CANLII_API_KEY présente et Dunsmuir déjà en cache D1, un titulaire sans clé
-    //    reçoit [CLEF_ABSENTE] sur les outils CanLII et ne lit JAMAIS la fiche en cache.
     for (const [outil, args] of [
       ["get_case", { citation: "2008 CSC 9" }],
       ["verify_citations", { citations: [{ citation: "2008 CSC 9" }] }],
@@ -365,8 +357,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       expect(corps.result.content[0]?.text, outil).not.toContain("Dunsmuir");
     }
 
-    // En revanche `parse_citation`, `list_exempt_cases` et `check_exempt_cases`
-    // avec `resolve_canlii: false` (purement hors ligne) restent accessibles sans clé CanLII.
     const resParse = await postMcp("/mcp", jetonSansClef, {
       jsonrpc: "2.0",
       id: 2,
@@ -410,7 +400,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
     expect(corpsCheckHorsLigne.result.isError).toBe(false);
     expect(corpsCheckHorsLigne.result.content[0]?.text).toContain("DISPENSÉE");
 
-    // 2. Clé marquée `refusee` ou chiffré altéré => [CLEF_REFUSEE], aucun accès au cache.
     for (const jeton of [jetonClefRefusee, jetonChiffreCorrompu]) {
       const res = await postMcp("/mcp", jeton, {
         jsonrpc: "2.0",
@@ -426,8 +415,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       expect(corps.result.content[0]?.text).not.toContain("Dunsmuir");
     }
 
-    // 3. Avec une clé valide au coffre, le cache est lu en classe `local`, et un manqué de cache
-    //    emploie EXCLUSIVEMENT la clé personnelle du coffre (jamais env.CANLII_API_KEY).
     const urlsAppelees: string[] = [];
     const originalFetch = globalThis.fetch;
     globalThis.fetch = (async (input: RequestInfo | URL) => {
@@ -439,7 +426,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
     }) as typeof fetch;
 
     try {
-      // Succès 100 % cache -> 0 appel réseau, classe `local`.
       const resCache = await postMcp("/mcp", jetonValide, {
         jsonrpc: "2.0",
         id: 4,
@@ -453,7 +439,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       expect(corpsCache.result.content[0]?.text).toContain("Dunsmuir");
       expect(urlsAppelees).toHaveLength(0);
 
-      // `refresh: true` -> appel sortant portant la clé du coffre et non env.CANLII_API_KEY.
       const resVif = await postMcp("/mcp", jetonValide, {
         jsonrpc: "2.0",
         id: 5,
@@ -495,7 +480,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
     }) as typeof fetch;
 
     try {
-      // 1. Surcharge `X-Clef-CanLII` refusée en 401 : renvoie [CLEF_REFUSEE], mais NE modifie PAS `coffre_clef.etat`.
       const resEntete = await postMcp(
         "/mcp",
         jeton,
@@ -523,7 +507,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       ).first<{ etat: string }>();
       expect(etatApresEntete?.etat).toBe("valide");
 
-      // 2. Appel avec la clé du coffre refusée en 401 par CanLII : marque `coffre_clef.etat = 'refusee'`.
       const resCoffre = await postMcp("/mcp", jeton, {
         jsonrpc: "2.0",
         id: 2,
@@ -547,7 +530,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       expect(etatApresCoffre?.etat).toBe("refusee");
       expect(etatApresCoffre?.eprouve_le).toBeTruthy();
 
-      // 3. Dès lors, même la lecture du cache Dunsmuir est bloquée par [CLEF_REFUSEE].
       const resCacheBloque = await postMcp("/mcp", jeton, {
         jsonrpc: "2.0",
         id: 3,
@@ -587,7 +569,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       clefCanlii: "clef-quota-mixte-123456789012",
     });
 
-    // Plafond `sortant` atteint pour l'état `limite` (20/20), tandis que `local` vaut 0/150.
     await env.DB_IDENTITE.prepare(
       `INSERT INTO compteur_jour (titulaire_id, jour, classe, appels, erreurs, introuvables, sortants)
        VALUES ('tit_quota_mixte', ?1, 'sortant', 20, 0, 0, 20)`,
@@ -603,7 +584,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
     }) as typeof fetch;
 
     try {
-      // 1. Outils servis à 100 % depuis le cache D1 : passent sous quota `local` et ne divulguent jamais `fetched_at` (G38).
       for (const [outil, args] of [
         ["get_case", { citation: "2008 CSC 9" }],
         ["verify_citations", { citations: [{ citation: "2008 CSC 9" }] }],
@@ -626,7 +606,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       }
       expect(appelsReseau).toBe(0);
 
-      // 2. Manqué de cache (y compris `find_case` sans `live` explicite quand < 3 fiches locales, lot mixte `verify_citations` et `browse_cases`) : bloqué AVANT tout appel réseau avec [QUOTA_EPUISE] `sortant`.
       for (const [outil, args] of [
         ["get_case", { citation: "2020 QCCA 999999" }],
         [
@@ -676,7 +655,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       clefCanlii: "clef-durcissement-valide-1234567890",
     });
 
-    // 1. Outil inconnu portant un nom de dossier/parties : jamais recopié dans DB_IDENTITE.evenement_technique.outil (S13/G13).
     const resInconnu = await postMcp("/mcp", jeton, {
       jsonrpc: "2.0",
       id: 1,
@@ -696,8 +674,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       code: "OUTIL_INCONNU",
     });
 
-    // 2. Auto-correction `lang_swap` (404 sur 2008csc9 puis 200 sur 2008scc9) + `list_databases` avec hypothèse absente :
-    //    tous deux doivent être enregistrés en `issue: "ok"` (`introuvables = 0`).
     await env.DB.prepare("UPDATE databases SET refreshed_at = ?1")
       .bind(new Date().toISOString())
       .run();
@@ -751,7 +727,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
         { classe: "sortant", appels: 1, introuvables: 0 },
       ]);
 
-      // 3. Lot de 3 citations absentes du cache lorsque CanLII renvoie 401 : avorte dès le 1er appel (jamais 3 appels).
       appelsFetch = 0;
       globalThis.fetch = (async () => {
         appelsFetch += 1;
@@ -783,7 +758,6 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       globalThis.fetch = originalFetch;
     }
 
-    // 4. Panne D1 sur lireCompteursJourD1 => refus fermé isError: true (G21), jamais erreur JSON-RPC -32603.
     const dbIdentitePanne = {
       prepare(sql: string) {
         if (sql.includes("FROM jeton")) {

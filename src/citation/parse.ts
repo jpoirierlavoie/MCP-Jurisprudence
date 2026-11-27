@@ -1,57 +1,37 @@
-/**
- * Analyseur de citations (spécification §6).
- *
- * C'est le cœur du connecteur. Module PUR : aucune E/S, aucune dépendance, donc
- * entièrement testable hors ligne. Le répertoire des tribunaux lui est PASSÉ
- * (interface `Directory`) plutôt que lu en base, précisément pour préserver cette
- * pureté — c'est `src/store/databases.ts` qui le charge.
- *
- * Principe directeur (§6.1) : LE BALAYAGE PRIME SUR L'APPARIEMENT TOTAL. Une citation
- * doctrinale complète contient presque toujours la forme neutre au milieu d'autres
- * éléments ; l'analyseur doit l'y trouver plutôt que de refuser la chaîne entière.
- */
-
-// ── Formes reconnues ──────────────────────────────────────────────────────────
-
 export interface NeutralForm {
   kind: "neutral";
   year: number;
-  /** Code du tribunal, TOUJOURS en majuscules : 'QCCA', 'CSC'. */
   code: string;
   number: number;
   raw: string;
 }
 
-export interface CanliiForm {
+interface CanliiForm {
   kind: "canlii";
   year: number;
   number: number;
-  /** Code de ressort entre parenthèses : 'QC'. Null si les parenthèses manquent. */
   juris: string | null;
-  /** Code de tribunal entre parenthèses : 'CQ'. Null si les parenthèses manquent. */
   court: string | null;
   raw: string;
 }
 
-export interface ReporterForm {
+interface ReporterForm {
   kind: "reporter";
-  /** Sigle du recueil, tel qu'écrit : 'R.C.S.', 'RCS', 'C.A.'. */
   reporter: string;
-  /** Année de publication/recueil si exprimée dans la citation ; nulle p. ex. pour « 64 NR 287 ». */
   year: number | null;
   volume: number | null;
   page: number;
   raw: string;
 }
 
-export interface PublisherForm {
+interface PublisherForm {
   kind: "publisher";
   scheme: "SOQUIJ" | "Yvon Blais" | "Carswell";
   id: string;
   raw: string;
 }
 
-export interface UnparsedForm {
+interface UnparsedForm {
   kind: "unparsed";
   raw: string;
 }
@@ -59,31 +39,16 @@ export interface UnparsedForm {
 export type ResolvableForm = NeutralForm | CanliiForm;
 export type CitationForm = ResolvableForm | ReporterForm | PublisherForm;
 
-export interface ParseResult {
-  /** La chaîne soumise, telle quelle. */
+interface ParseResult {
   input: string;
-  /** La forme retenue : la constructible s'il y en a une, sinon la première trouvée. */
   primary: CitationForm | UnparsedForm;
-  /** Les autres formes coexistantes (§6.1 : « mentionner les autres »). */
   parallel: CitationForm[];
-  /** Intitulé de cause éventuel précédant la citation dans la même chaîne (D1). */
   inlineTitle: string | null;
 }
 
-// ── Expressions régulières de référence (§6.2) ────────────────────────────────
-
-/**
- * Citation attribuée par CanLII, AVEC son couple de codes entre parenthèses.
- * Appliquée EN PREMIER et ses plages masquées ensuite — voir NEUTRAL.
- * Tolère la forme collée sans espaces (`2002canlii32322 (QC CQ)`) et les points (`(QC C.A.)`).
- */
 const CANLII =
   /\b(1[89]\d{2}|20\d{2})\s*CanLII\s*(\d{1,7})\s*\(\s*([A-Z]{2})\s+([A-Z](?:\.?[A-Z]){0,5}\.?)\s*\)/gi;
 
-/**
- * Citation attribuée par CanLII avec code de cour fédérale à un seul jeton
- * (`1996 CanLII 4086 (FCA)`, `1968 CanLII 1 (SCC)`, `1994 CanLII 3534 (FCTAD)`).
- */
 const CANLII_SOLO =
   /\b(1[89]\d{2}|20\d{2})\s*CanLII\s*(\d{1,7})\s*\(\s*([A-Z](?:\.?[A-Z]){1,6}\.?)\s*\)/gi;
 
@@ -103,42 +68,21 @@ const SINGLE_COURT_PARENS: Readonly<Record<string, string>> = {
   CCI: "CCI",
 };
 
-/** Même forme, mais sans les parenthèses : le tribunal reste indéterminable (`1997canlii335`). */
 const CANLII_NUE = /\b(1[89]\d{2}|20\d{2})\s*CanLII\s*(\d{1,7})\b/gi;
 
-/**
- * Citation neutre : année + identifiant de tribunal + numéro d'ordre.
- *
- * ⚠ ÉCART ASSUMÉ À §6.2 : la spécification écrit cette expression sans le drapeau `i`,
- *   mais la matrice de test §13 exige que « 2020 qcca 495 » s'analyse. Le drapeau est
- *   donc obligatoire — et il fait alors capturer « CanLII » lui-même comme code de
- *   tribunal dans « 2002 CanLII 32322 ». Deux parades, cumulatives :
- *     1. les plages appariées par CANLII/CANLII_SOLO/CANLII_NUE sont MASQUÉES avant ce passage ;
- *     2. le code « CANLII » est rejeté explicitement (voir `scanNeutral`).
- *   Retirer l'une ou l'autre rouvre le défaut ; les deux sont testées.
- */
 const NEUTRAL = /\b(1[89]\d{2}|20\d{2})\s+([A-Za-z]{2,8})\s*(\d{1,6})\b/g;
 
-/** Identifiant CanLII collé sans espaces : `2008csc64`, `2020qcca495` (D21). */
 const NEUTRAL_CONCAT = /\b(1[89]\d{2}|20\d{2})([A-Za-z]{2,8})(\d{1,7})\b/g;
 
-/** Recueils à année entre crochets : [année] volume? sigle (No.)? page. */
 const REPORTER =
   /\[(1[89]\d{2}|20\d{2})\]\s*(\d+)?\s*(C\.?A\.?L\.?P\.?|CALP|C\.?L\.?P\.?|CLP|C\.?N\.?L\.?R\.?|CNLR|F\.?C\.?R\.?|FCR|F\.?C\.?J\.?|FCJ|F\.?C\.?|FC|C\.?F\.?|CF|R\.?C\.?S\.?|RCS|S\.?C\.?R\.?|SCR|R\.?S\.?C\.?|RSC|R\.?C\.?F\.?|RCF|R\.?J\.?D\.?T\.?|RJDT|R\.?J\.?Q\.?|RJQ|R\.?D\.?J\.?|RDJ|R\.?D\.?T\.?|RDT|R\.?L\.?|RL|T\.?T\.?|TT|C\.?A\.?|C\.?S\.?|C\.?Q\.?|A\.?C\.?|AC|UKPC|(?:[A-Z]\.){2,4})\s*(?:No\.?\s*)?(\d+)/g;
 
-/** Recueils à volume en tête : (année)? volume sigle (série)? page (année)?. */
 const REPORTER_VOL =
   /(?:\(\s*(1[89]\d{2}|20\d{2})\s*\),?\s*)?\b(\d{1,4})\s+((?:C\.?P\.?R\.?|D\.?L\.?R\.?|F\.?T\.?R\.?|N\.?R\.?|A\.C\.|U\.\s*S\.)(?:\s*\.?\s*\(\s*(?:2d|3d|4th|5th)\s*\)|\s+\d+\s+Wheat\.)?)\s+(\d{1,5})(?:\s*\(\s*(1[89]\d{2}|20\d{2})\s*\))?/g;
 
-/** Identifiants d'éditeurs. */
 const PUBLISHER =
   /\b(J\.?E\.?\s*\d{2,4}-\d+|REJB\s*\d{4}-\d+|EYB\s*\d{4}-\d+|AZ-\d{6,10}|D\.?T\.?E\.?\s*\d{2,4}T?-\s*\d+|(?:1[89]\d{2}|20\d{2})\s+Carswell[A-Za-z]{2,12}\s+\d+)\b/gi;
 
-/**
- * Codes de ressort canadiens connus, employés pour écarter les faux positifs de
- * NEUTRAL lors d'un BALAYAGE dans une phrase (§6.2 : « un code de deux lettres suivi
- * d'un numéro peut apparaître fortuitement »).
- */
 const RESSORTS = new Set([
   "QC",
   "ON",
@@ -156,7 +100,6 @@ const RESSORTS = new Set([
   "NU",
 ]);
 
-/** Codes fédéraux bien formés, langue-neutres ou non. */
 const FEDERAUX = new Set([
   "CSC",
   "SCC",
@@ -182,14 +125,11 @@ const FEDERAUX = new Set([
   "TMOB",
 ]);
 
-// ── Balayage ──────────────────────────────────────────────────────────────────
-
 interface Span {
   start: number;
   end: number;
 }
 
-/** Remplace les plages déjà consommées par des espaces, pour ne pas les réapparier. */
 function mask(text: string, spans: Span[]): string {
   if (spans.length === 0) return text;
   let out = text;
@@ -231,9 +171,6 @@ function scanCanlii(text: string, spans: Span[]): CanliiForm[] {
     });
     spans.push({ start: m.index, end: m.index + m[0].length });
   }
-  // Troisième passage : les formes CanLII privées de leur couple de codes. Elles ne sont
-  // pas constructibles (le tribunal est indéterminable) mais il faut les RECONNAÎTRE,
-  // sinon elles tombent en « ILLISIBLE », ce qui serait un diagnostic faux.
   const reste = mask(text, spans);
   CANLII_NUE.lastIndex = 0;
   for (const m of reste.matchAll(CANLII_NUE)) {
@@ -250,16 +187,6 @@ function scanCanlii(text: string, spans: Span[]): CanliiForm[] {
   return found;
 }
 
-/**
- * Un code inconnu est-il assez bien formé pour valoir une tentative ?
- *
- * `isole` = la citation occupe à elle seule toute la chaîne soumise. Dans ce cas on
- * accepte tout code de 2 à 8 lettres : l'usager a manifestement voulu donner une
- * citation, et la matrice §13 exige que « 2020 XXQQ 12 » ressorte en `probable`
- * plutôt qu'en `unparsed`. En revanche, lorsqu'on BALAIE une phrase, on exige un
- * préfixe de ressort connu — sans quoi « il a payé 2020 USD 500 » deviendrait une
- * citation.
- */
 function codePlausible(code: string, isole: boolean): boolean {
   if (code === "CANLII") return false;
   if (FEDERAUX.has(code)) return true;
@@ -280,7 +207,7 @@ function scanNeutral(
     for (const m of reste.matchAll(regex)) {
       const code = (m[2] ?? "").toUpperCase();
       if (!connus(code) && !codePlausible(code, isole)) continue;
-      if (code === "CANLII") continue; // parade n° 2 — voir le commentaire de NEUTRAL
+      if (code === "CANLII") continue;
       found.push({
         kind: "neutral",
         year: Number(m[1]),
@@ -345,8 +272,6 @@ function scanPublisher(text: string, spans: Span[]): PublisherForm[] {
   return found;
 }
 
-// ── Extraction de l'intitulé de cause en préfixe (D1) ─────────────────────────
-
 const TRAILING_PUNCT = /[\s,;:—–\-[(«"]+$/u;
 const TRAILING_CONNECTOR =
   /(?:^|[\s,;:[(«"—–-])(?:dans(?:\s+l['’](?:arrêt|arret|affaire|espèce|espece)|\s+la\s+décision|\s+le\s+jugement)?|in(?:\s+the\s+case\s+of)?|voir(?:\s+(?:aussi|notamment|également|egalement))?|see(?:\s+also)?|cf\.?|compare|comp\.?|selon|suivant|notamment|e\.g\.|p\.?\s*ex\.?)\s*$/i;
@@ -373,15 +298,10 @@ function estStyleJuridique(s: string): boolean {
   );
 }
 
-/**
- * Extrait un intitulé de cause juridique qui précède la première forme de citation,
- * en écartant la prose nue (« voir 2020 QCCA 495 », « il a payé 2020 QCCA 495 »).
- */
 function extractInlineTitle(texte: string, firstSpanStart: number): string | null {
   if (firstSpanStart <= 0) return null;
   let prefix = texte.slice(0, firstSpanStart);
 
-  // 1. Retirer ponctuation et connecteurs de queue (, ; — - dans in voir see [ ().
   for (;;) {
     const avant = prefix;
     prefix = prefix.replace(TRAILING_PUNCT, "");
@@ -391,7 +311,6 @@ function extractInlineTitle(texte: string, firstSpanStart: number): string | nul
   }
   if (!prefix) return null;
 
-  // 2. Retirer les introducteurs de prose en tête (« Voir A c. B », « Comme l'a jugé … dans A c. B »).
   const clauseMatch = CLAUSE_INTRODUCER.exec(prefix);
   if (clauseMatch) {
     prefix = prefix.slice(clauseMatch[0].length).trim();
@@ -409,26 +328,14 @@ function extractInlineTitle(texte: string, firstSpanStart: number): string | nul
   return estStyleJuridique(prefix) ? prefix : null;
 }
 
-/**
- * La citation occupe-t-elle toute la chaîne ? On tolère les enrobages usuels :
- * « (CanLII) » en suffixe, la ponctuation et les espaces.
- */
 function estIsole(input: string): boolean {
   const nu = input
     .replace(/\(\s*canlii\s*\)/gi, " ")
     .replace(/[.,;:()[\]]/g, " ")
     .trim();
-  // Une citation isolée fait au plus quatre jetons : année, code, numéro (+ résidu).
   return nu.split(/\s+/).filter(Boolean).length <= 5;
 }
 
-/**
- * Analyse une chaîne et rend la forme retenue plus les formes parallèles.
- *
- * @param connus prédicat « ce code figure-t-il au répertoire ? ». Facultatif : sans
- *   lui, seule la plausibilité syntaxique joue. Passer le vrai répertoire améliore le
- *   balayage dans les phrases (un code connu n'a pas besoin d'être « plausible »).
- */
 export function parseCitation(
   input: string,
   connus: (code: string) => boolean = () => false,
@@ -437,8 +344,6 @@ export function parseCitation(
   const spans: Span[] = [];
   const isole = estIsole(texte);
 
-  // Ordre imposé par §6.1 : (1) forme attribuée par CanLII, (2) forme neutre,
-  // (3) recueils, (4) identifiants d'éditeurs.
   const canlii = scanCanlii(texte, spans);
   const neutral = scanNeutral(texte, spans, connus, isole);
   const reporter = scanReporter(texte, spans);
@@ -449,8 +354,6 @@ export function parseCitation(
     return { input, primary: { kind: "unparsed", raw: texte }, parallel: [], inlineTitle: null };
   }
 
-  // §6.1 : « Si plusieurs formes coexistent, retenir la constructible ». Une forme
-  // CanLII complète et une forme neutre le sont ; la CanLII nue ne l'est pas.
   const constructibles = toutes.filter(
     (f) => f.kind === "neutral" || (f.kind === "canlii" && f.juris !== null),
   );
@@ -460,8 +363,6 @@ export function parseCitation(
   const inlineTitle = extractInlineTitle(texte, firstSpanStart);
   return { input, primary, parallel, inlineTitle };
 }
-
-// ── Résolution en databaseId / caseId (§6.3) ──────────────────────────────────
 
 export interface CourtCode {
   code: string;
@@ -481,37 +382,21 @@ export interface ParenCode {
 }
 
 export interface Directory {
-  /** Clef : code en majuscules. */
   courtCodes: Map<string, CourtCode>;
-  /** Clef : `${juris}/${court}` en majuscules. */
   parenCodes: Map<string, ParenCode>;
-  /** Identifiants réellement présents dans la table `databases` (peut être vide). */
   knownDatabases: Set<string>;
 }
 
-/** « oui » = répertoire confirmé ; « probable » = hypothèse ; « non » = irrésoluble. */
-export type Constructible = "oui" | "probable" | "non";
+type Constructible = "oui" | "probable" | "non";
 
 export interface Resolution {
   constructible: Constructible;
   databaseId: string | null;
   caseId: string | null;
-  /** Explication en français, destinée à la sortie de `parse_citation`. */
   raison: string;
-  /** Le databaseId déduit figure-t-il au répertoire local des bases ? */
   databaseConnue: boolean;
 }
 
-/**
- * Déduit `databaseId` et `caseId` d'une forme analysée.
- *
- *   caseId = `${year}${caseid_code}${number}`   (formes neutres)
- *   caseId = `${year}canlii${number}`           (formes attribuées par CanLII)
- *
- * Le rang `probable` n'est pas décoratif : il commande le comportement du reste du
- * système. Une ligne `verified = 0` est une HYPOTHÈSE d'amorçage (§4.3), et la boucle
- * d'auto-correction (§6.4) est ce qui la promeut — ou la corrige.
- */
 export function resolve(form: CitationForm | UnparsedForm, dir: Directory): Resolution {
   if (form.kind === "unparsed") {
     return {
@@ -593,7 +478,6 @@ export function resolve(form: CitationForm | UnparsedForm, dir: Directory): Reso
     };
   }
 
-  // form.kind === "neutral"
   const row = dir.courtCodes.get(form.code);
   if (row) {
     const caseId = `${form.year}${row.caseid_code}${form.number}`;
@@ -609,8 +493,6 @@ export function resolve(form: CitationForm | UnparsedForm, dir: Directory): Reso
     };
   }
 
-  // Code absent du répertoire mais bien formé : on tente l'identité (le motif qui vaut
-  // pour toutes les cours du Québec) et l'on consigne le résultat (§6.2, §6.4).
   const devine = form.code.toLowerCase();
   const caseId = `${form.year}${devine}${form.number}`;
   return {
@@ -622,7 +504,6 @@ export function resolve(form: CitationForm | UnparsedForm, dir: Directory): Reso
   };
 }
 
-/** Rendu court d'une forme, pour les listes de formes parallèles. */
 export function formLabel(form: CitationForm | UnparsedForm): string {
   switch (form.kind) {
     case "neutral":

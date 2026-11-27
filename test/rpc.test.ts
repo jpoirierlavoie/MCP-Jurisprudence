@@ -1,9 +1,3 @@
-/**
- * Transport MCP (spécification §8, §9 ; plan de test §13).
- *
- * On appelle le Worker par son export `fetch` plutôt que par `SELF`, afin de pouvoir
- * faire varier `env` (coupe-circuit, secret absent) d'un test à l'autre.
- */
 import { createExecutionContext, env, waitOnExecutionContext } from "cloudflare:test";
 import { type JsonSchema, parseMessage, validateArgs } from "@poirierlavoie/mcp-socle";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -15,13 +9,7 @@ beforeEach(() => {
 });
 
 const SECRET = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-/** Second porteur (§19) — le clavardage de Pallas Athéna. Droits identiques. */
-const SECRET_ATHENA = "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210";
 
-// `wrangler types` fige chaque var sur sa valeur LITTÉRALE de wrangler.jsonc :
-// `Partial<Env>` garde donc `MCP_ENABLED: "true"` et interdit de l'éteindre dans un
-// test. L'élargissement est confiné à ce helper — ailleurs, la précision du type
-// reste un garde-fou utile.
 function envAvec(over: Record<string, unknown> = {}): Env {
   return {
     ...env,
@@ -38,7 +26,6 @@ async function appeler(
     method?: string;
     headers?: Record<string, string>;
     env?: Env;
-    /** Paramètres de requête — sert le porteur `?key=`, servi depuis le 2026-09-17. */
     query?: Record<string, string>;
   } = {},
 ): Promise<Response> {
@@ -66,13 +53,6 @@ const rpc = (method: string, params?: unknown, id: number | string = 1) => ({
 describe("CORS — sans quoi claude.ai ne peut pas joindre le serveur", () => {
   const SECRET_URL = `https://x/mcp/${SECRET}`;
 
-  /**
-   * Défaut réel constaté à la mise en service : le serveur répondait parfaitement
-   * à un client SERVEUR (curl, scripts/mcp-client.mjs) et restait injoignable
-   * depuis claude.ai, qui est une application de NAVIGATEUR. Le pré-vol `OPTIONS`
-   * recevait un 405 et les réponses ne portaient aucun en-tête CORS : le
-   * navigateur refusait avant même de lire la réponse.
-   */
   it("répond au pré-vol OPTIONS SANS exiger le secret", async () => {
     const ctx = createExecutionContext();
     const res = await worker.fetch(
@@ -88,7 +68,6 @@ describe("CORS — sans quoi claude.ai ne peut pas joindre le serveur", () => {
       ctx,
     );
     await waitOnExecutionContext(ctx);
-    // Un navigateur émet le pré-vol sans authentification : l'exiger casserait tout.
     expect(res.status).toBe(204);
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe("https://claude.ai");
     expect(res.headers.get("Access-Control-Allow-Methods")).toContain("POST");
@@ -111,7 +90,6 @@ describe("CORS — sans quoi claude.ai ne peut pas joindre le serveur", () => {
     );
     await waitOnExecutionContext(ctx);
     expect(res.status).toBe(200);
-    // Sans cet en-tête, le navigateur bloque la LECTURE de la réponse, même 200.
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe("https://claude.ai");
   });
 
@@ -159,7 +137,6 @@ describe("CORS — sans quoi claude.ai ne peut pas joindre le serveur", () => {
       ctx,
     );
     await waitOnExecutionContext(ctx);
-    // 403 MÊME avec le bon secret : l'origine est jugée avant l'authentification.
     expect(res.status).toBe(403);
     expect(res.headers.get("Access-Control-Allow-Origin")).toBeNull();
   });
@@ -270,7 +247,6 @@ describe("SEP-2127 — fiche de découverte /mcp/server-card", () => {
 
     const brut = await res.text();
     expect(brut).not.toContain(SECRET);
-    expect(brut).not.toContain(SECRET_ATHENA);
     expect(brut).not.toContain("api.canlii.org");
     expect(brut).not.toMatch(/[0-9a-f]{32,}/i);
 
@@ -384,7 +360,6 @@ describe("SEP-2127 — fiche de découverte /mcp/server-card", () => {
 
 describe("§9.3 — limitation de débit", () => {
   const SECRET_URL = `https://x/mcp/${SECRET}`;
-  /** Faux limiteur : accepte `n` requêtes puis refuse. */
   const limiteur = (n: number) => {
     let vues = 0;
     return { limit: async () => ({ success: ++vues <= n }) };
@@ -422,8 +397,6 @@ describe("§9.3 — limitation de débit", () => {
   });
 
   it("le PRÉ-VOL n'est JAMAIS limité", async () => {
-    // Un 429 sur un pré-vol ne remonte au navigateur que comme un échec CORS
-    // opaque : le connecteur casserait sans que le motif soit lisible nulle part.
     const e = envAvec({ RL_PRE_AUTH_IP: limiteur(0) });
     const ctx = createExecutionContext();
     const res = await worker.fetch(
@@ -454,12 +427,10 @@ describe("§9.3 — limitation de débit", () => {
       ctx,
     );
     await waitOnExecutionContext(ctx);
-    expect(res.status).toBe(429); // et non 401 : coupé avant toute lecture D1
+    expect(res.status).toBe(429);
   });
 
   it("FAIL OPEN : binding absent ou en panne => la requête passe", async () => {
-    // La limitation protège le COÛT, pas l'accès. Échouer fermé sur un compteur
-    // indisponible rendrait le connecteur inutilisable pour protéger une facture.
     for (const rl of [
       undefined,
       {
@@ -495,11 +466,6 @@ describe("§8 — routage", () => {
   });
 
   it("/health avoue « inconnu » quand le commit n'a pas été posé", async () => {
-    // L'aveu vaut mieux que le silence, et bien mieux qu'une valeur plausible : le
-    // contrôle de dérive traite « inconnu » comme un REFUS DE CONCLURE, et non comme
-    // « à jour ». C'est la règle d'INDÉTERMINÉE de §2 appliquée au déploiement — un
-    // déploiement fait hors de `npm run deploy` ne doit pas se faire passer pour une
-    // production dont on connaît la version.
     const ctx = createExecutionContext();
     const sansCommit = { ...envAvec(), COMMIT: undefined } as unknown as Env;
     const res = await worker.fetch(new Request("https://x/health"), sansCommit, ctx);
@@ -511,8 +477,6 @@ describe("§8 — routage", () => {
     for (const method of ["GET", "DELETE"]) {
       const res = await appeler(null, { method });
       expect(res.status).toBe(405);
-      // OPTIONS figure desormais dans Allow : le pre-vol CORS est servi (claude.ai
-      // est un client de NAVIGATEUR). GET et DELETE restent refuses.
       expect(res.headers.get("Allow")).toBe("POST, OPTIONS");
     }
   });
@@ -568,7 +532,6 @@ describe("§9.1 — authentification (/mcp uniforme en 404 sans WWW-Authenticate
     const sansSecret = {
       ...envAvec(),
       MCP_SHARED_SECRET: undefined,
-      MCP_SHARED_SECRET_ATHENA: undefined,
     };
     const res = await appeler(rpc("ping"), { env: sansSecret as Env });
     expect(res.status).toBe(404);
@@ -618,22 +581,6 @@ describe("§9.1 — authentification (/mcp uniforme en 404 sans WWW-Authenticate
     expect(res.status).toBe(200);
   });
 
-  it("les deux porteurs se croisent : chemin Athéna + en-tête claude.ai, et l'inverse", async () => {
-    const deux = envAvec({ MCP_SHARED_SECRET_ATHENA: SECRET_ATHENA });
-    const a = await appeler(rpc("ping"), {
-      secret: SECRET_ATHENA,
-      headers: { Authorization: `Bearer ${SECRET}` },
-      env: deux,
-    });
-    expect(a.status).toBe(200);
-    const b = await appeler(rpc("ping"), {
-      secret: SECRET,
-      headers: { Authorization: `Bearer ${SECRET_ATHENA}` },
-      env: deux,
-    });
-    expect(b.status).toBe(200);
-  });
-
   it("ÉLARGIR N'EST PAS OUVRIR : deux porteurs faux restent un seul refus", async () => {
     const res = await appeler(rpc("ping"), {
       secret: "mauvais-secret",
@@ -664,18 +611,6 @@ describe("§9.1 — authentification (/mcp uniforme en 404 sans WWW-Authenticate
     expect(res.status).toBe(200);
   });
 
-  it("un second nom de secret n'ouvre PLUS rien — MCP_SHARED_SECRET_ATHENA est retiré", async () => {
-    const avecAncien = envAvec({ MCP_SHARED_SECRET_ATHENA: SECRET_ATHENA });
-    const res = await appeler(rpc("ping"), { secret: SECRET_ATHENA, env: avecAncien });
-    expect(res.status).toBe(404);
-  });
-
-  it("les deux porteurs coexistent : configurer le second n'invalide pas le premier", async () => {
-    const deux = envAvec({ MCP_SHARED_SECRET_ATHENA: SECRET_ATHENA });
-    const res = await appeler(rpc("ping"), { secret: SECRET, env: deux });
-    expect(res.status).toBe(200);
-  });
-
   it("retirer l'unique secret ferme tout — le défaut fermé n'a pas de repli", async () => {
     const sansAucun = envAvec({ MCP_SHARED_SECRET: undefined });
     expect((await appeler(rpc("ping"), { secret: SECRET, env: sansAucun })).status).toBe(404);
@@ -693,13 +628,6 @@ describe("§9.1 — authentification (/mcp uniforme en 404 sans WWW-Authenticate
   it("le porteur ?key= est servi — la forme qui survit au formulaire de claude.ai", async () => {
     const res = await appeler(rpc("ping"), { secret: null, query: { key: SECRET } });
     expect(res.status).toBe(200);
-  });
-
-  it("deux secrets configurés n'admettent pas pour autant un troisième", async () => {
-    const deux = envAvec({ MCP_SHARED_SECRET_ATHENA: SECRET_ATHENA });
-    const res = await appeler(rpc("ping"), { secret: "mauvais-secret", env: deux });
-    expect(res.status).toBe(404);
-    expect(res.headers.get("WWW-Authenticate")).toBeNull();
   });
 
   it("le secret bon passe", async () => {
@@ -722,12 +650,6 @@ describe("§8 — méthodes JSON-RPC", () => {
   });
 
   it("initialize rend la plus élevée HÉRITÉE quand la demande est inconnue", async () => {
-    // La valeur attendue a changé le 2026-09-17 — la GARANTIE, non. `2025-11-25` a rejoint
-    // les versions servies, et c'est désormais la plus élevée des HÉRITÉES.
-    //
-    // Pourquoi héritée et non `VERSIONS[0]` : celle-ci est maintenant `2026-07-28`, qui a
-    // SUPPRIMÉ la poignée. Répondre son nom à un client qui vient d'appeler `initialize`
-    // lui annoncerait une ère où sa propre requête n'existe pas.
     const res = await appeler(rpc("initialize", { protocolVersion: "1999-01-01" }));
     const body = (await res.json()) as { result: { protocolVersion: string } };
     expect(body.result.protocolVersion).toBe("2025-11-25");
@@ -769,8 +691,6 @@ describe("§8 — méthodes JSON-RPC", () => {
     for (const t of outils) {
       expect(t.name).not.toMatch(/^(?:jurisprudence|canlii)_/);
       expect(t.description.length).toBeGreaterThan(80);
-      // `openWorldHint` n est PAS uniforme : vrai pour les dix outils qui peuvent interroger
-      // CanLII, faux pour `parse_citation` et `list_exempt_cases` qui n appellent rien.
       const sansAppel = t.name === "parse_citation" || t.name === "list_exempt_cases";
       expect(t.annotations, t.name).toEqual({
         readOnlyHint: true,
@@ -778,7 +698,6 @@ describe("§8 — méthodes JSON-RPC", () => {
         idempotentHint: true,
         openWorldHint: !sansAppel,
       });
-      // §7, conventions : additionalProperties false sur TOUS les schémas.
       expect(t.inputSchema.additionalProperties).toBe(false);
     }
     expect(outils.map((t) => t.name).sort()).toEqual(

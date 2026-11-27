@@ -34,8 +34,8 @@ Les douze outils sont exposés sous la clé serveur `juris` dans [`droit-civil-q
 - **Via le greffon complet [`droit-civil-quebecois`](https://github.com/jpoirierlavoie/droit-civil-quebecois) (méthode recommandée) :** après approbation sur <https://acces.poirierlavoie.ca/demande> (avec votre clé API CanLII personnelle enregistrée sur `/moi`), Claude Code, Claude Desktop, `claude.ai`, ChatGPT Web/Desktop, Google Antigravity, Gemini CLI et Gemini App se connectent par navigateur en OAuth 2.1 sur `https://jurisprudence.poirierlavoie.ca/mcp/oauth`, sans secret à copier.
 - **Via jeton individuel (scripts, API Gemini Deep Research ou installation autonome) :** utiliser `https://jurisprudence.poirierlavoie.ca/mcp` avec `Authorization: Bearer <jeton>` créé dans <https://acces.poirierlavoie.ca/moi> (ou `?key=<jeton>` pour les formulaires web sans OAuth ; clé CanLII lue depuis votre coffre `/moi` ou l'en-tête `X-Clef-CanLII`).
 - **Installation autonome de ce seul dépôt (sans le greffon `droit-civil-quebecois`) :**
-  - **Google Antigravity** (`plugin.json`, `mcp_config.json`) : `agy plugin install https://github.com/jpoirierlavoie/MCP-Jurisprudence.git`, puis saisir la variable `MCP_JURISPRUDENCE_SECRET` avec un jeton issu de `/moi`.
-  - **Gemini CLI** (`gemini-extension.json`) : `gemini extensions install https://github.com/jpoirierlavoie/MCP-Jurisprudence` et saisir `MCP_JURISPRUDENCE_SECRET`. (`"contextFileName": []` évite d'injecter `GEMINI.md` dans vos sessions.)
+  - **Google Antigravity** (`plugin.json`, `mcp_config.json`) : `agy plugin install https://github.com/jpoirierlavoie/MCP-Jurisprudence.git`, puis se connecter en OAuth 2.1 par navigateur sur `/mcp/oauth` après approbation sur `https://acces.poirierlavoie.ca/demande` (avec clé API CanLII enregistrée sur `/moi`).
+  - **Gemini CLI** (`gemini-extension.json`) : `gemini extensions install https://github.com/jpoirierlavoie/MCP-Jurisprudence`, puis se connecter en OAuth 2.1 par navigateur sur `/mcp/oauth` (même compte `acces.poirierlavoie.ca` / `/moi`, `"settings": []`, `"contextFileName": []` évite d'injecter `GEMINI.md` dans vos sessions).
 - **Origines navigateur autorisées :** `https://gemini.google.com`, `https://aistudio.google.com`, `https://claude.ai`, `https://claude.com`, `https://chatgpt.com`, `https://chat.openai.com` et `https://platform.openai.com` (incluant `X-Clef-CanLII`).
 - **Découverte HTTP (SEP-2127) :** la fiche publique de connectivité est exposée sans secret sur `GET https://jurisprudence.poirierlavoie.ca/mcp/server-card` et `GET https://jurisprudence.poirierlavoie.ca/.well-known/mcp/server-card.json` (`application/mcp-server-card+json`).
 
@@ -227,11 +227,10 @@ Les tests s'exécutent dans **workerd** avec une D1 locale et des réponses de C
   - `/mcp` accepte les jetons individuels `DB_IDENTITE` (`portee` `'jurisprudence'` ou `'les_deux'`) ou `MCP_SHARED_SECRET` sous `Authorization: Bearer <jeton>`, `?key=<jeton>` ou `/mcp/<secret>`. Tout appel non authentifié reçoit **uniformément `404` à corps vide sans `WWW-Authenticate`**.
   - `/mcp/oauth` accepte uniquement `Authorization: Bearer <jeton>` et répond `401` RFC 9728 pointant vers `GET /.well-known/oauth-protected-resource/mcp/oauth` (`https://acces.poirierlavoie.ca`), tandis que `/.well-known/oauth-protected-resource` reste en `404`.
   - `MCP_ENABLED=false` coupe toutes les routes MCP (`/mcp*`, `/health`, `/mcp/server-card`, `/.well-known/oauth-protected-resource/mcp/oauth`) en `404`, tout en laissant la page publique `GET /` accessible (`200`).
-- **Cadence d'appel CanLII et absence de moissonnage :** aucun téléchargement massif en arrière-plan n'est exécuté (`BACKFILL_ENABLED=false`, aucun cron). Les appels sortants vers CanLII sont espacés de **600 ms** par défaut (intervalle doublé à chaque `429`, jusqu'à 4 s, max 40 appels séquentiels par invocation). Lorsqu'un étranglement ou une interruption survient, les outils le signalent explicitement dans leur réponse.
+- **Cadence d'appel CanLII et absence de moissonnage :** aucun téléchargement massif de décisions n'est exécuté (seul un cron hebdomadaire rafraîchit le répertoire des tribunaux via `runScheduled`). Les appels sortants vers CanLII sont espacés de **600 ms** par défaut (intervalle doublé à chaque `429`, jusqu'à 4 s, max 40 appels séquentiels par invocation). Lorsqu'un étranglement ou une interruption survient, les outils le signalent explicitement dans leur réponse.
 
 ## Référence
 
-Spécification complète : [`SPEC.md`](SPEC.md).
 Connecteur jumeau pour le droit législatif québécois : « lois »
 (`legislation.poirierlavoie.ca`).
 

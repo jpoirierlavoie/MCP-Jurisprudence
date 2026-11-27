@@ -1,6 +1,3 @@
-// GÉNÉRÉ PAR scripts/compile-authorities.mjs — NE PAS ÉDITER À LA MAIN.
-// Source : data/autorites-dispensees.md + data/autorites-enrichies.json
-
 import rawData from "./exemptAuthorities.json";
 
 export interface ExemptDecisionRecord {

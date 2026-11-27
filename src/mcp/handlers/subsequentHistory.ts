@@ -1,17 +1,3 @@
-/**
- * `subsequent_history` (spécification §7.5, annexe A.3).
- *
- * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║ OUTIL HEURISTIQUE. La mise en garde figure EN TÊTE ET EN PIED de la sortie.  ║
- * ║                                                                              ║
- * ║ AUCUNE formulation affirmative n'est permise ici : jamais « a été infirmée »,║
- * ║ jamais « confirmée en appel ». Uniquement « indice », « susceptible »,       ║
- * ║ « à vérifier ». Ce que l'outil produit, c'est une PISTE de recherche, pas un ║
- * ║ constat — l'API ne porte aucun indicateur de traitement, et un praticien qui ║
- * ║ prendrait cette liste pour un citateur professionnel s'exposerait.           ║
- * ╚══════════════════════════════════════════════════════════════════════════════╝
- */
-
 import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
 import { relancerSiInterruptionGouverne } from "../../canlii/errors";
@@ -31,7 +17,6 @@ import { LIMITES } from "../defauts";
 import type { ToolContext } from "../registry";
 import { resoudreCible } from "./cible";
 
-/** Table de hiérarchie (§7.5). Base de départ -> juridictions supérieures. */
 const SUPERIEURES: Record<string, string[]> = {
   qccq: ["qccs", "qcca", "csc-scc"],
   qctal: ["qccs", "qcca", "csc-scc"],
@@ -41,7 +26,6 @@ const SUPERIEURES: Record<string, string[]> = {
   qcca: ["csc-scc"],
 };
 
-/** Seuil de similarité d'intitulé (§7.5). */
 const SEUIL = 0.5;
 
 function superieures(base: string): string[] {
@@ -95,13 +79,11 @@ export async function subsequentHistory(
   }> = [];
 
   for (const a of aretes) {
-    // (a) juridiction de rang supérieur
     if (!a.to_database_id || !rangs.includes(a.to_database_id.toLowerCase())) continue;
     const fiche =
       a.to_database_id && a.to_case_id
         ? fiches.get(`${a.to_database_id}/${a.to_case_id}`)
         : undefined;
-    // (b) similarité d'intitulé >= 0,5 sur l'ensemble des variantes connues (FR/EN)
     const titresCand = [a.to_title, ...(fiche ? collectCaseTitles(fiche) : [])].filter(
       (s): s is string => typeof s === "string" && s.length > 0,
     );
@@ -113,14 +95,6 @@ export async function subsequentHistory(
       }
     }
     if (sim < SEUIL) continue;
-    // (c) décision postérieure. La date n'est pas dans l'arête : on la lit en cache si
-    // on l'a, sinon on retient le candidat sans dépenser un appel pour la dater.
-    // ⚠ Invariant 3(a) : seule une ligne RÉSOLUE peut dater un candidat. Une ligne de
-    //   balayage n'a pas de date, et une date fabriquée ferait passer un arrêt d'appel
-    //   de la même année pour ANTÉRIEUR au jugement porté en appel — il serait alors
-    //   écarté EN SILENCE de la sortie même qui existe pour le faire voir. Le sens de
-    //   l'erreur compte : sans date, le candidat est RETENU (sur-inclusion), ce qui est
-    //   la bonne direction pour un outil dont toute la sortie dit « indice, à vérifier ».
     const dateCandidat = fiche?.source === "lookup" ? (fiche.decision_date ?? null) : null;
     if (date && dateCandidat && dateCandidat <= date) continue;
     const titreCache = fiche ? titleForLang(fiche, lang) : null;

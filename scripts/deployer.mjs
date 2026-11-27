@@ -1,40 +1,6 @@
 #!/usr/bin/env node
-/**
- * Déploiement de production — migrations D'ABORD, puis le Worker (§12).
- *
- * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║ POURQUOI UN SCRIPT PLUTÔT QU'UNE LIGNE DE `package.json`.                    ║
- * ║                                                                              ║
- * ║ Trois raisons, et chacune a suffi à elle seule.                              ║
- * ║                                                                              ║
- * ║ 1. L'ORDRE. Jusqu'au 2026-09-16, `npm run deploy` valait `wrangler deploy`   ║
- * ║    tout court — le déploiement SANS les migrations, c'est-à-dire l'ordre que ║
- * ║    §12 interdit, sous le nom le plus naturel du dépôt. L'invariant était     ║
- * ║    écrit dans deux fichiers de documentation et dans un workflow qui ne      ║
- * ║    s'exécutait pas, pendant que la commande réelle faisait l'inverse.        ║
- * ║                                                                              ║
- * ║ 2. L'ARBRE PROPRE. Le Worker annonce désormais son commit sur `/health`.     ║
- * ║    Déployer un arbre modifié ferait ANNONCER un commit qui ne correspond pas ║
- * ║    au code en ligne — un mensonge silencieux, et précisément le mode de      ║
- * ║    panne que ce dépôt combat partout ailleurs. On refuse plutôt que de       ║
- * ║    publier une correspondance fausse.                                        ║
- * ║                                                                              ║
- * ║ 3. WINDOWS. `git rev-parse` dans un script npm ne s'évalue pas : npm passe   ║
- * ║    par `cmd.exe`, qui ignore `$(…)`. Le praticien travaille sous Windows ;   ║
- * ║    une recette qui ne marche que sous bash n'est pas une recette.            ║
- * ╚══════════════════════════════════════════════════════════════════════════════╝
- *
- * Le jeton n'est JAMAIS lu par ce script, ni affiché, ni passé en argument : il est
- * attendu dans `CLOUDFLARE_API_TOKEN`, et `wrangler` le lit lui-même. Un argument de
- * ligne de commande est visible dans la liste des processus ; une variable
- * d'environnement ne l'est pas.
- *
- *     $env:CLOUDFLARE_API_TOKEN = (Get-Content cf.token -Raw).Trim()   # PowerShell
- *     npm run deploy
- */
 import { execFileSync, spawnSync } from "node:child_process";
 
-/** Sortie d'une commande git, sans bruit. */
 function git(...args) {
   return execFileSync("git", args, { encoding: "utf8" }).trim();
 }
@@ -46,11 +12,6 @@ function echouer(titre, ...details) {
   process.exit(1);
 }
 
-// ── 1. L'arbre doit être propre ───────────────────────────────────────────────
-//
-// `--porcelain` couvre l'indexé comme le non indexé. Les fichiers non suivis en font
-// partie et c'est voulu : un fichier oublié qui deviendra du code au prochain commit
-// rendrait l'annonce de `/health` fausse dès ce moment-là.
 const sale = git("status", "--porcelain");
 if (sale) {
   echouer(
@@ -82,19 +43,12 @@ if (!process.env.CLOUDFLARE_API_TOKEN) {
   );
 }
 
-/** Exécute une commande en héritant du terminal ; rend son code de sortie. */
 function lancer(etape, cmd, args) {
   console.log(`\n── ${etape}\n   ${cmd} ${args.join(" ")}\n`);
   const r = spawnSync(cmd, args, { stdio: "inherit", shell: process.platform === "win32" });
   return r.status ?? 1;
 }
 
-// ── 2. Les migrations, D'ABORD ────────────────────────────────────────────────
-//
-// L'ordre inverse met en ligne du code qui lit des colonnes inexistantes — et un
-// connecteur juridique qui échoue en silence sur une colonne manquante est exactement
-// le défaut que ce dépôt cherche à rendre impossible. Un échec ici ARRÊTE tout : le
-// déploiement n'est pas tenté.
 if (
   lancer("Migrations D1 (production)", "npx", [
     "wrangler",
@@ -112,7 +66,6 @@ if (
   );
 }
 
-// ── 3. Le Worker, avec son commit ─────────────────────────────────────────────
 if (
   lancer(`Déploiement du Worker (commit ${commit})`, "npx", [
     "wrangler",

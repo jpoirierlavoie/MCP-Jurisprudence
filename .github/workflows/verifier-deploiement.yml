@@ -1,32 +1,7 @@
 name: verifier-deploiement
 
-# CONTRÔLE DE DÉRIVE — il REGARDE, il ne déploie rien et ne le peut pas.
-#
-# ╔═════════════════════════════════════════════════════════════════════════════╗
-# ║ Historique : du 2026-09-16 au 2026-11-14, le déploiement était manuel       ║
-# ║ (§12). Depuis le 2026-11-14, `.github/workflows/deploy.yml` déploie         ║
-# ║ automatiquement sur `push` vers `main` via `npm run deploy`                 ║
-# ║ (`environment: production`, `CLOUDFLARE_API_TOKEN`, migrations avant        ║
-# ║ Worker).                                                                    ║
-# ║                                                                             ║
-# ║ Ce workflow demeure ACTIF comme filet de sécurité indépendant sans secret : ║
-# ║ aucun jeton, `permissions: contents: read`, un simple GET sur `/health`.    ║
-# ║ Il détecte un déploiement CD manqué, un jeton Cloudflare expiré ou une      ║
-# ║ désynchronisation silencieuse entre `main` et la production.                ║
-# ╚═════════════════════════════════════════════════════════════════════════════╝
-#
-# ⚠ PAS DE DÉCLENCHEMENT SUR `push`, et c'est délibéré : `deploy.yml` vérifie déjà
-#   `/health` juste après le déploiement. Une fois par jour, un rouge ici signale une
-#   dérive réelle entre `main` et la production.
-#
-# ⚠ UN ROUGE ICI SIGNIFIE « À DÉPLOYER » (ou échec CD), PAS « CASSÉ ». La production
-#   sert toujours une version antérieure. Remède : relancer `deploy.yml` (ou exécuter
-#   `npm run deploy` localement).
-
 on:
   schedule:
-    # Une fois par jour, 11h23 UTC — en semaine comme en fin de semaine : un retard de
-    # déploiement ne s'interrompt pas le samedi.
     - cron: "23 11 * * *"
   workflow_dispatch:
 
@@ -47,9 +22,6 @@ jobs:
         with:
           egress-policy: audit
 
-      # Aucun `checkout` : on n'a besoin ni du code, ni de l'historique. `github.sha`
-      # porte déjà le commit de tête de la branche par défaut. Moins on télécharge,
-      # moins il y a de surface.
       - name: La version en ligne est-elle celle de main ?
         env:
           ATTENDU_LONG: ${{ github.sha }}
@@ -60,8 +32,6 @@ jobs:
 
           code=$(curl -sS --max-time 20 -o /tmp/sante.json -w '%{http_code}' "$SANTE" || echo 000)
 
-          # TROIS ISSUES DISTINCTES, et elles ne se confondent pas. Les mélanger
-          # rendrait ce contrôle aussi muet que celui qu'il remplace.
           if [ "$code" = "000" ]; then
             echo "::error title=Le point d'entrée de santé est injoignable::Aucune conclusion possible sur la version en ligne. Ce n'est PAS une dérive — c'est une absence de mesure, et la distinguer est tout l'objet de ce contrôle."
             exit 1

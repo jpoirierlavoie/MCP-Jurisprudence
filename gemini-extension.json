@@ -1,23 +1,13 @@
 {
   "name": "mcp-jurisprudence",
-  "version": "2.3.3",
+  "version": "2.3.4",
   "description": "Vérification déterministe de citations de jurisprudence canadienne et d'autorités dispensées (collection CanLII, métadonnées en lecture seule).",
   "contextFileName": [],
-  "settings": [
-    {
-      "name": "Jeton d'accès MCP Jurisprudence",
-      "description": "Jeton d'accès de l'instance MCP Jurisprudence (transmis dans l'en-tête Authorization: Bearer).",
-      "envVar": "MCP_JURISPRUDENCE_SECRET",
-      "sensitive": true
-    }
-  ],
+  "settings": [],
   "mcpServers": {
     "juris": {
       "type": "http",
-      "url": "https://jurisprudence.poirierlavoie.ca/mcp",
-      "headers": {
-        "Authorization": "Bearer ${MCP_JURISPRUDENCE_SECRET}"
-      }
+      "url": "https://jurisprudence.poirierlavoie.ca/mcp/oauth"
     }
   }
 }

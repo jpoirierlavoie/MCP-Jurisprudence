@@ -12,9 +12,5 @@ function enonces(sql: string): string {
     .join("\n");
 }
 
-/**
- * Applique `migrations/` à la base D1 métier `DB` et le schéma canonique `mcp-identite`
- * à `DB_IDENTITE` avant chaque fichier de test.
- */
 await applyD1Migrations(env.DB, env.TEST_MIGRATIONS);
 await env.DB_IDENTITE.exec(enonces(construireSchemaIdentiteD1(["legislation", "jurisprudence"])));

@@ -1,15 +1,3 @@
-/**
- * Tests des listes d'autorités dispensées de reproduction (§7.11 & §7.12).
- *
- * Couvre :
- *  1. La parité exacte du jeu compilé (`exemptAuthorities.{json,ts}`) contre
- *     `data/autorites-dispensees.md` et `data/autorites-enrichies.json`.
- *  2. `list_exempt_cases` (annuaire, consultation verbatim par onglets, recherche
- *     dédupliquée, pagination et erreurs de validation).
- *  3. `check_exempt_cases` (XOR `list_id` / `tribunal`, 5 verdicts, formats neutre /
- *     CanLII / recueil / éditeur / dossier, `conf. par`, coquilles des listes sources,
- *     0 appel sur citation neutre ordinaire absente, repli CanLII borné et `INDÉTERMINÉE`).
- */
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -50,7 +38,6 @@ describe("Parité de compilation des autorités dispensées", () => {
     expect(totalEntrees).toBe(864);
     expect(totalLiens).toBe(750);
 
-    // Contrôler chaque ligne du tableau `## Sommaire` dans `autorites-dispensees.md`
     const sommaireSection = autoritesMd.split("## Sommaire")[1]?.split("\n## 1.")[0] ?? "";
     const lignesSommaire = [
       ...sommaireSection.matchAll(
@@ -61,7 +48,6 @@ describe("Parité de compilation des autorités dispensées", () => {
     expect(lignesSommaire.reduce((s, m) => s + Number(m[1]), 0)).toBe(864);
     expect(lignesSommaire.reduce((s, m) => s + Number(m[2]), 0)).toBe(750);
 
-    // Vérifier la ventilation des 737 décisions enrichies
     const enrichiesMap = autoritesEnrichies.decisions as Record<string, { status: string }>;
     const clesCompilees = Object.keys(EXEMPT_DECISIONS).sort();
     const clesEnrichies = Object.keys(enrichiesMap).sort();
@@ -473,7 +459,6 @@ describe("check_exempt_cases", () => {
   });
 
   it("résout via le repli CanLII (lookupCase hors_collection et searchLocal D1)", async () => {
-    // 1. Repli lookupCase sur entrée `hors_collection` compatible (Coca-Cola Ltd 1978, tat-drt)
     const clientLookup = fakeClient({
       "caseBrowse/fr/qctat/1978qctat8888/": {
         databaseId: "qctat",
@@ -499,7 +484,6 @@ describe("check_exempt_cases", () => {
     expect(outLookup).toContain("1978 QCTAT 8888 — DISPENSÉE");
     expect(outLookup).toContain("Résolution CanLII préalable appliquée");
 
-    // 2. Repli searchLocal sur citation de recueil avec intitulé déjà présent dans `cases`
     await upsertCase(
       env.DB,
       rowFromMetadata(

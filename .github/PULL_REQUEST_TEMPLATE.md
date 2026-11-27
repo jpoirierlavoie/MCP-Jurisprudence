@@ -1,19 +1,20 @@
 ## Résumé / Summary
 
-<!-- Décrire brièvement l'objet de la PR / Briefly describe the purpose of this PR -->
-
 ## Vérifications locales / Local Verification
 
-- [ ] `type-check` / `tsc --noEmit` / `verifier.py`
-- [ ] `lint` (`biome check .`)
-- [ ] Suite de tests / `executer_evals.py` / `verifier_tout.py`
+- [ ] `npm run type-check` (`tsc --noEmit`)
+- [ ] `npm run lint` (`biome check .`)
+- [ ] `npm test` (`vitest run`)
+- [ ] `npm run audit` (`verifier-audit.mjs`)
 
-## Évaluation d'impact obligatoire (4 axes — `CLAUDE.md` / `GEMINI.md`)
+## Évaluation d'impact obligatoire (6 axes — `CLAUDE.md` / `GEMINI.md`)
 
-1. **Code / schémas / tests du dépôt :**
-2. **`README.md`, `SECURITY.md`, `LICENSE` et manifestes :**
-3. **Page publique HTML (`GET /`) et `/mcp/server-card` (ce dépôt ou serveurs aval) :**
-4. **Impacts inter-dépôts (`droit-civil-quebecois`, `MCP-Socle`, `MCP-Legislation`, `MCP-Jurisprudence`, `MCP-Outils`) :**
+1. **Outils MCP (`juris`) / code / schémas / tests du dépôt :**
+2. **Descriptions et titres :**
+3. **Schémas d'entrée :**
+4. **`README.md`, sécurité, licence & manifestes :**
+5. **Page publique HTML (`GET /`) et `/mcp/server-card` :**
+6. **Impacts inter-dépôts (`droit-civil-quebecois`, `MCP-Socle`, `MCP-Acces`, `MCP-Legislation`, `MCP-Outils`) :**
 
 ## Confidentialité et sécurité
 

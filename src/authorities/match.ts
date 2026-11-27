@@ -1,11 +1,3 @@
-/**
- * Moteur d'appariement et de vérification sur les listes d'autorités dispensées.
- *
- * Indexation paresseuse en mémoire sur `EXEMPT_AUTHORITY_LISTS` / `EXEMPT_DECISIONS`
- * + repli CanLII borné (`lookupCase` / `searchLocal` / `caseBrowse` <= 3 appels)
- * lorsque `resolve_canlii !== false` et qu'un doute subsiste.
- */
-
 import { describeError } from "../canlii/client";
 import { CanliiBudgetError, relancerSiInterruptionGouverne } from "../canlii/errors";
 import type { CaseListResponse, Lang } from "../canlii/types";
@@ -33,18 +25,13 @@ import {
   expandDbCaseKeys,
   extractDocketKeys,
   hasEnoughTextForTitleSearch,
-  NEUTRE_VERS_DB,
+  NEUTRE_VERS_FAMILLE,
   normalizeTribunal,
   publisherMatchKey,
   TRIBUNAUX,
 } from "./normalize";
 
-export type ExemptVerdict =
-  | "DISPENSÉE"
-  | "À VÉRIFIER"
-  | "NON LISTÉE"
-  | "ILLISIBLE"
-  | "INDÉTERMINÉE";
+type ExemptVerdict = "DISPENSÉE" | "À VÉRIFIER" | "NON LISTÉE" | "ILLISIBLE" | "INDÉTERMINÉE";
 
 export interface ExemptMatchItem {
   list: ExemptAuthorityList;
@@ -53,7 +40,7 @@ export interface ExemptMatchItem {
   viaAffirming: boolean;
 }
 
-export interface ErroneousMatchItem {
+interface ErroneousMatchItem {
   list: ExemptAuthorityList;
   entry: ExemptAuthorityEntry;
   decision: ExemptDecisionRecord;
@@ -168,7 +155,6 @@ function collectKeysForEntry(
   if (decision.database_id && decision.case_id) {
     for (const k of expandDbCaseKeys(decision.database_id, decision.case_id)) keys.add(k);
   }
-  // Clé stockée directement (p. ex. R:1981:1:SCR:504, R:2001:1:FCR:219, N:fct:2004:1125)
   if (decision.key.startsWith("N:")) {
     const [, fam, y, n] = decision.key.split(":");
     if (fam && y && n) {
@@ -264,12 +250,11 @@ function buildIndex(): AuthorityIndex {
   return { listsById, listsByTribunal, keyIndex, erroneousIndex, horsCollectionByList };
 }
 
-export function getAuthorityIndex(): AuthorityIndex {
+function getAuthorityIndex(): AuthorityIndex {
   if (!cachedIndex) cachedIndex = buildIndex();
   return cachedIndex;
 }
 
-/** Résout et valide la portée (`list_id` / `tribunal`) demandée. */
 export function resolveTargetLists(params: {
   list_id?: string | null;
   tribunal?: string | null;
@@ -470,7 +455,6 @@ function matchRowAgainstLists(
   }
   if (rawHits.length > 0) return deduplicateMatches(rawHits);
 
-  // Vérifier aussi les entrées `hors_collection` de la cible par titre + tribunal/année
   const rowYear = row.decision_date ? Number(row.decision_date.slice(0, 4)) : null;
   const caseYearM = /^(\d{4})/.exec(row.case_id);
   const effYear = rowYear ?? (caseYearM ? Number(caseYearM[1]) : null);
@@ -523,9 +507,6 @@ function targetDatabasesForFallback(targetLists: readonly ExemptAuthorityList[])
   return [...dbs];
 }
 
-/**
- * Vérifie une référence individuelle contre les listes ciblées (`list_id` ou `tribunal`).
- */
 export async function checkExemptCitation(
   input: CheckCitationInput,
   targetLists: readonly ExemptAuthorityList[],
@@ -558,7 +539,6 @@ export async function checkExemptCitation(
   const expectedTitle = input.expected_title?.trim() || parsed.inlineTitle || null;
   const expectedYear = input.expected_year ?? null;
 
-  // 1. Repérage des coquilles connues des listes sources -> À VÉRIFIER prioritaire
   for (const k of allKeys) {
     const errs = idx.erroneousIndex.get(k) ?? [];
     const hit = errs.find((e) => targetListIds.has(e.list.listId));
@@ -574,7 +554,6 @@ export async function checkExemptCitation(
     }
   }
 
-  // 2. Appariement hors ligne direct
   const directHits: ExemptMatchItem[] = [];
   for (const k of allKeys) {
     for (const h of idx.keyIndex.get(k) ?? []) {
@@ -597,7 +576,6 @@ export async function checkExemptCitation(
     };
   }
 
-  // 3. Formes inexploitables
   const hasConstructible = forms.some(
     (f) => f.kind === "neutral" || (f.kind === "canlii" && f.juris !== null && f.court !== null),
   );
@@ -609,7 +587,6 @@ export async function checkExemptCitation(
     return { input, verdict: "ILLISIBLE", matches: [] };
   }
 
-  // 4. Mode hors ligne strict
   if (!opts.resolveCanlii) {
     return {
       input,
@@ -619,7 +596,6 @@ export async function checkExemptCitation(
     };
   }
 
-  // 5a. Repli CanLII pour citation constructible non appariée (seulement si hors_collection compatible)
   if (hasConstructible) {
     const form = forms.find(
       (f): f is Extract<CitationForm, { kind: "neutral" | "canlii" }> =>
@@ -627,7 +603,7 @@ export async function checkExemptCitation(
     )!;
     const res = resolve(form, opts.dir);
     const targetDb =
-      res.databaseId ?? (form.kind === "neutral" ? (NEUTRE_VERS_DB[form.code] ?? null) : null);
+      res.databaseId ?? (form.kind === "neutral" ? (NEUTRE_VERS_FAMILLE[form.code] ?? null) : null);
 
     if (!hasCompatibleHorsCollection(idx, targetListIds, form.year, targetDb)) {
       return { input, verdict: "NON LISTÉE", matches: [] };
@@ -681,7 +657,6 @@ export async function checkExemptCitation(
     }
   }
 
-  // 5b. Repli CanLII pour recueil / éditeur / CanLII sans parenthèses / intitulé seul
   const partyQuery = expectedTitle ?? (parsed.primary.kind === "unparsed" ? rawCite : null);
   const inferredYear = inferYearFromInput(rawCite, expectedYear, forms);
 
@@ -699,7 +674,6 @@ export async function checkExemptCitation(
     return { input, verdict: "NON LISTÉE", matches: [] };
   }
 
-  // Chercher d'abord dans l'index local D1
   const localRows = await searchLocal(opts.ctx.db, partyQuery, {
     yearFrom: inferredYear ? inferredYear - 1 : null,
     yearTo: inferredYear ? inferredYear + 1 : null,
@@ -727,7 +701,6 @@ export async function checkExemptCitation(
     }
   }
 
-  // Balayage vif borné (au plus 3 appels) sur les bases cibles du tribunal
   const candDbs = targetDatabasesForFallback(targetLists).slice(0, 3);
   const sweepYear = inferredYear ?? opts.now.getUTCFullYear();
   const maxSweepCalls = 3;
@@ -789,8 +762,6 @@ export async function checkExemptCitation(
     };
   }
 
-  // En tout dernier ressort (uniquement pour requête par intitulé seul sans forme recueil/éditeur),
-  // apparier une entrée non CanLII (hors_collection / hors_juridiction) par intitulé exact.
   if (forms.length === 0) {
     const horsHits: ExemptMatchItem[] = [];
     for (const list of targetLists) {
@@ -852,7 +823,6 @@ export function canliiKeywordsForLang(decision: ExemptDecisionRecord, lang: Lang
     : (decision.keywords_fr ?? decision.keywords_en);
 }
 
-/** Résume en français les règles procédurales des listes ciblées, en regroupant les règles identiques. */
 export function formatTargetProceduralRules(lists: readonly ExemptAuthorityList[]): string[] {
   if (lists.length === 0) return [];
   type RuleGroup = {
