@@ -112,7 +112,7 @@ function offsetDe(quoi: string): JsonSchema {
 export const SERVER_INFO = {
   name: "mcp-jurisprudence",
   title: "MCP Jurisprudence",
-  version: "2.3.5",
+  version: "2.3.6",
 };
 
 export const PUBLIC_DESCRIPTION =

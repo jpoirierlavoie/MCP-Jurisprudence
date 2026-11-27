@@ -292,7 +292,7 @@ ${barreSuite()}
 </div>
 ${biP(
   [
-    "Connecteur gratuit permettant à votre assistant IA (Claude, ChatGPT, Gemini, Antigravity) de vérifier vos références de jurisprudence dans CanLII, d'obtenir la fiche officielle d'une décision et de consulter les listes d'autorités dispensées de reproduction — au lieu d'inventer des arrêts.",
+    "Connecteur gratuit permettant à votre assistant IA (Claude, Gemini, Antigravity) de vérifier vos références de jurisprudence dans CanLII, d'obtenir la fiche officielle d'une décision et de consulter les listes d'autorités dispensées de reproduction — au lieu d'inventer des arrêts.",
   ],
   EN.intro,
 )}
@@ -504,7 +504,7 @@ ${biP(
   [
     "Accès gratuit réservé aux membres actifs en règle du Barreau du Québec.",
     "1. Déposez une demande une seule fois sur https://acces.poirierlavoie.ca/demande avec votre numéro du Barreau : la clé API CanLII y est facultative (ajoutable ou modifiable ensuite dans /moi). Aucune clé CanLII n'est requise pour « lois » ni « outils » ; votre clé personnelle (conservée chiffrée sur le portail et imputée à votre propre quota CanLII) n'est requise que pour « juris ».",
-    "2. Installez le greffon droit-civil-quebecois dans Claude, ChatGPT, Gemini ou Antigravity — ou ajoutez https://jurisprudence.poirierlavoie.ca/mcp/oauth dans les réglages de connecteurs — puis cliquez sur « Connecter » pour autoriser l'accès dans votre navigateur (aucune clé technique à copier).",
+    "2. Installez le greffon droit-civil-quebecois dans Claude, Gemini ou Antigravity — ou ajoutez https://jurisprudence.poirierlavoie.ca/mcp/oauth dans les réglages de connecteurs — puis cliquez sur « Connecter » pour autoriser l'accès dans votre navigateur (aucune clé technique à copier).",
     "Vos citations et requêtes ne sont jamais journalisées. Gérez votre clé CanLII ou votre compte à tout moment sur https://acces.poirierlavoie.ca/moi.",
   ],
   EN.acces,
