@@ -503,7 +503,7 @@ ${h2("acces")}
 ${biP(
   [
     "Accès gratuit réservé aux membres actifs en règle du Barreau du Québec.",
-    "1. Déposez une demande une seule fois sur https://acces.poirierlavoie.ca/demande avec votre numéro du Barreau et enregistrez votre propre clé API CanLII (à l'inscription ou ensuite dans /moi ; elle est conservée chiffrée sur le portail et utilise votre propre quota CanLII).",
+    "1. Déposez une demande une seule fois sur https://acces.poirierlavoie.ca/demande avec votre numéro du Barreau : la clé API CanLII y est facultative (ajoutable ou modifiable ensuite dans /moi). Aucune clé CanLII n'est requise pour « lois » ni « outils » ; votre clé personnelle (conservée chiffrée sur le portail et imputée à votre propre quota CanLII) n'est requise que pour « juris ».",
     "2. Installez le greffon droit-civil-quebecois dans Claude, ChatGPT, Gemini ou Antigravity — ou ajoutez https://jurisprudence.poirierlavoie.ca/mcp/oauth dans les réglages de connecteurs — puis cliquez sur « Connecter » pour autoriser l'accès dans votre navigateur (aucune clé technique à copier).",
     "Vos citations et requêtes ne sont jamais journalisées. Gérez votre clé CanLII ou votre compte à tout moment sur https://acces.poirierlavoie.ca/moi.",
   ],
@@ -513,7 +513,7 @@ ${biP(
 <summary>${bi("Détails techniques (scripts, ligne de commande et découverte MCP)", EN.accesTechniqueTitre)}</summary>
 ${biP(
   [
-    "Connexion OAuth 2.1 par navigateur : https://jurisprudence.poirierlavoie.ca/mcp/oauth. Un accès direct par jeton individuel (https://jurisprudence.poirierlavoie.ca/mcp ou https://jurisprudence.poirierlavoie.ca/mcp/<secret>, avec en-tête optionnel X-Clef-CanLII) demeure disponible pour les scripts, la ligne de commande et l'API Gemini Deep Research.",
+    "Connexion OAuth 2.1 par navigateur : https://jurisprudence.poirierlavoie.ca/mcp/oauth (portées admises : « tous », « jurisprudence » et rétrocompatibilité « les_deux »). Un accès direct par jeton individuel (https://jurisprudence.poirierlavoie.ca/mcp, qui retourne 404 sans corps à tout appel non authentifié, ou https://jurisprudence.poirierlavoie.ca/mcp/<secret>, avec en-tête optionnel X-Clef-CanLII) demeure disponible pour les scripts, la ligne de commande et l'API Gemini Deep Research.",
     "La fiche publique de découverte MCP sans secret est publiée sur https://jurisprudence.poirierlavoie.ca/mcp/server-card ; le dépôt inclut aussi les manifestes autonomes pour Google Antigravity et Gemini CLI.",
     "Le code est libre et gratuit sous licence Apache-2.0 (voir LICENSE), avec un fichier NOTICE reconnaissant les conditions d'utilisation de CanLII sans aucune revendication sur ses données ni décisions.",
   ],
@@ -668,9 +668,9 @@ function construireLlmsTxt(): string {
     "",
     "## Québec Civil Law MCP Suite (`droit-civil-quebecois`)",
     "",
-    "- [MCP Accès (Admission & OAuth 2.1 Portal)](https://acces.poirierlavoie.ca/): Eligibility (active Barreau du Québec members; optional personal CanLII API key required for `juris`, not needed for `lois` or `outils`), `/demande` application, and `/moi` self-service portal.",
+    "- [MCP Accès (Admission & OAuth 2.1 Portal)](https://acces.poirierlavoie.ca/): Eligibility (active Barreau du Québec members; CanLII API key optional on `/demande` and manageable in `/moi`, required only for `juris`, not needed for `lois` or `outils`), `/demande` application, and `/moi` self-service portal.",
     "- [MCP Législation (`lois`)](https://legislation.poirierlavoie.ca/): Official statutes, regulations, court directives, and AMF texts (requires Barreau access via acces.poirierlavoie.ca; no CanLII key needed). Server Card: https://legislation.poirierlavoie.ca/mcp/server-card",
-    `- [MCP Jurisprudence (\`juris\`)](${ORIGINE_SITE}/): Case-law citation verification, CanLII metadata, and 27 exempt-authorities lists across 9 courts/tribunals (12 tools). Server Card: ${ORIGINE_SITE}/mcp/server-card`,
+    `- [MCP Jurisprudence (\`juris\`)](${ORIGINE_SITE}/): Case-law citation verification, CanLII metadata, and 27 exempt-authorities lists across 9 courts/tribunals (12 tools). Server Card: ${ORIGINE_SITE}/mcp/server-card · Endpoint: \`${ORIGINE_SITE}/mcp/oauth\` (scopes \`tous\`, \`jurisprudence\`, legacy \`les_deux\`) or \`/mcp\` (returns \`404\` when unauthenticated)`,
     "- [MCP Outils (`outils`)](https://outils.poirierlavoie.ca/): 15 tools across 6 families — C.C.P. deadlines, art. 1619 C.C.Q. interest, registries & GLEIF snapshots, courthouses, RQA addresses, bijural terminology, Bank of Canada rates, StatCan CPI, and TAL/CMHC rents (requires Barreau access via acces.poirierlavoie.ca; no CanLII key needed). Endpoint: `https://outils.poirierlavoie.ca/mcp/oauth` (or `/mcp`)",
     `- [Umbrella Plugin Repository](${DEPOT_PLUGIN}) · [Connector Repository](${DEPOT})`,
     "",

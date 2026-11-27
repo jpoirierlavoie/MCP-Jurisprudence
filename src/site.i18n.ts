@@ -174,8 +174,10 @@ export const EN = {
 
   acces: [
     "Free access reserved for active members in good standing of the Barreau du Québec.",
-    "1. Apply once at https://acces.poirierlavoie.ca/demande using your Barreau number and add your " +
-      "own CanLII API key (on /demande or later at /moi; the service stores it encrypted and uses your own quota).",
+    "1. Apply once at https://acces.poirierlavoie.ca/demande using your Barreau number: a CanLII " +
+      "API key is optional on /demande (and can be added or managed later at /moi). No CanLII " +
+      "key is needed for « lois » or « outils »; your own CanLII key (stored encrypted on the " +
+      "portal and using your own quota) is required only for « juris ».",
     "2. Install the droit-civil-quebecois plugin in Claude, ChatGPT, Gemini, or Antigravity — or " +
       "add https://jurisprudence.poirierlavoie.ca/mcp/oauth directly in connector settings — then " +
       "click Connect and sign in through your browser (no secret keys to copy).",
@@ -185,10 +187,11 @@ export const EN = {
 
   accesTechniqueTitre: "Technical details (scripts, CLI & MCP discovery)",
   accesTechnique: [
-    "Browser OAuth 2.1 endpoint: https://jurisprudence.poirierlavoie.ca/mcp/oauth. Direct " +
-      "per-holder token access (https://jurisprudence.poirierlavoie.ca/mcp or /mcp/<secret>, " +
-      "with optional X-Clef-CanLII header) remains available for scripts, command-line tools, and " +
-      "Gemini API Deep Research.",
+    "Browser OAuth 2.1 endpoint: https://jurisprudence.poirierlavoie.ca/mcp/oauth (accepted " +
+      "scopes: `tous`, `jurisprudence`, and backwards-compatible `les_deux`). Direct " +
+      "per-holder token access (https://jurisprudence.poirierlavoie.ca/mcp, returning an empty " +
+      "404 to unauthenticated calls, or /mcp/<secret>, with optional X-Clef-CanLII header) " +
+      "remains available for scripts, command-line tools, and Gemini API Deep Research.",
     "A public, secret-free MCP Server Card is published at " +
       "https://jurisprudence.poirierlavoie.ca/mcp/server-card; the repository also includes " +
       "standalone manifests for Google Antigravity and Gemini CLI.",
