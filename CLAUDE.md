@@ -17,7 +17,7 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). Ce document porte les in
 | 3 | **Schémas d'entrée** | `inputSchema` dans `src/mcp/registry.ts` (`additionalProperties: false`, zéro `x-mcp-header`, valeurs issues de `src/mcp/defauts.ts`, contraintes XOR/format/bornes croisées répétées sur chaque paramètre) |
 | 4 | **`README.md`, sécurité, licence & manifestes** | `README.md` (`## Les douze outils`), `SECURITY.md`, `LICENSE` (`Apache-2.0`), `NOTICE` (sources officielles et conditions CanLII BYOK), `package.json`, `plugin.json`, `mcp_config.json`, `gemini-extension.json`, `/mcp/server-card`, `CLAUDE.md`, `GEMINI.md` |
 | 5 | **Page publique HTML (`GET /`)** | `src/site.ts` + `src/site.i18n.ts` (`test/site.test.ts` : CSP, absence de CORS, `/mcp/<secret>`, liste blanche stricte d'URLs `https://` : écrire `acces.poirierlavoie.ca` sans schéma dans la prose de la page, parité `data-l="fr"` = `data-l="en"`, style jumeau `system-ui`) |
-| 6 | **Inter-dépôts (`Cross-repository`)** | `droit-civil-quebecois` (`v3.3.2`, manifestes, `skills/`, `verifier.py`, `verifier_tout.py`), `MCP-Socle` (`v0.8.7`), `MCP-Acces` (`mcp-identite`), `MCP-Legislation` (jumeau HTML/CSS), `MCP-Outils` |
+| 6 | **Inter-dépôts (`Cross-repository`)** | `droit-civil-quebecois` (`v3.4.0`, manifestes, `skills/`, `verifier.py`, `verifier_tout.py`), `MCP-Socle` (`v0.8.8`), `MCP-Acces` (`mcp-identite`), `MCP-Legislation` (jumeau HTML/CSS), `MCP-Outils` |
 
 ---
 
@@ -25,7 +25,7 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). Ce document porte les in
 
 ```
           ┌──────────────────────────────────────────────────────────────┐
-          │         droit-civil-quebecois (Plugin Cadre v3.3.2)          │
+          │         droit-civil-quebecois (Plugin Cadre v3.4.0)          │
           │ 10 compétences · 60 feuilles · 6 personas · 4 scripts stdlib │
           └─────────┬───────────────────────┬──────────────────┬─────────┘
                     │                       │                  │
@@ -34,11 +34,11 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). Ce document porte les in
                     ▼                       ▼                  ▼
          ┌─────────────────────┐ ┌─────────────────────┐ ┌──────────────────────────┐
          │   MCP-Legislation   │ │  MCP-Jurisprudence  │ │        MCP-Outils        │
-         │  D1 `legislation` + │ │  D1 `canlii` + BYOK │ │   Worker public, D1 RO   │
-         │  `DB_IDENTITE` + AI │ │   `DB_IDENTITE`     │ │       zéro secret        │
-         └──────────┬──────────┘ └──────────┬──────────┘ └──────────────────────────┘
-                    └───────────┬───────────┘
-                                ▼ (`@poirierlavoie/mcp-socle` v0.8.7, zéro runtime dep)
+         │  D1 `legislation` + │ │  D1 `canlii` + BYOK │ │   4 D1 RO + `DB_IDENTITE` │
+         │  `DB_IDENTITE` + AI │ │   `DB_IDENTITE`     │ │  (sans clé API CanLII)   │
+         └──────────┬──────────┘ └──────────┬──────────┘ └────────────┬─────────────┘
+                    └───────────────────────┴─────────────────────────┘
+                                ▼ (`@poirierlavoie/mcp-socle` v0.8.8, zéro runtime dep)
                  ┌──────────────────────────────────────────┐
                  │  MCP-Socle + MCP-Acces (`mcp-identite`)  │
                  │  Jetons individuels, coffre AES-256-GCM  │
@@ -63,7 +63,7 @@ Propriétaire : Jason Poirier Lavoie (avocat, Québec). Ce document porte les in
 
 1. **Double montage (`/mcp` et `/mcp/oauth`) et coupe-circuit (`MCP_ENABLED`) :**
    - `MCP_ENABLED !== "true"` coupe `/mcp*`, `/.well-known/oauth-protected-resource/mcp/oauth` et `/health` en `404`, tout en laissant `GET /` accessible (`200`, `G22`).
-   - `/mcp` (`PORTE`, `segmentBorne: false`) accepte en parallèle les jetons individuels `DB_IDENTITE` (`portee` `'jurisprudence'` ou `'les_deux'`, état `actif`, `surveille` ou `limite`) et le secret partagé transitoire (`MCP_SHARED_SECRET`), sous `Authorization: Bearer <jeton>`, `?key=<jeton>` ou `/mcp/<secret>` (barre finale et barres internes tolérées). Tout refus sur `/mcp` renvoie **uniformément `404` à corps vide sans `WWW-Authenticate`** (`S8`, `G7`, `G21`, `G23`). `/mcp/server-card` (`/.well-known/mcp/server-card.json`) et `/mcp/oauth` sont interceptés avant `/mcp/<secret>`.
+   - `/mcp` (`PORTE`, `segmentBorne: false`) accepte en parallèle les jetons individuels `DB_IDENTITE` (`portee` `'tous'`, `'jurisprudence'` ou `'les_deux'` héritée, état `actif`, `surveille` ou `limite`) et le secret partagé transitoire (`MCP_SHARED_SECRET`), sous `Authorization: Bearer <jeton>`, `?key=<jeton>` ou `/mcp/<secret>` (barre finale et barres internes tolérées). Tout refus sur `/mcp` renvoie **uniformément `404` à corps vide sans `WWW-Authenticate`** (`S8`, `G7`, `G21`, `G23`). `/mcp/server-card` (`/.well-known/mcp/server-card.json`) et `/mcp/oauth` sont interceptés avant `/mcp/<secret>`.
    - `/mcp/oauth` (`PORTE_OAUTH`, `autoriserChemin: false`) accepte **exclusivement** `Authorization: Bearer <jeton>` (aucun `?key=`, aucun segment `/mcp/oauth/<x>`, aucun secret partagé de Worker) et répond `401` RFC 9728 pointant vers `GET /.well-known/oauth-protected-resource/mcp/oauth` (`https://acces.poirierlavoie.ca`), tandis que la racine `GET /.well-known/oauth-protected-resource` reste en `404`.
    - Le contrôle de méthode `POST` (`405`) est exécuté **après** l'authentification sur `/mcp` comme sur `/mcp/oauth` (`G23`).
 2. **CORS sur `/mcp*` et en-têtes CSP sur `GET /` :**

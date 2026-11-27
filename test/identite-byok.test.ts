@@ -32,7 +32,7 @@ async function insererTitulaireEtJeton(opts: {
   id: string;
   courriel: string;
   etat?: "en_attente" | "actif" | "surveille" | "limite" | "suspendu" | "revoque" | "refuse";
-  portee?: "les_deux" | "legislation" | "jurisprudence";
+  portee?: "tous" | "les_deux" | "legislation" | "jurisprudence" | "outils";
   clefCanlii?: string | null;
   etatClef?: "valide" | "refusee" | "inconnue";
   corrompreChiffre?: boolean;
@@ -183,7 +183,7 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
     expect(await resMeta.json()).toMatchObject({
       resource: "https://jurisprudence.poirierlavoie.ca/mcp/oauth",
       authorization_servers: ["https://acces.poirierlavoie.ca"],
-      scopes_supported: ["les_deux", "jurisprudence"],
+      scopes_supported: ["tous", "jurisprudence"],
       bearer_methods_supported: ["header"],
     });
 
@@ -220,6 +220,16 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       ).toContain("x-clef-canlii");
     }
 
+    const jetonTous = await insererTitulaireEtJeton({
+      id: "tit_tous",
+      courriel: "tous@exemple.qc.ca",
+      portee: "tous",
+    });
+    const jetonLesDeux = await insererTitulaireEtJeton({
+      id: "tit_les_deux",
+      courriel: "lesdeux@exemple.qc.ca",
+      portee: "les_deux",
+    });
     const jetonJuris = await insererTitulaireEtJeton({
       id: "tit_juris",
       courriel: "juris@exemple.qc.ca",
@@ -230,24 +240,43 @@ describe("Phase 3 — DB_IDENTITE, double montage, BYOK strict CanLII et cache p
       courriel: "lois@exemple.qc.ca",
       portee: "legislation",
     });
-
-    const rHorsPorteeMcp = await postMcp("/mcp", jetonLoisSeul, {
-      jsonrpc: "2.0",
-      id: 1,
-      method: "ping",
+    const jetonOutilsSeul = await insererTitulaireEtJeton({
+      id: "tit_outils_seul",
+      courriel: "outils@exemple.qc.ca",
+      portee: "outils",
     });
-    expect(rHorsPorteeMcp.status).toBe(404);
-    expect(await rHorsPorteeMcp.text()).toBe("");
 
-    const rHorsPorteeOAuth = await postMcp("/mcp/oauth", jetonLoisSeul, {
-      jsonrpc: "2.0",
-      id: 1,
-      method: "ping",
-    });
-    expect(rHorsPorteeOAuth.status).toBe(401);
-    expect(rHorsPorteeOAuth.headers.get("WWW-Authenticate")).toContain(
-      'resource_metadata="https://jurisprudence.poirierlavoie.ca/.well-known/oauth-protected-resource/mcp/oauth"',
-    );
+    for (const jValide of [jetonTous, jetonLesDeux]) {
+      expect(
+        (await postMcp("/mcp", jValide, { jsonrpc: "2.0", id: 1, method: "ping" })).status,
+      ).toBe(200);
+      expect(
+        (await postMcp("/mcp/oauth", jValide, { jsonrpc: "2.0", id: 1, method: "ping" })).status,
+      ).toBe(200);
+    }
+
+    for (const jetonRefuse of [jetonLoisSeul, jetonOutilsSeul]) {
+      const rHorsPorteeMcp = await postMcp("/mcp", jetonRefuse, {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "ping",
+      });
+      expect(rHorsPorteeMcp.status).toBe(404);
+      expect(await rHorsPorteeMcp.text()).toBe("");
+
+      const rHorsPorteeOAuth = await postMcp("/mcp/oauth", jetonRefuse, {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "ping",
+      });
+      expect(rHorsPorteeOAuth.status).toBe(401);
+      expect(rHorsPorteeOAuth.headers.get("WWW-Authenticate")).toContain(
+        'resource_metadata="https://jurisprudence.poirierlavoie.ca/.well-known/oauth-protected-resource/mcp/oauth"',
+      );
+      expect(rHorsPorteeOAuth.headers.get("WWW-Authenticate")).toContain(
+        'scope="jurisprudence tous"',
+      );
+    }
 
     expect(
       (

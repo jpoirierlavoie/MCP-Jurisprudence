@@ -16,7 +16,7 @@ L'API de CanLII est en **lecture seule** et ne renvoie que des **métadonnées**
 2. **Retrouver** une décision à partir des noms des parties lorsque la citation n'est pas constructible (recueils, identifiants SOQUIJ) ;
 3. **Identifier** précisément une décision et obtenir son hyperlien `canlii.ca` afin d'en consulter le texte officiel.
 
-*(Note : les outils hors ligne sur les numéros de dossier de cour et les palais de justice du Québec — `greffe_parse_number`, `palais_list`, `palais_get` — relèvent du connecteur public sans authentification [`MCP-Outils`](https://github.com/jpoirierlavoie/MCP-Outils).)*
+*(Note : les outils hors ligne sur les numéros de dossier de cour et les palais de justice du Québec — `greffe_parse_number`, `palais_list`, `palais_get` — relèvent du connecteur hors ligne sans journalisation [`MCP-Outils`](https://github.com/jpoirierlavoie/MCP-Outils), également accessible après approbation sur `acces.poirierlavoie.ca` sans clé CanLII.)*
 
 ### ⚠ Source et portée des douze outils
 
@@ -224,10 +224,21 @@ Les tests s'exécutent dans **workerd** avec une D1 locale et des réponses de C
 - **Garde stricte BYOK CanLII préalable au cache partagé :** pour tout titulaire, les dix outils pouvant interroger CanLII résolvent et vérifient la clé personnelle via `ouvrirCoffre` (`X-Clef-CanLII` ou `DB_IDENTITE.coffre_clef` chiffré `HKDF-SHA256` + `AES-256-GCM`) **avant** toute lecture du cache D1 partagé, sans jamais retomber sur `env.CANLII_API_KEY` (`parse_citation`, `list_exempt_cases` et `check_exempt_cases` avec `resolve_canlii: false` demeurent accessibles sans clé CanLII). Toute clé refusée par CanLII (`401`/`403`) renvoie `[CLEF_REFUSEE]`, le texte clair ne quitte jamais `ouvrirCoffre`, toute URL journalisée passe par `redactUrl()`, et aucun horodatage exact `fetched_at` n'est exposé.
 - **Gouverne à deux étages :** cinq limiteurs de débit (`1021..1025`, pré-auth IP + quarantaine sur échecs d'auth + débit par titulaire à `180/min` `actif` / `20/min` `limite`) et quotas journaliers UTC (`local` sur cache / `parse_citation`, `sortant` sur appels CanLII).
 - **Double montage étanche (`/mcp` et `/mcp/oauth`) :**
-  - `/mcp` accepte les jetons individuels `DB_IDENTITE` (`portee` `'jurisprudence'` ou `'les_deux'`) ou `MCP_SHARED_SECRET` sous `Authorization: Bearer <jeton>`, `?key=<jeton>` ou `/mcp/<secret>`. Tout appel non authentifié reçoit **uniformément `404` à corps vide sans `WWW-Authenticate`**.
+  - `/mcp` accepte les jetons individuels `DB_IDENTITE` (`portee` `'tous'`, `'jurisprudence'` ou `'les_deux'` héritée) ou `MCP_SHARED_SECRET` sous `Authorization: Bearer <jeton>`, `?key=<jeton>` ou `/mcp/<secret>`. Tout appel non authentifié reçoit **uniformément `404` à corps vide sans `WWW-Authenticate`**.
   - `/mcp/oauth` accepte uniquement `Authorization: Bearer <jeton>` et répond `401` RFC 9728 pointant vers `GET /.well-known/oauth-protected-resource/mcp/oauth` (`https://acces.poirierlavoie.ca`), tandis que `/.well-known/oauth-protected-resource` reste en `404`.
   - `MCP_ENABLED=false` coupe toutes les routes MCP (`/mcp*`, `/health`, `/mcp/server-card`, `/.well-known/oauth-protected-resource/mcp/oauth`) en `404`, tout en laissant la page publique `GET /` accessible (`200`).
 - **Cadence d'appel CanLII et absence de moissonnage :** aucun téléchargement massif de décisions n'est exécuté (seul un cron hebdomadaire rafraîchit le répertoire des tribunaux via `runScheduled`). Les appels sortants vers CanLII sont espacés de **600 ms** par défaut (intervalle doublé à chaque `429`, jusqu'à 4 s, max 40 appels séquentiels par invocation). Lorsqu'un étranglement ou une interruption survient, les outils le signalent explicitement dans leur réponse.
+
+## Auto-hébergement d'une fourche autonome / Self-hosting a standalone fork
+
+Ce dépôt fonctionne de manière autonome sans l'infrastructure centrale d'accès (`MCP-Acces` / `DB_IDENTITE`) :
+
+1. **Base D1 :** Créez votre base Cloudflare D1 (`wrangler d1 create canlii`), renseignez son `database_id` dans `wrangler.jsonc` et appliquez les migrations (`npx wrangler d1 migrations apply canlii --remote`).
+2. **Omettre `DB_IDENTITE` :** Supprimez ou omettez le bloc D1 `DB_IDENTITE` dans `wrangler.jsonc` (`env.DB_IDENTITE` devient `undefined` — le Worker bascule sur le mode autonome sans coffre centralisé).
+3. **Secrets et clé CanLII :** Fixez `MCP_ENABLED = "true"` dans `wrangler.jsonc`, puis enregistrez votre secret d'instance (`npx wrangler secret put MCP_SHARED_SECRET`) et votre clé REST CanLII (`npx wrangler secret put CANLII_API_KEY` — ou transmettez-la à la demande dans l'en-tête HTTP `X-Clef-CanLII`).
+4. **Connexion cliente :** Déployez (`npx wrangler deploy`) puis connectez votre client MCP sur `https://<votre-worker>.workers.dev/mcp` avec `Authorization: Bearer <MCP_SHARED_SECRET>` (ou `/mcp/<MCP_SHARED_SECRET>`). Les requêtes sans secret valide reçoivent `404`.
+
+> **English:** To self-host a standalone fork without `droit-civil-quebecois` or `MCP-Acces`, create the `canlii` D1 database and apply `migrations/`, omit the `DB_IDENTITE` binding from `wrangler.jsonc`, set `MCP_ENABLED = "true"`, add `MCP_SHARED_SECRET` and `CANLII_API_KEY` via `npx wrangler secret put` (or pass `X-Clef-CanLII` per request), deploy to your `*.workers.dev` or custom hostname, and connect to `/mcp` with `Authorization: Bearer <MCP_SHARED_SECRET>`.
 
 ## Référence
 

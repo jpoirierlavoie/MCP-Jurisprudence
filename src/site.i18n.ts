@@ -174,8 +174,8 @@ export const EN = {
 
   acces: [
     "Free access reserved for active members in good standing of the Barreau du Québec.",
-    "1. Apply once at https://acces.poirierlavoie.ca/demande using your Barreau number and your " +
-      "own CanLII API key (the service stores it encrypted and uses your own quota).",
+    "1. Apply once at https://acces.poirierlavoie.ca/demande using your Barreau number and add your " +
+      "own CanLII API key (on /demande or later at /moi; the service stores it encrypted and uses your own quota).",
     "2. Install the droit-civil-quebecois plugin in Claude, ChatGPT, Gemini, or Antigravity — or " +
       "add https://jurisprudence.poirierlavoie.ca/mcp/oauth directly in connector settings — then " +
       "click Connect and sign in through your browser (no secret keys to copy).",
@@ -209,7 +209,7 @@ export const EN = {
     "Ten tools may query CanLII's API (using your personal key's quota); parse_citation and " +
       "list_exempt_cases run strictly offline without consuming quota (and " +
       "check_exempt_cases supports offline-only mode with resolve_canlii=false). Offline " +
-      "Québec court-file and courthouse tools (greffe_*, palais_*) live in the public « outils » connector.",
+      "Québec court-file and courthouse tools (greffe_*, palais_*) live in the « outils » connector.",
   ],
 
   schemaTexte: [

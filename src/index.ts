@@ -67,7 +67,7 @@ const SERVICE_ID = "jurisprudence" as const;
 const ORIGINE_PORTAIL_DEFAUT = "https://acces.poirierlavoie.ca";
 const META_RESSOURCE_OAUTH_URL =
   "https://jurisprudence.poirierlavoie.ca/.well-known/oauth-protected-resource/mcp/oauth";
-const SCOPE_OAUTH = "jurisprudence les_deux";
+const SCOPE_OAUTH = "jurisprudence tous";
 
 const TTL_LISTE = 3_600_000;
 const SERT_AVANT_2025_06_18 = true;
