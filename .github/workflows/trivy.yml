@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: ["main"]
   schedule:
-    - cron: '28 4 * * 0'  # dimanche 04:28 UTC
+    - cron: '28 4 * * 0'
 
 permissions:
   contents: read
@@ -30,8 +30,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # `secret` compte autant que `vuln` ici : ce dépôt côtoie une clef d'API et un
-      # secret partagé, et le premier accident serait de les versionner.
       - name: Run Trivy filesystem scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:

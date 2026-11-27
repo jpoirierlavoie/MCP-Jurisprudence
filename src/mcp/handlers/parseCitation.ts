@@ -1,10 +1,3 @@
-/**
- * `parse_citation` (spécification §7.10).
- *
- * AUCUN appel sortant, AUCUNE écriture. Outil de diagnostic : il sert à déboguer la
- * table `court_codes` et à expliquer un verdict NON CONSTRUCTIBLE.
- */
-
 import { ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { formLabel, parseCitation, resolve } from "../../citation/parse";
 import { DIAGNOSTIC_SEULEMENT } from "../../format/render";

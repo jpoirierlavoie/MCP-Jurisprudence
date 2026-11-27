@@ -1,9 +1,5 @@
 version: 2
 updates:
-  # Toutes les dépendances de ce dépôt sont de DÉVELOPPEMENT (décision D2 : zéro
-  # dépendance d'exécution, le paquet déployé n'embarque aucun paquet npm). Le
-  # groupage mineur/correctif est donc sans risque pour la production ; seules les
-  # montées majeures de wrangler méritent une revue.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:

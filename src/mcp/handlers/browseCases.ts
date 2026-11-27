@@ -1,13 +1,3 @@
-/**
- * `browse_cases` (spécification §7.6).
- *
- * Trois familles de filtres de dates, qui ne mesurent PAS la même chose :
- *   - `decision_date_*` : la date de la décision ;
- *   - `published_*`     : la date de diffusion sur CanLII ;
- *   - `modified_*` / `changed_*` : la date de dernière modification.
- * Toutes au format AAAA-MM-JJ, bornes INCLUSIVES (annexe B).
- */
-
 import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
 import { relancerSiInterruptionGouverne } from "../../canlii/errors";
@@ -19,7 +9,6 @@ import { type CaseRow, rowFromListItem, upsertCases } from "../../store/cases";
 import { LIMITES } from "../defauts";
 import type { ToolContext } from "../registry";
 
-/** Correspondance argument -> paramètre de l'API (annexe B). */
 const FILTRES: Array<[string, string]> = [
   ["decision_date_after", "decisionDateAfter"],
   ["decision_date_before", "decisionDateBefore"],
@@ -77,14 +66,8 @@ export async function browseCases(
   const lignes = items
     .map((it) => rowFromListItem(it, databaseId, lang, "sweep", now))
     .filter((r): r is CaseRow => r !== null);
-  // Ce `.filter` écarte les entrées que `rowFromListItem` ne sait pas lire, et il le
-  // faisait EN SILENCE. Si CanLII rend vingt décisions dont aucune n'est lisible, la
-  // sortie annonçait « Aucune décision pour qcca » — une absence affirmée alors que la
-  // collection en contient et que le défaut est dans NOTRE lecture. C'est l'invariant 9
-  // sous un autre habit : l'écart se compte, et il se dit. 2026-09-16.
   const ecartees = items.length - lignes.length;
 
-  // D6 : ce qui a été moissonné pour répondre est persisté.
   if (persisterBalayages(ctx.env)) await upsertCases(ctx.db, lignes);
 
   if (lignes.length === 0) {

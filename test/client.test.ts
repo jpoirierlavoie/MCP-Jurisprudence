@@ -1,11 +1,3 @@
-/**
- * Client CanLII (spécification §5, plan de test §13).
- *
- * Le test capital de ce fichier est le DERNIER : la clef d'API ne doit apparaître
- * dans aucune sortie journalisable. Il est écrit comme un test de non-régression sur
- * `redactUrl` parce que la fuite, si elle survient, sera silencieuse — la clef
- * partira dans `wrangler tail` sans que rien ne casse.
- */
 import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 
@@ -19,7 +11,6 @@ import {
 
 const CLEF = "clef-secrete-a-ne-jamais-divulguer-42";
 
-/** Fabrique un `fetch` factice qui joue une file de réponses et note les URL vues. */
 function fakeFetch(reponses: Array<Response | (() => Response | Promise<Response>)>) {
   const vues: string[] = [];
   let i = 0;
@@ -40,7 +31,6 @@ const json = (body: unknown, init: ResponseInit = {}) =>
     ...init,
   });
 
-/** Client de test : aucune attente réelle, gigue nulle, plafond explicite. */
 function client(
   reponses: Array<Response | (() => Response | Promise<Response>)>,
   overrides: Partial<{
@@ -100,14 +90,11 @@ describe("§5.2 — étranglement, réessais, délais", () => {
     ]);
     await expect(c.get("caseBrowse/fr/")).resolves.toEqual({ ok: true });
     expect(f.appels()).toBe(2);
-    // 7 s de Retry-After, et non 500 ms de temporisation exponentielle.
     expect(dormis).toContain(7000);
     expect(c.usage().throttled).toBe(1);
   });
 
   it("temporise PLUS LONGTEMPS sur 429 que sur 5xx, Retry-After absent", async () => {
-    // Un 5xx est un incident ; un 429 est une CONSIGNE. Employer la même base pour
-    // les deux revient à ignorer la consigne tout en croyant l'appliquer.
     const c429 = client([
       () => new Response("throttled", { status: 429 }),
       () => json({ ok: true }),
@@ -121,8 +108,6 @@ describe("§5.2 — étranglement, réessais, délais", () => {
   });
 
   it("RALENTIT D'OFFICE le reste de l'invocation après un 429", async () => {
-    // Le quota de CanLII n'est pas publié : le refus est la seule mesure qu'on ait.
-    // Un lot qui touche la limite doit cesser de la retoucher appel après appel.
     const { c, dormis } = client(
       [
         () => new Response("throttled", { status: 429 }),
@@ -135,13 +120,6 @@ describe("§5.2 — étranglement, réessais, délais", () => {
     const avant = dormis.length;
     await c.get("caseBrowse/fr/b");
     const attentes = dormis.slice(avant);
-    // 600 doublé une fois par l'unique 429 : l'appel suivant attend ~1200, pas ~600.
-    //
-    // ⚠ On compare par INTERVALLE, jamais par égalité. `#throttle` dort
-    //   `intervalle − temps déjà écoulé` : quelques millisecondes de vrai temps
-    //   passent entre la réponse et l'attente suivante, si bien qu'on observe 1198
-    //   plutôt que 1200. Une égalité stricte ici passe la plupart du temps et échoue
-    //   une fois sur trois — un test instable qu'on finirait par désarmer.
     expect(attentes.some((ms) => ms > 1000 && ms <= 1200)).toBe(true);
     expect(attentes.every((ms) => ms <= 1200)).toBe(true);
     expect(c.usage().throttled).toBe(1);
@@ -156,19 +134,15 @@ describe("§5.2 — étranglement, réessais, délais", () => {
       minIntervalMs: 600,
       maxCalls: 40,
     });
-    // Trois tentatives par appel : deux appels suffisent à empiler six 429.
     await expect(c.get("caseBrowse/fr/a")).rejects.toThrow();
     await expect(c.get("caseBrowse/fr/b")).rejects.toThrow();
     expect(c.usage().throttled).toBe(6);
 
-    // Un client NEUF repart au rythme configuré : aucun état ne fuit entre
-    // invocations, et c'est délibéré (il n'y a pas d'objet durable ici).
     const neuf = client([() => json({ ok: true }), () => json({ ok: true })], {
       minIntervalMs: 600,
     });
     await neuf.c.get("caseBrowse/fr/a");
     await neuf.c.get("caseBrowse/fr/b");
-    // Même prudence : ~600, et RIEN au-delà — l'intervalle n'a pas été hérité.
     expect(neuf.dormis.some((ms) => ms > 400 && ms <= 600)).toBe(true);
     expect(neuf.dormis.every((ms) => ms <= 600)).toBe(true);
   });
@@ -190,7 +164,7 @@ describe("§5.2 — étranglement, réessais, délais", () => {
       () => json({ ok: true }),
     ]);
     await c.get("caseBrowse/fr/");
-    expect(dormis).toEqual([500, 1000]); // 500 × 2⁰ puis 500 × 2¹, gigue nulle
+    expect(dormis).toEqual([500, 1000]);
   });
 
   it("ne réessaie PAS sur 400/401/403/404", async () => {
@@ -201,11 +175,10 @@ describe("§5.2 — étranglement, réessais, délais", () => {
     }
   });
 
-  it("abandonne après trois tentatives et compte une erreur", async () => {
+  it("abandonne après trois tentatives", async () => {
     const { c, f } = client([() => new Response("boom", { status: 500 })]);
     await expect(c.get("caseBrowse/fr/")).rejects.toBeInstanceOf(CanliiError);
     expect(f.appels()).toBe(3);
-    expect(c.usage().errors).toBe(1);
   });
 
   it("traduit une expiration de délai", async () => {
@@ -224,7 +197,7 @@ describe("§5.2 — étranglement, réessais, délais", () => {
     await c.get("caseBrowse/fr/");
     await c.get("caseBrowse/fr/");
     await expect(c.get("caseBrowse/fr/")).rejects.toBeInstanceOf(CanliiBudgetError);
-    expect(f.appels()).toBe(2); // le troisième appel n'a JAMAIS quitté le Worker
+    expect(f.appels()).toBe(2);
     expect(c.remaining()).toBe(0);
   });
 
@@ -263,10 +236,6 @@ describe("§5.2 — charge utile TOO_LONG", () => {
   });
 
   it("détecte un corps d'erreur applicatif rendu avec un statut 200", async () => {
-    // ⚠ Ce test n'assertionnait QUE `toBeInstanceOf(CanliiError)` — vrai avec ET sans
-    //   le défaut, donc il n'éprouvait rien. C'est le test qui aurait dû attraper
-    //   « erreur 200 » et qui ne le pouvait pas. Une assertion qui passe dans les deux
-    //   mondes n'est pas une assertion faible : c'en est zéro.
     const { c } = client([() => json({ error: "TOO_LONG" })]);
     const e = (await c.get("caseBrowse/fr/").catch((x) => x)) as CanliiError;
     expect(e).toBeInstanceOf(CanliiError);
@@ -276,7 +245,6 @@ describe("§5.2 — charge utile TOO_LONG", () => {
   });
 
   it("un 200 au corps non-JSON ne se rend JAMAIS en « erreur 200 »", async () => {
-    // Forme réaliste : une page d'erreur HTML servie en 200 par un intermédiaire.
     const { c } = client([
       () =>
         new Response("<html><body>502 Bad Gateway</body></html>", {
@@ -290,15 +258,10 @@ describe("§5.2 — charge utile TOO_LONG", () => {
     expect(d.cause).toBe("REPONSE_INEXPLOITABLE");
     expect(d.phrase).not.toMatch(/erreur 2dd/);
     expect(d.phrase).toContain("n'a pas pu être LUE");
-    // Et jamais une absence : l'invariant 9, au niveau du client.
     expect(d.cause).not.toBe("INTROUVABLE_404");
   });
 
   it("AUCUNE combinaison statut 2xx × code ne se rend en « erreur 2xx »", () => {
-    // Structurel, comme le balayage de l'invariant 9 dans `garde.test.ts` : on ne
-    // vérifie pas un cas, on vérifie que la règle ne tombe NULLE PART. Le défaut
-    // d'origine était le `default:` atteint avec un statut 200 — un statut de succès
-    // employé pour décrire un échec.
     const codes = [
       null,
       "",
@@ -322,7 +285,6 @@ describe("§5.2 — charge utile TOO_LONG", () => {
   });
 
   it("un code applicatif qui n'a pas la forme d'un jeton n'est pas RÉÉMIS", () => {
-    // Il vient d'un service distant et atterrit dans une sortie que le modèle lit.
     const d = analyserErreur(
       new CanliiError(200, "https://exemple.invalid/x", "", "<script>alert(1)</script>"),
     );
@@ -338,21 +300,7 @@ describe("§5.2 — charge utile TOO_LONG", () => {
 });
 
 describe("§5.2 — le corps d'une réponse valide est lu ENTIER", () => {
-  /**
-   * ╔══════════════════════════════════════════════════════════════════════════════╗
-   * ║ CES TESTS SONT LES SEULS QUI POUVAIENT VOIR LE DÉFAUT.                       ║
-   * ║                                                                              ║
-   * ║ `test/helpers.ts` remplace la CLASSE `CanliiClient` en entier et rend des     ║
-   * ║ objets DÉJÀ ANALYSÉS : aucun test de gestionnaire ne construit de `Response`, ║
-   * ║ ne lit de corps, n'appelle `JSON.parse`. Le seuil aurait pu valoir 10 et les  ║
-   * ║ 498 tests seraient restés verts.                                             ║
-   * ╚══════════════════════════════════════════════════════════════════════════════╝
-   */
   it("un corps bien au-delà de 100 000 caractères s'analyse, queue comprise", async () => {
-    // Le seuil qui coupait. Une base législative de CanLII le dépasse dès quelques
-    // centaines d'entrées : `qch` (298 textes) passait, `qcs` non — relevé en
-    // production le 2026-09-17. Et `legislationBrowse` ne pagine pas : le gestionnaire
-    // n'avait aucun moyen de demander moins.
     const grosse = {
       legislations: Array.from({ length: 4000 }, (_, i) => ({
         databaseId: "qcs",
@@ -366,14 +314,10 @@ describe("§5.2 — le corps d'une réponse valide est lu ENTIER", () => {
     const { c } = client([() => json(grosse)]);
     const r = await c.get<typeof grosse>("legislationBrowse/fr/qcs/");
     expect(r.legislations).toHaveLength(4000);
-    // L'assertion DÉCISIVE : c'est la QUEUE que la coupe détruisait.
     expect(r.legislations.at(-1)!.legislationId).toBe("rlrq-c-x-3999");
   });
 
   it("une page de balayage de 5 000 fiches passe entière (findCase, PAGE)", async () => {
-    // `find_case` demande `resultCount: 5000` par page : le balayage vif mourait donc
-    // sur tout tribunal un peu fourni, et l'échec se lisait « erreur 200 » à côté
-    // d'une note d'étranglement, ce qui faisait accuser le 429.
     const cases = Array.from({ length: 5000 }, (_, i) => ({
       databaseId: "qccs",
       caseId: { fr: `2024qccs${i}` },
@@ -389,9 +333,6 @@ describe("§5.2 — le corps d'une réponse valide est lu ENTIER", () => {
   });
 
   it("au-delà du plafond du connecteur, le corps est REFUSÉ en entier, jamais tronqué", async () => {
-    // Le plafond réel vaut 12 Mo ; on l'abaisse par la couture pour ne pas allouer
-    // autant. Ce qui est éprouvé, c'est la POLITIQUE : refuser, et non couper — un
-    // plafond qui coupe est exactement celui qu'on vient de retirer.
     const { c } = client([() => json({ cases: [{ title: "assez long pour dépasser" }] })], {
       corpsMaxChars: 20,
     });
@@ -422,8 +363,6 @@ describe("§5.2 — le corps d'une réponse valide est lu ENTIER", () => {
   });
 
   it("une lecture INTERROMPUE se nomme, au lieu de passer pour un corps vide", async () => {
-    // « rien reçu » n'est pas « reçu rien » : l'ancienne lecture rendait "" dans les
-    // deux cas, et un corps vide se serait analysé en échec de JSON indistinct.
     const { c } = client([
       () =>
         new Response(
@@ -441,9 +380,6 @@ describe("§5.2 — le corps d'une réponse valide est lu ENTIER", () => {
   });
 
   it("LE PENDANT : le corps d'une ERREUR reste borné pour le diagnostic (§5.3)", async () => {
-    // Sans cette moitié, on satisferait tout ce qui précède en retirant TOUTE borne.
-    // Ce qui est retiré, c'est la coupe sur le chemin de SUCCÈS ; `CanliiError` borne
-    // toujours, et c'est elle qui l'a toujours fait — d'où la redondance supprimée.
     const { c } = client([() => new Response("E".repeat(5000), { status: 403 })]);
     const e = (await c.get("caseBrowse/fr/x/").catch((x) => x)) as CanliiError;
     expect(e.body).toContain("(tronqué)");
@@ -480,13 +416,10 @@ describe("§5.3 — LA CLEF NE QUITTE JAMAIS LE PROCESSUS", () => {
     const { c } = client([() => new Response(`refusé pour ${CLEF}`, { status: 403 })]);
     const err = (await c.get("caseBrowse/fr/").catch((e) => e)) as CanliiError;
     expect(err).toBeInstanceOf(CanliiError);
-    // message, url, pile : aucune de ces surfaces ne doit contenir la clef.
     expect(err.message).not.toContain(CLEF);
     expect(err.url).not.toContain(CLEF);
     expect(String(err.stack ?? "")).not.toContain(CLEF);
     expect(JSON.stringify({ m: err.message, u: err.url })).not.toContain(CLEF);
-    // Le corps distant est conservé pour le diagnostic : c'est CanLII qui l'a écrit,
-    // pas nous — mais il ne doit jamais atteindre une sortie d'outil (cf. garde.test).
   });
 
   it("une erreur d'expiration ne porte pas la clef", async () => {
@@ -509,8 +442,6 @@ describe("§5.3 — LA CLEF NE QUITTE JAMAIS LE PROCESSUS", () => {
       describeError(new CanliiError(429, "https://api.canlii.org/v1/x", "non")),
       describeError(new CanliiTimeoutError(`https://api.canlii.org/v1/x?api_key=${CLEF}`, 15000)),
       describeError(new Error("autre")),
-      // Les causes ajoutées le 2026-09-17 passent par le MÊME contrôle de non-fuite :
-      // c'est ici que se vérifie que le jeton applicatif réémis n'emporte rien.
       describeError(
         new CanliiError(
           200,

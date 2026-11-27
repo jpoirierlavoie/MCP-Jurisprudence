@@ -1,20 +1,9 @@
-/**
- * Répertoire des bases de CanLII et correspondance des codes de tribunaux
- * (spécification §4.2, §6.4, §7.7).
- *
- * Deux responsabilités :
- *   1. tenir à jour `databases` (TTL de 7 jours, cron hebdomadaire) ;
- *   2. porter la boucle d'AUTO-CORRECTION de `court_codes` — la correspondance
- *      « code de citation -> databaseId » n'est documentée que pour `csc-scc`, tout
- *      le reste est une hypothèse d'amorçage que le système apprend à corriger.
- */
-
-import type { CanliiClient } from "../canlii/client";
+import { type CanliiClient, createClient } from "../canlii/client";
 import type { CaseDatabasesResponse, Lang, LegislationDatabasesResponse } from "../canlii/types";
 import { fold } from "../citation/normalize";
 import type { CourtCode, Directory, ParenCode } from "../citation/parse";
 
-export interface DatabaseRow {
+interface DatabaseRow {
   id: string;
   kind: "case" | "legislation";
   jurisdiction: string;
@@ -27,7 +16,6 @@ export interface DatabaseRow {
 
 const TTL_JOURS = 7;
 
-/** Charge le répertoire complet nécessaire à l'analyseur (§6.3). */
 export async function loadDirectory(db: D1Database): Promise<Directory> {
   const [courts, parens, bases] = await Promise.all([
     db.prepare("SELECT * FROM court_codes").all<CourtCode>(),
@@ -61,8 +49,6 @@ export async function listDatabases(
     binds.push(filtres.jurisdiction.toLowerCase());
   }
   if (filtres.query) {
-    // Recherche sur le nom PLIÉ : « quebec » trouve « Québec ». `id` est comparé
-    // aussi, parce qu'on cherche souvent le databaseId lui-même.
     where.push("(name_norm LIKE ? OR id LIKE ?)");
     const motif = `%${fold(filtres.query)}%`;
     binds.push(motif, `%${filtres.query.toLowerCase()}%`);
@@ -75,7 +61,6 @@ export async function listDatabases(
   return r.results ?? [];
 }
 
-/** Le répertoire est-il périmé (plus vieux que 7 jours) ou vide ? */
 export async function directoryStale(db: D1Database, now: Date = new Date()): Promise<boolean> {
   const row = await db
     .prepare("SELECT MAX(refreshed_at) AS last, COUNT(*) AS n FROM databases")
@@ -85,10 +70,6 @@ export async function directoryStale(db: D1Database, now: Date = new Date()): Pr
   return !Number.isFinite(age) || age > TTL_JOURS * 86_400_000;
 }
 
-/**
- * Rafraîchit `databases` depuis CanLII : DEUX appels (cours et corpus législatifs).
- * C'est aussi ce que fait le cron hebdomadaire.
- */
 export async function refreshDatabases(
   db: D1Database,
   client: CanliiClient,
@@ -154,14 +135,6 @@ export async function refreshDatabases(
   };
 }
 
-/**
- * Lignes de `court_codes` / `paren_codes` dont le `database_id` est ABSENT du
- * répertoire réel — c'est-à-dire les hypothèses d'amorçage démenties par CanLII.
- *
- * §4.3 interdit de livrer les lignes fédérales sans cette réconciliation. La fonction
- * DÉTECTE, elle ne corrige jamais d'elle-même : une correction automatique du
- * répertoire serait exactement le genre de silence que ce connecteur refuse.
- */
 export async function directoryMismatches(
   db: D1Database,
 ): Promise<{ courts: CourtCode[]; parens: ParenCode[] }> {
@@ -182,15 +155,6 @@ export async function directoryMismatches(
   return { courts: c.results ?? [], parens: p.results ?? [] };
 }
 
-/**
- * Consigne une correspondance CONFIRMÉE par un appel réussi (§6.4).
- *
- * `concatenatedId` sert de contrôle croisé (§6.3) : l'API le rend sous la forme
- * `${year}${databaseId}${number}`. S'il ne concorde pas avec le databaseId qu'on
- * croyait bon, on refuse de passer `verified = 1` et on l'écrit dans la note — un
- * appel réussi sur un mauvais identifiant est possible, et le promouvoir figerait
- * l'erreur.
- */
 export async function confirmCourtCode(
   db: D1Database,
   code: string,
@@ -211,13 +175,10 @@ export async function confirmCourtCode(
       )
       .bind(databaseId, caseidCode, concorde ? 1 : 0, finalNote, code.toUpperCase())
       .run();
-  } catch {
-    // L'apprentissage du répertoire ne doit jamais faire échouer une vérification.
-  }
+  } catch {}
   return { verified: concorde, note: finalNote };
 }
 
-/** Idem pour un couple de codes entre parenthèses. */
 export async function confirmParenCode(
   db: D1Database,
   juris: string,
@@ -231,15 +192,9 @@ export async function confirmParenCode(
       )
       .bind(databaseId, juris.toUpperCase(), court.toUpperCase())
       .run();
-  } catch {
-    // idem
-  }
+  } catch {}
 }
 
-/**
- * Écrit par lots de 100 énoncés (§7.2). D1 plafonne la taille d'une instruction et
- * le nombre d'énoncés par lot ; 100 est la valeur retenue par la spécification.
- */
 export async function batchWrite(
   db: D1Database,
   statements: D1PreparedStatement[],
@@ -247,5 +202,22 @@ export async function batchWrite(
 ): Promise<void> {
   for (let i = 0; i < statements.length; i += taille) {
     await db.batch(statements.slice(i, i + taille));
+  }
+}
+
+export async function runScheduled(
+  env: Env,
+  now: Date = new Date(),
+  clientInjecte?: CanliiClient,
+): Promise<void> {
+  const client = clientInjecte ?? createClient(env);
+  try {
+    if (await directoryStale(env.DB, now)) {
+      await refreshDatabases(env.DB, client, (env.DEFAULT_LANG as Lang) ?? "fr", now);
+    }
+  } catch (e) {
+    console.error("rafraîchissement du répertoire en échec", {
+      error: e instanceof Error ? e.name : "inconnu",
+    });
   }
 }

@@ -23,3 +23,6 @@ LICENSE text eol=lf
 NOTICE  text eol=lf
 .gitignore text eol=lf
 .gitattributes text eol=lf
+CODEOWNERS text eol=lf
+*.example text eol=lf
+

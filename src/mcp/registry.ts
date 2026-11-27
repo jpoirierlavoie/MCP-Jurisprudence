@@ -1,45 +1,3 @@
-/**
- * Registre des douze outils MCP (spécification §7).
- *
- * ⚠ LES DESCRIPTIONS SONT REPRISES VERBATIM DE §7 ET NE DOIVENT PAS ÊTRE
- *   REFORMULÉES. Elles portent elles-mêmes leurs mises en garde : c'est le second
- *   canal de fiabilité, après le corps des réponses. Le motif est celui de
- *   `GARDE_FOU` dans le Worker `legislation` — une description d'outil est une
- *   surface de contrat, pas de la prose.
- *
- * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║ PROVENANCE DANS LA DESCRIPTION (D8, amendée le 2026-09-16 ; §17 retiré le    ║
- * ║ 2026-11-14).                                                                 ║
- * ║                                                                              ║
- * ║   serveur `juris`       la réponse se rapporte à la COLLECTION DE CANLII     ║
- * ║   (12 outils)           ou aux 27 listes compilées d'autorités dispensées.    ║
- * ║                                                                              ║
- * ║ NOTE HISTORIQUE (2026-11-14) : les trois outils hors ligne `greffe_*` et     ║
- * ║ `palais_*` ont été déplacés vers le connecteur public sans authentification  ║
- * ║ « outils » (`MCP-Outils`, v0.2.0). Les douze outils du registre portent      ║
- * ║ tous « CanLII » dans leur description en français et en anglais (épinglé     ║
- * ║ par test/garde.test.ts et test/site.test.ts).                                ║
- * ╚══════════════════════════════════════════════════════════════════════════════╝
- *
- * Conventions communes appliquées sans exception :
- *   - nom d'outil en anglais, description ET sortie en français ;
- *   - `readOnlyHint: true` sur TOUS les outils : aucun n'écrit hors de son cache ;
- *   - `openWorldHint` N'EST PAS uniforme — vrai pour les DIX qui peuvent interroger
- *     CanLII (source de vérité distante), faux pour `parse_citation` et
- *     `list_exempt_cases` qui ne font aucun appel. Voir `DISTANT`/`LOCAL`
- *     et `SANS_APPEL` plus bas ;
- *   - tout paramètre déclaré porte une `description` ;
- *   - `additionalProperties: false` sur tous les schémas ;
- *   - tout `lang` : enum ["fr","en"], défaut "fr" ;
- *   - erreur d'exécution => `isError: true` en français, JAMAIS une erreur JSON-RPC.
- *   - ⚠ ET LA FRONTIÈRE DE `isError`, qui n'était écrite nulle part : il vaut `true`
- *     quand l'outil n'a RIEN à livrer — argument refusé, forme d'appel invalide, appel
- *     sortant échoué sans repli. Il vaut `false` dès qu'un résultat part, **même vide,
- *     même partiel, même dégradé** : une liste vide est une réponse, pas une panne, et
- *     la réserve voyage alors dans le corps. La distinction est celle qu'un client lit
- *     pour décider s'il RÉESSAIE.
- */
-
 import { err, type JsonSchema, type ToolResult, validateArgs } from "@poirierlavoie/mcp-socle";
 import type { CanliiClient } from "../canlii/client";
 import { LIMITES, OFFSET_DEFAUT, OFFSET_MAX } from "./defauts";
@@ -61,44 +19,18 @@ export interface ToolContext {
   db: D1Database;
   client: CanliiClient;
   ctx: ExecutionContext;
-  /** Injectable pour les tests ; `new Date()` en production. */
   now?: Date;
 }
 
-export type ToolHandler = (args: Record<string, unknown>, ctx: ToolContext) => Promise<ToolResult>;
+type ToolHandler = (args: Record<string, unknown>, ctx: ToolContext) => Promise<ToolResult>;
 
-export interface ToolDescriptor {
-  /**
-   * Libellé lisible, distinct de `name` (MCP 2025-06-18).
-   *
-   * C'est ce que le praticien lit dans l'invite d'AUTORISATION, au moment précis
-   * où il décide de laisser l'outil s'exécuter. « Sorts ultérieurs — indice
-   * heuristique » y est plus utile que `subsequent_history`, et la réserve
-   * portée par le titre se lit AVANT l'appel plutôt qu'après.
-   *
-   * Un client qui ignore ce champ retombe sur `name` : rien ne casse.
-   */
+interface ToolDescriptor {
   title: string;
   description: string;
   inputSchema: JsonSchema;
   handler: ToolHandler;
 }
 
-/**
- * Annotations MCP. `readOnlyHint` vaut vrai partout — aucun outil n'écrit.
- *
- * ⚠ `openWorldHint` N'EST PAS UNIFORME, et c'est le point (corrigé le 2026-09-16).
- *   Il annonce que la source de vérité est DISTANTE et peut changer sous les pieds de
- *   l'appelant. C'est vrai des neuf outils qui interrogent CanLII. Ce l'est FAUX de
- *   `parse_citation`, qui lit un analyseur pur et le répertoire local sans
- *   appeler CanLII : à version déployée égale, la même entrée rend la même sortie.
- *
- *   Le dire compte pour un client par programme : `openWorldHint: false` l'autorise à
- *   mettre en cache, à rejouer, et à ne pas prévoir de reprise sur panne réseau — trois
- *   choses que l'annotation uniforme lui interdisait sans raison. L'inverse serait plus
- *   grave : annoncer « monde fermé » sur un outil qui appelle CanLII ferait croire à une
- *   réponse stable là où la couverture évolue.
- */
 const DISTANT = {
   readOnlyHint: true,
   destructiveHint: false,
@@ -112,7 +44,6 @@ const LOCAL = {
   openWorldHint: false,
 } as const;
 
-/** Outils dont la réponse ne dépend d'aucun appel sortant ni du cache CanLII en direct. */
 export const SANS_APPEL = new Set(["parse_citation", "list_exempt_cases"]);
 
 const LANG: JsonSchema = {
@@ -136,25 +67,6 @@ const DATE: JsonSchema = {
     "donc « 2020-3-1 » ou « 31/03/2020 » passent le schéma et sont refusés ensuite.",
 };
 
-/**
- * Les identifiants qui reviennent d'un outil à l'autre, décrits UNE fois.
- *
- * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║ CES DESCRIPTIONS SONT LA SEULE DOCUMENTATION D'UN CLIENT PAR PROGRAMME.       ║
- * ║                                                                              ║
- * ║ Un humain devine « database_id » d'après le contexte ; un programme, non — il ║
- * ║ ne dispose que de `tools/list`. Vingt-et-un paramètres n'en portaient aucune  ║
- * ║ au 2026-09-16, dont SIX des sept `database_id` : construire un appel valide   ║
- * ║ exigeait de deviner, et deviner est la façon dont naissent les erreurs        ║
- * ║ silencieuses. Chacune dit donc TROIS choses : à quoi ressemble la valeur, où  ║
- * ║ l'obtenir, et ce qu'il ne faut pas faire.                                    ║
- * ║                                                                              ║
- * ║ `minLength: 1` n'est pas décoratif : `validate.ts` ROGNE les blancs avant de  ║
- * ║ compter, donc une chaîne vide ou faite d'espaces est refusée À L'ENTRÉE. Sans ║
- * ║ lui, elle était concaténée telle quelle dans le chemin de l'appel sortant, où ║
- * ║ elle coûtait un aller-retour pour produire une erreur illisible.              ║
- * ╚══════════════════════════════════════════════════════════════════════════════╝
- */
 const BASE_ID: JsonSchema = {
   type: "string",
   minLength: 1,
@@ -198,27 +110,15 @@ function offsetDe(quoi: string): JsonSchema {
 }
 
 export const SERVER_INFO = {
-  // `name` est un IDENTIFIANT, `title` un libellé : les deux ont changé le 2026-09-16,
-  // et pas pour la même raison. Le libellé parce que le praticien a renommé son
-  // connecteur ; l'identifiant parce qu'il contenait « canlii », seul vestige d'un
-  // préfixe que tout le reste du dépôt venait d'abandonner (D8 amendée). Cette note
-  // disait auparavant qu'il « ne change pas avec le titre » et que le renommer
-  // « n'apporterait rien » : vrai tant que le nom restait cohérent avec le reste, faux
-  // le jour où il devient le dernier endroit à dire l'inverse des douze autres.
   name: "mcp-jurisprudence",
   title: "MCP Jurisprudence",
-  version: "2.3.3",
+  version: "2.3.4",
 };
 
-/**
- * Description publique canonique — partagée avec la fiche SEP-2127 (`/mcp/server-card`)
- * et épinglée contre `plugin.json` et `gemini-extension.json` dans `test/doc.test.ts`.
- */
 export const PUBLIC_DESCRIPTION =
   "Vérification déterministe de citations de jurisprudence canadienne et d'autorités dispensées " +
   "(collection CanLII, métadonnées en lecture seule).";
 
-/** Orientation rendue à l'initialisation. Elle porte, elle aussi, le contrat de §2. */
 export const INSTRUCTIONS =
   "Connecteur de VÉRIFICATION DE RÉFÉRENCES adossé à la collection de CanLII. " +
   "L'API de CanLII ne rend que des MÉTADONNÉES : jamais le texte d'une décision, et " +
@@ -242,7 +142,6 @@ export const INSTRUCTIONS =
   "« outils ».";
 
 export const TOOLS: Record<string, ToolDescriptor> = {
-  // ── 7.1 — l'outil pivot ────────────────────────────────────────────────────
   verify_citations: {
     title: "Vérifier des citations",
     description:
@@ -306,7 +205,6 @@ export const TOOLS: Record<string, ToolDescriptor> = {
     handler: verifyCitations,
   },
 
-  // ── 7.2 ────────────────────────────────────────────────────────────────────
   find_case: {
     title: "Retrouver une décision par les parties",
     description:
@@ -371,7 +269,6 @@ export const TOOLS: Record<string, ToolDescriptor> = {
     handler: findCase,
   },
 
-  // ── 7.3 ────────────────────────────────────────────────────────────────────
   get_case: {
     title: "Fiche d'une décision",
     description:
@@ -396,7 +293,6 @@ export const TOOLS: Record<string, ToolDescriptor> = {
     handler: getCase,
   },
 
-  // ── 7.4 ────────────────────────────────────────────────────────────────────
   citator: {
     title: "Citateur — listes brutes",
     description:
@@ -446,7 +342,6 @@ export const TOOLS: Record<string, ToolDescriptor> = {
     handler: citator,
   },
 
-  // ── 7.5 ────────────────────────────────────────────────────────────────────
   subsequent_history: {
     title: "Sorts ultérieurs — indice heuristique",
     description:
@@ -487,7 +382,6 @@ export const TOOLS: Record<string, ToolDescriptor> = {
     handler: subsequentHistory,
   },
 
-  // ── 7.6 ────────────────────────────────────────────────────────────────────
   browse_cases: {
     title: "Décisions d'un tribunal",
     description:
@@ -524,7 +418,6 @@ export const TOOLS: Record<string, ToolDescriptor> = {
     handler: browseCases,
   },
 
-  // ── 7.7 ────────────────────────────────────────────────────────────────────
   list_databases: {
     title: "Répertoire des tribunaux et corpus",
     description:
@@ -558,7 +451,6 @@ export const TOOLS: Record<string, ToolDescriptor> = {
     handler: listDatabasesTool,
   },
 
-  // ── 7.8 ────────────────────────────────────────────────────────────────────
   browse_legislation: {
     title: "Lois et règlements d'un corpus",
     description:
@@ -584,7 +476,6 @@ export const TOOLS: Record<string, ToolDescriptor> = {
     handler: browseLegislation,
   },
 
-  // ── 7.9 ────────────────────────────────────────────────────────────────────
   get_legislation: {
     title: "Fiche d'une loi ou d'un règlement",
     description:
@@ -618,7 +509,6 @@ export const TOOLS: Record<string, ToolDescriptor> = {
     handler: getLegislation,
   },
 
-  // ── 7.10 ───────────────────────────────────────────────────────────────────
   parse_citation: {
     title: "Analyser une citation (hors ligne)",
     description:
@@ -648,7 +538,6 @@ export const TOOLS: Record<string, ToolDescriptor> = {
     handler: parseCitationTool,
   },
 
-  // ── 7.11 ───────────────────────────────────────────────────────────────────
   list_exempt_cases: {
     title: "Lister les autorités dispensées (hors ligne)",
     description:
@@ -704,7 +593,6 @@ export const TOOLS: Record<string, ToolDescriptor> = {
     handler: listExemptAuthorities,
   },
 
-  // ── 7.12 ───────────────────────────────────────────────────────────────────
   check_exempt_cases: {
     title: "Vérifier la dispense de reproduction",
     description:
@@ -789,7 +677,6 @@ export const TOOLS: Record<string, ToolDescriptor> = {
   },
 };
 
-/** Descripteurs rendus à `tools/list`. */
 export function listToolDescriptors(): Array<Record<string, unknown>> {
   return Object.entries(TOOLS).map(([name, t]) => ({
     name,
@@ -800,13 +687,6 @@ export function listToolDescriptors(): Array<Record<string, unknown>> {
   }));
 }
 
-/**
- * Valide puis exécute un outil.
- *
- * ⚠ Un échec de validation est un RÉSULTAT `isError: true`, pas une erreur JSON-RPC
- *   (§8). Cela DIVERGE d'Athéna, qui lève INVALID_PARAMS. La spécification prime : le
- *   modèle doit pouvoir lire l'erreur et corriger son appel.
- */
 export async function callTool(
   name: string,
   args: Record<string, unknown>,

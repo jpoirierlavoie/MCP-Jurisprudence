@@ -1,30 +1,3 @@
-/**
- * Le README contre le REGISTRE (règle de propagation, CLAUDE.md).
- *
- * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║ CE FICHIER REMPLACE UNE PORTE QUI POUVAIT RÉUSSIR SUR LE VIDE.               ║
- * ║                                                                              ║
- * ║ La vérification d'avant était une commande shell de CLAUDE.md : deux `grep`  ║
- * ║ confrontés par `diff`, tous deux FILTRÉS PAR UNE LISTE DE PRÉFIXES écrite à  ║
- * ║ la main — `(canlii|greffe|palais)_`. Le 2026-09-16, les préfixes ont changé. ║
- * ║ Les deux côtés se sont alors réduits au même sous-ensemble de trois outils,  ║
- * ║ sont restés égaux, et `diff` aurait rendu 0 : la porte aurait affirmé        ║
- * ║ « aucune dérive » sans avoir regardé dix outils sur treize — et l'aurait     ║
- * ║ affirmé aussi longtemps que personne ne l'aurait relue. Une vérification qui ║
- * ║ ne peut pas échouer est PIRE qu'aucune : elle achète une confiance qu'elle   ║
- * ║ ne finance pas.                                                              ║
- * ║                                                                              ║
- * ║ On ne répare pas cela en corrigeant la liste — on la corrigerait cette fois, ║
- * ║ et le prochain renommage rouvrirait le même trou au même endroit. Le défaut  ║
- * ║ est que les DEUX côtés étaient des heuristiques sur du texte, sans aucune    ║
- * ║ valeur non vide par construction pour ancrer la comparaison.                 ║
- * ║                                                                              ║
- * ║ Ici, un côté est `TOOLS` LUI-MÊME — non vide par construction, et sa longueur║
- * ║ est AFFIRMÉE avant tout le reste. L'autre est le texte du README, lu par     ║
- * ║ `?raw`. AUCUNE liste de préfixes n'intervient : le prochain renommage ne peut║
- * ║ pas rouvrir le trou, parce qu'il n'y a plus rien à tenir à jour.             ║
- * ╚══════════════════════════════════════════════════════════════════════════════╝
- */
 import { describe, expect, it } from "vitest";
 import logoSvg from "../assets/logo.svg?raw";
 import claudeMd from "../CLAUDE.md?raw";
@@ -41,7 +14,6 @@ import wranglerRaw from "../wrangler.jsonc?raw";
 
 const NOMS = Object.keys(TOOLS).sort();
 
-/** Un compte écrit en toutes lettres vieillit en silence : on l'éprouve aussi. */
 const EN_LETTRES: Record<number, string> = {
   10: "dix",
   11: "onze",
@@ -49,7 +21,6 @@ const EN_LETTRES: Record<number, string> = {
   13: "treize",
 };
 
-/** La section « Les douze outils » du README, bornée au titre de niveau 2 suivant. */
 function sectionOutils(): string {
   const debut = readme.indexOf("\n## Les ");
   expect(debut, "le README n'a plus de section « Les N outils »").toBeGreaterThan(-1);
@@ -59,8 +30,6 @@ function sectionOutils(): string {
 
 describe("README contre registre — ce que la porte shell ne savait pas faire", () => {
   it("le registre n'est pas vide : douze outils, et c'est affirmé AVANT le reste", () => {
-    // L'assertion qui rend impossible la réussite sur le vide. Elle vient en premier
-    // délibérément : si elle tombe, les trois suivantes ne veulent plus rien dire.
     expect(NOMS.length).toBe(12);
   });
 
@@ -70,10 +39,6 @@ describe("README contre registre — ce que la porte shell ne savait pas faire",
   });
 
   it("la section ne nomme AUCUN outil que le registre ne déclare plus", () => {
-    // On ne lit que les lignes de TABLEAU (« | `nom` | … »). Ailleurs, le README parle
-    // de `search_log`, `court_codes`, `database_id` : même forme, autre objet. Borner
-    // par la section ET par la forme de ligne évite toute liste d'exceptions — c'est-
-    // à-dire exactement ce qui a pourri la porte précédente.
     const cites = [...sectionOutils().matchAll(/^\| `([a-z][a-z0-9_]+)` \|/gm)].map((m) => m[1]!);
     expect(cites).toHaveLength(12);
     expect([...new Set(cites)].sort()).toEqual(NOMS);
@@ -155,28 +120,25 @@ describe("Manifestes Antigravity / Gemini et version — aucune dérive silencie
     expect(geminiMd).not.toContain("pratique-civile-outils");
   });
 
-  it("mcp_config.json et gemini-extension.json configurent Streamable HTTP par en-tête, sans secret ni eager", () => {
+  it("mcp_config.json et gemini-extension.json configurent Streamable HTTP par OAuth 2.1 (/mcp/oauth), sans secret, headers, variables ni eager", () => {
     for (const brut of [mcpConfigRaw, geminiExtRaw]) {
       expect(brut).not.toMatch(/[0-9a-f]{32,}/i);
+      expect(brut).not.toContain("MCP_JURISPRUDENCE_SECRET");
     }
 
     const agy = mcpConfig.mcpServers.juris;
-    expect(agy?.url).toBe("https://jurisprudence.poirierlavoie.ca/mcp");
-    expect(agy?.headers?.Authorization).toBe(`Bearer $${"{MCP_JURISPRUDENCE_SECRET}"}`);
+    expect(agy?.url).toBe("https://jurisprudence.poirierlavoie.ca/mcp/oauth");
+    expect(agy?.headers).toBeUndefined();
+    expect(agy?.variables).toBeUndefined();
     expect(agy?.eager).toBeUndefined();
-    expect(agy?.variables?.some((v) => v.name === "MCP_JURISPRUDENCE_SECRET")).toBe(true);
 
-    // Critiquement vide : évite d'injecter le GEMINI.md de développement dans les sessions utilisateur.
     expect(geminiExt.contextFileName).toEqual([]);
+    expect(geminiExt.settings).toEqual([]);
     const gcli = geminiExt.mcpServers.juris;
     expect(gcli?.type).toBe("http");
-    expect(gcli?.url).toBe("https://jurisprudence.poirierlavoie.ca/mcp");
-    expect(gcli?.headers?.Authorization).toBe(`Bearer $${"{MCP_JURISPRUDENCE_SECRET}"}`);
-    expect(
-      geminiExt.settings?.some(
-        (s) => s.envVar === "MCP_JURISPRUDENCE_SECRET" && s.sensitive === true,
-      ),
-    ).toBe(true);
+    expect(gcli?.url).toBe("https://jurisprudence.poirierlavoie.ca/mcp/oauth");
+    expect(gcli?.headers).toBeUndefined();
+    expect(gcli?.eager).toBeUndefined();
   });
 
   it("assets/logo.svg est un SVG carré valide", () => {
@@ -191,7 +153,6 @@ describe("Manifestes Antigravity / Gemini et version — aucune dérive silencie
     expect(octets).toBeGreaterThan(1_000);
     expect(octets).toBeLessThan(24_000);
     expect(geminiMd).toContain("CLAUDE.md");
-    expect(geminiMd).toContain("SPEC.md");
   });
 
   it("wrangler.jsonc désactive l'observabilité (G37), lie DB_IDENTITE et isole les namespace_id 1021..1025 (G34), et registry.ts bannit x-mcp-header (G19)", () => {

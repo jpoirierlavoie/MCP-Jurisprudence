@@ -1,10 +1,3 @@
-/**
- * `browse_legislation` (spécification §7.8).
- *
- * L'API ne pagine pas cet endpoint : elle rend la base entière. La pagination est
- * donc appliquée CÔTÉ WORKER, et la troncature est annoncée en toutes lettres.
- */
-
 import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { describeError } from "../../canlii/client";
 import { relancerSiInterruptionGouverne } from "../../canlii/errors";
@@ -54,9 +47,6 @@ export async function browseLegislation(
   const page = items.slice(offset, offset + limit);
   const blocs = page.map((i) => {
     const lignes = [i.title ?? "(titre absent)"];
-    // `type` BRUT, pour le motif écrit en §4.1 et dans `getLegislation.ts` : cinq
-    // valeurs observées, ensemble non clos, et la traduction serait une qualification
-    // juridique au jugé.
     lignes.push(
       [i.citation, i.type, `${i.databaseId ?? databaseId} / ${i.legislationId ?? "—"}`]
         .filter(Boolean)

@@ -1,11 +1,3 @@
-/**
- * Fiches de décisions : index de recherche ET cache (spécification §4.1, §4.2, D5/D6).
- *
- * Politique de fraîcheur : PERMANENTE. Intitulé, citation, date et numéro de dossier
- * ne changent pas une fois la décision rendue. Le rafraîchissement est forcé par
- * l'argument `refresh` des outils, jamais par un TTL.
- */
-
 import type { CaseListItem, CaseMetadata, Lang } from "../canlii/types";
 import { flattenCaseId, fold, normalizeNeutral } from "../citation/normalize";
 import { parseCitation } from "../citation/parse";
@@ -35,13 +27,8 @@ export interface CaseRow {
   fetched_at: string;
 }
 
-/** Provenance d'une fiche, pour distinguer le cache d'un balayage (§4.1). */
-export type Source = "lookup" | "sweep" | "backfill";
+type Source = "lookup" | "sweep";
 
-/**
- * Extrait la forme neutre d'une chaîne de citation et la normalise.
- * « 2005 QCCA 304 (CanLII) » -> « 2005 QCCA 304 ». Null si aucune forme neutre.
- */
 export function extractNeutral(citation: string | null | undefined): string | null {
   if (!citation) return null;
   const p = parseCitation(citation);
@@ -49,7 +36,6 @@ export function extractNeutral(citation: string | null | undefined): string | nu
   return f && f.kind === "neutral" ? normalizeNeutral(f.year, f.code, f.number) : null;
 }
 
-/** Convertit une fiche complète de l'API en ligne de la table `cases`. */
 export function rowFromMetadata(
   meta: CaseMetadata,
   fallback: { databaseId: string; caseId: string },
@@ -65,18 +51,6 @@ export function rowFromMetadata(
   const keywords = meta.keywords ?? null;
   const url = meta.url ?? null;
   return {
-    // ⚠ La ligne est clée par ce QUE L'ON A DEMANDÉ, pas par ce que CanLII renvoie.
-    //
-    //   L'API rend `caseId` sous la clef de SA langue : une fiche demandée à
-    //   `caseBrowse/fr/csc-scc/2008scc9/` revient avec `caseId: {"fr": "2008csc9"}`.
-    //   Clée sur la valeur renvoyée, la fiche serait rangée sous « 2008csc9 » alors que
-    //   toute résolution ultérieure la cherche sous « 2008scc9 » : le cache ne
-    //   servirait JAMAIS, chaque vérification rappellerait l'API, et `refresh` n'aurait
-    //   plus de sens. Défaut trouvé par test/verify.test.ts (« un second appel
-    //   identique ne fait aucun appel sortant »).
-    //
-    //   La langue sous laquelle CanLII a clé la fiche reste conservée dans `lang`, et
-    //   `concatenated_id` porte la forme canonique — rien n'est perdu.
     database_id: fallback.databaseId || meta.databaseId || "",
     case_id: fallback.caseId || flat?.caseId || "",
     lang: langDetectee ?? effectiveLang,
@@ -100,11 +74,6 @@ export function rowFromMetadata(
   };
 }
 
-/**
- * Convertit un élément de LISTE (balayage) en ligne. Les listes ne portent que
- * quatre champs — surtout pas de date ni d'hyperlien : c'est pourquoi une fiche
- * moissonnée reste plus pauvre qu'une fiche obtenue par résolution directe.
- */
 export function rowFromListItem(
   item: CaseListItem,
   databaseId: string,
@@ -127,16 +96,6 @@ export function rowFromListItem(
     citation: item.citation ?? null,
     neutral_cite: neutral,
     docket_number: null,
-    // ⚠ PAS DE DATE, ET RIEN À EN DÉDUIRE ICI. La réponse de liste n'en porte pas
-    //   (annexe B), et ce champ vaut donc `null` — ce qu'il a toujours valu.
-    //
-    //   Le commentaire qui vivait à cette place affirmait que la date était « déduite
-    //   de l'année de la citation neutre […] jamais affichée comme une date de
-    //   décision ». Les DEUX moitiés étaient fausses : rien n'était déduit ici, et
-    //   c'est l'APPELANT — `findCase`, puis `backfill` — qui posait un 1er janvier,
-    //   affiché comme une date et persisté comme telle. Un commentaire qui décrit une
-    //   intention plutôt que le code fait croire la garantie tenue ailleurs, et c'est
-    //   précisément ce qui a permis au défaut de vivre. Corrigé le 2026-09-17.
     decision_date: null,
     keywords: null,
     keywords_fr: null,
@@ -150,15 +109,10 @@ export function rowFromListItem(
   };
 }
 
-/** Indique si la version linguistique demandée a déjà été mémorisée pour cette fiche. */
 export function hasLangCached(row: CaseRow, lang: Lang): boolean {
   return (lang === "en" ? row.title_en : row.title_fr) != null;
 }
 
-/**
- * Projette une fiche bilingue vers la langue demandée (`title`, `url`, `keywords`),
- * avec repli sur les colonnes stockées si CanLII n'offre qu'une seule langue.
- */
 export function projectCaseForLang(row: CaseRow, lang: Lang): CaseRow {
   if (lang === "en") {
     const hasEn = row.title_en != null;
@@ -182,7 +136,6 @@ export function projectCaseForLang(row: CaseRow, lang: Lang): CaseRow {
   };
 }
 
-/** Renvoie l'intitulé connu dans `lang` pour le citateur / sorts ultérieurs, sinon null. */
 export function titleForLang(row: CaseRow, lang: Lang): string | null {
   if (lang === "en") {
     return row.title_en ?? (row.lang === "en" ? row.title : null);
@@ -190,7 +143,6 @@ export function titleForLang(row: CaseRow, lang: Lang): string | null {
   return row.title_fr ?? (row.lang === "fr" ? row.title : null);
 }
 
-/** Tous les intitulés distincts connus sur une fiche (`title`, `title_fr`, `title_en`). */
 export function collectCaseTitles(row: Pick<CaseRow, "title" | "title_fr" | "title_en">): string[] {
   const vus = new Set<string>();
   for (const t of [row.title, row.title_fr, row.title_en]) {
@@ -199,34 +151,6 @@ export function collectCaseTitles(row: Pick<CaseRow, "title" | "title_fr" | "tit
   return [...vus];
 }
 
-/**
- * INSERT ... ON CONFLICT DO UPDATE — JAMAIS `INSERT OR REPLACE`.
- *
- * ⚠ INVARIANT. REPLACE supprime puis réinsère : le rowid change, et l'index FTS5 en
- *   « external content » (qui référence `cases.id` via `content_rowid`) diverge en
- *   silence. Vérifié contre du vrai SQLite : le déclencheur `cases_au` maintient
- *   l'index correctement sur ce chemin-ci, et sur celui-là seulement.
- *
- * COALESCE sur les champs riches : un BALAYAGE (liste, 4 champs) ne doit pas écraser
- * une fiche déjà obtenue par RÉSOLUTION DIRECTE en y remettant des NULL, ni un appel
- * en anglais effacer les colonnes françaises (`title_fr`, `url_fr`, `keywords_fr`) et
- * réciproquement.
- *
- * ⚠ LE SENS INVERSE COMPTE AUTANT, et c'est pourquoi une ligne de balayage DOIT porter
- *   `decision_date = NULL`. COALESCE fait gagner `excluded` dès qu'il est NON NUL : une
- *   date fabriquée par l'appelant n'appauvrit pas la fiche, elle ÉCRASE la vraie — sans
- *   rétrograder `source` (la règle ci-dessous joue alors CONTRE nous), et laisse une
- *   ligne corrompue parfaitement éligible à servir une vérification depuis le cache.
- *   Défaut réel, 1 819 lignes en production, corrigé le 2026-09-17 ; la garantie vit
- *   dans l'APPELANT, jamais ici, et c'est ce que le test de `tools.test.ts` épingle.
- *
- * `source` enregistre la MEILLEURE provenance atteinte, pas la dernière : une fiche
- * « lookup » recroisée par un balayage garde son étiquette. La rétrograder en « sweep »
- * ne perdrait aucun champ (COALESCE ci-dessus) mais disqualifierait la ligne partout
- * où seul « lookup » sert (lookupCase, get_case) — et chaque balayage qui recroise une
- * fiche résolue rachèterait l'appel. Un suivi quotidien à fenêtres chevauchantes
- * recroise TOUTES ses fiches à chaque passage : le cache ne servirait jamais.
- */
 const UPSERT = `
 INSERT INTO cases (database_id, case_id, lang, title, title_norm, title_fr, title_en,
                    citation, neutral_cite, docket_number, decision_date,
@@ -281,13 +205,9 @@ function bindRow(stmt: D1PreparedStatement, r: CaseRow): D1PreparedStatement {
 export async function upsertCase(db: D1Database, row: CaseRow): Promise<void> {
   try {
     await bindRow(db.prepare(UPSERT), row).run();
-  } catch {
-    // La persistance du cache ne doit jamais faire échouer une vérification : le
-    // verdict est déjà établi, il serait absurde de le perdre sur une écriture.
-  }
+  } catch {}
 }
 
-/** Persiste un lot de fiches moissonnées (§7.2 : lots de 100). */
 export async function upsertCases(db: D1Database, rows: CaseRow[]): Promise<number> {
   if (rows.length === 0) return 0;
   try {
@@ -314,14 +234,6 @@ export async function getCachedCase(
   return r ?? null;
 }
 
-/**
- * Cherche TOUTES les fiches en cache parmi plusieurs couples (database_id, case_id).
- *
- * Nécessaire parce que CanLII classe ses fiches sous un caseId propre à la langue
- * (« 2008csc9 ») qui n'est pas toujours celui que l'analyseur construit
- * (« 2008scc9 ») : retourner toutes les candidates permet à `lookupCase` de vérifier
- * si la langue demandée existe déjà et de fusionner FR/EN sans manquer le cache.
- */
 export async function getCachedCandidates(
   db: D1Database,
   couples: ReadonlyArray<readonly [string, string]>,
@@ -336,7 +248,6 @@ export async function getCachedCandidates(
   return r.results ?? [];
 }
 
-/** Lot de fiches par couples (database_id, case_id), découpé sous le plafond de paramètres D1. */
 export async function getCachedBatch(
   db: D1Database,
   couples: ReadonlyArray<readonly [string, string]>,
@@ -366,14 +277,6 @@ export async function getCachedBatch(
   return parClef;
 }
 
-/**
- * Construit une requête FTS5 sûre à partir d'un texte libre.
- *
- * ⚠ Les entrées d'usager NE SONT JAMAIS passées telles quelles à `MATCH` : la syntaxe
- *   FTS5 réserve `"`, `*`, `^`, `-`, `NOT`, `AND`, `OR`, `NEAR`, et un intitulé de
- *   partie comme « Untel c. X-Y » lèverait une erreur de syntaxe. On plie, on découpe,
- *   et on cite chaque jeton — ce qui donne une conjonction de termes exacts.
- */
 export function ftsQuery(texte: string): string | null {
   const jetons = fold(texte)
     .split(" ")
@@ -382,45 +285,18 @@ export function ftsQuery(texte: string): string | null {
   return jetons.map((t) => `"${t.replace(/"/g, '""')}"`).join(" ");
 }
 
-/**
- * Année INFÉRÉE d'une ligne — pour le FILTRAGE et le CLASSEMENT, JAMAIS pour l'affichage.
- *
- * ⚠ Une année n'est PAS une date, et c'est tout l'objet de cette fonction.
- *
- *   Une ligne de balayage n'a pas de date (invariant 3). Sans repère d'année, elle sort
- *   de toute fenêtre demandée et le classement d'un résultat multi-bases redevient
- *   l'ordre de parcours. La tentation est alors d'écrire un 1er janvier : c'est
- *   exactement le défaut corrigé le 2026-09-17, et il ressortait au rendu.
- *
- *   L'identifiant de CanLII porte l'année en préfixe — « 1997canlii335 », « 2005qcca304 »
- *   — ce que l'analyseur suppose déjà ailleurs (`caseIdNeutre`, `extraireFragment`).
- *   ÉPROUVÉ PAR DIFFÉRENTIEL contre la production le 2026-09-17 : sur les 934 fiches
- *   « lookup » portant la date rendue par CanLII, 934 ont un préfixe de caseId qui donne
- *   la même année — zéro divergence ; et 3 564 lignes sur 3 564 commencent par quatre
- *   chiffres.
- *
- *   `0` quand rien n'est lisible : une valeur qui se range en dernier, et qui ne peut
- *   pas se confondre avec une année.
- */
 export function anneeInferee(row: Pick<CaseRow, "decision_date" | "case_id">): number {
   const s = row.decision_date?.slice(0, 4) ?? row.case_id.slice(0, 4);
   return /^\d{4}$/.test(s) ? Number(s) : 0;
 }
 
-export interface SearchOptions {
+interface SearchOptions {
   databaseId?: string | null;
   yearFrom?: number | null;
   yearTo?: number | null;
   limit?: number;
 }
 
-/**
- * Recherche dans l'index local, sur l'INTITULÉ et les mots-clés UNIQUEMENT.
- *
- * L'API de CanLII n'expose pas le texte des décisions : il n'existe aucun endpoint de
- * plein texte, et cet index ne peut donc rien contenir d'autre. Toute sortie d'outil
- * qui s'en sert doit le dire (§7.2).
- */
 export async function searchLocal(
   db: D1Database,
   titre: string,
@@ -434,18 +310,6 @@ export async function searchLocal(
     where.push("c.database_id = ?");
     binds.push(opts.databaseId);
   }
-  // La fenêtre s'applique à `decision_date` quand elle existe, et sinon à l'ANNÉE lue
-  // dans le préfixe du caseId — les lignes moissonnées n'ont pas de date (invariant 3).
-  //
-  // ⚠ Le repli portait auparavant sur `neutral_cite`, et c'était un trou : les arrêts
-  //   d'avant 2000 n'ont pas de citation neutre — elle n'existait pas. Relevé en
-  //   production le 2026-09-17 : 1 634 des 1 819 lignes concernées n'en avaient aucune,
-  //   et les deux membres de la disjonction étaient donc NULS. Elles sortaient de toute
-  //   recherche locale bornée par année. Le défaut ne se voyait pas parce qu'une date
-  //   fabriquée tenait le filtre en sous-main.
-  //
-  // ⚠ GLOB et non LIKE, pour le motif déjà consigné en 0004 : dans LIKE, « _ » est un
-  //   joker d'un caractère, et un caseId en contient.
   const PREFIXE_ANNEE = "c.case_id GLOB '[0-9][0-9][0-9][0-9]*'";
   if (opts.yearFrom) {
     where.push(
@@ -454,9 +318,6 @@ export async function searchLocal(
     binds.push(`${opts.yearFrom}-01-01`, String(opts.yearFrom));
   }
   if (opts.yearTo) {
-    // ⚠ La borne haute valait `${yearTo}z` : un contournement qui n'existait QUE pour
-    //   comparer « 2005 QCCA 304 » à « 2005 ». Sur quatre chiffres nus, il exclurait
-    //   2005 lui-même — la comparaison est désormais d'année à année.
     where.push(
       `(c.decision_date <= ? OR (c.decision_date IS NULL AND ${PREFIXE_ANNEE} AND substr(c.case_id,1,4) <= ?))`,
     );
@@ -478,36 +339,6 @@ export async function searchLocal(
       .all<CaseRow>();
     return r.results ?? [];
   } catch {
-    // Une requête FTS malformée (jeton exotique) ne doit pas faire échouer l'outil :
-    // on rend « rien trouvé localement » et le balayage vif prend le relais.
     return [];
   }
-}
-
-/**
- * Liste les fiches d'un tribunal, les plus récentes en tête.
- *
- * ⚠ AUCUN OUTIL NE S'EN SERT AUJOURD'HUI, et le commentaire d'origine disait le
- *   contraire — « §7.6, servi du cache ». `browse_cases` appelle CanLII
- *   à chaque fois et ne lit jamais cette table : il n'existe aucun chemin où un
- *   balayage soit servi depuis le cache. Corrigé le 2026-09-16.
- *
- * Conservée pour le jour où §7.6 serait servi du cache, et tenue vivante par
- * `test/persist.test.ts` — qui est son SEUL appelant. Une fonction que seul son test
- * exerce n'est pas morte, mais elle n'est pas non plus en service : la distinction
- * doit se lire ici, pas se deviner.
- */
-export async function listCases(
-  db: D1Database,
-  databaseId: string,
-  limit: number,
-  offset: number,
-): Promise<CaseRow[]> {
-  const r = await db
-    .prepare(
-      "SELECT * FROM cases WHERE database_id = ? ORDER BY decision_date DESC, case_id DESC LIMIT ? OFFSET ?",
-    )
-    .bind(databaseId, limit, offset)
-    .all<CaseRow>();
-  return r.results ?? [];
 }

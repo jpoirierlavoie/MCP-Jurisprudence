@@ -1,11 +1,3 @@
-/**
- * Parseur du document source `data/autorites-dispensees.md`.
- *
- * Module Node sans dépendance externe : extrait les 27 listes, leurs métadonnées
- * procédurales, les 864 entrées et les 750 hyperliens, puis contrôle la parité
- * exacte avec la table `## Sommaire`.
- */
-
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -727,7 +719,6 @@ export function normaliserSigleRecueil(rawSigle) {
   return SIGLE_CANON.get(s) ?? s.replace(/\s+/g, "");
 }
 
-/** Extrait la clé canonique déterministe d'une référence juridique (après overrides). */
 export function extraireFormesEtClef(texteCitation) {
   const texte = texteCitation.trim();
   const spans = [];
@@ -824,7 +815,6 @@ export function extraireFormesEtClef(texteCitation) {
     }
   }
 
-  // Choix de la clé canonique déterministe
   let decisionKey;
   if (neutralMatches.length > 0) {
     const n = neutralMatches[0];
@@ -859,7 +849,6 @@ export function extraireFormesEtClef(texteCitation) {
   };
 }
 
-/** Corrections canoniques documentées dans les notes de transcription (sans modifier le Markdown). */
 const OVERRIDES = [
   {
     match: (listId, raw) => listId === "cf-imm-sursis" && /Gateway City Church/i.test(raw),
@@ -934,12 +923,10 @@ function extraireLangNote(raw) {
 }
 
 function scinderCompose(citationText) {
-  // TMF #9 & #19 : ", conf. par ..." ou " conf. par ..."
   const mConf = /^(.*?),?\s+conf\.\s+par\s+(.+)$/i.exec(citationText);
   if (mConf) {
     return { primary: mConf[1].trim(), affirming: mConf[2].trim() };
   }
-  // FC Vol. 4-I : " aff'd ..."
   const mAff = /^(.*?)\s+aff'd\s+(.+)$/i.exec(citationText);
   if (mAff) {
     return { primary: mAff[1].trim(), affirming: mAff[2].trim() };
@@ -975,7 +962,6 @@ function parserSommaire(lignes) {
 }
 
 function nettoyerCorpsEntree(brut, listId) {
-  // Retirer les notes parenthétiques purement éditoriales en bout de ligne
   let propre = brut
     .replace(/\s*\(répète le no \d+ dans la source\)/gi, "")
     .replace(/\s*\(arrêt de la C\.S\.C\. classé sous la C\.A\.F\. dans la source\)/gi, "")
@@ -1000,7 +986,6 @@ function nettoyerCorpsEntree(brut, listId) {
   }
 
   if (listId === "cf-imm-general" || listId === "cf-imm-sursis") {
-    // Ex.: "(EN : Canada (Citizenship and Immigration) v Kurukkal, 2010 FCA 230)"
     if (propre.endsWith(")")) {
       let depth = 0;
       for (let i = propre.length - 1; i >= 0; i--) {
@@ -1027,9 +1012,6 @@ function nettoyerCorpsEntree(brut, listId) {
   return { cleanText: propre, altEnText: null, extractedDescriptor };
 }
 
-/**
- * Analyse `data/autorites-dispensees.md` et valide la parité exacte avec `## Sommaire`.
- */
 export function parseAutoritesMarkdown(mdPath = CHEMIN_MD_AUTORITES) {
   const contenu = readFileSync(mdPath, "utf8");
   const lignes = contenu.split(/\r?\n/);
@@ -1097,7 +1079,6 @@ export function parseAutoritesMarkdown(mdPath = CHEMIN_MD_AUTORITES) {
     const sourceUrls = [];
 
     if (sectionCourante === "3" || sectionCourante.startsWith("9.")) {
-      // Table TDP / Cour du Québec DAA : | Onglet | Décision | Objet | Hyperlien |
       if (!ligne.startsWith("|")) continue;
       const cols = ligne
         .split("|")
@@ -1171,7 +1152,6 @@ export function parseAutoritesMarkdown(mdPath = CHEMIN_MD_AUTORITES) {
     });
   }
 
-  // Vérification stricte contre le tableau Sommaire
   let totalEntries = 0;
   let totalLinks = 0;
   const resultats = [];

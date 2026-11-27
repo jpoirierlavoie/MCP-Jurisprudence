@@ -1,11 +1,3 @@
-/**
- * Compilateur statique des listes d'autorités dispensées vers `src/data/exemptAuthorities.ts`.
- *
- * Lit `data/autorites-dispensees.md` (source verbatim) et `data/autorites-enrichies.json`
- * (métadonnées CanLII vérifiées), valide l'ensemble des URLs contre la liste blanche
- * d'hôtes officiels, et émet le module TypeScript embarqué par le Worker.
- */
-
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -95,9 +87,7 @@ function dedup(arr) {
 function extraireTitreSource(texte) {
   if (!texte) return "";
   let s = texte
-    // Retirer d'éventuels numéros d'affaire en queue
     .replace(/,\s*(?:C\.L\.P\.|D\.T\.E\.|88-A-|IMM-).*$/i, "")
-    // Retirer l'amorce d'une citation recueil/neutre/CanLII/éditeur
     .replace(
       /(?:,\s*|\s+\(\d{4}\),?\s*)(?:\[\d{4}\]|\d{4}\s+(?:CSC|SCC|CAF|FCA|CF|FC|FCT|CFPI|QCCA|QCCS|QCCQ|QCTP|QCTDP|QCCLP|QCCRT|QCBDRVM|QCBDR|QCTMF|BCCA|YKCA|ONCA|CanLII|Carswell)|C\.L\.P\.|D\.T\.E\.|J\.E\.|REJB|EYB|AZ-|\d{1,4}\s+(?:C\.?P\.?R\.?|D\.?L\.?R\.?|F\.?T\.?R\.?|N\.?R\.?|A\.C\.|U\.?S\.?)).*$/i,
       "",
@@ -105,7 +95,6 @@ function extraireTitreSource(texte) {
     .replace(/\s*\(\d{4}\)\s*$/, "")
     .replace(/\s*,\s*$/, "")
     .trim();
-  // Enlever un suffixe "(C.A.)" / "(T.D.)" / "(F.C.)" / "(QL)" / "(QC CA)" résiduel
   s = s.replace(/\s*\((?:C\.A\.|C\.S\.|T\.A\.|T\.D\.|F\.C\.|QL|QC\s*CA|QC\s*CS)\)\s*$/i, "").trim();
   return s;
 }
@@ -280,10 +269,7 @@ export function buildCompiledAuthoritiesData(mdPath = undefined, enrichiesPath =
 }
 
 export function renderAuthoritiesModuleTs(data) {
-  return `// GÉNÉRÉ PAR scripts/compile-authorities.mjs — NE PAS ÉDITER À LA MAIN.
-// Source : data/autorites-dispensees.md + data/autorites-enrichies.json
-
-import rawData from "./exemptAuthorities.json";
+  return `import rawData from "./exemptAuthorities.json";
 
 export interface ExemptDecisionRecord {
   key: string;

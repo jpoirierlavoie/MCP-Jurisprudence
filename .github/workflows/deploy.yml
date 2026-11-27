@@ -1,23 +1,5 @@
 name: deploy
 
-# Déploiement continu vers Cloudflare Workers (`jurisprudence.poirierlavoie.ca`).
-#
-# ⚠ ORDRE IMPÉRATIF (spécification §12) : LES MIGRATIONS D1 D'ABORD, LE DÉPLOIEMENT
-#   ENSUITE — tenu par `npm run deploy` (`scripts/deployer.mjs`), qui arrête tout si
-#   les migrations échouent et passe `--var COMMIT:<sha>` pour `/health`.
-#
-#   En amont du déploiement :
-#   1. 4 contrôles préalables en LECTURE SEULE sur `api.cloudflare.com` (jeton présent
-#      sans retour chariot, reconnu par Cloudflare, compte unique, D1 `canlii` égale
-#      à `wrangler.jsonc`) — si `CLOUDFLARE_API_TOKEN` manque ou est mal configuré, le
-#      job échoue en ~2 s avec un diagnostic explicite.
-#   2. Porte de vérification complète (`wrangler types`, `tsc --noEmit`, `biome check`,
-#      `vitest run`, `wrangler deploy --dry-run`).
-#   3. Vérification vivante post-déploiement sur `/health` (le `commit` annoncé égale
-#      le SHA déployé) et `/mcp/server-card` (HTTP 200).
-#
-# Aucune expression `${{ }}` n'apparaît dans un `run:` : tout passe par `env:`.
-# `.github/workflows/verifier-deploiement.yml` reste actif comme filet quotidien sans secret.
 on:
   push:
     branches: [main]
@@ -26,8 +8,6 @@ on:
 permissions:
   contents: read
 
-# Un seul déploiement à la fois : deux exécutions concurrentes pourraient appliquer
-# des migrations dans le désordre.
 concurrency:
   group: deploy-production
   cancel-in-progress: false
@@ -45,7 +25,6 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # ── LES QUATRE CONTRÔLES PRÉALABLES (lecture seule) ────────────────────
       - name: Contrôle 1/4 — le secret CLOUDFLARE_API_TOKEN parvient-il au job ?
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -188,7 +167,6 @@ jobs:
       - name: Paquet de déploiement (à blanc)
         run: npx wrangler deploy --dry-run
 
-      # Migrations D1 PUIS déploiement du Worker avec `--var COMMIT:<sha>` (§12).
       - name: Migrations D1 et déploiement (npm run deploy)
         id: deploy
         run: npm run deploy

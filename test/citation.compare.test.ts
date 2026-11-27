@@ -1,9 +1,3 @@
-/**
- * Comparaison d'intitulés (spécification §6.5 et §13).
- *
- * Rappel du contrat : un appariement PARTIEL vaut DISCORDANTE en aval, jamais
- * CONFIRMÉE. Ces tests verrouillent la frontière entre les trois verdicts.
- */
 import { describe, expect, it } from "vitest";
 
 import { compareTitles, titleSimilarity } from "../src/citation/compare";
@@ -47,15 +41,12 @@ describe("§13 — matrice de comparaison d'intitulés", () => {
     expect(
       compareTitles("Droit de la famille — 20495", "Droit de la famille — 20495").verdict,
     ).toBe("appariement");
-    // Deux décisions distinctes de la même série ne doivent PAS s'apparier, alors
-    // qu'elles partagent tous leurs jetons alphabétiques.
     expect(
       compareTitles("Droit de la famille — 20495", "Droit de la famille — 21830").verdict,
     ).toBe("discordance");
   });
 
   it("l'absence de patronyme ne produit pas de discordance sur un intitulé anonymisé", () => {
-    // Piège explicite de §6.5 : ces intitulés ne contiennent AUCUN nom de partie.
     const r = compareTitles(
       "Protection de la jeunesse — 231234",
       "Protection de la jeunesse — 231234",

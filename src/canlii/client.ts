@@ -1,136 +1,59 @@
-/**
- * Client sortant vers l'API REST de CanLII (spécification §5).
- *
- * Le quota de CanLII n'est PAS publié (§16.2). Le comportement par défaut est donc
- * délibérément prudent : séquentiel, étranglé, réessayé avec temporisation, plafonné
- * en dur. Un utilisateur unique n'a rien à gagner d'un pic de concurrence, et un pic
- * peut coûter la clef.
- *
- * Le client est instancié UNE FOIS PAR INVOCATION D'OUTIL et porte son propre
- * compteur, afin que CANLII_MAX_CALLS_PER_INVOCATION soit un plafond réel et non
- * un plafond global qu'une invocation longue épuiserait pour les suivantes.
- */
-
-// `entier` vient de `src/config.ts`, et non d'une copie locale : ce fichier portait
-// jusqu'au 2026-09-16 un `readInt` identique au caractère près. Deux lectures d'entier
-// qui divergeraient un jour sur la borne ou sur le repli donneraient au même `vars` deux
-// significations selon l'appelant — le genre d'écart qu'aucun test ne réclame.
 import { entier } from "../config";
 import { CanliiBudgetError, CanliiError, CanliiTimeoutError } from "./errors";
 import type { CanliiErrorBody } from "./types";
 
-/** HTTPS uniquement — le HTTP n'est plus pris en charge par l'API. */
 const BASE = "https://api.canlii.org/v1";
 
-/** Statuts qui valent un réessai (§5.2). Tout le reste échoue immédiatement. */
 const RETRIABLE = new Set([429, 500, 502, 503, 504]);
 
 const MAX_ATTEMPTS = 3;
 const BACKOFF_BASE_MS = 500;
 const JITTER_MS = 200;
 
-/**
- * Temporisation propre au 429, distincte de celle des 5xx — et c'est le point.
- *
- * Un 5xx est un incident : réessayer vite est raisonnable. Un 429 est une CONSIGNE,
- * et 500 ms n'est pas ralentir. Mesuré en production le 2026-08-24 : 8 étranglements
- * pour 64 appels (12 %), et 7 pour 38 le 2026-08-20 — au rythme d'alors, un appel sur
- * huit était refusé puis rejoué, ce qui consomme DEUX fois le quota pour un résultat.
- * `Retry-After` prime toujours quand CanLII le fournit ; ceci n'est que le défaut.
- */
 const THROTTLE_BACKOFF_MS = 2000;
 
-/**
- * Plancher de rythme ADAPTATIF : après un 429, cette invocation ralentit d'elle-même.
- *
- * Le quota de CanLII n'est pas publié (§16.2), donc aucune constante ne peut être
- * « la bonne ». Ce qui est observable, c'est le refus — alors on s'en sert : à chaque
- * 429, l'intervalle de CETTE invocation double, jusqu'à ce plafond. Un petit lot qui
- * ne touche jamais la limite reste rapide ; un gros lot qui la touche cesse de la
- * retoucher au lieu de s'y cogner appel après appel.
- *
- * L'adaptation meurt avec l'invocation, délibérément : le client vit le temps d'un
- * appel d'outil (voir l'en-tête), il n'y a pas d'état partagé entre invocations, et
- * prétendre le contraire demanderait un objet durable dont la valeur ne le justifie
- * pas.
- */
 const MAX_INTERVAL_MS = 4000;
 
-/**
- * Plafond DÉFENSIF de lecture d`un corps, en caractères — 12 Mo, soit AU-DESSUS des
- * 10 Mo que l`API annonce (§5.2).
- *
- * ⚠ Il n`existe PAS pour économiser de la mémoire. Il existe pour qu`un dépassement
- *   produise une PHRASE FRANÇAISE plutôt qu`un isolat tué à 128 Mo — que le client MCP
- *   reçoit comme une panne de transport SANS AUCUNE CAUSE NOMMÉE, ce qui est le pire
- *   résultat possible au regard de l`invariant 9.
- * ⚠ Il REFUSE, il ne coupe pas. Un plafond qui coupe est celui qu`on vient de retirer :
- *   un JSON tronqué n`est plus du JSON, et l`échec ressort alors sous le statut de la
- *   réponse — « erreur 200 » sur une réponse parfaitement valide.
- * ⚠ Il est plus HAUT que celui de CanLII, délibérément : un plafond interne plus bas
- *   que celui du fournisseur rouvrirait le même défaut sous un autre nom.
- * ⚠ Unité : caractères UTF-16, non octets. Un titre accentué pèse 1 caractère et
- *   2 octets ; l`écart est sans conséquence à cette distance du plafond réel, et
- *   compter les octets exigerait un lecteur par flux — vingt lignes sur le chemin que
- *   TOUT appel traverse, pour une bande que les 10 Mo de CanLII rendent inatteignable.
- *
- * Il ne se lit PAS dans `vars` : un plafond qu`une variable d`environnement peut abaisser
- * en silence recréerait le défaut d`aujourd`hui sous forme de configuration. Il
- * s`injecte par `createClient(env, seams, overrides)`, couture de TEST uniquement.
- */
 const PLAFOND_CORPS_CARACTERES = 12_000_000;
 
 export interface CanliiUsage {
   calls: number;
-  errors: number;
   throttled: number;
 }
 
 export interface CanliiClient {
   get<T>(path: string, params?: Record<string, string | number>): Promise<T>;
   callsMade(): number;
-  /** Appels encore permis dans cette invocation. */
   remaining(): number;
-  /** Compteurs à verser dans `api_usage` en fin d'invocation (§10). */
   usage(): CanliiUsage;
 }
 
-export interface ClientConfig {
+interface ClientConfig {
   apiKey: string;
   minIntervalMs: number;
   maxCalls: number;
   timeoutMs: number;
-  /** Plafond de lecture d`un corps, en caractères. Voir PLAFOND_CORPS_CARACTERES. */
   corpsMaxChars: number;
 }
 
-/** Coutures de test : injectables, jamais employées en production. */
-export interface ClientSeams {
+interface ClientSeams {
   fetchImpl?: typeof fetch;
   sleepImpl?: (ms: number) => Promise<void>;
   jitterImpl?: () => number;
 }
 
-/** Construit la configuration à partir des variables du Worker. */
-export function configFromEnv(env: Env): ClientConfig {
+function configFromEnv(env: Env): ClientConfig {
   return {
     apiKey: env.CANLII_API_KEY ?? "",
-    // 600 ms (≈ 1,7 appel/s) et non plus 250 (4/s) : à 250, la production était
-    // étranglée sur 12 à 18 % des appels des journées chargées. Voir §16.2.
     minIntervalMs: entier(env.CANLII_MIN_INTERVAL_MS, 600),
     maxCalls: entier(env.CANLII_MAX_CALLS_PER_INVOCATION, 40),
     timeoutMs: entier(env.CANLII_TIMEOUT_MS, 15000),
-    // Pas de lecture de `env` ici, et c`est le motif écrit sur la constante.
     corpsMaxChars: PLAFOND_CORPS_CARACTERES,
   };
 }
 
 const defaultSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-/**
- * Lit `Retry-After` : soit un nombre de secondes, soit une date HTTP.
- * Renvoie null si l'en-tête est absent ou illisible.
- */
 export function parseRetryAfter(header: string | null, now = Date.now()): number | null {
   if (!header) return null;
   const seconds = Number(header.trim());
@@ -142,10 +65,8 @@ export function parseRetryAfter(header: string | null, now = Date.now()): number
 
 class Client implements CanliiClient {
   #calls = 0;
-  #errors = 0;
   #throttled = 0;
   #lastCallAt = 0;
-  /** Intervalle COURANT : part de la configuration, puis double à chaque 429. */
   #intervalMs: number;
 
   readonly #cfg: ClientConfig;
@@ -170,14 +91,9 @@ class Client implements CanliiClient {
   }
 
   usage(): CanliiUsage {
-    return { calls: this.#calls, errors: this.#errors, throttled: this.#throttled };
+    return { calls: this.#calls, throttled: this.#throttled };
   }
 
-  /**
-   * Construit l'URL. `api_key` est ajoutée APRÈS les autres paramètres (§5.1) —
-   * l'ordre est celui de la documentation de CanLII, et s'en écarter n'a jamais été
-   * éprouvé contre le service.
-   */
   #url(
     path: string,
     params: Record<string, string | number>,
@@ -197,42 +113,17 @@ class Client implements CanliiClient {
   }
 
   async get<T>(path: string, params: Record<string, string | number> = {}): Promise<T> {
-    // Plafond dur AVANT toute dépense : lever ici, c'est garantir que le compteur
-    // ne peut pas déborder même si un gestionnaire boucle par erreur.
     if (this.#calls >= this.#cfg.maxCalls) {
       throw new CanliiBudgetError(this.#calls, this.#cfg.maxCalls);
     }
 
-    try {
-      return await this.#attemptWithHalving<T>(path, params);
-    } catch (err) {
-      if (!(err instanceof CanliiBudgetError)) this.#errors++;
-      throw err;
-    }
+    return await this.#attemptWithHalving<T>(path, params);
   }
 
-  /**
-   * §5.2, charge utile : l'API refuse les transferts de plus de 10 Mo et renvoie un
-   * objet portant `"error": "TOO_LONG"`. On réduit `resultCount` de moitié et on
-   * réessaie UNE FOIS. Au-delà, on laisse remonter : mieux vaut un échec explicite
-   * qu'une pagination silencieusement rétrécie dont l'appelant ignore tout.
-   *
-   * Le plafond DÉFENSIF du connecteur (`CORPS_HORS_PLAFOND`) tire le même rattrapage,
-   * pour le motif écrit sur `PLAFOND_CORPS_CARACTERES` : les deux disent « trop gros ».
-   *
-   * ⚠ Les DEUX exigent un `resultCount` fini. Un point d'accès qui NE PAGINE PAS —
-   *   `legislationBrowse/{lang}/{db}/`, qui rend la base entière — n'a donc aucun
-   *   rattrapage ici, par construction. C'est pourquoi la LECTURE du corps ne doit
-   *   jamais, elle, rétrécir en silence : elle est la seule chose qui le tienne.
-   */
   async #attemptWithHalving<T>(path: string, params: Record<string, string | number>): Promise<T> {
     try {
       return await this.#request<T>(path, params);
     } catch (err) {
-      // Le plafond du CONNECTEUR se comporte comme celui de CanLII : sur un point
-      // d'accès paginé, une page hors plafond se réduit de moitié plutôt que
-      // d'interrompre le balayage. Les deux disent la même chose — « trop gros » — et
-      // les distinguer ici ferait dépendre le rattrapage de QUI a refusé.
       const tropGros =
         err instanceof CanliiError &&
         (err.code === "TOO_LONG" || err.code === "CORPS_HORS_PLAFOND");
@@ -263,7 +154,6 @@ class Client implements CanliiClient {
           signal: AbortSignal.timeout(this.#cfg.timeoutMs),
         });
       } catch (err) {
-        // Une expiration de délai est réessayable : elle peut venir d'un pic passager.
         lastError =
           err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError")
             ? new CanliiTimeoutError(url, this.#cfg.timeoutMs)
@@ -275,8 +165,6 @@ class Client implements CanliiClient {
 
       if (response.status === 429) {
         this.#throttled++;
-        // Le refus est la seule mesure que l'on ait du quota : on l'écoute pour le
-        // RESTE de l'invocation, au lieu de rejouer le même rythme jusqu'au bout.
         this.#intervalMs = Math.min(this.#intervalMs * 2, MAX_INTERVAL_MS);
       }
 
@@ -284,7 +172,6 @@ class Client implements CanliiClient {
         const body = (await this.#corps(response)) ?? "";
         lastError = new CanliiError(response.status, url, body);
         if (attempt === MAX_ATTEMPTS - 1) throw lastError;
-        // `Retry-After` PRIME sur la temporisation exponentielle (§5.2).
         await this.#backoff(
           attempt,
           parseRetryAfter(response.headers.get("Retry-After")),
@@ -294,27 +181,21 @@ class Client implements CanliiClient {
       }
 
       if (!response.ok) {
-        // 400, 401, 403, 404 : aucun réessai. Réessayer un 401 brûlerait du quota
-        // sur une clef invalide ; réessayer un 404 masquerait un verdict INTROUVABLE.
         const body = (await this.#corps(response)) ?? "";
         throw new CanliiError(response.status, url, body, extractErrorCode(body));
       }
 
       const text = await this.#corps(response);
       if (text === null) {
-        // La LECTURE a échoué. Ce n'est ni une réponse vide, ni une absence.
         throw new CanliiError(response.status, url, "", "CORPS_INTERROMPU");
       }
       if (text.length > this.#cfg.corpsMaxChars) {
-        // REFUS, jamais coupure : une réponse tronquée n'est plus analysable, et la
-        // servir quand même referait exactement ce que ce correctif répare.
         throw new CanliiError(response.status, url, "", "CORPS_HORS_PLAFOND");
       }
       const parsed = safeJson(text);
       if (parsed === undefined) {
         throw new CanliiError(response.status, url, text, "REPONSE_ILLISIBLE");
       }
-      // L'API peut rendre 200 avec un corps d'erreur applicatif (TOO_LONG notamment).
       const code = errorCodeOf(parsed);
       if (code) throw new CanliiError(response.status, url, text, code);
       return parsed as T;
@@ -323,7 +204,6 @@ class Client implements CanliiClient {
     throw lastError ?? new CanliiError(0, url, "échec inconnu");
   }
 
-  /** Intervalle minimal entre deux appels de la MÊME invocation (§5.2). */
   async #throttle(): Promise<void> {
     if (this.#lastCallAt === 0) return;
     const waited = Date.now() - this.#lastCallAt;
@@ -332,41 +212,12 @@ class Client implements CanliiClient {
     }
   }
 
-  /**
-   * Temporisation exponentielle + gigue, sauf si `Retry-After` prime.
-   *
-   * La BASE dépend de la cause : 2 s pour un 429 (une consigne de ralentir), 500 ms
-   * pour un 5xx (un incident passager). Employer la même pour les deux revient à
-   * ignorer la consigne tout en croyant l'appliquer.
-   */
   async #backoff(attempt: number, retryAfterMs: number | null, etrangle = false): Promise<void> {
     const base = etrangle ? THROTTLE_BACKOFF_MS : BACKOFF_BASE_MS;
     const ms = retryAfterMs !== null ? retryAfterMs : base * 2 ** attempt + this.#jitter();
     await this.#sleep(ms);
   }
 
-  /**
-   * Lit le corps ENTIER. Aucune troncature ici, et c'est tout le point du correctif.
-   *
-   * ⚠ Cette fonction coupait à 100 000 caractères, sur ses TROIS appelants. Sur les deux
-   *   chemins d'erreur la coupe était REDONDANTE — `CanliiError` borne déjà le corps à 512
-   *   (`errors.ts`). Sur le chemin de SUCCÈS elle était DESTRUCTRICE : un JSON coupé n'est
-   *   plus du JSON, `safeJson` rendait `undefined`, et une réponse parfaitement valide de
-   *   CanLII ressortait en « CanLII a renvoyé une erreur 200 ».
-   *
-   *   Mesuré en production le 2026-09-17 : `browse_legislation` passait sur
-   *   `cac` (2 textes), `ykh` (213) et `qch` (298), et échouait sur `peh`, `nus`, `qcs` et
-   *   `car`. Le point d'accès `legislationBrowse` ne pagine pas : le gestionnaire ne
-   *   pouvait donc pas réduire la demande, et `#attemptWithHalving` ne pouvait pas tirer.
-   *   `find_case` échouait de même sur toute page de balayage fournie
-   *   (`PAGE = 5000`), ce qui faisait voisiner « erreur 200 » et une note de 429.
-   *
-   *   Et la coupe ne protégeait même pas la mémoire : `response.text()` matérialise le
-   *   corps entier AVANT que la troncature ne s'exécute.
-   *
-   * `null` ⇒ la LECTURE a échoué (flux rompu). Distinct d'un corps vide, qui est une
-   * réponse : l'invariant 9 interdit de confondre « rien reçu » et « reçu rien ».
-   */
   async #corps(response: Response): Promise<string | null> {
     try {
       return await response.text();
@@ -396,22 +247,11 @@ function extractErrorCode(body: string): string | null {
   return errorCodeOf(safeJson(body));
 }
 
-/**
- * Le code applicatif de CanLII, assaini pour pouvoir être RÉÉMIS dans une phrase.
- *
- * ⚠ C'est CanLII qui écrit cette chaîne, pas l'appelant : l'argument de forgeabilité du
- *   commentaire de `CauseCanlii` — une citation réémise porteuse d'un faux verdict — ne
- *   s'applique pas ici. Mais elle vient tout de même d'un service distant et atterrit
- *   dans une sortie que le modèle lit : on la borne, et on la restreint à la forme que
- *   CanLII emploie réellement (`TOO_LONG`). Hors de cette forme, on ne la réémet PAS du
- *   tout — mieux vaut une phrase générique qu'un écho non maîtrisé.
- */
 function jetonApplicatif(code: string | null): string | null {
   if (!code) return null;
   return /^[A-Z][A-Z0-9_]{0,39}$/.test(code) ? code : null;
 }
 
-/** Instancie un client pour UNE invocation d'outil. */
 export function createClient(
   env: Env,
   seams: ClientSeams = {},
@@ -420,117 +260,48 @@ export function createClient(
   return new Client({ ...configFromEnv(env), ...overrides }, seams);
 }
 
-/**
- * CAUSE d'un échec sortant, nommée pour que le CODE puisse en tenir compte.
- *
- * ⚠ Ce vocabulaire ne sort JAMAIS du processus. Il n'est ni rendu à l'usager, ni
- *   journalisé, ni annoncé dans une description d'outil. Il sert à une seule chose :
- *   permettre à un gestionnaire de choisir la BONNE PROSE, là où il n'avait jusqu'ici
- *   qu'une phrase indifférenciée.
- *
- *   Ce point est load-bearing. La tentation, en lisant ceci, est d'exposer la cause au
- *   client — un jeton « Issue : ETRANGLEMENT » qu'une expression régulière saurait lire.
- *   C'est refusé, pour deux motifs qui se cumulent. D'abord l'invariant 4 : ses quatre
- *   conditions exigent un consommateur par programme IDENTIFIÉ, et il n'en existe aucun
- *   (§19 — le seul client est claude.ai, qui rend du texte à un modèle). Ensuite, et
- *   c'est décisif, un tel jeton serait FORGEABLE : plusieurs gestionnaires réémettent
- *   l'argument reçu (`Analyse de « … »`, `Aucun candidat pour « … »`), et le validateur
- *   ne connaît pas `pattern`. Un appelant fournissant une citation qui contient un saut
- *   de ligne et une fausse ligne d'issue fabriquerait le jeton lui-même — exactement le
- *   défaut que `citationSure()` a été écrite pour fermer, rouvert un cran plus loin.
- */
-export type CauseCanlii =
+type CauseCanlii =
   | "AUTHENTIFICATION_REFUSEE"
   | "ETRANGLEMENT"
   | "EXPIRATION"
   | "PANNE_AMONT"
   | "REPONSE_TROP_VOLUMINEUSE"
-  /**
-   * CanLII a répondu 2xx, et sa réponse n'a pas la FORME attendue.
-   *
-   * Distincte de ses deux voisines, et la distinction porte :
-   *   · `REPONSE_TROP_VOLUMINEUSE` est une affaire de TAILLE — l'appelant peut
-   *     resserrer sa demande ;
-   *   · `PANNE_AMONT` dit que rien n'a répondu, ou avec un statut hors modèle ;
-   *   · celle-ci dit que quelque chose a répondu, et qu'on n'a pas pu s'en servir.
-   *     L'appelant n'y peut rien : réessayer, puis signaler.
-   *
-   * Les trois restent des NON-CONSTATS. `INTROUVABLE_404` demeure la seule qui
-   * constate une absence.
-   */
   | "REPONSE_INEXPLOITABLE"
   | "BUDGET_EPUISE"
   | "INTROUVABLE_404";
 
-export interface ErreurDecrite {
-  /** Pour le CODE. Ne jamais rendre cette valeur à l'usager. */
+interface ErreurDecrite {
   readonly cause: CauseCanlii;
-  /** Pour l'USAGER. C'est elle, et elle seule, qui paraît dans une sortie d'outil. */
   readonly phrase: string;
 }
 
-/**
- * Traduit une erreur du client en cause + phrase française.
- *
- * ⚠ `INTROUVABLE_404` est la seule cause qui constate une ABSENCE. Toutes les autres
- *   disent qu'aucun constat n'a pu être fait (invariant 9). Un gestionnaire qui colle
- *   des explications d'absence sur l'une des sept autres affirme une inexistence qu'il
- *   n'a pas observée — ce que §2 interdit, et ce qui a été corrigé le 2026-09-16 dans
- *   `getCase`, `cible` et `findCase`.
- */
-/**
- * PHRASES RENDUES À L'USAGER. Le libellé porte, et voici ce qu'il porte.
- *
- * ⚠ « rien n'en a donc été constaté » et NON « rien n'a été trouvé ». La seconde est un
- *   constat d'absence ; la première dit qu'aucun constat n'a eu lieu. C'est toute la
- *   distinction de l'invariant 9, en trois mots.
- * ⚠ « n'a pas pu être LUE » : le mot porteur est *lue*. C'est NOTRE lecture qui a
- *   échoué, pas la collection qui est vide.
- * ⚠ Aucune ne redit `EXPLICATION_INDETERMINEE`, qui vit en un seul exemplaire dans
- *   `src/format/render.ts` — c'est au gestionnaire de l'accoler (invariants 6 et 9(b)).
- * ⚠ Aucune n'emploie « injoignable » ni « erreur N » : la CAUSE se nomme (invariant 9(a)).
- */
-
-/** 200 + corps non-JSON. La lecture a échoué ; la collection n'est pas en cause. */
 const PHRASE_ILLISIBLE =
   "CanLII a répondu (HTTP 200) mais son corps n'est pas du JSON : la réponse n'a pas pu " +
   "être LUE, et rien n'en a donc été constaté. Réessayer plus tard.";
 
-/** Flux rompu en cours de lecture — distinct d'un corps vide, qui est une réponse. */
 const PHRASE_INTERROMPU =
   "La lecture de la réponse de CanLII a été INTERROMPUE avant la fin : la réponse reçue " +
   "est incomplète et n'a pas pu être analysée. Rien n'en a été constaté. Réessayer plus tard.";
 
-/** Notre plafond défensif. La phrase énonce la POLITIQUE en même temps que le fait. */
 const PHRASE_HORS_PLAFOND =
   "Réponse de CanLII au-delà du plafond de sécurité du connecteur (12 Mo ; l'API en " +
   "annonce 10) : elle a été REFUSÉE en entier plutôt que tronquée, une réponse coupée " +
   "n'étant plus analysable. Resserrer la demande si l'outil offre une pagination.";
 
-/**
- * `TOO_LONG` — RÉÉCRITE le 2026-09-17.
- *
- * L'ancienne disait « même après réduction de la pagination. Restreindre la fenêtre de
- * dates. » : faux sur `browse_legislation`, qui n'envoie aucun
- * `resultCount` — le rattrapage n'y tire jamais — et qui n'a aucune fenêtre de dates.
- */
 const PHRASE_TOO_LONG =
   "CanLII a refusé de servir cette réponse : elle dépasse son plafond de charge utile de " +
   "10 Mo (« TOO_LONG »). Resserrer la demande — fenêtre de dates plus étroite, ou " +
   "pagination plus petite lorsque l'outil en offre une.";
 
-/** 200 + `{"error": "<code>"}` que ce connecteur ne modélise pas, mais sait nommer. */
 const phraseCodeConnu = (jeton: string) =>
   `CanLII a répondu (HTTP 200) en signalant l'erreur applicative « ${jeton} » : aucune ` +
   "donnée n'accompagne ce signalement, et rien n'a donc été constaté. Réessayer plus tard.";
 
-/** Idem, mais le code n'a pas la forme d'un jeton : on ne le réémet pas du tout. */
 const PHRASE_CODE_INCONNU =
   "CanLII a répondu (HTTP 200) en signalant une erreur applicative que ce connecteur ne " +
   "sait pas nommer. Aucune donnée n'a été rendue, et rien n'a donc été constaté. " +
   "Réessayer plus tard.";
 
-/** Statut 0 : la boucle a épuisé ses tentatives sans JAMAIS obtenir de réponse. */
 const PHRASE_SANS_REPONSE =
   "Aucune réponse de CanLII après trois tentatives : le service n'a rien renvoyé. " +
   "Réessayer plus tard.";
@@ -549,12 +320,6 @@ export function analyserErreur(err: unknown): ErreurDecrite {
     };
   }
   if (err instanceof CanliiError) {
-    // ── LE CODE D'ABORD, LE STATUT ENSUITE. ────────────────────────────────────
-    //
-    // ⚠ L'ordre est load-bearing. CanLII rend ses refus applicatifs avec un statut
-    //   200 : aiguiller sur le statut, c'est faire décrire l'échec par la seule
-    //   valeur qui n'en dit rien. C'est ce qui rendait « CanLII a renvoyé une
-    //   erreur 200 » — une phrase que personne ne peut lire, sur quatre outils.
     switch (err.code) {
       case "TOO_LONG":
         return { cause: "REPONSE_TROP_VOLUMINEUSE", phrase: PHRASE_TOO_LONG };
@@ -585,9 +350,6 @@ export function analyserErreur(err: unknown): ErreurDecrite {
           phrase: "CanLII a étranglé les appels (429). Réessayer plus tard.",
         };
       default:
-        // Un 2xx ne peut PAS décrire un échec. S'il arrive ici, c'est que CanLII a
-        // signalé dans le CORPS une erreur applicative que ce connecteur ne modélise
-        // pas. On la NOMME — au lieu de rendre « erreur 200 ».
         if (err.status >= 200 && err.status < 300) {
           const jeton = jetonApplicatif(err.code);
           return {
@@ -595,7 +357,6 @@ export function analyserErreur(err: unknown): ErreurDecrite {
             phrase: jeton ? phraseCodeConnu(jeton) : PHRASE_CODE_INCONNU,
           };
         }
-        // Statut 0 : aucune réponse n'a jamais été obtenue (voir `#request`).
         if (err.status === 0) {
           return { cause: "PANNE_AMONT", phrase: PHRASE_SANS_REPONSE };
         }
@@ -605,11 +366,6 @@ export function analyserErreur(err: unknown): ErreurDecrite {
   return { cause: "PANNE_AMONT", phrase: "Erreur inattendue en interrogeant CanLII." };
 }
 
-/**
- * Phrase française seule, pour les gestionnaires qui n'ont pas à distinguer la cause.
- *
- * Projection de `analyserErreur` : les deux ne peuvent pas diverger.
- */
 export function describeError(err: unknown): string {
   return analyserErreur(err).phrase;
 }

@@ -1,9 +1,3 @@
-/**
- * `verify_citations` — l'outil pivot (spécification §7.1, §13).
- *
- * Éprouve les CINQ verdicts, la boucle d'auto-correction du répertoire, le refus
- * d'appeler quand le tribunal est inconnu, et le résultat partiel sur budget épuisé.
- */
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -39,9 +33,8 @@ describe("§7.1 — les cinq verdicts", () => {
     });
     expect(t).toContain("CONFIRMÉE");
     expect(t).toContain("Dunsmuir");
-    expect(t).toContain("31459"); // n° de dossier
+    expect(t).toContain("31459");
     expect(t).toContain("canlii.ca");
-    // §2 conséquence n° 3 : le CONFIRMÉE porte, dans la MÊME sortie, la limite.
     expect(t).toContain("jamais l'autorité actuelle");
   });
 
@@ -56,15 +49,12 @@ describe("§7.1 — les cinq verdicts", () => {
       { [CHEMIN_HYDRO]: qcca2005 },
     );
     expect(t).toContain("DISCORDANTE");
-    expect(t).toContain("Syndicat des employés d'Hydro-Québec"); // attendu
-    expect(t).toContain("Association provinciale des retraités"); // obtenu
+    expect(t).toContain("Syndicat des employés d'Hydro-Québec");
+    expect(t).toContain("Association provinciale des retraités");
     expect(t).toContain("ne désigne pas la décision annoncée");
   });
 
   it("un appariement PARTIEL vaut DISCORDANTE, jamais CONFIRMÉE (§6.5)", async () => {
-    // « Syndicat » n'est pas dans l'intitulé obtenu : ce n'est donc pas un
-    // sous-ensemble, mais l'indice de Jaccard reste à 0,50 — le cas exact que §6.5
-    // veut voir traité en DISCORDANTE plutôt qu'en CONFIRMÉE.
     const { texte: t } = await verifier(
       [
         {
@@ -80,8 +70,6 @@ describe("§7.1 — les cinq verdicts", () => {
   });
 
   it("un intitulé plus court entièrement contenu dans l'obtenu reste CONFIRMÉE", async () => {
-    // Contrepartie du test précédent : §6.5 veut qu'une forme abrégée de l'intitulé,
-    // ou l'inversion des parties, n'émette PAS de faux signalement.
     const { texte: t } = await verifier(
       [{ citation: "2005 QCCA 304", expected_title: "Retraités d'Hydro-Québec c. Hydro-Québec" }],
       { [CHEMIN_HYDRO]: qcca2005 },
@@ -95,7 +83,6 @@ describe("§7.1 — les cinq verdicts", () => {
     expect(t).toContain("qcca / 2020qcca999999");
     expect(t).toContain("Explications possibles");
     expect(t).toContain("diffusion récente");
-    // §2 conséquence n° 2 — la formulation interdite.
     expect(t).not.toMatch(/n'existe pas|n'a jamais existé|aucune décision de ce genre/i);
   });
 
@@ -152,7 +139,6 @@ describe("§7.1 — les cinq verdicts", () => {
 
 describe("§6.4 — auto-correction du répertoire", () => {
   it("bascule csc <-> scc, consigne la correspondance et passe verified = 1", async () => {
-    // Le répertoire d'amorçage dit « scc » ; ici seule la forme « csc » répond.
     await env.DB.prepare(
       "UPDATE court_codes SET caseid_code = 'csc', verified = 0 WHERE code = 'CSC'",
     ).run();
@@ -162,7 +148,6 @@ describe("§6.4 — auto-correction du répertoire", () => {
     });
 
     expect(t).toContain("CONFIRMÉE");
-    // La tentative directe (csc) a échoué, la variante (scc) a réussi.
     expect(client.chemins[0]).toContain("2008csc9");
     expect(client.chemins.some((c) => c.includes("2008scc9"))).toBe(true);
 
@@ -180,12 +165,11 @@ describe("§6.4 — auto-correction du répertoire", () => {
   });
 
   it("un tribunal absent du répertoire ⇒ INTROUVABLE SANS aucun appel sortant", async () => {
-    // « XXQQ » se résout en base « xxqq », qui n'est pas au répertoire.
     const { texte: t, client } = await verifier([{ citation: "2020 XXQQ 12" }]);
     expect(t).toContain("INTROUVABLE");
     expect(t).toContain("ne figure pas au répertoire");
     expect(t).toContain("list_databases");
-    expect(client.chemins).toEqual([]); // le point capital : zéro appel, zéro quota
+    expect(client.chemins).toEqual([]);
   });
 });
 
@@ -196,8 +180,8 @@ describe("§5.2 — budget épuisé ⇒ résultat partiel annoncé", () => {
       { [CHEMIN_DUNSMUIR]: dunsmuir, [CHEMIN_HYDRO]: qcca2005 },
       { maxCalls: 1 },
     );
-    expect(t).toContain("CONFIRMÉE"); // la première a abouti
-    expect(t).toContain("INDÉTERMINÉE"); // la seconde n'a pas pu être tentée
+    expect(t).toContain("CONFIRMÉE");
+    expect(t).toContain("INDÉTERMINÉE");
     expect(t).toContain("Budget d'appels épuisé — résultat partiel.");
   });
 });
@@ -219,8 +203,6 @@ describe("une panne réseau n'est PAS une absence", () => {
 
 describe("une fiche de balayage ne peut pas servir de vérification", () => {
   it("refetch quand le cache ne contient qu'une ligne de BALAYAGE", async () => {
-    // Situation réelle : `browse_cases` a moissonné la base, puis on vérifie
-    // une citation. La ligne moissonnée n'a ni date, ni dossier, ni hyperlien.
     await upsertCases(env.DB, [
       rowFromListItem(
         {
@@ -239,16 +221,12 @@ describe("une fiche de balayage ne peut pas servir de vérification", () => {
       [CHEMIN_DUNSMUIR]: dunsmuir,
     });
 
-    // L'appel a bien eu lieu malgré la présence d'une ligne en cache…
     expect(client.chemins).toEqual([CHEMIN_DUNSMUIR]);
-    // …et la fiche rendue est complète.
     expect(t).toContain("31459");
     expect(t).toContain("canlii.ca");
   });
 
   it("le contrôle d'ANNÉE n'est jamais sauté en silence", async () => {
-    // Le cœur du défaut : sans date, `comparer()` ne compare pas l'année et rendrait
-    // CONFIRMÉE une citation dont l'année est fausse.
     await upsertCases(env.DB, [
       rowFromListItem(
         {
@@ -274,13 +252,6 @@ describe("une fiche de balayage ne peut pas servir de vérification", () => {
 
 describe("§2 — un contrôle qui ne s'exécute pas se DIT", () => {
   it("une fiche SANS date ne rend pas CONFIRMÉE une année jamais comparée", async () => {
-    // La condition portait `d.expected_year && row.decision_date` : sans date, la
-    // comparaison d'année disparaissait SANS UN MOT, et la citation ressortait
-    // CONFIRMÉE — c'est-à-dire qu'une incertitude connue devenait une assurance, le
-    // mode de panne exact que §2 interdit.
-    //
-    // Le chemin n'est pas théorique : rien n'oblige CanLII à rendre `decisionDate`, et
-    // le connecteur ne peut pas le savoir à l'avance.
     const sansDate = { ...(dunsmuir as Record<string, unknown>) };
     delete sansDate.decisionDate;
 
@@ -293,8 +264,6 @@ describe("§2 — un contrôle qui ne s'exécute pas se DIT", () => {
   });
 
   it("LE PENDANT : une fiche DATÉE compare toujours l'année pour de bon", async () => {
-    // Sans cette moitié, on satisferait la précédente en signalant un écart d'année
-    // partout — ce qui détruirait le verdict CONFIRMÉE au lieu de le rendre honnête.
     const { texte: juste } = await verifier([{ citation: "2008 CSC 9", expected_year: 2008 }], {
       [CHEMIN_DUNSMUIR]: dunsmuir,
     });
@@ -420,7 +389,6 @@ describe("D1, D2, D21 & D23 — intitulé de tête, cache bilingue, années futu
       "caseBrowse/en/csc-scc/2014scc55/": MARCOTTE_EN,
     };
 
-    // 1. Cache froid en lang='fr' : appelle FR puis EN pour confirmer l'intitulé anglais.
     const c1 = fakeClient(routes);
     const r1 = texte(
       await callTool(
@@ -435,7 +403,6 @@ describe("D1, D2, D21 & D23 — intitulé de tête, cache bilingue, années futu
       "caseBrowse/en/csc-scc/2014scc55/",
     ]);
 
-    // 2. Cache déjà bilingue : lang='fr' ET lang='en' confirment avec ZERO appel sortant.
     const c2 = fakeClient({});
     const r2Fr = texte(
       await callTool(
@@ -455,7 +422,6 @@ describe("D1, D2, D21 & D23 — intitulé de tête, cache bilingue, années futu
     expect(r2En).toContain("CONFIRMÉE");
     expect(c2.chemins).toEqual([]);
 
-    // 3. Cache FR-seulement au départ, puis vérification en lang='en'.
     await resetDb();
     await seedDatabases();
     await callTool(
@@ -474,7 +440,6 @@ describe("D1, D2, D21 & D23 — intitulé de tête, cache bilingue, années futu
     expect(r3).toContain("CONFIRMÉE");
     expect(c3.chemins).toEqual(["caseBrowse/en/csc-scc/2014scc55/"]);
 
-    // 4. Cache EN-seulement au départ, puis vérification FR avec intitulé FR.
     await resetDb();
     await seedDatabases();
     await callTool(

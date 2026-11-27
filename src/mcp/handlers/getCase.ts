@@ -1,11 +1,3 @@
-/**
- * `get_case` (spécification §7.3).
- *
- * Accepte SOIT une citation, SOIT le couple database_id + case_id — exactement l'une
- * des deux formes, ce que le validateur de schéma ne sait pas exprimer et qui est donc
- * contrôlé ici.
- */
-
 import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import { analyserErreur } from "../../canlii/client";
 import { relancerSiInterruptionGouverne } from "../../canlii/errors";
@@ -52,13 +44,9 @@ export async function getCase(
 
   const parIds = bothIds;
 
-  // ── Forme directe : database_id + case_id ────────────────────────────────
   if (parIds) {
     if (!refresh) {
       const cache = await getCachedCase(ctx.db, databaseId!, caseId!);
-      // Même barrière que dans lookupCase (src/store/lookup.ts) : une ligne de
-      // balayage (4 champs — ni date, ni numéro de dossier, ni hyperlien) ne peut
-      // pas tenir lieu de fiche, et la langue demandée doit être en cache (D2).
       if (cache && cache.source === "lookup" && hasLangCached(cache, lang)) {
         return ok(rendre(projectCaseForLang(cache, lang), "index local"));
       }
@@ -79,12 +67,6 @@ export async function getCase(
       return ok(rendre(projectCaseForLang(stored, lang), "CanLII"));
     } catch (e) {
       relancerSiInterruptionGouverne(e);
-      // SEUL un 404 constate une absence. Ce `catch` attrapait aussi les 401, 429,
-      // 5xx, expirations et budgets épuisés, et leur collait EXPLICATIONS_INTROUVABLE
-      // — « numéro erroné · décision hors de la collection · diffusion récente ».
-      // Sur un étranglement, le lecteur en concluait que la décision n'existe
-      // probablement pas, alors que CanLII n'avait pas répondu. Invariant 9 ;
-      // corrigé le 2026-09-16. La branche par citation, elle, faisait déjà le partage.
       const d = analyserErreur(e);
       const absence = d.cause === "INTROUVABLE_404";
       return err(
@@ -95,7 +77,6 @@ export async function getCase(
     }
   }
 
-  // ── Forme par citation ───────────────────────────────────────────────────
   const dir = await loadDirectory(ctx.db);
   const parsed = parseCitation(citation!, (c) => dir.courtCodes.has(c));
   const res = resolve(parsed.primary, dir);
@@ -116,9 +97,6 @@ export async function getCase(
   });
   if (lookup.row)
     return ok(rendre(lookup.row, lookup.provenance === "cache" ? "index local" : "CanLII"));
-  // « budget » rejoint « erreur » : un budget d'appels épuisé avant d'avoir pu
-  // interroger CanLII ne constate rien non plus, et tombait jusqu'ici dans la
-  // branche INTROUVABLE ci-dessous, avec ses explications d'absence.
   if (lookup.status === "erreur" || lookup.status === "budget") {
     return err(
       `${lookup.message ?? "CanLII n'a pas pu être interrogé."}\n${EXPLICATION_INDETERMINEE}`,

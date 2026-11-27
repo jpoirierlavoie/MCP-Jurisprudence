@@ -1,13 +1,7 @@
-/**
- * Matrice obligatoire de l'analyseur (spécification §13). Chaque `it` est une ligne
- * du tableau, reprise telle quelle. Cette matrice est la PORTE : rien d'autre n'est
- * censé être construit tant qu'elle n'est pas verte.
- */
 import { describe, expect, it } from "vitest";
 
 import { type Directory, formLabel, parseCitation, resolve } from "../src/citation/parse";
 
-// Répertoire d'amorçage identique à `migrations/0002_seed_court_codes.sql`.
 const SEED: Array<[string, string, string, string, string | null, number]> = [
   ["CSC", "csc-scc", "scc", "ca", "fr", 1],
   ["SCC", "csc-scc", "scc", "ca", "en", 1],
@@ -54,7 +48,6 @@ const dir: Directory = {
 
 const connus = (code: string) => dir.courtCodes.has(code);
 
-/** Raccourci : analyse puis résout la forme retenue. */
 function ids(input: string) {
   const parsed = parseCitation(input, connus);
   const res = resolve(parsed.primary, dir);
@@ -80,7 +73,7 @@ describe("§13 — matrice de l'analyseur", () => {
     const { db, cid, res } = ids("2008 CSC 9");
     expect(db).toBe("csc-scc");
     expect(cid).toBe("2008scc9");
-    expect(res.constructible).toBe("oui"); // ligne documentée, verified = 1
+    expect(res.constructible).toBe("oui");
   });
 
   it("2008 SCC 9 → csc-scc / 2008scc9", () => {
@@ -95,7 +88,6 @@ describe("§13 — matrice de l'analyseur", () => {
     expect(parsed.primary.kind).toBe("neutral");
     expect(db).toBe("csc-scc");
     expect(cid).toBe("2008scc9");
-    // « [2008] 1 RCS 190 » doit figurer dans les formes parallèles.
     const recueils = parsed.parallel.filter((f) => f.kind === "reporter");
     expect(recueils).toHaveLength(1);
     expect(recueils[0]!.raw).toBe("[2008] 1 RCS 190");
@@ -107,7 +99,6 @@ describe("§13 — matrice de l'analyseur", () => {
     expect(parsed.primary.kind).toBe("canlii");
     expect(db).toBe("qccq");
     expect(cid).toBe("2002canlii32322");
-    // Parade n° 1 + n° 2 : « CanLII » ne doit JAMAIS ressortir comme code de tribunal.
     expect(parsed.parallel.some((f) => f.kind === "neutral")).toBe(false);
   });
 
@@ -185,9 +176,7 @@ describe("§13 — matrice de l'analyseur", () => {
 
 describe("garde-fous de l'analyseur", () => {
   it("une ligne d'amorçage verified = 0 rend « probable », jamais « oui »", () => {
-    // QCCA est une HYPOTHÈSE d'identité tant que §14 étape 7 n'a pas eu lieu.
     expect(ids("2020 QCCA 495").res.constructible).toBe("probable");
-    // CSC est documenté : verified = 1.
     expect(ids("2008 CSC 9").res.constructible).toBe("oui");
   });
 

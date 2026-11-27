@@ -1,16 +1,3 @@
-/**
- * Arêtes du citateur (spécification §4.1, §4.2, §7.4).
- *
- * Politique de fraîcheur différenciée, et le motif est juridique, pas technique :
- *   - `cited` et `legislation` : PERMANENT. Ce qu'une décision cite est figé au jour
- *     de son prononcé et ne changera plus jamais.
- *   - `citing` : 30 JOURS. Cette liste croît indéfiniment — une décision de principe
- *     accumule des citations pendant des décennies.
- *
- * `citator_state` distingue « la liste est VIDE » de « on n'a JAMAIS demandé ». Sans
- * cette table, une décision que personne ne cite serait réinterrogée à chaque appel.
- */
-
 import type { CanliiClient } from "../canlii/client";
 import type { CaseListItem, LegislationListItem } from "../canlii/types";
 import { type CitatorRel, type CitedLegislationsResponse, METADATA_TYPE } from "../canlii/types";
@@ -31,22 +18,17 @@ export interface EdgeRow {
 
 const TTL_CITING_MS = 30 * 86_400_000;
 
-/** Une arête `citing` de plus de 30 jours est périmée ; les autres, jamais. */
 export function edgeStale(rel: CitatorRel, fetchedAt: string, now: Date = new Date()): boolean {
   if (rel !== "citing") return false;
   const age = now.getTime() - Date.parse(fetchedAt);
   return !Number.isFinite(age) || age > TTL_CITING_MS;
 }
 
-export interface CachedEdges {
+interface CachedEdges {
   edges: EdgeRow[];
   fetchedAt: string;
 }
 
-/**
- * Lit les arêtes en cache. Rend `null` si la relation n'a JAMAIS été demandée —
- * distinct d'un tableau vide, qui signifie « demandée, et il n'y en a aucune ».
- */
 export async function getCachedEdges(
   db: D1Database,
   databaseId: string,
@@ -69,7 +51,6 @@ export async function getCachedEdges(
   return { edges: r.results ?? [], fetchedAt: state.fetched_at };
 }
 
-/** Remplace intégralement les arêtes d'une relation et note l'état de moisson. */
 export async function replaceEdges(
   db: D1Database,
   databaseId: string,
@@ -120,20 +101,9 @@ export async function replaceEdges(
       )
       .bind(databaseId, caseId, rel, edges.length, ts)
       .run();
-  } catch {
-    // Le cache du citateur n'est pas la réponse : on rend les arêtes obtenues même si
-    // on n'a pas su les persister.
-  }
+  } catch {}
 }
 
-/**
- * Interroge le citateur.
- *
- * ⚠ CONTRAINTE DE L'API CODÉE EN DUR (annexe B) : le chemin du citateur n'accepte QUE
- *   `en` comme segment de langue. On construit donc `caseCitator/en/…` quelle que soit
- *   la langue demandée, et l'on rend malgré tout la sortie en français. C'est aussi
- *   pourquoi `citator` n'expose aucun paramètre `lang` : il serait mensonger.
- */
 export async function fetchEdges(
   client: CanliiClient,
   databaseId: string,

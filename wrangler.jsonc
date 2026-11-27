@@ -5,55 +5,20 @@
   "compatibility_date": "2026-07-01",
   "compatibility_flags": ["nodejs_compat"],
 
-  // Domaine personnalisé (zone poirierlavoie.ca) : Cloudflare gère DNS + certificat.
-  // Ni le nom d'hôte ni le nom d'outil n'emploient la marque d'un tiers : le
-  // préfixe `canlii_` a été abandonné pour `jurisprudence_` le 2026-09-16 (D8 amendée),
-  // puis retiré en v2.0.0 (noms courts sous clé `juris` du greffon `droit-civil-quebecois`).
-  // La dépendance à la collection de CanLII, que le modèle doit connaître, est désormais
-  // énoncée dans la DESCRIPTION de chacun des dix outils plutôt que dans leur nom.
   "routes": [{ "pattern": "jurisprudence.poirierlavoie.ca", "custom_domain": true }],
-  // workers.dev fermé : surface minimale. Le point d'entrée MCP porte le secret partagé
-  // dans le chemin (D7) — une seconde origine publique serait une seconde fuite possible.
   "workers_dev": false,
 
-  // Journaux d'invocation Cloudflare explicitement désactivés (SPEC-SOCLE-COMMUN.md §7.3, G37).
   "observability": {
     "enabled": false,
     "logs": { "enabled": false, "invocation_logs": false }
   },
   "cache": { "enabled": true },
 
-  // Garde-fous d'exécution (forfait Workers PAYANT — confirmé avec Jason, 2026-07-23).
-  // `limits` n'est honoré que sur le modèle d'usage Standard ; sur le forfait gratuit ce
-  // bloc est inopérant et les plafonds réels tombent à 50 sous-requêtes / 10 ms de CPU.
-  // 200 sous-requêtes : bien en deçà du défaut payant (10 000), pour que le vrai plafond
-  // soit CANLII_MAX_CALLS_PER_INVOCATION et non la facture.
   "limits": {
     "cpu_ms": 30000,
     "subrequests": 200
   },
 
-  // Limitation de débit (§9.3), 60 requêtes/minute par IP.
-  //
-  // ⚠ Implémentée DANS le Worker et non par une règle WAF de zone : la limitation de
-  //   débit du WAF dépend du forfait de la ZONE (et n'était pas accessible ici),
-  //   alors que ce binding vient avec Workers. Le résultat est meilleur pour ce
-  //   dépôt : la règle est versionnée, relue en revue, éprouvée par des tests, et
-  //   surtout elle vise `/mcp` sans avoir à écrire un motif de chemin — or ce chemin
-  //   CONTIENT le secret partagé, et une expression WAF est visible au tableau de
-  //   bord comme dans les journaux d'audit.
-  //
-  //   Deux limites à connaître, énoncées plutôt que découvertes :
-  //     - le compteur est LOCAL À CHAQUE EMPLACEMENT Cloudflare : un client réparti
-  //       sur plusieurs points de présence obtient 60/min PAR emplacement. C'est une
-  //       protection contre l'emballement et le coût, pas contre un attaquant réparti ;
-  //     - le compte est éventuellement cohérent, jamais exact au coup près.
-  //   Pour ce connecteur mono-usager, les deux sont sans conséquence.
-  // Limitation de débit à deux niveaux DANS le Worker (SPEC-SOCLE-COMMUN.md §6.1, G34) :
-  // - pré-authentification par IP (`1021` à 600/min), échecs d'auth par IP (`1022` à 20/min)
-  //   et disjoncteur global d'échecs (`1023` à 300/min) ;
-  // - post-authentification par `titulaire_id` (`1024` à 180/min en état `actif`, `1025` à
-  //   20/min en état `limite`), isolée des `namespace_id` `1011..1015` de `MCP-Legislation`.
   "ratelimits": [
     { "name": "RL_PRE_AUTH_IP", "namespace_id": "1021", "simple": { "limit": 600, "period": 60 } },
     { "name": "RL_ECHEC_IP", "namespace_id": "1022", "simple": { "limit": 20, "period": 60 } },
@@ -66,57 +31,27 @@
     {
       "binding": "DB",
       "database_name": "canlii",
-      // Créée par `wrangler d1 create canlii --location enam` (enam = est de l'Amérique
-      // du Nord, le repère le plus proche de Montréal). Aucune contrainte de résidence :
-      // rien de confidentiel n'y transite (spéc. §9.5).
       "database_id": "4025ee7d-90f2-4107-92ea-f8430403c6c5",
       "migrations_dir": "migrations"
     },
     {
       "binding": "DB_IDENTITE",
       "database_name": "mcp-identite",
-      // Base D1 partagée du socle d'identité (jetons, coffre chiffré BYOK CanLII, quotas et événements).
-      // L'UUID réel est substitué au déploiement Phase 5 après `wrangler d1 create mcp-identite`.
       "database_id": "ee4894cc-a779-466b-bc9b-ac157b354afc"
     }
   ],
 
-  // Hebdomadaire, lundi 06:17 UTC : rafraîchit le RÉPERTOIRE des bases (les tribunaux sont
-  // créés, fusionnés et renommés — Régie du logement -> TAL, CLP/CRT -> TAT).
-  // Le moissonnage de masse (§11) n'a PAS de déclencheur : il exigerait un cron quotidien,
-  // délibérément absent tant que BACKFILL_ENABLED reste "false" (§16.1).
   "triggers": { "crons": ["17 6 * * 1"] },
 
   "vars": {
-    // Coupe-circuit : "false" => toute route MCP renvoie 404, /health compris.
     "MCP_ENABLED": "true",
-    // Commit dont la version en ligne est issue, ANNONCÉ par /health (§8).
-    // Cette valeur-ci est le DÉFAUT — celle d'un `wrangler dev`, ou d'un déploiement
-    // fait sans passer par `npm run deploy`. La vraie est posée à la volée par
-    // `scripts/deployer.mjs`, en `--var COMMIT:<sha>`. « inconnu » n'est donc pas un
-    // remplissage : c'est un AVEU, et le contrôle de dérive le traite comme tel —
-    // il refuse de conclure plutôt que de supposer que la production est à jour.
     "COMMIT": "inconnu",
-    // Étranglement sortant. Le quota de CanLII n'est pas publié (§16.2) : ces valeurs
-    // sont délibérément prudentes et se resserrent, jamais l'inverse, sans mesure.
     "CANLII_MIN_INTERVAL_MS": "600",
     "CANLII_MAX_CALLS_PER_INVOCATION": "40",
     "CANLII_TIMEOUT_MS": "15000",
-    // Le cache se remplit par l'usage (D6) : tout balayage est persisté.
     "PERSIST_SWEEPS": "true",
-    // §11 — moissonnage planifié. FAUX par défaut, et à ne pas basculer avant la
-    // détermination de §16.1 auprès de CanLII : c'est un téléchargement en masse,
-    // qualitativement différent d'un cache.
-    "BACKFILL_ENABLED": "false",
-    "BACKFILL_DATABASES": "qcca,qccs,qccq,qctal",
     "DEFAULT_LANG": "fr",
-    // Origines de navigateur admises EN PLUS de claude.ai, claude.com, gemini.google.com
-    // et aistudio.google.com (séparées par des virgules). Vide en temps normal. Sert à
-    // deux choses : ajouter un client web tiers, ou autoriser une origine de
-    // développement. Toute origine de navigateur absente de la liste est refusée par un
-    // 403 — c'est la défense contre le ré-attachement DNS exigée par la spécification MCP.
     "ALLOWED_ORIGINS": "https://chatgpt.com,https://chat.openai.com,https://platform.openai.com",
-    // Origine canonique du serveur d'autorisation OAuth 2.1 publiée dans RFC 9728 (/mcp/oauth).
     "ORIGINE_PORTAIL": "https://acces.poirierlavoie.ca"
   }
 }

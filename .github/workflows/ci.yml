@@ -1,9 +1,5 @@
 name: ci
 
-# Contrôles sans réseau ni secret : type-check, mise en forme, tests (workerd +
-# D1 locale, réponses de CanLII figées), et validation du paquet de déploiement.
-# Aucun appel à api.canlii.org : la suite doit être verte sans la clef d'API,
-# faute de quoi elle dépendrait du quota d'une clef personnelle (§16.2).
 on:
   push:
     branches: [main]
@@ -31,7 +27,6 @@ jobs:
 
       - run: npm ci
 
-      # Génère worker-configuration.d.ts (gitignoré, aucune authentification requise).
       - name: Types du Worker
         run: npx wrangler types
 
@@ -47,7 +42,5 @@ jobs:
       - name: Audit des dépendances
         run: npm run audit
 
-      # Valide le paquet ET la configuration (bindings, limites, domaine) sans
-      # rien déployer. Ne demande aucun jeton Cloudflare.
       - name: Paquet de déploiement (à blanc)
         run: npx wrangler deploy --dry-run

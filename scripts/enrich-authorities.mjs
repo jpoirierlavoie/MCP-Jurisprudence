@@ -1,16 +1,3 @@
-/**
- * Enrichissement incrémental de `data/autorites-enrichies.json` depuis l'API REST de CanLII.
- *
- * Usage (clé personnelle CanLII dans `CANLII_API_KEY` ou `.dev.vars`) :
- *   node --env-file=.dev.vars scripts/enrich-authorities.mjs
- *   node scripts/enrich-authorities.mjs --force
- *
- * Politique de sobriété (§5, §16.2) :
- *   - 650 ms minimum entre deux appels CanLII, réessai exponentiel sur 429/5xx ;
- *   - ne journalise jamais `CANLII_API_KEY` (toute URL passe par `redactUrl`) ;
- *   - sauvegarde incrémentale après chaque décision pour reprise sans perte.
- */
-
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -249,7 +236,6 @@ async function executer() {
   for (const [key, item] of cibles.entries()) {
     if (!force && sidecar.decisions[key]?.status === "canlii") continue;
 
-    // 1. Hors juridiction canadienne (Cour suprême des États-Unis)
     if (item.formes.reporterMatches.some((r) => /U\.?\s*S\.?/i.test(r.reporter))) {
       sidecar.decisions[key] = {
         key,

@@ -1,39 +1,9 @@
-/**
- * Chaînes ANGLAISES de la page publique (§18).
- *
- * ⚠ POURQUOI CE FICHIER EXISTE, ET CE QU'IL NE DOIT PAS DEVENIR.
- *
- *   Ce dépôt est francophone : les titres d'outils, leurs descriptions et les mises en
- *   garde de §2 n'existent qu'en français, et le français y est CANONIQUE — c'est lui
- *   que le modèle reçoit. La page rend donc le français DIRECTEMENT DEPUIS LES DONNÉES
- *   (`listToolDescriptors()`), et ne recopie rien.
- *
- *   Ce fichier ne porte QUE l'anglais, qui n'a pas de source ailleurs. Il ne doit
- *   JAMAIS recevoir une copie française : deux copies d'une même vérité divergent, et
- *   ce dépôt l'a déjà payé deux fois. Un test de garde échoue si un outil gagne une
- *   entrée sans son pendant, dans les DEUX sens.
- *
- *   Les traductions des mises en garde sont des traductions de COURTOISIE : la version
- *   qui fait foi est la française, celle que les outils rendent.
- */
-
-/** Traduction anglaise d'un outil, pour la page seulement. */
-export interface OutilEn {
-  /** Pendant anglais de `ToolDescriptor.title`. */
+interface OutilEn {
   readonly titre: string;
-  /** Résumé clair pour les juristes (haut de fiche). */
   readonly resume: readonly string[];
-  /** Prose de la page — plus longue que la description MCP, qui est budgétée en jetons. */
   readonly texte: string;
 }
 
-/**
- * Pendant anglais de CHAQUE outil.
- *
- * ⚠ Les clefs doivent couvrir `TOOLS` exactement — ni plus, ni moins. Un test de
- *   garde échoue dans les DEUX sens : un outil ajouté sans traduction paraîtrait
- *   vide en anglais, et une traduction orpheline survivrait à un outil supprimé.
- */
 export const OUTILS_EN: Readonly<Record<string, OutilEn>> = {
   verify_citations: {
     titre: "Verify citations",
@@ -232,7 +202,6 @@ export const EN = {
       "judgment.",
   ],
 
-  // ── Les outils ─────────────────────────────────────────────────────────────
   familleCanlii: "Backed by CanLII",
   familleCanliiTexte: [
     "You never need to invoke these tools manually: your AI assistant runs them automatically when " +
@@ -243,7 +212,6 @@ export const EN = {
       "Québec court-file and courthouse tools (greffe_*, palais_*) live in the public « outils » connector.",
   ],
 
-  // ── Schémas ────────────────────────────────────────────────────────────────
   schemaTexte: [
     "Technical reference for developers and automated scripts: every tool accepts only the " +
       "parameters listed below, generated directly from the server's validation rules.",

@@ -1,17 +1,3 @@
-/**
- * Normalisation de chaînes pour la comparaison d'intitulés (spécification §6.5).
- *
- * Module PUR : aucune E/S, aucune dépendance. Entièrement testable hors ligne.
- */
-
-/**
- * Plie une chaîne : minuscules, diacritiques supprimés, ponctuation réduite à
- * l'espace, espaces normalisés.
- *
- * NFD + suppression des marques combinantes (\p{M}) : « Québec » -> « quebec ».
- * C'est le même pliage que `tokenize="unicode61 remove_diacritics 2"` côté FTS5,
- * afin que l'index et la comparaison en mémoire s'accordent.
- */
 export function fold(s: string): string {
   return s
     .normalize("NFD")
@@ -23,20 +9,7 @@ export function fold(s: string): string {
     .replace(/\s+/g, " ");
 }
 
-/**
- * Jetons vides de sens, retirés avant comparaison (§6.5).
- *
- * Deux familles : les séparateurs de parties (`c`, `v`, `vs`, `et`, `al`) et les
- * formes sociétaires (`inc`, `ltee`, `ltd`…). Retirer les secondes rend
- * « 9044-3422 Québec Inc. » et « 9044-3422 Quebec inc » équivalents.
- *
- * ⚠ Les nombres ne sont JAMAIS retirés : sur les intitulés anonymisés du droit de
- *   la famille et de la protection de la jeunesse (« Droit de la famille — 20495 »),
- *   le numéro est le SEUL discriminant. Le retirer ferait apparier entre elles
- *   toutes les décisions anonymisées de la même série.
- */
 const STOPWORDS = new Set([
-  // séparateurs et liaisons
   "c",
   "v",
   "vs",
@@ -50,7 +23,6 @@ const STOPWORDS = new Set([
   "des",
   "d",
   "l",
-  // formes sociétaires
   "inc",
   "ltee",
   "ltd",
@@ -84,7 +56,6 @@ const TOKEN_CANON: Record<string, string> = {
   tutrice: "tuteur",
 };
 
-/** Découpe une chaîne pliée en jetons significatifs. */
 export function tokens(s: string): string[] {
   const expanded = s
     .replace(
@@ -98,30 +69,14 @@ export function tokens(s: string): string[] {
     .map((t) => TOKEN_CANON[t] ?? t);
 }
 
-/** Jetons significatifs, dédoublonnés, en ensemble. */
 export function tokenSet(s: string): Set<string> {
   return new Set(tokens(s));
 }
 
-/**
- * Normalise une citation neutre pour l'affichage et l'indexation :
- * « 2020   qcca 495 » -> « 2020 QCCA 495 ».
- */
 export function normalizeNeutral(year: number, code: string, number: number): string {
   return `${year} ${code.toUpperCase()} ${number}`;
 }
 
-/**
- * Aplatit le champ `caseId` des réponses de liste de CanLII, qui est un OBJET
- * clé par langue (`{"en": "2008scc9"}` ou `{"fr": "2008csc9"}`) et non une chaîne.
- *
- * Documenté à l'annexe B de la spécification : « caseId renvoyé dans les listes
- * sous forme d'objet clé par langue — aplatir à la lecture ». Les fiches
- * individuelles, elles, renvoient parfois une chaîne : les deux formes sont
- * acceptées ici pour que l'appelant n'ait pas à savoir laquelle il tient.
- *
- * @returns l'identifiant et la langue sous laquelle CanLII l'a clé, ou null.
- */
 export function flattenCaseId(
   value: unknown,
   preferred?: string,
@@ -131,8 +86,6 @@ export function flattenCaseId(
   }
   if (value && typeof value === "object") {
     const record = value as Record<string, unknown>;
-    // La langue demandée d'abord, puis fr, puis en, puis la première venue :
-    // CanLII ne garantit pas que la clef corresponde à la langue de l'appel.
     const order = [preferred, "fr", "en"].filter((k): k is string => typeof k === "string");
     for (const key of order) {
       const candidate = record[key];

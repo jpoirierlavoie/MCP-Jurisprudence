@@ -1,11 +1,3 @@
-/**
- * Persistance (spécification §13) — contre la VRAIE D1 locale et le VRAI index FTS5.
- *
- * L'index `cases_fts` est en « external content » : il ne stocke pas les données, il
- * les référence par `rowid`. Toute divergence entre `cases` et `cases_fts` est donc
- * silencieuse — la recherche rend simplement moins de résultats, sans erreur. C'est
- * exactement ce que ces tests attrapent.
- */
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -16,7 +8,6 @@ import {
   ftsQuery,
   getCachedCase,
   hasLangCached,
-  listCases,
   projectCaseForLang,
   rowFromListItem,
   rowFromMetadata,
@@ -30,9 +21,11 @@ import {
   directoryMismatches,
   directoryStale,
   loadDirectory,
+  runScheduled,
 } from "../src/store/databases";
 import { lookupCase } from "../src/store/lookup";
-import { utcDay } from "../src/store/telemetry";
+import caseDatabases from "./fixtures/caseDatabases.json";
+import legislationDatabases from "./fixtures/legislationDatabases.json";
 import { fakeClient } from "./helpers";
 
 const db = env.DB;
@@ -93,11 +86,8 @@ describe("upsert et index FTS5", () => {
   it("l'index suit un upsert (ON CONFLICT DO UPDATE), sans divergence", async () => {
     await upsertCase(db, row());
     await upsertCase(db, row({ title: "Intitulé corrigé après réexamen", title_norm: "x" }));
-    // L'ancien intitulé ne doit plus rien apparier…
     expect(await searchLocal(db, "provinciale")).toHaveLength(0);
-    // …et le nouveau doit apparier.
     expect(await searchLocal(db, "réexamen")).toHaveLength(1);
-    // Une seule ligne : c'est un upsert, pas un doublon.
     const n = await db.prepare("SELECT COUNT(*) AS n FROM cases").first<{ n: number }>();
     expect(n?.n).toBe(1);
   });
@@ -109,9 +99,7 @@ describe("upsert et index FTS5", () => {
   });
 
   it("un balayage n'écrase pas les champs riches d'une fiche déjà résolue", async () => {
-    // Fiche complète obtenue par résolution directe…
     await upsertCase(db, row());
-    // …puis la même décision revue par un balayage, qui ne porte que 4 champs.
     const maigre = rowFromListItem(
       {
         databaseId: "qcca",
@@ -125,14 +113,9 @@ describe("upsert et index FTS5", () => {
     );
     await upsertCase(db, maigre!);
     const apres = await getCachedCase(db, "qcca", "2005qcca304");
-    // La date, l'hyperlien et le numéro de dossier survivent au balayage.
     expect(apres?.decision_date).toBe("2005-03-31");
     expect(apres?.url).toBe("https://canlii.ca/t/1g2h3");
     expect(apres?.docket_number).toBe("500-09-014");
-    // …et la PROVENANCE aussi : « lookup » ne se rétrograde jamais en « sweep ».
-    // Sinon, tout balayage qui recroise une fiche résolue la disqualifierait du
-    // cache (lookupCase et get_case ne servent que « lookup ») et rachèterait
-    // l'appel — un suivi quotidien à fenêtres chevauchantes recroise TOUT.
     expect(apres?.source).toBe("lookup");
   });
 
@@ -148,7 +131,7 @@ describe("upsert et index FTS5", () => {
     );
     expect(await upsertCases(db, lot)).toBe(120);
     const hits = await searchLocal(db, "Tremblay Gagnon", { limit: 100 });
-    expect(hits.length).toBe(100); // plafonné par `limit`, pas par l'indexation
+    expect(hits.length).toBe(100);
     const n = await db.prepare("SELECT COUNT(*) AS n FROM cases_fts").first<{ n: number }>();
     expect(n?.n).toBe(120);
   });
@@ -160,15 +143,6 @@ describe("upsert et index FTS5", () => {
     ]);
     expect(await searchLocal(db, "Hydro-Québec", { databaseId: "qccs" })).toHaveLength(1);
     expect(await searchLocal(db, "Hydro-Québec", { yearFrom: 2010, yearTo: 2020 })).toHaveLength(1);
-  });
-
-  it("liste par tribunal, les plus récentes en tête", async () => {
-    await upsertCases(db, [
-      row({ case_id: "vieux", decision_date: "2001-01-01" }),
-      row({ case_id: "recent", decision_date: "2024-01-01" }),
-    ]);
-    const l = await listCases(db, "qcca", 10, 0);
-    expect(l.map((r) => r.case_id)).toEqual(["recent", "vieux"]);
   });
 });
 
@@ -188,10 +162,6 @@ describe("l'ANNÉE inférée — pour filtrer et classer, jamais pour afficher",
   });
 
   it("une ligne SANS DATE reste dans une fenêtre d'année, bornes comprises", async () => {
-    // Le repli portait sur `neutral_cite`, absente des arrêts d'avant 2000 : 1 634 des
-    // 1 819 lignes concernées en production n'en avaient aucune, et sortaient donc de
-    // TOUTE recherche locale bornée par année. Le trou ne se voyait pas parce qu'une
-    // date fabriquée tenait le filtre en sous-main.
     await upsertCase(
       db,
       row({
@@ -210,7 +180,6 @@ describe("l'ANNÉE inférée — pour filtrer et classer, jamais pour afficher",
       yearTo: 1997,
     });
     expect(dans.map((r) => r.case_id)).toContain("1997canlii335");
-    // Et la borne EXCLUT bien ce qui est hors fenêtre : sans quoi le filtre ne filtre plus.
     const hors = await searchLocal(db, "Godbout Longueuil", {
       databaseId: "csc-scc",
       yearFrom: 1998,
@@ -237,10 +206,6 @@ describe("requêtes FTS sûres", () => {
 
 describe("conversion des réponses de l'API", () => {
   it("CLÉE la fiche sur l'identifiant DEMANDÉ, pas sur celui que CanLII renvoie", () => {
-    // L'API rend `caseId` sous la clef de SA langue : on demande « 2008scc9 » et elle
-    // répond « {"fr": "2008csc9"} ». Clée sur la réponse, la fiche serait rangée là où
-    // aucune résolution ultérieure ne la cherche : le cache ne servirait jamais et
-    // chaque vérification rappellerait l'API. La langue renvoyée reste dans `lang`.
     const r = rowFromMetadata(
       {
         databaseId: "csc-scc",
@@ -255,9 +220,9 @@ describe("conversion des réponses de l'API", () => {
       { databaseId: "csc-scc", caseId: "2008scc9" },
       "lookup",
     );
-    expect(r.case_id).toBe("2008scc9"); // ce qu'on a demandé
-    expect(r.lang).toBe("fr"); // la langue sous laquelle CanLII l'a clée
-    expect(r.concatenated_id).toBe("2008csc-scc9"); // la forme canonique, conservée
+    expect(r.case_id).toBe("2008scc9");
+    expect(r.lang).toBe("fr");
+    expect(r.concatenated_id).toBe("2008csc-scc9");
     expect(r.neutral_cite).toBe("2008 CSC 9");
     expect(r.title_norm).toContain("nouveau brunswick");
   });
@@ -280,10 +245,6 @@ describe("conversion des réponses de l'API", () => {
   });
 
   it("une ligne de LISTE n'a NI date NI numéro de dossier NI hyperlien (invariant 3)", () => {
-    // ⚠ Ce test passait déjà AVANT le correctif du 2026-09-17, et c'est tout son
-    //   intérêt : la conversion était juste ; c'est l'APPELANT qui reposait un
-    //   1er janvier sur la ligne, juste avant l'UPSERT. On le garde pour fixer la
-    //   frontière — ce qui est garanti ICI, et ce qui ne peut pas l'être.
     const r = rowFromListItem(
       {
         databaseId: "qcca",
@@ -350,18 +311,12 @@ describe("répertoire et auto-correction", () => {
   });
 
   it("la migration 0003 corrige les databaseId démentis par CanLII", async () => {
-    // Régression sur la réconciliation du 2026-07-23 : ces quatre correspondances
-    // ont été mesurées contre l'API vivante. Si 0002 était réappliquée seule sur une
-    // base neuve, les hypothèses fausses reviendraient — d'où cette garde.
     const dir = await loadDirectory(db);
-    // « caf-fca » et « cf-fc » n'existent pas ; les bases réelles sont fca et fct.
     expect(dir.courtCodes.get("CAF")).toMatchObject({ database_id: "fca", caseid_code: "caf" });
     expect(dir.courtCodes.get("FCA")).toMatchObject({ database_id: "fca", caseid_code: "fca" });
     expect(dir.courtCodes.get("CF")).toMatchObject({ database_id: "fct", caseid_code: "cf" });
     expect(dir.courtCodes.get("FC")).toMatchObject({ database_id: "fct", caseid_code: "fc" });
-    // Le fragment FRANÇAIS de la Cour canadienne de l'impôt est « cci », non « tcc ».
     expect(dir.courtCodes.get("CCI")).toMatchObject({ database_id: "cci-tcc", caseid_code: "cci" });
-    // Le TAL a gardé le databaseId de la Régie du logement.
     expect(dir.courtCodes.get("QCTAL")).toMatchObject({
       database_id: "qcrdl",
       caseid_code: "qctal",
@@ -381,7 +336,6 @@ describe("répertoire et auto-correction", () => {
   });
 
   it("signale les hypothèses d'amorçage démenties par le répertoire réel (§4.3)", async () => {
-    // Répertoire réel : qcca existe, caf-fca n'existe pas.
     await db
       .prepare(
         "INSERT INTO databases (id, kind, jurisdiction, refreshed_at) VALUES ('qcca','case','qc','2026-07-23T00:00:00Z'), ('csc-scc','case','ca','2026-07-23T00:00:00Z')",
@@ -389,7 +343,7 @@ describe("répertoire et auto-correction", () => {
       .run();
     const { courts } = await directoryMismatches(db);
     const codes = courts.map((c) => c.code);
-    expect(codes).toContain("CAF"); // caf-fca absent => hypothèse démentie
+    expect(codes).toContain("CAF");
     expect(codes).not.toContain("QCCA");
     expect(codes).not.toContain("CSC");
   });
@@ -408,20 +362,34 @@ describe("répertoire et auto-correction", () => {
   });
 
   it("REFUSE de confirmer quand concatenatedId dément le databaseId (§6.3)", async () => {
-    // Un appel a réussi, mais sur un identifiant qui n'est pas celui qu'on croyait.
     const r = await confirmCourtCode(db, "CAF", "caf-fca", "fca", "2019fca100", "essai");
     expect(r.verified).toBe(false);
     expect(r.note).toContain("NON confirmée");
     const dir = await loadDirectory(db);
     expect(dir.courtCodes.get("CAF")?.verified).toBe(0);
   });
+
+  it("runScheduled rafraîchit uniquement le répertoire des bases sans moissonner", async () => {
+    const now = new Date("2026-07-23T06:17:00.000Z");
+    const client = fakeClient({
+      "caseBrowse/fr/": caseDatabases,
+      "legislationBrowse/fr/": legislationDatabases,
+    });
+    await runScheduled({ ...env, CANLII_API_KEY: "x" }, now, client);
+
+    const bases = await db.prepare("SELECT COUNT(*) AS n FROM databases").first<{ n: number }>();
+    expect(bases?.n).toBeGreaterThan(0);
+    const cas = await db.prepare("SELECT COUNT(*) AS n FROM cases").first<{ n: number }>();
+    expect(cas?.n).toBe(0);
+    const curseurs = await db.prepare("SELECT COUNT(*) AS n FROM sync_state").first<{
+      n: number;
+    }>();
+    expect(curseurs?.n).toBe(0);
+    expect(client.chemins).toEqual(["caseBrowse/fr/", "legislationBrowse/fr/"]);
+  });
 });
 
 describe("télémétrie locale retirée à l'exécution et continuité des migrations historiques (Phase 3)", () => {
-  it("utcDay formate le jour UTC en YYYY-MM-DD", () => {
-    expect(utcDay(new Date("2026-07-23T18:00:00Z"))).toBe("2026-07-23");
-  });
-
   it("upsertCase avale une erreur d'écriture sans la propager", async () => {
     const casse = {
       prepare: () => {
@@ -531,12 +499,10 @@ describe("D2 — cache bilingue (migration 0007, préservation COALESCE et looku
     expect(frHit1.provenance).toBe("api");
     expect(frHit1.row?.title).toBe("Banque de Montréal c. Marcotte");
 
-    // Même langue => cache local sans nouvel appel
     const frHit2 = await lookupCase(form, res, { db, client, dir, lang: "fr" });
     expect(frHit2.provenance).toBe("cache");
     expect(client.chemins).toHaveLength(1);
 
-    // Autre langue absente => appel API EN puis conservation des deux langues
     const enHit = await lookupCase(form, res, { db, client, dir, lang: "en" });
     expect(enHit.provenance).toBe("api");
     expect(enHit.row?.title).toBe("Bank of Montreal v. Marcotte");

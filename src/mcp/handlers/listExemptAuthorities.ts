@@ -1,11 +1,3 @@
-/**
- * `list_exempt_cases` — Consultation et recherche hors ligne dans les 27 listes
- * d'autorités dispensées de reproduction (9 tribunaux canadiens et québécois).
- *
- * Aucun appel à l'API de CanLII n'est émis : les métadonnées CanLII et mots-clés
- * éventuels ont été compilés à l'avance dans le dépôt.
- */
-
 import { err, ok, type ToolResult } from "@poirierlavoie/mcp-socle";
 import {
   canliiBestLink,
@@ -167,7 +159,6 @@ export async function listExemptAuthorities(
   const cible = resolveTargetLists({ list_id: listIdArg, tribunal: tribunalArg });
   if (!cible.ok) return err(cible.error);
 
-  // Mode 1 : Annuaire des 27 listes (aucun filtre)
   if (!listIdArg && !tribunalArg && !queryArg) {
     const toutes = EXEMPT_AUTHORITY_LISTS;
     const tranche = toutes.slice(offset, offset + limit);
@@ -183,7 +174,6 @@ export async function listExemptAuthorities(
     return ok(document(entete, blocs, pied));
   }
 
-  // Mode 2 : Lecture verbatim d'une liste unique (sans requête `query`)
   if (!queryArg && cible.lists.length === 1) {
     const l = cible.lists[0]!;
     const tranche = l.entries.slice(offset, offset + limit);
@@ -213,7 +203,6 @@ export async function listExemptAuthorities(
     return ok(document(entete, blocs, pied));
   }
 
-  // Mode 3 : Recherche (`query`) ou parcours multi-listes (`tribunal`)
   const qNorm = fold(queryArg);
   const qTokens = qNorm ? qNorm.split(" ").filter(Boolean) : [];
   const paires: Array<{ list: ExemptAuthorityList; entry: ExemptAuthorityEntry }> = [];
@@ -227,7 +216,6 @@ export async function listExemptAuthorities(
     }
   }
 
-  // Déduplication par `decisionKey` en recherche (`query`), en conservant toutes les listes appariées
   let blocsTotal: string[];
   if (queryArg) {
     const groupes = new Map<

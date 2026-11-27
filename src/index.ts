@@ -1,12 +1,3 @@
-/**
- * Worker « MCP Jurisprudence » — routage à double montage (`/mcp` et `/mcp/oauth`),
- * identité partagée `DB_IDENTITE`, garde stricte BYOK CanLII préalable au cache D1,
- * quotas journaliers et télémétrie sans contenu (`SPEC-SOCLE-COMMUN.md` §4–§7).
- *
- * ⚠ NE JAMAIS JOURNALISER `request.url`, une clé CanLII ni le texte d'une citation
- *   (`S13`, `S14`, `G9`, `G10`).
- */
-
 import {
   type AnneauMaitresCoffre,
   type BinaireD1,
@@ -48,7 +39,6 @@ import {
   repondreCarteServeur,
   repondreRessourceProtegee,
   reponseSante,
-  SERVER_CARD_SCHEMA,
   servirRequeteMcp,
   type ToolResult,
   tropDeRequetes,
@@ -57,7 +47,6 @@ import {
   verifierDebitTitulaire,
   verifierQuotaJour,
 } from "@poirierlavoie/mcp-socle";
-import { runScheduled } from "./backfill";
 import { type CanliiClient, createClient } from "./canlii/client";
 import { CanliiError, InterruptionGouverneError } from "./canlii/errors";
 import { mcpActif } from "./config";
@@ -70,17 +59,15 @@ import {
   TOOLS,
 } from "./mcp/registry";
 import { estCheminDecouvertePublique, pagePubliqueHtml, repondreDecouvertePublique } from "./site";
+import { runScheduled } from "./store/databases";
 
-/** Versions du protocole servies. La plus élevée EN TÊTE (§8). */
 export const VERSIONS = ["2026-07-28", "2025-11-25", "2025-06-18", "2025-03-26"] as const;
 
-export { SERVER_CARD_SCHEMA };
-
-export const SERVICE_ID = "jurisprudence" as const;
-export const ORIGINE_PORTAIL_DEFAUT = "https://acces.poirierlavoie.ca";
-export const META_RESSOURCE_OAUTH_URL =
+const SERVICE_ID = "jurisprudence" as const;
+const ORIGINE_PORTAIL_DEFAUT = "https://acces.poirierlavoie.ca";
+const META_RESSOURCE_OAUTH_URL =
   "https://jurisprudence.poirierlavoie.ca/.well-known/oauth-protected-resource/mcp/oauth";
-export const SCOPE_OAUTH = "jurisprudence les_deux";
+const SCOPE_OAUTH = "jurisprudence les_deux";
 
 const TTL_LISTE = 3_600_000;
 const SERT_AVANT_2025_06_18 = true;
@@ -92,9 +79,6 @@ export function reinitialiserQuarantaineIpPourTests(): void {
   quarantaine = creerQuarantaineIpEchecs();
 }
 
-/**
- * Fiche de découverte HTTP MCP (SEP-2127) — PURE, sans accès à `env` ni à aucun secret.
- */
 export function carteServeur() {
   return construireCarteServeur({
     name: `ca.poirierlavoie.jurisprudence/${SERVER_INFO.name}`,
@@ -111,11 +95,7 @@ export function carteServeur() {
   });
 }
 
-/**
- * Métadonnées RFC 9728 propres au sous-chemin `/mcp/oauth` (la racine
- * `/.well-known/oauth-protected-resource` demeure en 404 afin de préserver `/mcp`).
- */
-export function ressourceProtegeeOAuth(originePortail?: string) {
+function ressourceProtegeeOAuth(originePortail?: string) {
   const serveur = (originePortail ?? "").trim() || ORIGINE_PORTAIL_DEFAUT;
   return construireRessourceProtegee({
     resource: "https://jurisprudence.poirierlavoie.ca/mcp/oauth",
@@ -127,22 +107,14 @@ export function ressourceProtegeeOAuth(originePortail?: string) {
 
 const nonTrouve = () => new Response("Not found", { status: 404 });
 
-/**
- * Porte directe `/mcp` : jetons individuels `DB_IDENTITE` + secret partagé transitoire Phase 3a.
- * Tout refus renvoie uniformément `404` à corps vide sans `WWW-Authenticate` (`S8`, `G7`, `G23`).
- */
-export const PORTE: Porte = {
+const PORTE: Porte = {
   mount: "/mcp",
   queryKey: "key",
   nomsSecrets: ["MCP_SHARED_SECRET"],
   segmentBorne: false,
 };
 
-/**
- * Porte OAuth 2.1 `/mcp/oauth` : en-tête `Authorization: Bearer <jeton>` uniquement,
- * aucun secret partagé de Worker, aucun `?key=`, aucun segment `/mcp/oauth/<x>`.
- */
-export const PORTE_OAUTH: Porte = {
+const PORTE_OAUTH: Porte = {
   mount: "/mcp/oauth",
   nomsSecrets: [],
   autoriserChemin: false,
@@ -304,7 +276,6 @@ export default {
     const admises = originesAdmises(env.ALLOWED_ORIGINS as string | undefined);
     const origin = origineAutorisee(request, admises);
 
-    // Page publique et fichiers de découverte servis AVANT le coupe-circuit, sans en-tête CORS (G22, §18).
     if (pathname === "/") {
       if (request.method !== "GET" && request.method !== "HEAD") {
         return new Response("Method not allowed", {
@@ -332,7 +303,6 @@ export default {
     const estMcpDirect = !estMcpOAuth && (pathname === "/mcp" || pathname.startsWith("/mcp/"));
 
     if (pathname === "/health" || estMetaOAuth || estCarteServeur || estMcpOAuth || estMcpDirect) {
-      // 1. Coupe-circuit global (`MCP_ENABLED !== "true"` => 404).
       const actif = mcpActif(env);
       if (!actif) return refuser("404", origin);
 
@@ -347,15 +317,12 @@ export default {
         );
       }
 
-      // Fiche SEP-2127 interceptée AVANT `/mcp/<secret>`.
       if (estCarteServeur) {
         return repondreCarteServeur(request.method, carteServeur());
       }
 
-      // 2. Défense DNS rebinding avant authentification (G6).
       if (origineRefusee(request, admises)) return origineInterdite();
 
-      // 3. Pré-vol CORS jamais limité en débit, autorisant `X-Clef-CanLII` (G6).
       if (request.method === "OPTIONS" && origin) {
         return preflight(origin, ["X-Clef-CanLII"]);
       }
@@ -369,7 +336,6 @@ export default {
             })
           : refuser("404", origin);
 
-      // 4. Garde de débit pré-authentification par IP + quarantaine d'échecs (G32).
       const ip = request.headers.get("CF-Connecting-IP") ?? "sans-ip";
       const candidatsJetons = porteursPresentes(request, url, porte);
       const preAuthOk = await verifierDebitPreAuth({
@@ -382,7 +348,6 @@ export default {
         return estMcpOAuth ? tropDeRequetes(60, origin) : refuser("404", origin);
       }
 
-      // 5. Identité (`DB_IDENTITE` jetons individuels + secret partagé transitoire sur `/mcp`).
       const depot = env.DB_IDENTITE ? creerDepotJetonsD1(env.DB_IDENTITE) : undefined;
       const autorise = await ouvrirPrincipal(
         request,
@@ -407,10 +372,8 @@ export default {
         return refuserAcces();
       }
 
-      // 6. Méthode HTTP jugée APRÈS l'authentification sur `/mcp` comme sur `/mcp/oauth` (G23).
       if (request.method !== "POST") return methodeNonPermise(origin);
 
-      // 7. Débit par titulaire (`180/min` en régime `actif`, `20/min` en régime `limite`).
       if (autorise.principal.type === "titulaire") {
         const refusDebit = await verifierDebitTitulaire({
           titulaireId: autorise.principal.titulaireId,
@@ -422,7 +385,6 @@ export default {
         if (refusDebit) return refusDebit;
       }
 
-      // 8–12. Enveloppe MCP 64 Kio, quotas, garde BYOK préalable au cache et exécution.
       return await servirRequeteMcp(autorise.requete, {
         versions: VERSIONS,
         capabilities: { tools: { listChanged: false } },
@@ -522,7 +484,6 @@ async function executerOutil(
     (nom === "find_case" && args.live === true);
   const estJamaisSortant = estAppelHorsLigne || (nom === "find_case" && args.live === false);
 
-  // 8 & 10. Lecture des compteurs journaliers et contrôle de quota sur le nom d'outil du corps.
   let verdictLocal: ReturnType<typeof verifierQuotaJour> | null = null;
   let verdictSortant: ReturnType<typeof verifierQuotaJour> | null = null;
 
@@ -574,7 +535,6 @@ async function executerOutil(
     }
   }
 
-  // 11. Garde stricte BYOK CanLII AVANT toute lecture du cache D1 `cases`/`citator_*` (G8, G10).
   let baseClient: CanliiClient;
   let provenanceClef: "entete" | "coffre" | "transitoire" | "aucune" = "aucune";
 
@@ -637,7 +597,6 @@ async function executerOutil(
     baseClient = ouverture.client;
     provenanceClef = ouverture.provenance;
   } else {
-    // Phase 3a coexistence sur `/mcp` pour `secret_partage` uniquement (zéro retombée pour `titulaire`).
     const surchargeEntete = lirePorteurEntete(requete, "X-Clef-CanLII");
     if (surchargeEntete.etat === "invalide") {
       return err(
@@ -693,7 +652,6 @@ async function executerOutil(
     usage: () => baseClient.usage(),
   };
 
-  // 12. Exécution de l'outil, révocation dynamique sur 401/403 et comptabilisation exacte local vs sortant.
   const debut = Date.now();
   try {
     const resultat = await outil.handler(args, { env, db: env.DB, client, ctx });
