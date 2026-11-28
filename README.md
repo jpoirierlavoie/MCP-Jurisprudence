@@ -31,12 +31,12 @@ Les douze outils sont exposés sous la clé serveur `juris` dans [`droit-civil-q
 
 ## Se connecter (avocats et développeurs)
 
-- **Via le greffon complet [`droit-civil-quebecois`](https://github.com/jpoirierlavoie/droit-civil-quebecois) (méthode recommandée) :** après approbation sur <https://acces.poirierlavoie.ca/demande> (la clé API CanLII personnelle est **facultative sur `/demande`**, ajoutable ou modifiable ensuite dans `/moi`, et exigée uniquement pour `juris`, jamais pour `lois` ni `outils`), Claude Code, Claude Desktop, `claude.ai`, ChatGPT Web/Desktop, Google Antigravity, Gemini CLI et Gemini App se connectent par navigateur en OAuth 2.1 sur `https://jurisprudence.poirierlavoie.ca/mcp/oauth` (portée universelle `"tous"`, `"jurisprudence"`, ou `"les_deux"` rétrocompatible), sans secret à copier.
+- **Via le greffon complet [`droit-civil-quebecois`](https://github.com/jpoirierlavoie/droit-civil-quebecois) (méthode recommandée) :** après approbation sur <https://acces.poirierlavoie.ca/demande> (la clé API CanLII personnelle est **facultative sur `/demande`**, ajoutable ou modifiable ensuite dans `/moi`, et exigée uniquement pour `juris`, jamais pour `lois` ni `outils`), Claude Code, Claude Desktop, `claude.ai`, Google Antigravity, Gemini CLI et Gemini App se connectent par navigateur en OAuth 2.1 sur `https://jurisprudence.poirierlavoie.ca/mcp/oauth` (portée universelle `"tous"`, `"jurisprudence"`, ou `"les_deux"` rétrocompatible), sans secret à copier.
 - **Via jeton individuel (scripts, API Gemini Deep Research ou installation autonome) :** utiliser `https://jurisprudence.poirierlavoie.ca/mcp` avec `Authorization: Bearer <jeton>` créé dans <https://acces.poirierlavoie.ca/moi> (ou `?key=<jeton>` pour les formulaires web sans OAuth ; portées admises `"tous"`, `"jurisprudence"` ou `"les_deux"` ; clé CanLII lue depuis votre coffre `/moi` ou l'en-tête `X-Clef-CanLII`). Tout appel non authentifié sur `/mcp` reçoit uniformément `404` à corps vide sans `WWW-Authenticate`.
 - **Installation autonome de ce seul dépôt (sans le greffon `droit-civil-quebecois`) :**
   - **Google Antigravity** (`plugin.json`, `mcp_config.json`) : `agy plugin install https://github.com/jpoirierlavoie/MCP-Jurisprudence.git`, puis se connecter en OAuth 2.1 par navigateur sur `/mcp/oauth` après approbation sur `https://acces.poirierlavoie.ca/demande` (clé API CanLII facultative sur `/demande`, ajoutable/gérable ensuite sur `/moi`, requise pour `juris` uniquement).
   - **Gemini CLI** (`gemini-extension.json`) : `gemini extensions install https://github.com/jpoirierlavoie/MCP-Jurisprudence`, puis se connecter en OAuth 2.1 par navigateur sur `/mcp/oauth` (même compte `acces.poirierlavoie.ca` / `/moi`, `"settings": []`, `"contextFileName": []` évite d'injecter `GEMINI.md` dans vos sessions).
-- **Origines navigateur autorisées :** `https://gemini.google.com`, `https://aistudio.google.com`, `https://claude.ai`, `https://claude.com`, `https://chatgpt.com`, `https://chat.openai.com` et `https://platform.openai.com` (incluant `X-Clef-CanLII`).
+- **Origines navigateur autorisées :** `https://gemini.google.com`, `https://aistudio.google.com`, `https://claude.ai` et `https://claude.com` (incluant `X-Clef-CanLII`).
 - **Découverte HTTP (SEP-2127) :** la fiche publique de connectivité est exposée sans secret sur `GET https://jurisprudence.poirierlavoie.ca/mcp/server-card` et `GET https://jurisprudence.poirierlavoie.ca/.well-known/mcp/server-card.json` (`application/mcp-server-card+json`).
 
 > **In English (Connection & Access):** Approved Barreau du Québec members (`https://acces.poirierlavoie.ca/demande`) connect by default via OAuth 2.1 on `https://jurisprudence.poirierlavoie.ca/mcp/oauth` (supported scopes: `"tous"` universal, `"jurisprudence"`, or backwards-compatible `"les_deux"`). For headless CLI/API use, `/mcp` accepts a personal Bearer token (`Authorization: Bearer <token>` or `?key=<token>`) from `/moi` and returns a uniform empty `404` without `WWW-Authenticate` when unauthenticated. Your personal CanLII API key is **optional on `/demande`**, manageable later in `/moi` (or passed per request via `X-Clef-CanLII`), and is required **only** for `juris`, never for `lois` or `outils`.
@@ -127,7 +127,7 @@ Ce connecteur n'envoie vers CanLII que des **citations, identifiants de tribunau
 ## Architecture
 
 ```
-Claude / ChatGPT / Antigravity / Gemini
+Claude / Antigravity / Gemini
         │  POST /mcp/oauth + OAuth 2.1 Bearer (par défaut via acces.poirierlavoie.ca)
         │  OU  POST /mcp (+ Authorization: Bearer <jeton> ou ?key=<jeton>)
         │  GET /mcp/server-card (fiche publique SEP-2127, sans secret)

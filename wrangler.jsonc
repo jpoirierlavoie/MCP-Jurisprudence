@@ -51,7 +51,7 @@
     "CANLII_TIMEOUT_MS": "15000",
     "PERSIST_SWEEPS": "true",
     "DEFAULT_LANG": "fr",
-    "ALLOWED_ORIGINS": "https://chatgpt.com,https://chat.openai.com,https://platform.openai.com",
+    "ALLOWED_ORIGINS": "",
     "ORIGINE_PORTAIL": "https://acces.poirierlavoie.ca"
   }
 }

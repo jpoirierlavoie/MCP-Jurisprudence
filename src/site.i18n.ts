@@ -159,7 +159,7 @@ export const EN = {
   titre: "MCP Case Law — Citation Verification (CanLII)",
 
   intro: [
-    "Connects your AI assistant (Claude, ChatGPT, Gemini, Antigravity) to CanLII so it can verify " +
+    "Connects your AI assistant (Claude, Gemini, Antigravity) to CanLII so it can verify " +
       "case citations, retrieve official decision records, and check courts' exempt-authorities " +
       "lists rather than inventing references.",
   ],
@@ -178,7 +178,7 @@ export const EN = {
       "API key is optional on /demande (and can be added or managed later at /moi). No CanLII " +
       "key is needed for « lois » or « outils »; your own CanLII key (stored encrypted on the " +
       "portal and using your own quota) is required only for « juris ».",
-    "2. Install the droit-civil-quebecois plugin in Claude, ChatGPT, Gemini, or Antigravity — or " +
+    "2. Install the droit-civil-quebecois plugin in Claude, Gemini, or Antigravity — or " +
       "add https://jurisprudence.poirierlavoie.ca/mcp/oauth directly in connector settings — then " +
       "click Connect and sign in through your browser (no secret keys to copy).",
     "Your searched citations and queries are never logged. Manage your CanLII key or account " +
